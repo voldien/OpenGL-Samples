@@ -1,9 +1,13 @@
-#ifndef _VKCOMMON_WINDOW_H_
-#define _VKCOMMON_WINDOW_H_ 1
+#ifndef _GLCOMMON_WINDOW_H_
+#define _GLCOMMON_WINDOW_H_ 1
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h>
 #include <string>
 
+/**
+ * @brief
+ *
+ */
 class SDLWindow {
   public:
 	virtual void show(void);
@@ -51,7 +55,6 @@ class SDLWindow {
 	virtual void getMinimumSize(int *width, int *height);
 	virtual void setMaximumSize(int width, int height);
 	virtual void getMaximumSize(int *width, int *height);
-
 
   protected:
 	SDL_Window *window;

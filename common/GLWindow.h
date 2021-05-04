@@ -95,7 +95,6 @@ class GLWindow : public SDLWindow {
 	virtual void cleanSwapChain(void);
 
   private:
-	SDL_Window *window;
 	SDL_GLContext glcontext;
 };
 

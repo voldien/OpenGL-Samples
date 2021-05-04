@@ -1,17 +1,15 @@
 #include "GLWindow.h"
-#include "VKHelper.h"
-#include "common.hpp"
-#include <SDL2/SDL_vulkan.h>
 #include <cassert>
 #include <stdexcept>
-#include <vulkan/vulkan.h>
+#include<GL/glew.h>
+#include<fmt/format.h>
 
 GLWindow::~GLWindow(void) { this->close(); }
 
-GLWindow::GLWindow(const VulkanCore &core, int x, int y, int width, int height) {
+GLWindow::GLWindow( int x, int y, int width, int height) {
 
-	if (!SDL_InitSubSystem(SDL_INIT_EVENTS | SDL_INIT_VIDEO)) {
-		throw std::runtime_error(fvformatf("failed create window - %s", SDL_GetError()));
+	if (SDL_InitSubSystem(SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0) {
+		throw std::runtime_error(fmt::format("Failed to init subsystem {}", SDL_GetError()));
 	}
 
 	SDL_DisplayMode displaymode;
@@ -27,9 +25,9 @@ GLWindow::GLWindow(const VulkanCore &core, int x, int y, int width, int height) 
 	}
 
 	/*  Create Vulkan window.   */
-	this->window = SDL_CreateWindow("Vulkan Sample", x, y, width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+	this->window = SDL_CreateWindow("OpenGL Sample", x, y, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 	if (window == NULL) {
-		throw std::runtime_error(fvformatf("failed create window - %s", SDL_GetError()));
+		throw std::runtime_error(fmt::format("failed create window - {}", SDL_GetError()));
 	}
 
 	createSwapChain();
@@ -37,33 +35,20 @@ GLWindow::GLWindow(const VulkanCore &core, int x, int y, int width, int height) 
 	this->Initialize();
 }
 
-void GLWindow::swapBuffer(void) { SDL_GL_SwapWindow(this->window) }
+void GLWindow::swapBuffer(void) { SDL_GL_SwapWindow(this->window); }
 
 void GLWindow::createSwapChain(void) { glcontext = SDL_GL_CreateContext(this->window); }
 
 void GLWindow::recreateSwapChain(void) {
-	vkDeviceWaitIdle(getDevice());
 
-	cleanSwapChain();
 
-	createSwapChain();
+	//cleanSwapChain();
+
+	//createSwapChain();
 }
 
 void GLWindow::cleanSwapChain(void) {
-	for (auto framebuffer : swapChain->swapChainFramebuffers) {
-		vkDestroyFramebuffer(core->device, framebuffer, nullptr);
-	}
 
-	vkFreeCommandBuffers(core->device, this->cmd_pool, static_cast<uint32_t>(swapChain->commandBuffers.size()),
-						 swapChain->commandBuffers.data());
-
-	vkDestroyRenderPass(getDevice(), swapChain->renderPass, nullptr);
-
-	for (auto imageView : swapChain->swapChainImageViews) {
-		vkDestroyImageView(core->device, imageView, nullptr);
-	}
-
-	vkDestroySwapchainKHR(core->device, this->swapChain->swapchain, nullptr);
 }
 
 void GLWindow::show() { SDL_ShowWindow(this->window); }
@@ -142,11 +127,16 @@ intptr_t GLWindow::getNativePtr(void) const {}
 
 void GLWindow::Initialize(void) {}
 
+void GLWindow::Release(void) {}
+
 void GLWindow::draw(void) {}
 
 void GLWindow::onResize(int width, int height) { recreateSwapChain(); }
 
 void GLWindow::run(void) {
+	/*	*/
+	this->Initialize();
+
 	SDL_Event event = {};
 	bool isAlive = true;
 	bool visible;
@@ -155,15 +145,17 @@ void GLWindow::run(void) {
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 			case SDL_QUIT:
-				return; /*  Exit.  */
+				goto finished;
+				// return; /*  Exit.  */
 			case SDL_KEYDOWN:
 				break;
 			case SDL_WINDOWEVENT:
 				switch (event.window.event) {
 				case SDL_WINDOWEVENT_CLOSE:
 					return;
-				case SDL_WINDOWEVENT_SIZE_CHANGED:
+				// case SDL_WINDOWEVENT_SIZE_CHANGED:
 				case SDL_WINDOWEVENT_RESIZED:
+					recreateSwapChain();
 					onResize(event.window.data1, event.window.data2);
 				case SDL_WINDOWEVENT_HIDDEN:
 				case SDL_WINDOWEVENT_MINIMIZED:
@@ -179,8 +171,11 @@ void GLWindow::run(void) {
 			default:
 				break;
 			}
-			this->draw();
-			this->swapBuffer();
 		}
+		this->draw();
+		this->swapBuffer();
 	}
+finished:
+	return;
+	//	vkQueueWaitIdle(getDefaultGraphicQueue());
 }
