@@ -4,7 +4,7 @@
 #include<GL/glew.h>
 #include<fmt/format.h>
 
-GLWindow::~GLWindow(void) { this->close(); }
+GLWindow::~GLWindow() { this->close(); }
 
 GLWindow::GLWindow( int x, int y, int width, int height) {
 
@@ -35,11 +35,11 @@ GLWindow::GLWindow( int x, int y, int width, int height) {
 	this->Initialize();
 }
 
-void GLWindow::swapBuffer(void) { SDL_GL_SwapWindow(this->window); }
+void GLWindow::swapBuffer() { SDL_GL_SwapWindow(this->window); }
 
-void GLWindow::createSwapChain(void) { glcontext = SDL_GL_CreateContext(this->window); }
+void GLWindow::createSwapChain() { glcontext = SDL_GL_CreateContext(this->window); }
 
-void GLWindow::recreateSwapChain(void) {
+void GLWindow::recreateSwapChain() {
 
 
 	//cleanSwapChain();
@@ -47,7 +47,7 @@ void GLWindow::recreateSwapChain(void) {
 	//createSwapChain();
 }
 
-void GLWindow::cleanSwapChain(void) {
+void GLWindow::cleanSwapChain() {
 
 }
 
@@ -55,7 +55,7 @@ void GLWindow::show() { SDL_ShowWindow(this->window); }
 
 void GLWindow::hide() { SDL_HideWindow(this->window); }
 
-void GLWindow::close(void) {
+void GLWindow::close() {
 	this->hide();
 	SDL_DestroyWindow(this->window);
 }
@@ -69,7 +69,7 @@ void GLWindow::setSize(int width, int height) {
 
 void GLWindow::vsync(bool state) {}
 
-// GLWindow::~RendererWindow(void) {}
+// GLWindow::~RendererWindow() {}
 
 void GLWindow::getPosition(int *x, int *y) const { SDL_GetWindowPosition(this->window, x, y); }
 
@@ -77,10 +77,10 @@ void GLWindow::getSize(int *width, int *height) const { SDL_GetWindowSize(this->
 
 void GLWindow::setTitle(const char *title) { SDL_SetWindowTitle(this->window, title); }
 
-std::string &GLWindow::getTitle(void) const{
+std::string &GLWindow::getTitle() const{
 
 }
-std::string GLWindow::getTitle(void){
+std::string GLWindow::getTitle(){
 
 }
 
@@ -94,16 +94,16 @@ void GLWindow::setFullScreen(bool fullscreen) {
 		SDL_SetWindowFullscreen(this->window, 0);
 }
 
-bool GLWindow::isFullScreen(void) const {}
+bool GLWindow::isFullScreen() const {}
 
 void GLWindow::setBordered(bool bordered) { SDL_SetWindowBordered(this->window, (SDL_bool)bordered); }
 
-int GLWindow::width(void) const {
+int GLWindow::width() const {
 	int w, h;
 	getSize(&w, &h);
 	return w;
 }
-int GLWindow::height(void) const {
+int GLWindow::height() const {
 	int w, h;
 	getSize(&w, &h);
 	return h;
@@ -115,25 +115,25 @@ void GLWindow::getMinimumSize(int *width, int *height) {}
 void GLWindow::setMaximumSize(int width, int height) { SDL_SetWindowMaximumSize(this->window, width, height); }
 void GLWindow::getMaximumSize(int *width, int *height) {}
 
-void GLWindow::focus(void) { SDL_SetWindowInputFocus(this->window); }
+void GLWindow::focus() { SDL_SetWindowInputFocus(this->window); }
 
-void GLWindow::restore(void) { SDL_RestoreWindow(this->window); }
+void GLWindow::restore() { SDL_RestoreWindow(this->window); }
 
-void GLWindow::maximize(void) { SDL_MaximizeWindow(this->window); }
+void GLWindow::maximize() { SDL_MaximizeWindow(this->window); }
 
-void GLWindow::minimize(void) { SDL_MinimizeWindow(this->window); }
+void GLWindow::minimize() { SDL_MinimizeWindow(this->window); }
 
-intptr_t GLWindow::getNativePtr(void) const {}
+intptr_t GLWindow::getNativePtr() const {}
 
-void GLWindow::Initialize(void) {}
+void GLWindow::Initialize() {}
 
-void GLWindow::Release(void) {}
+void GLWindow::Release() {}
 
-void GLWindow::draw(void) {}
+void GLWindow::draw() {}
 
 void GLWindow::onResize(int width, int height) { recreateSwapChain(); }
 
-void GLWindow::run(void) {
+void GLWindow::run() {
 	/*	*/
 	this->Initialize();
 

@@ -16,11 +16,12 @@ class TriangleWindow : public GLWindow {
 		{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f, 0.0f}, {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}};
 
 	virtual void Release(void) override {}
-	virtual void Initialize(void) override { glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+	virtual void Initialize(void) override {
+		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		/*	Load shader	*/
 
 		/*	Create geomtry.	*/
-	 }
+	}
 
 	virtual void draw(void) override {
 

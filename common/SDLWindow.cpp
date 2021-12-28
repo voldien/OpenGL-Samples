@@ -4,7 +4,7 @@ void SDLWindow::show() { SDL_ShowWindow(this->window); }
 
 void SDLWindow::hide() { SDL_HideWindow(this->window); }
 
-void SDLWindow::close(void) {
+void SDLWindow::close() {
 	this->hide();
 	SDL_DestroyWindow(this->window);
 }
@@ -21,17 +21,17 @@ void SDLWindow::getPosition(int *x, int *y) const { SDL_GetWindowPosition(this->
 void SDLWindow::getSize(int *width, int *height) const { SDL_GetWindowSize(this->window, width, height); }
 void SDLWindow::setTitle(std::string &title){}
 
-std::string &SDLWindow::getTitle(void) const{
+std::string &SDLWindow::getTitle() const{
 
 }
-std::string SDLWindow::getTitle(void){}
+std::string SDLWindow::getTitle(){}
 
-int SDLWindow::x(void) const {
+int SDLWindow::x() const {
 	int x, y;
 	SDL_GetWindowPosition(this->window, &x, &y);
 	return x;
 }
-int SDLWindow::y(void) const {
+int SDLWindow::y() const {
 	int x, y;
 	SDL_GetWindowPosition(this->window, &x, &y);
 	return y;
@@ -46,16 +46,16 @@ void SDLWindow::setFullScreen(bool fullscreen) {
 		SDL_SetWindowFullscreen(this->window, 0);
 }
 
-bool SDLWindow::isFullScreen(void) const {}
+bool SDLWindow::isFullScreen() const {}
 
 void SDLWindow::setBordered(bool bordered) { SDL_SetWindowBordered(this->window, (SDL_bool)bordered); }
 
-int SDLWindow::width(void) const {
+int SDLWindow::width() const {
 	int w, h;
 	getSize(&w, &h);
 	return w;
 }
-int SDLWindow::height(void) const {
+int SDLWindow::height() const {
 	int w, h;
 	getSize(&w, &h);
 	return h;
@@ -67,10 +67,10 @@ void SDLWindow::getMinimumSize(int *width, int *height) {}
 void SDLWindow::setMaximumSize(int width, int height) { SDL_SetWindowMaximumSize(this->window, width, height); }
 void SDLWindow::getMaximumSize(int *width, int *height) {}
 
-void SDLWindow::focus(void) { SDL_SetWindowInputFocus(this->window); }
+void SDLWindow::focus() { SDL_SetWindowInputFocus(this->window); }
 
-void SDLWindow::restore(void) { SDL_RestoreWindow(this->window); }
+void SDLWindow::restore() { SDL_RestoreWindow(this->window); }
 
-void SDLWindow::maximize(void) { SDL_MaximizeWindow(this->window); }
+void SDLWindow::maximize() { SDL_MaximizeWindow(this->window); }
 
-void SDLWindow::minimize(void) { SDL_MinimizeWindow(this->window); }
+void SDLWindow::minimize() { SDL_MinimizeWindow(this->window); }

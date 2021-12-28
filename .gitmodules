@@ -1,0 +1,3 @@
+[submodule "extern/mimi-imgui"]
+	path = extern/mimi-imgui
+	url = https://github.com/voldien/mimi-imgui.git

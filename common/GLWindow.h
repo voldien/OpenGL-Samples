@@ -10,29 +10,29 @@ class GLWindow : public SDLWindow {
   public:
 	GLWindow(int x, int y, int width, int height);
 	GLWindow(const GLWindow &other) = delete;
-	~GLWindow(void);
+	~GLWindow();
 
   public:
 	/**
 	 * @brief
 	 *
 	 */
-	virtual void Initialize(void);
+	virtual void Initialize();
 	/**
 	 * @brief
 	 *
 	 */
-	virtual void Release(void);
+	virtual void Release();
 	/**
 	 * @brief
 	 *
 	 */
-	virtual void draw(void);
+	virtual void draw();
 	/**
 	 * @brief
 	 *
 	 */
-	virtual void run(void);
+	virtual void run();
 
 	/**
 	 * @brief
@@ -41,21 +41,21 @@ class GLWindow : public SDLWindow {
 	virtual void onResize(int width, int height);
 
   public:
-	virtual void swapBuffer(void);
+	virtual void swapBuffer();
 
-	virtual void close(void);
+	virtual void close();
 
-	virtual void show(void);
+	virtual void show();
 
-	virtual void hide(void);
+	virtual void hide();
 
-	virtual void focus(void);
+	virtual void focus();
 
-	virtual void restore(void);
+	virtual void restore();
 
-	virtual void maximize(void);
+	virtual void maximize();
 
-	virtual void minimize(void);
+	virtual void minimize();
 
 	virtual void setPosition(int x, int y);
 
@@ -71,12 +71,12 @@ class GLWindow : public SDLWindow {
 
 	virtual void setFullScreen(bool fullscreen);
 
-	virtual bool isFullScreen(void) const;
+	virtual bool isFullScreen() const;
 
 	virtual void setBordered(bool bordered);
 
-	virtual int width(void) const;
-	virtual int height(void) const;
+	virtual int width() const;
+	virtual int height() const;
 
 	virtual void setMinimumSize(int width, int height);
 	virtual void getMinimumSize(int *width, int *height);
@@ -84,15 +84,15 @@ class GLWindow : public SDLWindow {
 	virtual void getMaximumSize(int *width, int *height);
 
 	virtual void setTitle(const char *title);
-	virtual std::string &getTitle(void) const;
-	virtual std::string getTitle(void);
+	virtual std::string &getTitle() const;
+	virtual std::string getTitle();
 
-	virtual intptr_t getNativePtr(void) const;
+	virtual intptr_t getNativePtr() const;
 
   protected:
-	virtual void createSwapChain(void);
-	virtual void recreateSwapChain(void);
-	virtual void cleanSwapChain(void);
+	virtual void createSwapChain();
+	virtual void recreateSwapChain();
+	virtual void cleanSwapChain();
 
   private:
 	SDL_GLContext glcontext;

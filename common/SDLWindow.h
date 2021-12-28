@@ -10,30 +10,30 @@
  */
 class SDLWindow {
   public:
-	virtual void show(void);
+	virtual void show();
 
-	virtual void hide(void);
+	virtual void hide();
 
-	virtual void close(void);
+	virtual void close();
 
-	virtual void focus(void);
+	virtual void focus();
 
-	virtual void restore(void);
+	virtual void restore();
 
-	virtual void maximize(void);
+	virtual void maximize();
 
-	virtual void minimize(void);
+	virtual void minimize();
 
 	virtual void setTitle(std::string &title);
 
-	virtual std::string &getTitle(void) const;
-	virtual std::string getTitle(void);
+	virtual std::string &getTitle() const;
+	virtual std::string getTitle();
 
-	virtual int x(void) const;
-	virtual int y(void) const;
+	virtual int x() const;
+	virtual int y() const;
 
-	virtual int width(void) const;
-	virtual int height(void) const;
+	virtual int width() const;
+	virtual int height() const;
 
 	virtual void getPosition(int *x, int *y) const;
 
@@ -47,7 +47,7 @@ class SDLWindow {
 
 	virtual void setFullScreen(bool fullscreen);
 
-	virtual bool isFullScreen(void) const;
+	virtual bool isFullScreen() const;
 
 	virtual void setBordered(bool borded);
 
