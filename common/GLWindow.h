@@ -1,5 +1,5 @@
-#ifndef _STARTUP_WINDOW_SAMPLE_H_
-#define _STARTUP_WINDOW_SAMPLE_H_ 1
+#ifndef _GL_WINDOW_H_
+#define _GL_WINDOW_H_ 1
 #include "SDLWindow.h"
 #include <GL/glew.h>
 #include <SDL2/SDL_video.h>

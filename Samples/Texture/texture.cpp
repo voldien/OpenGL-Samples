@@ -66,11 +66,10 @@ class TextureWindow : public GLWindow {
 
 int main(int argc, const char **argv) {
 	try {
+		GLSample<TriangleWindow> sample(argc, argv);
 
-		//	OpenGLCore core(argc, argv);
-		TriangleWindow w;
+		sample.run();
 
-		w.run();
 	} catch (std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex);

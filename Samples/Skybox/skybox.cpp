@@ -2,6 +2,7 @@
 #include "GLWindow.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <glm/glm.hpp>
 #include <iostream>
 
 class SkyBoxWindow : public GLWindow {
@@ -14,6 +15,10 @@ class SkyBoxWindow : public GLWindow {
 	unsigned int vbo;
 	unsigned vao;
 	unsigned int skybox_program;
+	glm::mat4 mvp;
+
+	unsigned int mvp_uniform;
+
 	const std::string vertexShaderPath = "Shaders/skybox/base.vert";
 	const std::string fragmentShaderPath = "Shaders/skybox/base.frag";
 
@@ -69,6 +74,8 @@ class SkyBoxWindow : public GLWindow {
 
 		this->skybox_program = ShaderLoader::loadProgram(&vertex_source, &fragment_source);
 
+		this->mvp_uniform = glGetUniformLocation(this->skybox_program, "MVP");
+
 		/*	Create array buffer, for rendering static geometry.	*/
 		glGenVertexArrays(1, &this->vao);
 		glBindVertexArray(this->vao);
@@ -95,6 +102,7 @@ class SkyBoxWindow : public GLWindow {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(this->skybox_program);
+		glUniformMatrix4fv(this->mvp_uniform, 1, GL_FALSE, &this->mvp[0][0]);
 
 		/*	Draw triangle*/
 		glBindVertexArray(this->vao);
@@ -106,11 +114,10 @@ class SkyBoxWindow : public GLWindow {
 
 int main(int argc, const char **argv) {
 	try {
+		GLSample<SkyBoxWindow> sample(argc, argv);
 
-		//	OpenGLCore core(argc, argv);
-		SkyBoxWindow w;
+		sample.run();
 
-		w.run();
 	} catch (std::exception &ex) {
 		std::cerr << cxxexcept::getStackMessage(ex);
 		return EXIT_FAILURE;
