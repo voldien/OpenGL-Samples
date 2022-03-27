@@ -32,13 +32,31 @@ IF(OPENGL_FOUND)
     MESSAGE(STATUS "OpenGL found: ${OPENGL_LIBRARIES}.")
 ENDIF()
 
+############################################
+# Backend libraries
+############################################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/mimi-imgui EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/cxxopts EXCLUDE_FROM_ALL)
 
+###################################################
+# Backend common logic for all OpenGL Samples
+####################################################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/common)
+
+
+####################################
+#	OpenGL Samples
+####################################
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SDLGLContext)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/StartupWindow)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Triangle)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Skybox)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Font)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VideoPlayback)
 
 SET(COMMON_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/common")
 INCLUDE_DIRECTORIES(${COMMON_INCLUDE})
+
+
+# All shader files.
+FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/Shaders DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

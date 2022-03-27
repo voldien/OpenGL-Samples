@@ -2,7 +2,9 @@ FILE(GLOB SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 FILE(GLOB HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 ADD_LIBRARY(glCommon SHARED ${SOURCE_FILES} ${HEADER_FILES} )
-TARGET_LINK_LIBRARIES(glCommon PUBLIC fragcore mimi-window fragcore-rgl ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${SDL2_LINK_LIBRARIES} )
+TARGET_LINK_LIBRARIES(glCommon PUBLIC fragcore mimi-window fragcore-rgl fragcore-shader-compiler cxxopts ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${SDL2_LINK_LIBRARIES} )
 # OpenGL dependies headers.
 TARGET_INCLUDE_DIRECTORIES(glCommon PRIVATE ${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} )
-ADD_DEPENDENCIES(glCommon fragcore mimi-window fragcore-rgl)
+ADD_DEPENDENCIES(glCommon fragcore mimi-window fragcore-rgl fragcore-shader-compiler cxxopts)
+
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Importer)

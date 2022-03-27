@@ -31,6 +31,15 @@ GLWindow::GLWindow( int x, int y, int width, int height) {
 	}
 
 	createSwapChain();
+
+	/*	Init GLEW library.	*/
+	int status = glewInit();
+	if (status != GLEW_OK) {
+		SDL_GL_DeleteContext(this->glcontext);
+		SDL_DestroyWindow(window);
+		//throw cxxexcept::RuntimeException("Could not Initialize GLEW - {}.", glewGetErrorString(status));
+	}
+
 	/*	*/
 	this->Initialize();
 }
