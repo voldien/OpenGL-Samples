@@ -1,13 +1,15 @@
 #include "GLWindow.h"
+#include <GL/glew.h>
 #include <cassert>
+#include <fmt/format.h>
+#include <iostream>
 #include <stdexcept>
-#include<GL/glew.h>
-#include<fmt/format.h>
 
 GLWindow::~GLWindow() { this->close(); }
 
-GLWindow::GLWindow( int x, int y, int width, int height) {
+GLWindow::GLWindow(int x, int y, int width, int height) {
 
+	/**/
 	if (SDL_InitSubSystem(SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0) {
 		throw std::runtime_error(fmt::format("Failed to init subsystem {}", SDL_GetError()));
 	}
@@ -37,7 +39,7 @@ GLWindow::GLWindow( int x, int y, int width, int height) {
 	if (status != GLEW_OK) {
 		SDL_GL_DeleteContext(this->glcontext);
 		SDL_DestroyWindow(window);
-		//throw cxxexcept::RuntimeException("Could not Initialize GLEW - {}.", glewGetErrorString(status));
+		// throw cxxexcept::RuntimeException("Could not Initialize GLEW - {}.", glewGetErrorString(status));
 	}
 
 	/*	*/
@@ -50,15 +52,12 @@ void GLWindow::createSwapChain() { glcontext = SDL_GL_CreateContext(this->window
 
 void GLWindow::recreateSwapChain() {
 
+	// cleanSwapChain();
 
-	//cleanSwapChain();
-
-	//createSwapChain();
+	// createSwapChain();
 }
 
-void GLWindow::cleanSwapChain() {
-
-}
+void GLWindow::cleanSwapChain() {}
 
 void GLWindow::show() { SDL_ShowWindow(this->window); }
 
@@ -86,12 +85,8 @@ void GLWindow::getSize(int *width, int *height) const { SDL_GetWindowSize(this->
 
 void GLWindow::setTitle(const char *title) { SDL_SetWindowTitle(this->window, title); }
 
-std::string &GLWindow::getTitle() const{
-
-}
-std::string GLWindow::getTitle(){
-
-}
+std::string &GLWindow::getTitle() const { return SDLWindow::getTitle(); }
+std::string GLWindow::getTitle() { return SDLWindow::getTitle(); }
 
 void GLWindow::resizable(bool resizable) { SDL_SetWindowResizable(this->window, (SDL_bool)resizable); }
 
@@ -103,7 +98,9 @@ void GLWindow::setFullScreen(bool fullscreen) {
 		SDL_SetWindowFullscreen(this->window, 0);
 }
 
-bool GLWindow::isFullScreen() const {}
+bool GLWindow::isFullScreen() const {
+	return SDLWindow::isFullScreen();
+}
 
 void GLWindow::setBordered(bool bordered) { SDL_SetWindowBordered(this->window, (SDL_bool)bordered); }
 
@@ -132,7 +129,7 @@ void GLWindow::maximize() { SDL_MaximizeWindow(this->window); }
 
 void GLWindow::minimize() { SDL_MinimizeWindow(this->window); }
 
-intptr_t GLWindow::getNativePtr() const {}
+intptr_t GLWindow::getNativePtr() const { return 0; }
 
 void GLWindow::Initialize() {}
 
@@ -148,7 +145,7 @@ void GLWindow::run() {
 
 	SDL_Event event = {};
 	bool isAlive = true;
-	bool visible;
+	bool visible = true;
 
 	while (isAlive) {
 		while (SDL_PollEvent(&event)) {
@@ -181,10 +178,17 @@ void GLWindow::run() {
 				break;
 			}
 		}
-		this->draw();
-		this->swapBuffer();
+		if (visible) {
+			this->draw();
+
+			this->swapBuffer();
+			this->getTimer().update();
+			this->fpsCounter.incrementFPS(SDL_GetPerformanceCounter());
+
+			std::cout << "FPS " << getFPSCounter().getFPS() << " Elapsed Time: " << getTimer().getElapsed()
+					  << std::endl;
+		}
 	}
 finished:
 	return;
-	//	vkQueueWaitIdle(getDefaultGraphicQueue());
 }

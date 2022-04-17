@@ -4,9 +4,9 @@
 #include <GL/glew.h>
 #include <iostream>
 
-class ParticleWindow : public GLWindow {
+class ParticleSystem : public GLWindow {
   public:
-	ParticleWindow() : GLWindow(-1, -1, -1, -1) {}
+	ParticleSystem() : GLWindow(-1, -1, -1, -1) {}
 	typedef struct _vertex_t {
 		float pos[2];
 		float color[3];
@@ -64,7 +64,7 @@ class ParticleWindow : public GLWindow {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<ParticleWindow> sample(argc, argv);
+		GLSample<ParticleSystem> sample(argc, argv);
 
 		sample.run();
 

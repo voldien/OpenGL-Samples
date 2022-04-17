@@ -1,6 +1,8 @@
 #ifndef _GL_WINDOW_H_
 #define _GL_WINDOW_H_ 1
+#include "FPSCounter.h"
 #include "SDLWindow.h"
+#include "Util/Time.hpp"
 #include <GL/glew.h>
 #include <SDL2/SDL_video.h>
 #include <memory>
@@ -89,6 +91,10 @@ class GLWindow : public SDLWindow {
 
 	virtual intptr_t getNativePtr() const;
 
+  public:
+	FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }
+	vkscommon::Time &getTimer() noexcept { return this->time; }
+
   protected:
 	virtual void createSwapChain();
 	virtual void recreateSwapChain();
@@ -96,6 +102,8 @@ class GLWindow : public SDLWindow {
 
   private:
 	SDL_GLContext glcontext;
+	FPSCounter<float> fpsCounter;
+	vkscommon::Time time;
 };
 
 #endif

@@ -1,29 +1,24 @@
-#ifndef _GL_COMMON_IOTUTIL_H_
-#define _GL_COMMON_IOTUTIL_H_ 1
+#ifndef _GL_SAMPLE_IOTUTIL_H_
+#define _GL_SAMPLE_IOTUTIL_H_ 1
+#include <Core/IO/FileSystem.h>
+#include <Core/IO/IOUtil.h>
 #include <Exception.hpp>
 #include <fmt/format.h>
 #include <fstream>
 #include <vector>
 
-class IOUtil {
-  public:
-	static std::vector<char> readFile(const std::string &filename) {
-		std::ifstream file(filename, std::ios::ate | std::ios::binary);
+using namespace fragcore;
 
-		if (!file.is_open()) {
-			throw cxxexcept::RuntimeException("failed to open file {}!", filename);
+namespace glsample {
+
+	class FVDECLSPEC IOUtil {
+	  public:
+		static std::vector<char> readFile(const std::string &filename) {
+
+			Ref<IO> ref = Ref<IO>(FileSystem::getFileSystem()->openFile(filename.c_str(), IO::IOMode::READ));
+			return fragcore::IOUtil::readString<char>(ref);
 		}
-
-		size_t fileSize = (size_t)file.tellg();
-		std::vector<char> buffer(fileSize);
-
-		file.seekg(0);
-		file.read(buffer.data(), fileSize);
-
-		file.close();
-
-		return buffer;
-	}
-};
+	};
+} // namespace glsample
 
 #endif

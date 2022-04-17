@@ -1,7 +1,7 @@
 #pragma once
 #include<Core/IO/IOUtil.h>
 
-class ShaderLoader {
+class FVDECLSPEC ShaderLoader {
   public:
 	static int loadProgram(const std::vector<char> *vertex, const std::vector<char> *fragment,
 						   const std::vector<char> *geometry = nullptr, const std::vector<char> *tesselationc = nullptr,

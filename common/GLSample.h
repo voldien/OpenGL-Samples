@@ -1,11 +1,9 @@
-#pragma once
+#ifndef _GL_SAMPLE_H_
+#define _GL_SAMPLE_H_ 1
+#include "GLSampleSession.h"
+#include "IOUtil.h"
+#include "Util/CameraController.h"
 #include <cxxopts.hpp>
-
-class GLSampleSession {
-  public:
-	virtual void run() {}
-	virtual void commandline(cxxopts::Options &options) {}
-};
 
 template <class T> class GLSample : public GLSampleSession {
   public:
@@ -16,22 +14,29 @@ template <class T> class GLSample : public GLSampleSession {
 									   ""
 									   "";
 
-		/*	*/
+		/*	Default common options between all samples.	*/
 		cxxopts::Options options("OpenGL Sample", helperInfo);
-		options.add_options()("h,help", "helper information.")("d,debug", "Enable Debug View.",
-															   cxxopts::value<bool>()->default_value("true"))(
+		options.add_options("OpenGL-Samples")("h,help", "helper information.")(
+			"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value("true"))(
 			"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"));
+
+		/*	*/
+		this->commandline(options);
 
 		auto result = options.parse(argc, (char **&)argv);
 		/*	If mention help, Display help and exit!	*/
 		if (result.count("help") > 0) {
-			std::cout << options.help();
+			std::cout << options.help(options.groups());
 			exit(EXIT_SUCCESS);
 		}
 
 		bool debug = result["debug"].as<bool>();
+		/*	Enable debugging.	*/
+
 		if (result.count("time") > 0) {
 		}
+
+		FileSystem::createFileSystem();
 
 		this->ref = new T();
 	}
@@ -43,3 +48,5 @@ template <class T> class GLSample : public GLSampleSession {
   private:
 	T *ref;
 };
+
+#endif
