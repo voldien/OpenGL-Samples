@@ -4,8 +4,7 @@
 #include "ShaderLoader.h"
 #include "Util/CameraController.h"
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_video.h>
+
 #include <glm/glm.hpp>
 #include <iostream>
 namespace glsample {
@@ -17,15 +16,19 @@ namespace glsample {
 			float pos[2];
 			float color[3];
 		} Vertex;
+		/*	*/
 		unsigned int vao;
 		unsigned int vbo;
+
 		int texture_program;
 		int gl_texture;
 		int mvp_uniform;
 
 		glm::mat4 mvp;
 		CameraController camera;
+		
 		std::string texturePath = "texture.png";
+		/*	*/
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag";
 
@@ -35,10 +38,11 @@ namespace glsample {
 
 		virtual void Release() override {
 			glDeleteProgram(this->texture_program);
-			glDeleteVertexArrays(1, &this->vao);
-			glDeleteBuffers(1, &this->vbo);
 
 			glDeleteTextures(1, (const GLuint *)&this->gl_texture);
+
+			glDeleteVertexArrays(1, &this->vao);
+			glDeleteBuffers(1, &this->vbo);
 		}
 
 		virtual void Initialize() override {
@@ -48,7 +52,7 @@ namespace glsample {
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
 
 			/*	Load shader	*/
-			this->texture_program = ShaderLoader::loadProgram(&vertex_source, &fragment_source);
+			this->texture_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
 			glUseProgram(this->texture_program);
 			this->mvp_uniform = glGetUniformLocation(this->texture_program, "MVP");
@@ -57,6 +61,10 @@ namespace glsample {
 
 			// Load Texture
 			this->gl_texture = TextureImporter::loadImage2D(this->texturePath);
+
+			/*	TODO generate plan.	*/
+			fragcore::ProceduralGeometry p;
+			// p.generatePlan()
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->vao);
@@ -88,7 +96,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	*/
-			glClear(GL_COLOR_BUFFER_BIT);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			glUseProgram(this->texture_program);
 			glUniformMatrix4fv(this->mvp_uniform, 1, GL_FALSE, &camera.getViewMatrix()[0][0]);

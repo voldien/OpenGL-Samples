@@ -3,8 +3,7 @@
 #include "ShaderLoader.h"
 #include <FontFactory.h>
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_video.h>
+
 #include <iostream>
 namespace glsample {
 
@@ -39,7 +38,7 @@ namespace glsample {
 			// FontFactory::
 
 			/*	Load shader	*/
-			this->triangle_program = ShaderLoader::loadProgram(&vertex_source, &fragment_source);
+			this->triangle_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
 			glUseProgram(this->triangle_program);
 			this->triangle_program = glGetUniformLocation(this->triangle_program, "MVP");

@@ -7,16 +7,26 @@ layout(location = 0) in vec2 UV;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 tangent;
 
-struct DirectionLight {
-	BaseLight base;
-	vec3 Direction;
-};
+layout(binding = 0) uniform UniformBufferBlock {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+	mat4 modelView;
+	mat4 modelViewProjection;
+	mat4 normalMatrix;
+	/*	Light source.	*/
+	vec3 direction;
+	vec4 lightColor;
+	vec4 ambientColor;
+}
+ubo;
 
+layout(binding = 1) uniform sampler2D DiffuseTexture;
+layout(binding = 2) uniform sampler2D NormalTexture;
 
-
-layout(location = 2) uniform sampler2D DiffuseTexture;
-layout(location = 3) uniform sampler2D NormalTexture;
-
+float computeLightContributionFactor(in vec3 direction, in vec3 normalInput) {
+	return max(0.0, dot(-normalInput, direction));
+}
 
 void main() {
 
@@ -26,13 +36,12 @@ void main() {
 	Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
 	vec3 bittagnet = cross(Ttangent, Mnormal);
 
-	vec3 NormalMapBump = 2.0 * texture2D(NormalTexture, UV).xyz - vec3(1);
+	vec3 NormalMapBump = 2.0 * texture(NormalTexture, UV).xyz - vec3(1.0, 1.0, 1.0);
 
-	vec3 alteredNormal = mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump;
+	vec3 alteredNormal = normalize(mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump);
 
 	// Compute directional light
-	contribution = max(0.0, dot(alteredNormal, -normalize(_DirectionLight[x].Direction)));
-	EndColor += vec3(_DirectionLight[x].base.Color * contribution * _DirectionLight[x].base.Intensity);
+	vec4 lightColor = computeLightContributionFactor(ubo.direction, alteredNormal) * ubo.lightColor;
 
-	fragColor = texture2D(DiffuseTexture, UV) * vec4(LightColor(), 1);
+	fragColor =  texture(DiffuseTexture, UV) * ( ubo.ambientColor + lightColor);
 }

@@ -1,13 +1,17 @@
 #ifndef _GL_WINDOW_H_
 #define _GL_WINDOW_H_ 1
 #include "FPSCounter.h"
+#include "IOUtil.h"
 #include "SDLWindow.h"
 #include "Util/Time.hpp"
 #include <GL/glew.h>
 #include <SDL2/SDL_video.h>
+#include <SDLWindow.h>
+#include <ShaderCompiler.h>
 #include <memory>
 #include <vector>
 
+// TOOD reaplce with fragcore SDL window impl.
 class GLWindow : public SDLWindow {
   public:
 	GLWindow(int x, int y, int width, int height);
@@ -94,6 +98,7 @@ class GLWindow : public SDLWindow {
   public:
 	FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }
 	vkscommon::Time &getTimer() noexcept { return this->time; }
+	size_t getFrameCount() noexcept { return this->frameCount; }
 
   protected:
 	virtual void createSwapChain();
@@ -104,6 +109,7 @@ class GLWindow : public SDLWindow {
 	SDL_GLContext glcontext;
 	FPSCounter<float> fpsCounter;
 	vkscommon::Time time;
+	size_t frameCount = 0;
 };
 
 #endif

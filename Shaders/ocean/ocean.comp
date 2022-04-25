@@ -1,0 +1,67 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout(local_size_x = 32, local_size_y = 1) in;
+
+// TODO refractor.
+
+struct particle_t {
+	vec2 h0;
+	vec2 ht_real_img;
+};
+
+layout(std430, set = 0, binding = 0) buffer Positions { particle_t pos[]; }
+positions;
+
+struct particle_param_t {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+	mat4 modelView;
+	mat4 modelViewProjection;
+
+	float width, height;
+	float delta;
+	float patchSize;
+};
+
+layout(set = 0, binding = 1) uniform params { particle_param_t _params; }
+u_pushConstants;
+
+// complex math functions
+vec2 conjugate(vec2 arg) { return vec2(arg.x, -arg.y); }
+vec2 complex_exp(float arg) {
+	float s;
+	float c;
+	// s = sincos(arg, &c);
+	return vec2(c, s);
+}
+
+const float PI = 3.14;
+
+void main() {
+	uvec3 index = gl_GlobalInvocationID.xyz;
+
+	uint width = uint(u_pushConstants._params.width);
+	uint height = uint(u_pushConstants._params.height);
+	float patchSize = u_pushConstants._params.patchSize;
+
+	uint x = index.z;
+	uint y = index.y;
+	uint i = y * width + x;
+
+	// // calculate coordinates
+	// vec2 k;
+	// k.x = (PI * x) / patchSize;
+	// k.y = (2.0 * PI * y) / patchSize;
+	// // calculate dispersion w(k)
+	// float k_len = length(k);
+	// float w = sqrt(9.81f * k_len);
+	// vec2 h0_k = positions.pos[i].h0;
+	// vec2 h0_mk = positions[(((height - 1) - y) * width) + x].h0;
+	// vec2 h_tilda = complex_mult(h0_k, complex_exp(w * t)) + complex_mult(conjugate(h0_mk), complex_exp(-w * t));
+	// // output frequency-space complex values
+	// if ((x < width) && (y < height)) {
+	// 	positions[i].ht_real_img = vec2(h_tilda.x, h_tilda.y);
+	// }
+}

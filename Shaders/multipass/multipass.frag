@@ -12,8 +12,8 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 
 
-layout(location = 2) uniform sampler2D DiffuseTexture;
-layout(location = 3) uniform sampler2D NormalTexture;
+layout(binding = 2) uniform sampler2D DiffuseTexture;
+layout(binding = 3) uniform sampler2D NormalTexture;
 
 void main() {
 
@@ -23,11 +23,11 @@ void main() {
 	Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
 	vec3 bittagnet = cross(Ttangent, Mnormal);
 
-	vec3 NormalMapBump = 2.0 * texture2D(NormalTexture, UV).xyz - vec3(1);
+	vec3 NormalMapBump = 2.0 * texture(NormalTexture, UV).xyz - vec3(1);
 
 	vec3 alteredNormal = mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump;
 
-	fragColor = texture2D(DiffuseTexture, UV);
+	fragColor = texture(DiffuseTexture, UV);
     Normal = normal;
     WorldSpace = Vertex;
 }

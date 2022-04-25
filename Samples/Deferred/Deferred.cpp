@@ -2,8 +2,7 @@
 #include "GLWindow.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_video.h>
+
 #include <iostream>
 namespace glsample {
 

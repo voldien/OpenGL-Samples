@@ -2,64 +2,106 @@
 #include "GLWindow.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_video.h>
+#include <SDL_keycode.h>
+
 #include <iostream>
 namespace glsample {
 
-	class Triangle : public GLWindow {
+	class SampleComponent : public MIMIIMGUI::UIComponent {
+	  private:
 	  public:
-		Triangle() : GLWindow(-1, -1, -1, -1) {}
+		SampleComponent() { this->setName("Sample Window"); }
+		virtual void draw() override {
+
+			ImGui::ColorEdit4("color 1", color);
+			if (ImGui::Button("Press me")) {
+			}
+		}
+		float color[4];
+	};
+
+	class Triangle : public GLSampleWindow {
+	  public:
+		std::shared_ptr<SampleComponent> com;
+		Triangle() : GLSampleWindow() {
+			this->setTitle("Triangle");
+			com = std::make_shared<SampleComponent>();
+			this->addUIComponent(com);
+		}
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];
 		} Vertex;
-		unsigned int vbo;
-		unsigned int triangle_program;
-		const std::string vertexShaderPath = "Shaders/triangle/vertex.glsl";
-		const std::string fragmentShaderPath = "Shaders/triangle/fragment.glsl";
 
-		const std::vector<Vertex> vertices = {
-			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f, 0.0f}, {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}};
+		unsigned int vbo;
+		unsigned vao;
+		unsigned int triangle_program;
+		const std::string vertexShaderPath = "Shaders/triangle/triangle.vert";
+		const std::string fragmentShaderPath = "Shaders/triangle/triangle.frag";
+
+		const std::vector<Vertex> vertices = {{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, /*	Vertex (2), Color(3)	*/
+											  {0.5f, 0.5f, 0.0f, 1.0f, 0.0f},  /*	Vertex (2), Color(3)	*/
+											  {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f} /*	Vertex (2), Color(3)	*/};
 
 		virtual void Release() override {
 			glDeleteProgram(this->triangle_program);
+			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
 		}
+
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
 
-			/*	Load shader	*/
-			this->triangle_program = ShaderLoader::loadProgram(&vertex_source, &fragment_source);
+			// vertex_source = fragcore::ShaderCompiler::convertSPIRV(vertex_source, fragcore::ShaderLanguage::GLSL);
+			// fragment_source = fragcore::ShaderCompiler::convertSPIRV(fragment_source,
+			// fragcore::ShaderLanguage::GLSL);
 
+			/*	Load shader	*/
+			this->triangle_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 			/*	Create array buffer, for rendering static geometry.	*/
+			glGenVertexArrays(1, &this->vao);
+			glBindVertexArray(this->vao);
+
+			/*	*/
 			glGenBuffers(1, &this->vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+			/*	*/
+			glEnableVertexAttribArrayARB(0);
+			glVertexAttribPointerARB(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+
+			/*	*/
+			glEnableVertexAttribArrayARB(1);
+			glVertexAttribPointerARB(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<const void *>(8));
+
+			glBindVertexArray(0);
 		}
 
 		virtual void draw() override {
 
 			int width, height;
 			getSize(&width, &height);
+			printf("%d %d\n", width, height);
 
-			/*	*/
+			/*	Set render viewport size in pixels.	*/
 			glViewport(0, 0, width, height);
 
-			/*	*/
-			glClear(GL_COLOR_BUFFER_BIT);
+			/*	Clear default framebuffer color attachment.	*/
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			glDisable(GL_DEPTH_TEST);
+			glDisable(GL_CULL_FACE);
+			/*	Bind shader pipeline.	*/
 			glUseProgram(this->triangle_program);
 
 			/*	Draw triangle*/
-			glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glBindVertexArray(this->vao);
 			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+			glBindVertexArray(0);
 		}
 
 		virtual void update() {}
@@ -73,9 +115,9 @@ int main(int argc, const char **argv) {
 
 		sample.run();
 
-	} catch (std::exception &ex) {
+	} catch (const std::exception &ex) {
 
-		std::cerr << cxxexcept::getStackMessage(ex);
+		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

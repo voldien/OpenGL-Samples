@@ -48,7 +48,19 @@ GLWindow::GLWindow(int x, int y, int width, int height) {
 
 void GLWindow::swapBuffer() { SDL_GL_SwapWindow(this->window); }
 
-void GLWindow::createSwapChain() { glcontext = SDL_GL_CreateContext(this->window); }
+void GLWindow::createSwapChain() {
+
+	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, SDL_TRUE);
+	int curDefaultFlag;
+	SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &curDefaultFlag);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
+						curDefaultFlag | (SDL_GL_CONTEXT_DEBUG_FLAG | SDL_GL_CONTEXT_ROBUST_ACCESS_FLAG));
+	int contextProfileMask = SDL_GL_CONTEXT_PROFILE_CORE;
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, contextProfileMask);
+
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, SDL_TRUE);
+	glcontext = SDL_GL_CreateContext(this->window);
+}
 
 void GLWindow::recreateSwapChain() {
 
@@ -98,9 +110,7 @@ void GLWindow::setFullScreen(bool fullscreen) {
 		SDL_SetWindowFullscreen(this->window, 0);
 }
 
-bool GLWindow::isFullScreen() const {
-	return SDLWindow::isFullScreen();
-}
+bool GLWindow::isFullScreen() const { return SDLWindow::isFullScreen(); }
 
 void GLWindow::setBordered(bool bordered) { SDL_SetWindowBordered(this->window, (SDL_bool)bordered); }
 
@@ -165,11 +175,11 @@ void GLWindow::run() {
 					onResize(event.window.data1, event.window.data2);
 				case SDL_WINDOWEVENT_HIDDEN:
 				case SDL_WINDOWEVENT_MINIMIZED:
-					visible = 0;
+					visible = false;
 					break;
 				case SDL_WINDOWEVENT_EXPOSED:
 				case SDL_WINDOWEVENT_SHOWN:
-					visible = 1;
+					visible = true;
 					break;
 				}
 				break;
@@ -182,6 +192,7 @@ void GLWindow::run() {
 			this->draw();
 
 			this->swapBuffer();
+			this->frameCount++;
 			this->getTimer().update();
 			this->fpsCounter.incrementFPS(SDL_GetPerformanceCounter());
 

@@ -10,12 +10,23 @@ layout(location = 0) out vec2 UV;
 layout(location = 1) out vec3 normal;
 layout(location = 2) out vec3 tangent;
 
-layout(location = 0) uniform mat4 NormalMatrix;
-layout(location = 1) uniform mat4 MVP;
+layout(binding = 0) uniform UniformBufferBlock {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+	mat4 modelView;
+	mat4 modelViewProjection;
+	mat4 normalMatrix;
+	/*	Light source.	*/
+	vec3 direction;
+	vec4 lightColor;
+	vec4 ambientColor;
+}
+ubo;
 
 void main() {
-	gl_Position = MVP * vec4(Vertex, 1.0);
-	normal = NormalMatrix * Normal;
-	tangent = NormalMatrix * Tangent;
+	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
+	normal = (ubo.normalMatrix * vec4(Normal, 0.0)).xyz;
+	tangent = (ubo.normalMatrix * vec4(Tangent, 0.0)).xyz;
 	UV = TextureCoord;
 }

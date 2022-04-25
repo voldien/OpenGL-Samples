@@ -11,8 +11,8 @@ layout(location = 1) out vec3 normal;
 layout(location = 2) out vec3 tangent;
 
 void main() {
-	gl_Position = MVP * vec4(Vertex, 1.0);
-	normal = NormalMatrix * Normal;
-	tangent = NormalMatrix * Tangent;
-	UV = TextureCoord;
+	// gl_Position = MVP * vec4(Vertex, 1.0);
+	// normal = NormalMatrix * Normal;
+	// tangent = NormalMatrix * Tangent;
+	// UV = TextureCoord;
 }

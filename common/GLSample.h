@@ -3,6 +3,10 @@
 #include "GLSampleSession.h"
 #include "IOUtil.h"
 #include "Util/CameraController.h"
+#include <GLHelper.h>
+#include <GeometryUtil.h>
+#include <ProceduralGeometry.h>
+#include <SDLDisplay.h>
 #include <cxxopts.hpp>
 
 template <class T> class GLSample : public GLSampleSession {
@@ -18,7 +22,10 @@ template <class T> class GLSample : public GLSampleSession {
 		cxxopts::Options options("OpenGL Sample", helperInfo);
 		options.add_options("OpenGL-Samples")("h,help", "helper information.")(
 			"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value("true"))(
-			"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"));
+			"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
+			"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
+			"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
+			"g,opengl-version", "OpenGL Version", cxxopts::value<bool>()->default_value("false"));
 
 		/*	*/
 		this->commandline(options);
@@ -31,17 +38,43 @@ template <class T> class GLSample : public GLSampleSession {
 		}
 
 		bool debug = result["debug"].as<bool>();
+		bool fullscreen = result["fullscreen"].as<bool>();
+		bool vsync = result["vsync"].as<bool>();
 		/*	Enable debugging.	*/
+		if (debug) {
+			/*	*/
+		}
 
 		if (result.count("time") > 0) {
+		}
+
+		int width = -1;
+		int height = -1;
+
+		if (fullscreen) {
+			// Compute window size
+			SDLDisplay display(0);
+			width = display.width();
+			height = display.height();
 		}
 
 		FileSystem::createFileSystem();
 
 		this->ref = new T();
+		/*	Prevent residual errors to cuase crash.	*/
+		fragcore::resetErrorFlag();
+
+		this->ref->Initialize();
+		// this->ref->vsync(vsync);
+		this->ref->setFullScreen(fullscreen);
 	}
 
-	void run() { this->ref->run(); }
+	~GLSample() { this->ref->Release(); }
+
+	void run() {
+		this->ref->show();
+		this->ref->run();
+	}
 
 	void screenshot(float scale) {}
 

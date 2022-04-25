@@ -1,8 +1,7 @@
 #include "GLSampleWindow.h"
 #include "GLWindow.h"
 #include <GL/glew.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_video.h>
+
 #include <iostream>
 
 class SampleComponent : public MIMIIMGUI::UIComponent {
@@ -18,12 +17,12 @@ class SampleComponent : public MIMIIMGUI::UIComponent {
 	float color[4];
 };
 
-class StartUpWindow : public GLSampleWindow {
+class StartUpWindow : public GLWindow {
   public:
 	std::shared_ptr<SampleComponent> com;
-	StartUpWindow() : GLSampleWindow() {
-		com = std::make_shared<SampleComponent>();
-		this->addUIComponent(com);
+	StartUpWindow() : GLWindow(-1, -1, -1, -1) {
+		// com = std::make_shared<SampleComponent>();
+		// this->addUIComponent(com);
 	}
 	virtual void Release() override {}
 
@@ -42,7 +41,7 @@ class StartUpWindow : public GLSampleWindow {
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
 
-	virtual void onResize(int width, int height) { glViewport(0, 0, width, height); }
+	virtual void onResize(int width, int height) override { glViewport(0, 0, width, height); }
 
   private:
 	float color[4];

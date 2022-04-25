@@ -96,7 +96,7 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
-	for (int i = 0; i < paths.size(); i++) {
+	for (size_t i = 0; i < paths.size(); i++) {
 		Image image = imageLoader.loadImage(paths[i]);
 
 		GLenum format, internalformat, type;

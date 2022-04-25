@@ -6,9 +6,10 @@ layout(location = 1) in vec3 inColor;
 
 layout(location = 0) out vec2 uv;
 
-layout(location = 0) uniform mat4 MVP;
+layout(binding = 0) uniform UniformBufferBlock { mat4 MVP; }
+ubo;
 
 void main() {
-	gl_Position = MVP * vec4(inPosition, 0.0, 1.0);
+	gl_Position = ubo.MVP * vec4(inPosition, 0.0, 1.0);
 	uv = inColor.xy;
 }

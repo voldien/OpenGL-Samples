@@ -26,8 +26,8 @@ namespace glsample {
 
 		unsigned int mvp_uniform;
 
-		const std::string vertexShaderPath = "Shaders/skybox/skybox.vert";
-		const std::string fragmentShaderPath = "Shaders/skybox/panoramic.frag";
+		const std::string vertexShaderPath = "Shaders/skybox-panoramic/skybox.vert";
+		const std::string fragmentShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
 
 		const std::vector<Vertex> vertices = {{-1.0f, -1.0f, -1.0f, 0, 0}, // triangle 1 : begin
 											  {-1.0f, -1.0f, 1.0f, 0, 1},
@@ -80,7 +80,7 @@ namespace glsample {
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
 
-			this->skybox_program = ShaderLoader::loadProgram(&vertex_source, &fragment_source);
+			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
 			glUseProgram(this->skybox_program);
 			this->mvp_uniform = glGetUniformLocation(this->skybox_program, "MVP");
@@ -118,7 +118,6 @@ namespace glsample {
 			/*	*/
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glDisable(GL_CULL_FACE);
-			//glEnable(GL_DEPTH_TEST);
 			glDisable(GL_BLEND);
 			glEnable(GL_STENCIL);
 
@@ -145,7 +144,7 @@ int main(int argc, const char **argv) {
 		sample.run();
 
 	} catch (std::exception &ex) {
-		std::cerr << cxxexcept::getStackMessage(ex);
+		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

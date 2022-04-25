@@ -7,6 +7,8 @@
 
 - **Triangle**
 
+- **Index Render**
+
 - **Texture**
 
 - **Normal Mapping**
@@ -28,5 +30,9 @@
 - **Multipass**
 
 - **Deferred Rendering**
+
+- **Physical Based Rendering**
+
+- **Ocean**
 
 - **Video Playback**

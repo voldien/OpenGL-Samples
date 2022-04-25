@@ -78,7 +78,7 @@ namespace glsample {
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
 
 			/*	*/
-			this->skybox_program = ShaderLoader::loadProgram(&vertex_source, &fragment_source);
+			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
 			/*	*/
 			glUseProgram(this->skybox_program);
@@ -132,6 +132,7 @@ namespace glsample {
 		virtual void update() {}
 	};
 } // namespace glsample
+// TODO add custom options.
 
 int main(int argc, const char **argv) {
 	try {
@@ -140,7 +141,7 @@ int main(int argc, const char **argv) {
 		sample.run();
 
 	} catch (std::exception &ex) {
-		std::cerr << cxxexcept::getStackMessage(ex);
+		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

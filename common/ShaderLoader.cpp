@@ -3,9 +3,10 @@
 #include <GLHelper.h>
 #include <GLRendererInterface.h>
 
-int ShaderLoader::loadProgram(const std::vector<char> *vertex, const std::vector<char> *fragment,
-							  const std::vector<char> *geometry, const std::vector<char> *tesselationc,
-							  const std::vector<char> *tesselatione) {
+int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std::vector<char> *fragment,
+									 const std::vector<char> *geometry, const std::vector<char> *tesselationc,
+									 const std::vector<char> *tesselatione) {
+	fragcore::resetErrorFlag();
 
 	int program = glCreateProgram();
 	fragcore::checkError();
@@ -37,18 +38,18 @@ int ShaderLoader::loadProgram(const std::vector<char> *vertex, const std::vector
 	}
 
 	if (tesselationc) {
-		shader_tesc = loadShader(*tesselationc, GL_TESS_CONTROL_SHADER_BIT);
+		shader_tesc = loadShader(*tesselationc, GL_TESS_CONTROL_SHADER);
 		glAttachShader(program, shader_tesc);
 		fragcore::checkError();
 	}
 
 	if (tesselatione) {
-		shader_tese = loadShader(*tesselatione, GL_TESS_EVALUATION_SHADER_BIT);
+		shader_tese = loadShader(*tesselatione, GL_TESS_EVALUATION_SHADER);
 		glAttachShader(program, shader_tese);
 		fragcore::checkError();
 	}
 
-	glLinkProgramARB(program);
+	glLinkProgram(program);
 	fragcore::checkError();
 
 finished:
@@ -58,8 +59,9 @@ finished:
 	if (lstatus != GL_TRUE) {
 		char log[4096];
 		glGetProgramInfoLog(program, sizeof(log), nullptr, log);
+		fragcore::checkError();
 		// TODO FIXME
-		throw cxxexcept::RuntimeException("{}", log);
+		throw cxxexcept::RuntimeException("Failed to link program: {}", log);
 	}
 
 	/*	Remove shader resources not needed after linking.	*/
@@ -87,13 +89,13 @@ finished:
 	return program;
 }
 
-int ShaderLoader::loadComputeProgram(const std::vector<char> &compute) {
+int ShaderLoader::loadComputeProgram(const std::vector<std::vector<char> *> &computePaths) {
 	int program = glCreateProgram();
 	int lstatus;
-	int shader_vcompute = loadShader(compute, GL_COMPUTE_SHADER_BIT);
+	int shader_vcompute = loadShader(*computePaths[0], GL_COMPUTE_SHADER_BIT);
 	glAttachShader(program, shader_vcompute);
 
-	glLinkProgramARB(program);
+	glLinkProgram(program);
 
 	glGetProgramiv(program, GL_LINK_STATUS, &lstatus);
 	if (lstatus != GL_TRUE) {
@@ -135,12 +137,13 @@ static void checkShaderError(int shader) {
 int ShaderLoader::loadShader(const std::vector<char> &source, int type) {
 
 	const char *source_data = source.data();
+	std::vector<const GLchar **> source_refs;
 
 	int shader = glCreateShader(type);
 	fragcore::checkError();
-	glShaderSourceARB(shader, 1, (const GLchar **)&source_data, nullptr);
+	glShaderSource(shader, 1, (const GLchar **)&source_data, nullptr);
 	fragcore::checkError();
-	glCompileShaderARB(shader);
+	glCompileShader(shader);
 	fragcore::checkError();
 	checkShaderError(shader);
 	return shader;

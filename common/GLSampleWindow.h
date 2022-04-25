@@ -1,13 +1,15 @@
 #ifndef _GL_SAMPLE_WINDOW_H_
 #define _GL_SAMPLE_WINDOW_H_ 1
+#include "FPSCounter.h"
 #include "GLSample.h"
 #include "IOUtil.h"
-#include "MIMIWindow.h"
+#include "Util/Time.hpp"
+#include <MIMIWindow.h>
 
-class GLSampleWindow : public MIMIIMGUI::MIMIWindow {
+class FVDECLSPEC GLSampleWindow : public MIMIIMGUI::MIMIWindow {
   public:
-	GLSampleWindow() : MIMIIMGUI::MIMIWindow(MIMIIMGUI::MIMIWindow::GfxBackEnd::ImGUI_OpenGL) {}
-	virtual ~GLSampleWindow() {}
+	GLSampleWindow();
+
 	/**
 	 * @brief
 	 *
@@ -23,13 +25,23 @@ class GLSampleWindow : public MIMIIMGUI::MIMIWindow {
 	 *
 	 */
 	virtual void draw() = 0;
-	/**
-	 * @brief
-	 *
-	 */
+
+  public:
+	FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }
+	vkscommon::Time &getTimer() noexcept { return this->time; }
+	size_t getFrameCount() noexcept { return this->frameCount; }
 
   protected:
 	virtual void displayMenuBar() override;
 	virtual void renderUI() override;
+
+  private:
+	FPSCounter<float> fpsCounter;
+	vkscommon::Time time;
+	size_t frameCount = 0;
+
+  protected:
+	// TODO Enable RenderDoc
 };
+
 #endif
