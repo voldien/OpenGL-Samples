@@ -52,7 +52,7 @@ int main(int argc, const char **argv) {
 		GLSample<StartUpWindow> sample(argc, argv);
 		sample.run();
 	} catch (const std::exception &ex) {
-		std::cerr << cxxexcept::getStackMessage(ex);
+		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

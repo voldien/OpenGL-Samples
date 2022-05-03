@@ -1,0 +1,82 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout(local_size_x = 32, local_size_y = 1) in;
+
+// TODO refractor.
+struct particle_t {
+	vec3 pos;
+	vec4 velocity;
+	float t;
+};
+
+struct particle_setting{
+	float speed;
+	float lifetime;
+};
+
+layout(std430, set = 0, binding = 0) buffer Positions { particle_t pos[]; }
+positions;
+
+struct particle_param_t {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+	mat4 modelView;
+	mat4 modelViewProjection;
+	vec4 diffuse;
+
+
+	float deltaTime;
+
+	particle_setting setting;
+
+};
+
+layout(set = 0, binding = 1) uniform params { particle_param_t _params; }
+u_pushConstants;
+
+float rand(vec2 co) {
+	highp float a = 12.9898;
+	highp float b = 78.233;
+	highp float c = 43758.5453;
+	highp float dt = dot(co.xy, vec2(a, b));
+	highp float sn = mod(dt, 3.14);
+	return fract(sin(sn) * c);
+}
+
+void main() {
+	uint index = gl_GlobalInvocationID.x;
+
+	vec4 vel = positions.pos[index].velocity;
+	vec3 pos = positions.pos[index].pos;
+	float newW = positions.pos[index].t;
+
+	vec3 force_impulse = vec3(0);
+
+	for (int i = 0; i < 32; i++) {
+		// forcePoint += attractors[i].xyz;
+	}
+
+	float k_v = 1.5;
+
+	float f = force_impulse.x + 1.0;
+
+	float newDT = u_pushConstants._params.deltaTime * 100.0;
+
+	newW -= newDT;
+
+	vec3 v = vel.xyz + (f * newDT) * k_v;
+	vec3 s = pos + v * newDT;
+
+	if (newW <= 0) {
+		s = -s + rand(s.xy + vec2(index, index)) * 20.0 - rand(s.yz + vec2(index, index)) * 20.0;
+		v.xyz *= 0.01f;
+		newW = 2.99;
+	}
+
+	/*	Update particle.	*/
+	positions.pos[index].t = newW;
+	positions.pos[index].pos = s;
+	positions.pos[index].velocity = vec4(v, vel.w);
+}

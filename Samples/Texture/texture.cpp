@@ -9,9 +9,9 @@
 #include <iostream>
 namespace glsample {
 
-	class Texture : public GLWindow {
+	class Texture : public GLSampleWindow {
 	  public:
-		Texture() : GLWindow(-1, -1, -1, -1) {}
+		Texture() : GLSampleWindow() { this->setTitle("Texture"); }
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];
@@ -26,7 +26,7 @@ namespace glsample {
 
 		glm::mat4 mvp;
 		CameraController camera;
-		
+
 		std::string texturePath = "texture.png";
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
@@ -108,8 +108,6 @@ namespace glsample {
 			glBindVertexArray(this->vao);
 			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
 			glBindVertexArray(0);
-
-			// Draw IMGUI
 		}
 
 		virtual void update() {}
@@ -131,7 +129,7 @@ int main(int argc, const char **argv) {
 		sample.run();
 	} catch (std::exception &ex) {
 
-		std::cerr << cxxexcept::getStackMessage(ex);
+		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

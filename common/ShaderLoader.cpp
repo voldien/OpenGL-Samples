@@ -90,9 +90,12 @@ finished:
 }
 
 int ShaderLoader::loadComputeProgram(const std::vector<std::vector<char> *> &computePaths) {
+
+	fragcore::resetErrorFlag();
+
 	int program = glCreateProgram();
 	int lstatus;
-	int shader_vcompute = loadShader(*computePaths[0], GL_COMPUTE_SHADER_BIT);
+	int shader_vcompute = loadShader(*computePaths[0], GL_COMPUTE_SHADER);
 	glAttachShader(program, shader_vcompute);
 
 	glLinkProgram(program);

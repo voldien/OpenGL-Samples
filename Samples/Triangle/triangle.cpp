@@ -2,7 +2,6 @@
 #include "GLWindow.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
-#include <SDL_keycode.h>
 
 #include <iostream>
 namespace glsample {

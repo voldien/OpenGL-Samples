@@ -126,7 +126,7 @@ int main(int argc, const char **argv) {
 
 	} catch (std::exception &ex) {
 
-		std::cerr << cxxexcept::getStackMessage(ex);
+		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

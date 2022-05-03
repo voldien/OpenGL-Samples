@@ -27,8 +27,8 @@ namespace glsample {
 			alignas(16) glm::mat4 normalMatrix;
 
 			/*light source.	*/
-			glm::vec3 direction = glm::vec3(0, 1, 0);
-			glm::vec4 lightColor = glm::vec4(1.0f);
+			glm::vec3 direction = glm::vec3(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0);
+			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4);
 		} mvp;
 
@@ -53,7 +53,7 @@ namespace glsample {
 		CameraController camera;
 
 		std::string diffuseTexturePath = "diffuse.png";
-		std::string normalTexturePath = "heightmap.png";
+		std::string normalTexturePath = "normalmap.png";
 
 		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert";
 		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag";
@@ -89,8 +89,8 @@ namespace glsample {
 			/*	*/
 			glUseProgram(this->normalMapping_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->normalMapping_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->normalMapping_program, "diffuse"), 0);
-			glUniform1iARB(glGetUniformLocation(this->normalMapping_program, "normal"), 1);
+			glUniform1iARB(glGetUniformLocation(this->normalMapping_program, "DiffuseTexture"), 0);
+			glUniform1iARB(glGetUniformLocation(this->normalMapping_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->normalMapping_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -144,6 +144,8 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
+			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+
 			/*	*/
 			glViewport(0, 0, width, height);
 
@@ -179,10 +181,10 @@ namespace glsample {
 			this->mvp.model =
 				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(0.95f));
-			this->mvp.modelViewProjection = this->mvp.model * camera.getViewMatrix();
+			this->mvp.modelViewProjection = this->mvp.proj * camera.getViewMatrix() * this->mvp.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p = glMapBufferRange(GL_UNIFORM_BUFFER, ((getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
+			void *p = glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
 									   uniformSize, GL_MAP_WRITE_BIT);
 			memcpy(p, &this->mvp, sizeof(mvp));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
@@ -200,7 +202,7 @@ int main(int argc, const char **argv) {
 
 	} catch (const std::exception &ex) {
 
-		std::cerr << cxxexcept::getStackMessage(ex);
+		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

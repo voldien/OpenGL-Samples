@@ -1,17 +1,35 @@
-#include "GLSampleWindow.h"
-#include "GLWindow.h"
-#include "Importer/ImageImport.h"
-#include "ShaderLoader.h"
-#include "Util/CameraController.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
+#include <GLWindow.h>
+#include <Importer/ImageImport.h>
+#include <ShaderLoader.h>
+#include <Util/CameraController.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace glsample {
 
+	class SampleComponent : public MIMIIMGUI::UIComponent {
+	  private:
+	  public:
+		SampleComponent() { this->setName("Sample Window"); }
+		virtual void draw() override {
+
+			ImGui::ColorEdit4("color 1", color);
+			if (ImGui::Button("Press me")) {
+			}
+		}
+		float color[4];
+	};
+
 	class BasicTessellation : public GLSampleWindow {
 	  public:
-		BasicTessellation() : GLSampleWindow() { this->setTitle("Basic Tessellation"); }
+		std::shared_ptr<SampleComponent> com;
+		BasicTessellation() : GLSampleWindow() {
+			this->setTitle("Basic Tessellation");
+			com = std::make_shared<SampleComponent>();
+			this->addUIComponent(com);
+		}
 		typedef struct _vertex_t {
 			float vertex[3];
 			float uv[2];
@@ -187,6 +205,7 @@ namespace glsample {
 			glPatchParameteri(GL_PATCH_VERTICES, 3);
 			glDrawArrays(GL_PATCHES, 0, this->vertices.size());
 
+			/*	Draw wireframe outline.	*/
 			// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			// glDrawArrays(GL_PATCHES, 0, this->vertices.size());
 			glBindVertexArray(0);
