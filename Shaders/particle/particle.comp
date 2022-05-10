@@ -24,13 +24,11 @@ struct particle_param_t {
 	mat4 proj;
 	mat4 modelView;
 	mat4 modelViewProjection;
+
 	vec4 diffuse;
-
-
 	float deltaTime;
 
 	particle_setting setting;
-
 };
 
 layout(set = 0, binding = 1) uniform params { particle_param_t _params; }

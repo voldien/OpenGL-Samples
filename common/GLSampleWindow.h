@@ -6,7 +6,7 @@
 #include "Util/Time.hpp"
 #include <MIMIWindow.h>
 
-class FVDECLSPEC GLSampleWindow : public MIMIIMGUI::MIMIWindow {
+class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
   public:
 	GLSampleWindow();
 
@@ -25,6 +25,8 @@ class FVDECLSPEC GLSampleWindow : public MIMIIMGUI::MIMIWindow {
 	 *
 	 */
 	virtual void draw() = 0;
+
+	virtual void onResize(int width, int height) {}
 
   public:
 	FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }

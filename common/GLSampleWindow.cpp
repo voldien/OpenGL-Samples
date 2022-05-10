@@ -2,7 +2,7 @@
 
 // TODO add supprt for renderdoc
 
-GLSampleWindow::GLSampleWindow() : MIMIIMGUI::MIMIWindow(MIMIIMGUI::MIMIWindow::GfxBackEnd::ImGUI_OpenGL) {
+GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::GfxBackEnd::ImGUI_OpenGL) {
 	this->enableDocking(false);
 }
 

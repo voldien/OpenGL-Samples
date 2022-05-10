@@ -19,7 +19,16 @@ namespace glsample {
 
 		unsigned int fbo;
 
-		unsigned int triangle_program;
+		unsigned int mandelbrot_framebuffer;
+		unsigned int texture_program;
+		std::vector<int> gl_textures;
+
+		// TODO change to vector
+		unsigned int uniform_buffer_index;
+		unsigned int uniform_buffer_binding = 0;
+		unsigned int uniform_buffer;
+		const size_t nrUniformBuffer = 3;
+		size_t uniformSize = sizeof(UniformBufferBlock);
 
 		const std::string vertexShaderPath = "Shaders/triangle/vertex.glsl";
 		const std::string fragmentShaderPath = "Shaders/triangle/fragment.glsl";
@@ -45,6 +54,31 @@ namespace glsample {
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+			/*	*/
+			glGenFramebuffers(1, &this->mandelbrot_framebuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->mandelbrot_framebuffer);
+
+			glGenTextures(this->gl_textures.size(), &this->gl_textures.data());
+			for (size_t i = 0; i < gl_texture.size(); i++) {
+
+				glBindTexture(GL_TEXTURE_2D, this->gl_texture[i]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->width(), this->height(), 0, GL_RGB, GL_UNSIGNED_BYTE,
+							 nullptr);
+			}
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+
+		virtual void onResize(int width, int height) override {
+			/*	Resize the image.	*/
+			for (size_t i = 0; i < gl_texture.size(); i++) {
+
+				glBindTexture(GL_TEXTURE_2D, this->gl_texture[i]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->width(), this->height(), 0, GL_RGB, GL_UNSIGNED_BYTE,
+							 nullptr);
+				glBindTexture(GL_TEXTURE_2D, 0);
+			}
 		}
 
 		virtual void draw() override {

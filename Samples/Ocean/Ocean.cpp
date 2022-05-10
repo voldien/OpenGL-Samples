@@ -12,6 +12,7 @@ namespace glsample {
 	class Ocean : public GLWindow {
 	  public:
 		Ocean() : GLWindow(-1, -1, -1, -1) { this->setTitle("Ocean"); }
+		// TODO rename.
 		typedef struct _vertex_t {
 			float h0[2];
 			float ht_real_img[2];
@@ -50,7 +51,6 @@ namespace glsample {
 
 		} mvp;
 
-		// TODO change to vector
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -83,6 +83,11 @@ namespace glsample {
 			glDeleteProgram(this->ocean_graphic_program);
 			glDeleteProgram(this->spectrum_compute_program);
 			glDeleteProgram(this->kff_compute_program);
+
+			glDeleteTextures(1, (const GLuint *)&this->skybox_texture);
+
+			glDeleteVertexArrays(1, &this->ocean_vao);
+			glDeleteVertexArrays(1, &this->skybox_vao);
 			/*	*/
 			glDeleteBuffers(1, &this->ocean_vbo);
 			glDeleteBuffers(1, &this->ocean_ibo);
@@ -93,17 +98,18 @@ namespace glsample {
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			/*	*/
+			/*	Load source code for the ocean shader.	*/
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
 			std::vector<char> control_source = IOUtil::readFile(tesscShaderPath);
 			std::vector<char> evolution_source = IOUtil::readFile(teseShaderPath);
 
-			/*	*/
+			/*	Load source code for spectrum compute shader.	*/
 			std::vector<char> compute_spectrum_source = IOUtil::readFile(computeShaderPath);
+			/*	Load source code for fast furious transform.	*/
 			std::vector<char> compute_kff_source = IOUtil::readFile(computeKFFShaderPath);
 
-			/*	Load graphic program	*/
+			/*	Load graphic program for skybox.	*/
 			this->ocean_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
 																		   &control_source, &evolution_source);
 
@@ -113,11 +119,29 @@ namespace glsample {
 
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
-			glUseProgram(this->skybox_program);
-			glUniform1iARB(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			/*	Setup ocean shader.	*/
+			glUseProgram(this->ocean_graphic_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->ocean_graphic_program, "UniformBufferBlock");
+			glUniform1iARB(glGetUniformLocation(this->ocean_graphic_program, "reflection"), 0);
+			glUniformBlockBinding(this->ocean_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	*/
+			/*	Setup spectrum shader.	*/
+			glUseProgram(this->spectrum_compute_program);
+			glUseProgram(0);
+
+			/*	Setup fast furious transform.	*/
+			glUseProgram(this->kff_compute_program);
+			glUseProgram(0);
+
+			/*	Setup skybox shader.	*/
+			glUseProgram(this->skybox_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniform1iARB(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	Compute uniform size that is aligned with the requried for the hardware.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_MIN_MAP_BUFFER_ALIGNMENT, &minMapBufferSize);
 			uniformSize += uniformSize % minMapBufferSize;
@@ -128,6 +152,7 @@ namespace glsample {
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
+			// TODO add plane with subdivision.
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->ocean_vao);
@@ -156,12 +181,22 @@ namespace glsample {
 
 			glBindVertexArray(0);
 
-			glUseProgram(this->ocean_graphic_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->ocean_graphic_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->ocean_graphic_program, "reflection"), 0);
-			glUniformBlockBinding(this->ocean_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
-			glUseProgram(0);
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenVertexArrays(1, &this->skybox_vao);
+			glBindVertexArray(this->skybox_vao);
 
+			/*	*/
+			glGenBuffers(1, &this->skybox_vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, skybox_vbo);
+			// glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+			/*	*/
+			glEnableVertexAttribArrayARB(0);
+			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr); // TODO fix.
+
+			glBindVertexArray(0);
+
+			/*	Load skybox for reflective.	*/
 			this->skybox_panoramic = TextureImporter::loadImage2D(this->panoramicPath);
 		}
 
@@ -179,6 +214,7 @@ namespace glsample {
 			/*	Bind uniform buffer associated with all of the pipelines.	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
 							  (getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
+
 			/*	Compute fast fourier transformation.	*/
 			{
 				/*	*/
@@ -186,6 +222,7 @@ namespace glsample {
 				glBindVertexArray(this->ocean_vao);
 				glDispatchCompute(ocean_width + 64, ocean_height, 1);
 
+				/*	*/
 				int FFT_SIZE = 0;
 				glUseProgram(this->kff_compute_program);
 				glDispatchCompute(FFT_SIZE * 64, 1, 1);
@@ -201,7 +238,7 @@ namespace glsample {
 
 				glUseProgram(this->ocean_graphic_program);
 
-				/*	Draw triangle*/
+				/*	Draw triangle.	*/
 				glBindVertexArray(this->ocean_vao);
 				glDrawElements(GL_PATCHES, ocean_width * ocean_height * 2, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
@@ -216,15 +253,14 @@ namespace glsample {
 				glEnable(GL_STENCIL);
 
 				glUseProgram(this->skybox_program);
-				// glUniformMatrix4fv(this->mvp_uniform, 1, GL_FALSE, &camera.getViewMatrix()[0][0]);
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic);
 
 				/*	Draw triangle*/
-				// glBindVertexArray(this->vao);
-				// glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
-				// glBindVertexArray(0);
+				glBindVertexArray(this->skybox_vao);
+				glDrawArrays(GL_TRIANGLES, 0, 7); // TODO fix
+				glBindVertexArray(0);
 			}
 		}
 
@@ -234,13 +270,11 @@ namespace glsample {
 			camera.update(getTimer().deltaTime());
 
 			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model =
-				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(0.95f));
-			this->mvp.modelViewProjection = this->mvp.model * camera.getViewMatrix();
+			this->mvp.modelViewProjection = this->mvp.proj * camera.getViewMatrix() * this->mvp.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p = glMapBufferRange(GL_UNIFORM_BUFFER, ((getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
+			void *p = glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
 									   uniformSize, GL_MAP_WRITE_BIT);
 			memcpy(p, &this->mvp, sizeof(mvp));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);

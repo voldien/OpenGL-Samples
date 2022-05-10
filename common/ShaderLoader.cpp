@@ -96,16 +96,23 @@ int ShaderLoader::loadComputeProgram(const std::vector<std::vector<char> *> &com
 	int program = glCreateProgram();
 	int lstatus;
 	int shader_vcompute = loadShader(*computePaths[0], GL_COMPUTE_SHADER);
-	glAttachShader(program, shader_vcompute);
 
+	/*	*/
+	glAttachShader(program, shader_vcompute);
+	fragcore::checkError();
+
+	/*	*/
 	glLinkProgram(program);
+	fragcore::checkError();
 
 	glGetProgramiv(program, GL_LINK_STATUS, &lstatus);
+	fragcore::checkError();
 	if (lstatus != GL_TRUE) {
 		char log[4096];
 		glGetProgramInfoLog(program, sizeof(log), nullptr, log);
-		// TODO FIXME
-		return 0;
+		fragcore::checkError();
+
+		throw cxxexcept::RuntimeException("Failed to link program: {}", log);
 	}
 
 	if (glIsShader(shader_vcompute)) {

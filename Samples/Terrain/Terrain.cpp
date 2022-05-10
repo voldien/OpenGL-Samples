@@ -6,6 +6,7 @@
 #include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <iostream>
+
 namespace glsample {
 
 	class Terrain : public GLWindow {
@@ -18,6 +19,7 @@ namespace glsample {
 		unsigned int vbo;
 		unsigned vao;
 		unsigned int skybox_program;
+
 		glm::mat4 mvp;
 		int skybox_panoramic;
 		std::string panoramicPath = "panoramic.jpg";
@@ -66,12 +68,14 @@ namespace glsample {
 											  {1.0f, -1.0f, 1.0f, 1, 0}
 
 		};
+
 		virtual void Release() override {
 			glDeleteProgram(this->skybox_program);
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
 			// glDeleteTextures(1, &this->skybox_panoramic);
 		}
+
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			/*	Load shader	*/
@@ -117,7 +121,7 @@ namespace glsample {
 			/*	*/
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glDisable(GL_CULL_FACE);
-			//glEnable(GL_DEPTH_TEST);
+			// glEnable(GL_DEPTH_TEST);
 			glDisable(GL_BLEND);
 			glEnable(GL_STENCIL);
 

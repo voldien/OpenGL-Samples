@@ -2,6 +2,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(location = 0) out vec4 fragColor;
+// layout(location = 1) out vec4 worldspace;
+// layout(location = 2) out vec4 normalspace;
+// layout(location = 3) out vec4 uv;
+
 layout(location = 1) out float Depth;
 layout(location = 2) out vec3 Normal;
 layout(location = 3) out vec3 WorldSpace;
@@ -10,7 +14,6 @@ layout(location = 0) in vec3 Vertex;
 layout(location = 1) in vec2 UV;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
-
 
 layout(binding = 2) uniform sampler2D DiffuseTexture;
 layout(binding = 3) uniform sampler2D NormalTexture;
@@ -28,6 +31,6 @@ void main() {
 	vec3 alteredNormal = mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump;
 
 	fragColor = texture(DiffuseTexture, UV);
-    Normal = normal;
-    WorldSpace = Vertex;
+	Normal = normal;
+	WorldSpace = Vertex;
 }

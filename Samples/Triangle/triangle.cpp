@@ -6,7 +6,7 @@
 #include <iostream>
 namespace glsample {
 
-	class SampleComponent : public MIMIIMGUI::UIComponent {
+	class SampleComponent : public nekomimi::UIComponent {
 	  private:
 	  public:
 		SampleComponent() { this->setName("Sample Window"); }
