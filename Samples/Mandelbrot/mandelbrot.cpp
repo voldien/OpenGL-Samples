@@ -33,7 +33,7 @@ namespace glsample {
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
 		/*	*/
-		const std::string computeShaderPath = "Shaders/mandelbrot/mandelbrot.comp";
+		const std::string computeShaderPath = "Shaders/mandelbrot/mandelbrot.comp.spv";
 
 		virtual void Release() override {
 			glDeleteProgram(this->mandelbrot_program);
@@ -44,7 +44,10 @@ namespace glsample {
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			std::vector<char> mandelbrot_source = IOUtil::readFile(computeShaderPath);
+			std::vector<char> mandelbrot_source = IOUtil::readFileData(computeShaderPath);
+
+			mandelbrot_source =
+				fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, fragcore::ShaderLanguage::GLSL);
 
 			/*	Load shader	*/
 			this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_source});

@@ -18,6 +18,12 @@ namespace glsample {
 			Ref<IO> ref = Ref<IO>(FileSystem::getFileSystem()->openFile(filename.c_str(), IO::IOMode::READ));
 			return fragcore::IOUtil::readString<char>(ref);
 		}
+
+		static std::vector<char> readFileData(const std::string &filename) {
+
+			Ref<IO> ref = Ref<IO>(FileSystem::getFileSystem()->openFile(filename.c_str(), IO::IOMode::READ));
+			return fragcore::IOUtil::readFile<char>(ref);
+		}
 	};
 } // namespace glsample
 

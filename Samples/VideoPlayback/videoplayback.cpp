@@ -29,11 +29,9 @@ extern "C" {
 
 namespace glsample {
 
-	class VideoPlayback : public GLWindow {
+	class VideoPlayback : public GLSampleWindow {
 	  public:
-		VideoPlayback() : GLWindow(-1, -1, -1, -1) {
-			this->setTitle(fmt::format("VideoPlayback {}", this->videoPath).c_str());
-		}
+		VideoPlayback() : GLSampleWindow() { this->setTitle(fmt::format("VideoPlayback {}", this->videoPath).c_str()); }
 		virtual ~VideoPlayback() {
 			if (this->frame)
 				av_frame_free(&this->frame);
@@ -45,8 +43,8 @@ namespace glsample {
 		}
 
 		typedef struct _vertex_t {
-			float pos[2];
-			float color[3];
+			float pos[3];
+			float uv[2];
 		} Vertex;
 
 		static const int nrVideoFrames = 3;
@@ -87,63 +85,28 @@ namespace glsample {
 		unsigned int videoplayback_program;
 
 		/*  */
-		std::array<unsigned int, nrVideoFrames> videoFrames;
-		std::array<unsigned int, nrVideoFrames> videoStagingFrames; // PBO buffers
-		std::array<void *, nrVideoFrames> mapMemory;
+		size_t videoStageBufferMemorySize = 0;
+		std::array<unsigned int, nrVideoFrames> videoFrameTextures;
+		unsigned int videoStagingTextureBuffer; // PBO buffers
 
 		std::string videoPath = "video.mp4";
 
 		const std::string vertexShaderPath = "Shaders/videoplayback/videoplayback.vert";
 		const std::string fragmentShaderPath = "Shaders/videoplayback/videoplayback.frag";
 
-		const std::vector<Vertex> vertices = {{-1.0f, -1.0f, -1.0f, 0, 0}, // triangle 1 : begin
-											  {-1.0f, -1.0f, 1.0f, 0, 1},
-											  {-1.0f, 1.0f, 1.0f, 1, 1}, // triangle 1 : end
-											  {1.0f, 1.0f, -1.0f, 1, 1}, // triangle 2 : begin
-											  {-1.0f, -1.0f, -1.0f, 1, 0},
-											  {-1.0f, 1.0f, -1.0f, 0, 0}, // triangle 2 : end
-											  {1.0f, -1.0f, 1.0f, 0, 0},
-											  {-1.0f, -1.0f, -1.0f, 0, 1},
-											  {1.0f, -1.0f, -1.0f, 1, 1},
-											  {1.0f, 1.0f, -1.0f, 0, 0},
-											  {1.0f, -1.0f, -1.0f, 1, 1},
-											  {-1.0f, -1.0f, -1.0f, 1, 0},
-											  {-1.0f, -1.0f, -1.0f, 0, 0},
-											  {-1.0f, 1.0f, 1.0f, 0, 1},
-											  {-1.0f, 1.0f, -1.0f, 1, 1},
-											  {1.0f, -1.0f, 1.0f, 0, 0},
-											  {-1.0f, -1.0f, 1.0f, 1, 1},
-											  {-1.0f, -1.0f, -1.0f, 0, 1},
-											  {-1.0f, 1.0f, 1.0f, 0, 0},
-											  {-1.0f, -1.0f, 1.0f, 0, 1},
-											  {1.0f, -1.0f, 1.0f, 1, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {1.0f, -1.0f, -1.0f, 1, 1},
-											  {1.0f, 1.0f, -1.0f, 1, 0},
-											  {1.0f, -1.0f, -1.0f, 0, 0},
-											  {1.0f, 1.0f, 1.0f, 0, 1},
-											  {1.0f, -1.0f, 1.0f, 1, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {1.0f, 1.0f, -1.0f, 1, 1},
-											  {-1.0f, 1.0f, -1.0f, 0, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {-1.0f, 1.0f, -1.0f, 0, 1},
-											  {-1.0f, 1.0f, 1.0f, 1, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {-1.0f, 1.0f, 1.0f, 1, 1},
-											  {1.0f, -1.0f, 1.0f, 1, 0}
-
-		};
+		const std::vector<Vertex> vertices = {{-1.0f, -1.0f, 0.0f, 0.0f, 0.0f},
+											  {-1.0f, 1.0f, 0.0f, 0.0f, 1.0f},
+											  {1.0f, -1.0f, 0.0f, 1.0f, 1.0f},
+											  {1.0f, 1.0f, 0.0f, 1.0f, 0.0f}};
 
 		virtual void Release() override {
 			glDeleteProgram(this->videoplayback_program);
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
-			// TODO
-			// glDeleteTextures(1, &this->skybox_panoramic);
-		}
 
-		virtual void onResize(int width, int height) override {}
+			glDeleteBuffers(1, &videoStagingTextureBuffer);
+			glDeleteTextures(this->videoFrameTextures.size(), this->videoFrameTextures.data());
+		}
 
 		void loadVideo(const char *path) {
 			int result;
@@ -159,7 +122,7 @@ namespace glsample {
 			if (result != 0) {
 				char buf[AV_ERROR_MAX_STRING_SIZE];
 				av_strerror(result, buf, sizeof(buf));
-				throw cxxexcept::RuntimeException("Failed to open input : %s", buf);
+				throw cxxexcept::RuntimeException("Failed to open input : {}", buf);
 			}
 
 			if ((result = avformat_find_stream_info(this->pformatCtx, nullptr)) < 0) {
@@ -264,8 +227,9 @@ namespace glsample {
 			this->frame = av_frame_alloc();
 			this->frameoutput = av_frame_alloc();
 
-			if (this->frame == nullptr || this->frameoutput == nullptr)
+			if (this->frame == nullptr || this->frameoutput == nullptr) {
 				throw cxxexcept::RuntimeException("Failed to allocate frame");
+			}
 
 			size_t m_bufferSize =
 				av_image_get_buffer_size(AV_PIX_FMT_RGBA, this->pVideoCtx->width, this->pVideoCtx->height, 4);
@@ -283,6 +247,8 @@ namespace glsample {
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
+			loadVideo(this->videoPath.c_str());
+
 			/*	Load shader	*/
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
@@ -292,7 +258,7 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->videoplayback_program);
-			glUniform1iARB(glGetUniformLocation(this->videoplayback_program, "panorama"), 0);
+			glUniform1iARB(glGetUniformLocation(this->videoplayback_program, "diffuse"), 0);
 			glUseProgram(0);
 
 			/*	Create array buffer, for rendering static geometry.	*/
@@ -310,25 +276,42 @@ namespace glsample {
 
 			/*	*/
 			glEnableVertexAttribArrayARB(1);
-			// glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 12);
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<const void *>(12));
 
 			glBindVertexArray(0);
 
 			/*	Allocate buffers.	*/
-			size_t pixelSize = 0;
-			glGenBuffers(this->videoStagingFrames.size(),
-						 this->videoStagingFrames.data()); // TODO ffix t oa single buffer.
-			glGenTextures(this->videoFrames.size(), this->videoFrames.data());
-			for (size_t i = 0; i < this->videoStagingFrames.size(); i++) {
-				glBindBuffer(GL_PIXEL_PACK_BUFFER_ARB, this->videoStagingFrames[i]);
-				glBufferDataARB(GL_PIXEL_PACK_BUFFER_ARB, pixelSize, nullptr, GL_STREAM_COPY);
-				glBindTexture(GL_TEXTURE_2D, this->videoFrames[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+			videoStageBufferMemorySize = video_width * video_height * 4;
+			glGenBuffers(1,
+						 &videoStagingTextureBuffer); // TODO ffix t oa single buffer.
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, videoStagingTextureBuffer);
+			glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, videoStageBufferMemorySize * nrVideoFrames, nullptr,
+						 GL_DYNAMIC_COPY);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
-				mapMemory[i] = glMapBufferRange(GL_PIXEL_PACK_BUFFER_ARB, 0, pixelSize,
-												GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT); // TODO fix access bit
+			/*	*/
+			glGenTextures(this->videoFrameTextures.size(), this->videoFrameTextures.data());
+			for (size_t i = 0; i < this->videoFrameTextures.size(); i++) {
+				glBindTexture(GL_TEXTURE_2D, this->videoFrameTextures[i]);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, video_width, video_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+							 nullptr);
+				/*	wrap and filter	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 			}
+			glBindTexture(GL_TEXTURE_2D, 0);
 		}
+
+		virtual void onResize(int width, int height) override {}
 
 		virtual void draw() override {
 
@@ -342,22 +325,18 @@ namespace glsample {
 
 			/*	*/
 			glDisable(GL_CULL_FACE);
-			// glEnable(GL_DEPTH_TEST);
+			glDisable(GL_DEPTH_TEST);
 			glDisable(GL_BLEND);
-			glEnable(GL_STENCIL);
 
 			glUseProgram(this->videoplayback_program);
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->videoplayback_program);
+			glBindTexture(GL_TEXTURE_2D, this->videoFrameTextures[nthVideoFrame]);
 
 			/*	Draw triangle*/
 			glBindVertexArray(this->vao);
-			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, this->vertices.size());
 			glBindVertexArray(0);
-
-			/*  */
-			this->nthVideoFrame = (this->nthVideoFrame + 1) % this->nrVideoFrames;
 		}
 
 		virtual void update() {
@@ -406,11 +385,24 @@ namespace glsample {
 							sws_scale(this->sws_ctx, this->frame->data, this->frame->linesize, 0, this->frame->height,
 									  this->frameoutput->data, this->frameoutput->linesize);
 
+							glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStagingTextureBuffer);
+							void *p =
+								glMapBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, nthVideoFrame * videoStageBufferMemorySize,
+												 videoStageBufferMemorySize,
+												 GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT); // TODO fix access bit
+
 							/*	Upload the image to staging.	*/
-							size_t pixelSize = video_width * video_height * 4;
-							memcpy(mapMemory[nthVideoFrame], this->frameoutput->data[0],
-								   video_width * video_height * 4);
-							glFlushMappedBufferRange(GL_PIXEL_PACK_BUFFER_ARB, nthVideoFrame * pixelSize, pixelSize);
+							memcpy(p, this->frameoutput->data[0], videoStageBufferMemorySize);
+							glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, 0, videoStageBufferMemorySize);
+							glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
+
+							glBindTexture(GL_TEXTURE_2D, this->videoFrameTextures[this->nthVideoFrame]);
+							glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, video_width, video_height, GL_RGBA,
+											GL_UNSIGNED_BYTE,
+											reinterpret_cast<const void *>(videoStageBufferMemorySize * nthVideoFrame));
+							glBindTexture(GL_TEXTURE_2D, 0);
+							glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+
 							nthVideoFrame = (nthVideoFrame + 1) % nrVideoFrames;
 						}
 					}
