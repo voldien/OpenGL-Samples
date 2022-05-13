@@ -8,6 +8,7 @@
 
 #include <glm/glm.hpp>
 #include <iostream>
+
 namespace glsample {
 
 	class IndexRender : public GLWindow {
@@ -20,6 +21,7 @@ namespace glsample {
 		unsigned int vao;
 		unsigned int vbo;
 		unsigned int ibo;
+		
 		int texture_program;
 		int gl_texture;
 		int mvp_uniform;
@@ -70,7 +72,7 @@ namespace glsample {
 
 			glGenBuffers(1, &this->ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ibo);
-			//glBufferData(GL_ELEMENT_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+			// glBufferData(GL_ELEMENT_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);

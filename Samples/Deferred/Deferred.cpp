@@ -13,6 +13,10 @@ namespace glsample {
 			float pos[2];
 			float color[3];
 		} Vertex;
+
+		typedef struct _light_t {
+
+		} Light;
 		unsigned int vbo;
 		unsigned int triangle_program;
 		const std::string vertexShaderPath = "Shaders/triangle/vertex.glsl";

@@ -4,6 +4,8 @@
 
 GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::GfxBackEnd::ImGUI_OpenGL) {
 	this->enableDocking(false);
+
+	this->getTimer().start();
 }
 
 void GLSampleWindow ::displayMenuBar() {}

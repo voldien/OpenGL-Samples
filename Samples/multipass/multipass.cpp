@@ -40,6 +40,7 @@ namespace glsample {
 			glDeleteProgram(this->triangle_program);
 			glDeleteBuffers(1, &this->vbo);
 		}
+		
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 

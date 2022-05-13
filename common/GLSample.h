@@ -60,26 +60,26 @@ template <class T> class GLSample : public GLSampleSession {
 
 		FileSystem::createFileSystem();
 
-		this->ref = new T();
+		this->sampleRef = new T();
 		/*	Prevent residual errors to cuase crash.	*/
 		fragcore::resetErrorFlag();
 
-		this->ref->Initialize();
-		// this->ref->vsync(vsync);
-		this->ref->setFullScreen(fullscreen);
+		this->sampleRef->Initialize();
+		// this->sampleRef->vsync(vsync);
+		this->sampleRef->setFullScreen(fullscreen);
 	}
 
-	~GLSample() { this->ref->Release(); }
+	~GLSample() { this->sampleRef->Release(); }
 
 	void run() {
-		this->ref->show();
-		this->ref->run();
+		this->sampleRef->show();
+		this->sampleRef->run();
 	}
 
 	void screenshot(float scale) {}
 
   private:
-	T *ref;
+	T *sampleRef;
 };
 
 #endif

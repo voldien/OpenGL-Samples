@@ -27,7 +27,7 @@ namespace glsample {
 		glm::mat4 mvp;
 		CameraController camera;
 
-		std::string texturePath = "texture.png";
+		std::string texturePath = "asset/texture.png";
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag";

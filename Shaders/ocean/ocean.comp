@@ -25,7 +25,7 @@ struct particle_param_t {
 	float patchSize;
 };
 
-layout(set = 0, binding = 1) uniform params { particle_param_t _params; }
+layout(set = 0, binding = 1) uniform UniformBufferBlock { particle_param_t _params; }
 u_pushConstants;
 
 // complex math functions

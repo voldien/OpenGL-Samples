@@ -74,10 +74,6 @@ namespace glsample {
 
 			glGenTextures(1, &this->gl_texture);
 			onResize(this->width(), this->height());
-
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->gl_texture, 0);
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		virtual void onResize(int width, int height) override {
@@ -88,6 +84,17 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->gl_texture, 0);
+
+			GLenum drawAttach = GL_COLOR_ATTACHMENT0;
+			glDrawBuffers(1, &drawAttach);
+
+			/*  Validate if created properly.*/
+			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
+				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
+			}
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		virtual void draw() override {

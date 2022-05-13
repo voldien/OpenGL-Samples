@@ -18,6 +18,13 @@ namespace glsample {
 			float ht_real_img[2];
 		} Vertex;
 
+		typedef struct Geometry {
+			unsigned int vao;
+			unsigned int vbo;
+			unsigned int ibo;
+			unsigned int count;
+		};
+
 		/*	*/
 		unsigned int skybox_vao;
 		unsigned int skybox_vbo;
@@ -44,10 +51,14 @@ namespace glsample {
 			alignas(16) glm::mat4 proj;
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
-			glm::vec4 diffuseColor;
 			float delta;
 			/*	*/
 			float speed;
+
+			/*light source.	*/
+			glm::vec3 direction = glm::vec3(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0);
+			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			glm::vec4 ambientLight = glm::vec4(0.4);
 
 		} mvp;
 
@@ -83,9 +94,9 @@ namespace glsample {
 			glDeleteProgram(this->ocean_graphic_program);
 			glDeleteProgram(this->spectrum_compute_program);
 			glDeleteProgram(this->kff_compute_program);
-
+			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->skybox_texture);
-
+			/*	*/
 			glDeleteVertexArrays(1, &this->ocean_vao);
 			glDeleteVertexArrays(1, &this->skybox_vao);
 			/*	*/
@@ -126,12 +137,16 @@ namespace glsample {
 			glUniformBlockBinding(this->ocean_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	Setup spectrum shader.	*/
+			/*	Setup spectrum compute shader.	*/
 			glUseProgram(this->spectrum_compute_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->spectrum_compute_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->spectrum_compute_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup fast furious transform.	*/
 			glUseProgram(this->kff_compute_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->kff_compute_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->kff_compute_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup skybox shader.	*/
@@ -215,6 +230,8 @@ namespace glsample {
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
 							  (getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
+			/*	*/
+
 			/*	Compute fast fourier transformation.	*/
 			{
 				/*	*/
@@ -269,10 +286,13 @@ namespace glsample {
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
+			/*	*/
 			this->mvp.model = glm::mat4(1.0f);
 			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(0.95f));
+			this->mvp.view = camera.getViewMatrix();
 			this->mvp.modelViewProjection = this->mvp.proj * camera.getViewMatrix() * this->mvp.model;
 
+			/*	Updated uniform data.	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *p = glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
 									   uniformSize, GL_MAP_WRITE_BIT);
