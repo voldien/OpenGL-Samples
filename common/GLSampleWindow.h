@@ -5,6 +5,7 @@
 #include "IOUtil.h"
 #include "Util/Time.hpp"
 #include <MIMIWindow.h>
+#include <ProceduralGeometry.h>
 
 class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
   public:

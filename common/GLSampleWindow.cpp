@@ -10,7 +10,7 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 
 void GLSampleWindow ::displayMenuBar() {}
 void GLSampleWindow ::renderUI() {
-	draw();
+	this->draw();
 
 	this->frameCount++;
 	this->getTimer().update();

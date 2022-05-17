@@ -2,8 +2,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 layout(triangles, equal_spacing, ccw) in;
 
-
-
 layout(location = 0) in vec3 WorldPos_ES_in[];
 layout(location = 1) in vec2 TexCoord_ES_in[];
 layout(location = 2) in vec3 Normal_ES_in[];
@@ -19,14 +17,15 @@ layout(binding = 0) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 modelViewProjection;
 	mat4 normalMatrix;
+
+	vec3 gEyeWorldPos;
+	float gDispFactor;
+
 	/*	Light source.	*/
 	vec3 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
-	vec3 gEyeWorldPos;
 
-	/*	*/
-	float gDispFactor;
 }
 ubo;
 

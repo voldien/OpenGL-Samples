@@ -11,25 +11,31 @@ class CameraController {
 	CameraController() = default;
 
 	void update(float delta) {
-		const Uint8 *state = SDL_GetKeyboardState(NULL);
-		bool w = state[SDLK_w];
-		bool a = state[SDLK_a];
-		bool s = state[SDLK_s];
-		bool d = state[SDLK_d];
 
+		const Uint8 *state = SDL_GetKeyboardState(NULL);
+
+		bool w = state[SDL_SCANCODE_W];
+		bool a = state[SDL_SCANCODE_A];
+		bool s = state[SDL_SCANCODE_S];
+		bool d = state[SDL_SCANCODE_D];
+		bool alt = state[SDL_SCANCODE_LALT];
 		// mouse movement.
 		SDL_PumpEvents(); // make sure we have the latest mouse state.
 
 		int buttons = SDL_GetMouseState(&x, &y);
 
 		float xDiff = -(xprev - x) * xspeed;
-		float yDiff = (yprev - y) * yspeed;
+		float yDiff = -(yprev - y) * yspeed;
 		xprev = x;
 		yprev = y;
-		flythrough_camera_update(&pos[0], &look[0], &up[0], &view[0][0], delta, 100.0f * 1, 0.5f * activated, fov,
-								 xDiff, yDiff, w, a, s, d, 0, 0, 0);
+		if (!alt) {
+			flythrough_camera_update(&pos[0], &look[0], &up[0], &view[0][0], delta, 100.0f * 1, 0.5f * activated, fov,
+									 xDiff, yDiff, w, a, s, d, 0, 0, 0);
+		}
 	}
 	const glm::mat4 &getViewMatrix() const noexcept { return this->view; }
+
+	const glm::vec3 getPosition() const noexcept {return this->pos;}
 
   private:
 	float fov = 80.0f;

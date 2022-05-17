@@ -22,7 +22,7 @@ namespace glsample {
 		unsigned int particle_compute_program;
 
 		const unsigned int localInvoke = 32;
-		unsigned int nrParticles = localInvoke * 64;
+		unsigned int nrParticles = localInvoke * 256;
 
 		typedef struct particle_setting_t {
 			float speed = 1.0f;
@@ -66,7 +66,11 @@ namespace glsample {
 
 		virtual void Release() override {
 			glDeleteProgram(this->particle_graphic_program);
+			glDeleteProgram(this->particle_compute_program);
+
 			glDeleteBuffers(1, &this->vbo);
+			glDeleteBuffers(1, &this->uniform_buffer);
+			glDeleteVertexArrays(1, &this->vao);
 		}
 
 		virtual void Initialize() override {

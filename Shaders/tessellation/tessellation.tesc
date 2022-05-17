@@ -18,25 +18,28 @@ layout(binding = 0) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 modelViewProjection;
 	mat4 normalMatrix;
+
+	vec3 gEyeWorldPos;
+	float gDispFactor;
+
 	/*	Light source.	*/
 	vec3 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
-	vec3 gEyeWorldPos;
-
-	float gDispFactor;
 }
 ubo;
 
 float GetTessLevel(float Distance0, float Distance1) {
 	float AvgDistance = (Distance0 + Distance1) / 2.0;
 
-	if (AvgDistance <= 2.0) {
+	if (AvgDistance <= 50.0) {
+		return 20.0;
+	} else if (AvgDistance <= 100.0) {
+		return 15.0;
+	} else if (AvgDistance <= 200.0) {
 		return 10.0;
-	} else if (AvgDistance <= 5.0) {
-		return 7.0;
 	} else {
-		return 3.0;
+		return 4.0;
 	}
 }
 

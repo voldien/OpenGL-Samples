@@ -9,21 +9,21 @@
 
 namespace glsample {
 
-	class Ocean : public GLWindow {
+	class Ocean : public GLSampleWindow {
 	  public:
-		Ocean() : GLWindow(-1, -1, -1, -1) { this->setTitle("Ocean"); }
+		Ocean() : GLSampleWindow() { this->setTitle("Ocean"); }
 		// TODO rename.
 		typedef struct _vertex_t {
 			float h0[2];
 			float ht_real_img[2];
 		} Vertex;
 
-		typedef struct Geometry {
+		typedef struct geometry_t {
 			unsigned int vao;
 			unsigned int vbo;
 			unsigned int ibo;
 			unsigned int count;
-		};
+		} Geometry;
 
 		/*	*/
 		unsigned int skybox_vao;
@@ -67,6 +67,8 @@ namespace glsample {
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
+
+		unsigned int ssbo_ocean_buffer_binding = 1;
 
 		CameraController camera;
 
@@ -228,7 +230,7 @@ namespace glsample {
 
 			/*	Bind uniform buffer associated with all of the pipelines.	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
+							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			/*	*/
 
@@ -237,6 +239,7 @@ namespace glsample {
 				/*	*/
 				glUseProgram(this->spectrum_compute_program);
 				glBindVertexArray(this->ocean_vao);
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->ssbo_ocean_buffer_binding, this->ocean_vbo, 0, 0);
 				glDispatchCompute(ocean_width + 64, ocean_height, 1);
 
 				/*	*/

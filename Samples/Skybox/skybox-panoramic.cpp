@@ -71,7 +71,7 @@ namespace glsample {
 			glDeleteProgram(this->skybox_program);
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
-			// glDeleteTextures(1, &this->skybox_panoramic);
+			glDeleteTextures(1, (const GLuint *)&this->skybox_panoramic);
 		}
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);

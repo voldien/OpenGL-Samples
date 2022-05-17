@@ -1,6 +1,7 @@
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <GLWindow.h>
+//#include <OpenALAudioInterface.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
 #include <fmt/core.h>
@@ -47,7 +48,7 @@ namespace glsample {
 			float uv[2];
 		} Vertex;
 
-		static const int nrVideoFrames = 3;
+		static const size_t nrVideoFrames = 3;
 		int nthVideoFrame = 0;
 		int frameSize;
 

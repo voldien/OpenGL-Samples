@@ -1,0 +1,177 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+struct particle_t {
+	vec4 position;
+	vec4 velocity;
+};
+
+struct particle_setting {
+
+	ivec4 _GroupDim, _ThreadDim;
+	float speed;
+	float lifetime;
+	float gravity;
+
+	float _SofteningSquared, _DeltaTime, _Damping;
+	uint _NumBodies;
+
+};
+
+layout(binding = 0) uniform UniformBufferBlock {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+	mat4 modelView;
+	mat4 modelViewProjection;
+
+	particle_setting setting;
+}
+ubo;
+
+layout(std430, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
+_ReadBuffer;
+
+layout(std430, binding = 2) buffer WriteBuffer { particle_t particle[]; }
+_WriteBuffer;
+
+#define SHARED_MEMORY_SIZE 512
+shared vec4 sharedPos[SHARED_MEMORY_SIZE];
+
+// WRAP is used to force each block to start working on a different
+// chunk (and wrap around back to the beginning of the array) so that
+// not all multiprocessors try to read the same memory locations at once.
+// Mod without divide, works on values from 0 up to 2m
+#define WRAP(x, m) (((x) < m) ? (x) : (x - m))
+
+// Macros to simplify shared memory addressing
+#define SX(i) sharedPos[i + ubo.setting._ThreadDim.x * threadID.y]
+// This macro is only used when multithreadBodies is true (below)
+#define SX_SUM(i, j) sharedPos[i + ubo.setting._ThreadDim.x * j]
+
+vec3 bodyBodyInteraction(vec3 ai, vec4 bi, vec4 bj) {
+	vec3 r;
+
+	// r_ij  [3 FLOPS]
+	r.x = bi.x - bj.x;
+	r.y = bi.y - bj.y;
+	r.z = bi.z - bj.z;
+
+	// distSqr = dot(r_ij, r_ij) + EPS^2  [6 FLOPS]
+	float distSqr = r.x * r.x + r.y * r.y + r.z * r.z;
+	distSqr += ubo.setting._SofteningSquared;
+
+	// invDistCube =1/distSqr^(3/2)  [4 FLOPS (2 mul, 1 sqrt, 1 inv)]
+	float distSixth = distSqr * distSqr * distSqr;
+	float invDistCube = 1.0f / sqrt(distSixth);
+
+	// s = m_j * invDistCube [1 FLOP]
+	float s = bj.w * invDistCube;
+
+	// a_i =  a_i + s * r_ij [6 FLOPS]
+	ai.x += r.x * s;
+	ai.y += r.y * s;
+	ai.z += r.z * s;
+
+	return ai;
+}
+
+// This is the "tile_calculation" function from the GPUG3 article.
+vec3 gravitation(vec4 pos, vec3 accel, ivec3 threadID) {
+	uint i;
+
+	// Here we unroll the loop
+	for (i = 0; i < ubo.setting._ThreadDim.x;) {
+		accel = bodyBodyInteraction(accel, SX(i), pos);
+		i += 1;
+		accel = bodyBodyInteraction(accel, SX(i), pos);
+		i += 1;
+		accel = bodyBodyInteraction(accel, SX(i), pos);
+		i += 1;
+		accel = bodyBodyInteraction(accel, SX(i), pos);
+		i += 1;
+	}
+
+	return accel;
+}
+
+vec3 computeBodyForce(vec4 pos, ivec3 groupID, ivec3 threadID) {
+	vec3 acc = vec3(0.0, 0.0, 0.0);
+
+	bool multithreadBodies = true;
+
+	uint p = ubo.setting._ThreadDim.x;
+	uint q = ubo.setting._ThreadDim.y;
+	uint n = ubo.setting._NumBodies;
+
+	uint start = n / q * threadID.y;
+	uint tile0 = start / (n / q);
+	uint tile = tile0;
+	uint finish = start + n / q;
+
+	// 
+	for (uint i = start; i < finish; i += p, tile++) {
+		sharedPos[threadID.x + ubo.setting._ThreadDim.x * threadID.y] =
+			(multithreadBodies)
+				?
+
+				_ReadBuffer
+					.particle[(WRAP(groupID.x + tile, ubo.setting._GroupDim.x) * ubo.setting._ThreadDim.y +
+							   threadID.y) *
+								  ubo.setting._ThreadDim.x +
+							  threadID.x]
+					.position
+				:
+
+				_ReadBuffer
+					.particle[WRAP(groupID.x + tile, ubo.setting._GroupDim.x) * ubo.setting._ThreadDim.x + threadID.x]
+					.position;
+
+		memoryBarrierShared();
+		// This is the "tile_calculation" function from the GPUG3 article.
+		acc = gravitation(pos, acc, threadID);
+		memoryBarrierShared();
+	}
+
+	if (multithreadBodies) {
+		SX_SUM(threadID.x, threadID.y).x = acc.x;
+		SX_SUM(threadID.x, threadID.y).y = acc.y;
+		SX_SUM(threadID.x, threadID.y).z = acc.z;
+
+		memoryBarrierShared();
+
+		// Save the result in global memory for the integration step
+		if (threadID.y == 0) {
+			for (uint i = 1; i < ubo.setting._ThreadDim.y; i++) {
+				acc.x += SX_SUM(threadID.x, i).x;
+				acc.y += SX_SUM(threadID.x, i).y;
+				acc.z += SX_SUM(threadID.x, i).z;
+			}
+		}
+	}
+
+	return acc;
+}
+
+void main() {
+	uint index = gl_GlobalInvocationID.x;
+
+	vec4 pos = _ReadBuffer.particle[index].position;
+	vec4 vel = _ReadBuffer.particle[index].velocity;
+
+	ivec3 threadID = ivec3(gl_GlobalInvocationID);
+
+	vec3 force = computeBodyForce(pos, ivec3(gl_GlobalInvocationID.xyz), threadID);
+
+	/*	*/
+	vel.xyz += force.xyz * ubo.setting._DeltaTime * ubo.setting.speed;
+	vel.xyz *= ubo.setting._Damping * ubo.setting.speed;
+
+	/*	*/
+	pos.xyz += vel.xyz * ubo.setting._DeltaTime;
+
+	_WriteBuffer.particle[index].position = pos;
+	_WriteBuffer.particle[index].velocity = vel;
+}
