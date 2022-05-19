@@ -16,12 +16,6 @@ namespace glsample {
 			com = std::make_shared<TessellationSettingComponent>(this->mvp);
 			this->addUIComponent(com);
 		}
-		typedef struct _vertex_t {
-			float vertex[3];
-			float uv[2];
-			float normal[3];
-			float tangent[3];
-		} Vertex;
 
 		struct UniformBufferBlock {
 			glm::mat4 model;
@@ -50,6 +44,7 @@ namespace glsample {
 			}
 			virtual void draw() override { // ImGui::SliderFloat("Displace", &this->uniform.gDisplace, 0.0f, 100.0f);
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
+				ImGui::DragFloat("Tessellation Levels", &this->uniform.gDisplace, 1, 0.0f, 10.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 			}
@@ -132,8 +127,8 @@ namespace glsample {
 			ProceduralGeometry::generatePlan(1, vertices, indices);
 
 			GLint minMapBufferSize;
-			glGetIntegerv(GL_MIN_MAP_BUFFER_ALIGNMENT, &minMapBufferSize);
-			uniformSize += uniformSize % minMapBufferSize;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -148,7 +143,8 @@ namespace glsample {
 			/*	*/
 			glGenBuffers(1, &this->vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
 			glGenBuffers(1, &this->ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
@@ -156,21 +152,24 @@ namespace glsample {
 						 GL_STATIC_DRAW);
 			this->nrElements = indices.size();
 
-			/*	*/
+			/*	Vertex.	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			/*	*/
+			/*	UV.	*/
 			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void *>(12));
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(12));
 
-			/*	*/
+			/*	Normal.	*/
 			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void *>(20));
+			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(20));
 
-			/*	*/
+			/*	Tangent.	*/
 			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void *>(32));
+			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 

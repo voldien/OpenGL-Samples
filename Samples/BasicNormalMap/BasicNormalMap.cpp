@@ -1,22 +1,16 @@
-#include "GLSampleWindow.h"
 #include "GLWindow.h"
 #include "ImageImport.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace glsample {
 
-	class BasicNormalMap : public GLWindow {
+	class BasicNormalMap : public GLSampleWindow {
 	  public:
-		BasicNormalMap() : GLWindow(-1, -1, -1, -1) { this->setTitle("Basic NormalMap"); }
-		typedef struct _vertex_t {
-			float pos[3];
-			float uv[2];
-			float normal[3];
-			float tangent[3];
-		} Vertex;
+		BasicNormalMap() : GLSampleWindow() { this->setTitle("Basic NormalMap"); }
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -35,6 +29,8 @@ namespace glsample {
 		/*	*/
 		unsigned int vbo;
 		unsigned int vao;
+		unsigned int ibo;
+		unsigned int nrElements;
 
 		/*	*/
 		unsigned int diffuse_texture;
@@ -57,9 +53,6 @@ namespace glsample {
 
 		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert";
 		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag";
-
-		const std::vector<Vertex> vertices = {
-			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f, 0.0f}, {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}};
 
 		virtual void Release() override {
 			/*	*/
@@ -98,17 +91,20 @@ namespace glsample {
 			this->diffuse_texture = TextureImporter::loadImage2D(this->diffuseTexturePath);
 			this->normal_texture = TextureImporter::loadImage2D(this->normalTexturePath);
 
-			/*	*/
+			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
-			glGetIntegerv(GL_MIN_MAP_BUFFER_ALIGNMENT, &minMapBufferSize);
-			uniformSize += uniformSize % minMapBufferSize;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
-			// TODO create geometry - Create plane with subdivision.
+			/*	Load geometry.	*/
+			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<unsigned int> indices;
+			ProceduralGeometry::generatePlan(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->vao);
@@ -117,23 +113,32 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
-			/*	Vertices.	*/
+			glGenBuffers(1, &this->ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+			this->nrElements = indices.size();
+
+			/*	Vertex.	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			/*	UVs	*/
+			/*	UV.	*/
 			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(12));
 
-			/*	Normals.	*/
+			/*	Normal.	*/
 			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 		}
@@ -168,7 +173,7 @@ namespace glsample {
 
 			/*	Draw triangle.	*/
 			glBindVertexArray(this->vao);
-			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+			glDrawElements(GL_TRIANGLES, this->nrElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
 		}
 

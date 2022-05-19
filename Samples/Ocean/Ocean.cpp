@@ -16,7 +16,7 @@ namespace glsample {
 		typedef struct _vertex_t {
 			float h0[2];
 			float ht_real_img[2];
-		} Vertex;
+		} OceanVertex;
 
 		typedef struct geometry_t {
 			unsigned int vao;
@@ -25,17 +25,10 @@ namespace glsample {
 			unsigned int count;
 		} Geometry;
 
+		Geometry skybox;
+		Geometry ocean;
 		/*	*/
-		unsigned int skybox_vao;
-		unsigned int skybox_vbo;
-		/*	*/
-		unsigned int ocean_vao;
-		unsigned int ocean_vbo;
-		unsigned int ocean_ibo;
-
-		/*	*/
-		int skybox_panoramic;
-		unsigned int skybox_texture;
+		int skybox_panoramic_texture;
 
 		/*	*/
 		unsigned int skybox_program;
@@ -97,16 +90,54 @@ namespace glsample {
 			glDeleteProgram(this->spectrum_compute_program);
 			glDeleteProgram(this->kff_compute_program);
 			/*	*/
-			glDeleteTextures(1, (const GLuint *)&this->skybox_texture);
+			glDeleteTextures(1, (const GLuint *)&this->skybox_panoramic_texture);
 			/*	*/
-			glDeleteVertexArrays(1, &this->ocean_vao);
-			glDeleteVertexArrays(1, &this->skybox_vao);
+			glDeleteVertexArrays(1, &this->ocean.vao);
+			glDeleteVertexArrays(1, &this->skybox.vao);
 			/*	*/
-			glDeleteBuffers(1, &this->ocean_vbo);
-			glDeleteBuffers(1, &this->ocean_ibo);
-			glDeleteBuffers(1, &this->skybox_vbo);
+			glDeleteBuffers(1, &this->ocean.vbo);
+			glDeleteBuffers(1, &this->ocean.ibo);
+			glDeleteBuffers(1, &this->skybox.vbo);
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
+
+		// float phillips(glm::vec2 k, float max_l) {
+		// 	float k_len = vec_length(k);
+		// 	if (k_len == 0.0f) {
+		// 		return 0.0f;
+		// 	}
+		// 	float kL = k_len * L;
+		// 	glm::vec2 k_dir = vec_normalize(k);
+		// 	float kw = vec_dot(k_dir, wind_dir);
+		// 	return pow(kw * kw, 1.0f) *						   // Directional
+		// 		   exp(-1.0 * k_len * k_len * max_l * max_l) * // Suppress small waves at ~max_l.
+		// 		   exp(-1.0f / (kL * kL)) * pow(k_len, -4.0f);
+		// }
+
+		// void generateHeightField(glm::vec2 *h0, unsigned int fftInputH, unsigned int fftInputW) {
+		// 	float fMultiplier, fAmplitude, fTheta;
+		// 	for (unsigned int y = 0; y < fftInputH; y++) {
+		// 		for (unsigned int x = 0; x < fftInputW; x++) {
+		// 			float kx = Math::PI * x / (float)_patchSize;
+		// 			float ky = 2.0f * Math::PI * y / (float)_patchSize;
+		// 			float Er = 2.0f * rand() / (float)RAND_MAX - 1.0f;
+		// 			float Ei = 2.0f * rand() / (float)RAND_MAX - 1.0f;
+
+		// 			if (!((kx == 0.f) && (ky == 0.f))) {
+		// 				fMultiplier = sqrt(phillips(kx, ky, windSpeed, windDir));
+		// 			} else {
+		// 				fMultiplier = 0.f;
+		// 			}
+		// 			fAmplitude = Random::range(0.0f, 1.0f);
+		// 			fTheta = rand() / (float)RAND_MAX * 2 * Math::PI;
+		// 			float h0_re = fMultiplier * fAmplitude * Er;
+		// 			float h0_im = fMultiplier * fAmplitude * Ei;
+		// 			int i = y * fftInputW + x;
+		// 			glm::vec2 tmp = {h0_re, h0_im};
+		// 			h0[i] = tmp;
+		// 		}
+		// 	}
+		// }
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -160,8 +191,8 @@ namespace glsample {
 
 			/*	Compute uniform size that is aligned with the requried for the hardware.	*/
 			GLint minMapBufferSize;
-			glGetIntegerv(GL_MIN_MAP_BUFFER_ALIGNMENT, &minMapBufferSize);
-			uniformSize += uniformSize % minMapBufferSize;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -169,52 +200,58 @@ namespace glsample {
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			// TODO add plane with subdivision.
+			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<unsigned int> indices;
+			ProceduralGeometry::generatePlan(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->ocean_vao);
-			glBindVertexArray(this->ocean_vao);
+			glGenVertexArrays(1, &this->ocean.vao);
+			glBindVertexArray(this->ocean.vao);
 
-			glGenBuffers(1, &this->ocean_vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, ocean_vbo);
-			glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+			glGenBuffers(1, &this->ocean.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, ocean.vbo);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
-			glGenBuffers(1, &this->ocean_ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ocean_ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+			glGenBuffers(1, &this->ocean.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ocean.ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
+						 GL_STATIC_DRAW);
+			this->ocean.count = indices.size();
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(sizeof(float) * 2));
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+								  (void *)(sizeof(float) * 3));
 
 			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(sizeof(float) * 2));
+			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
 
 			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(sizeof(float) * 2));
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
 
 			glBindVertexArray(0);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->skybox_vao);
-			glBindVertexArray(this->skybox_vao);
+			glGenVertexArrays(1, &this->skybox.vbo);
+			glBindVertexArray(this->skybox.vao);
 
 			/*	*/
-			glGenBuffers(1, &this->skybox_vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, skybox_vbo);
+			glGenBuffers(1, &this->skybox.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
 			// glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr); // TODO fix.
+			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), nullptr); // TODO fix.
 
 			glBindVertexArray(0);
 
 			/*	Load skybox for reflective.	*/
-			this->skybox_panoramic = TextureImporter::loadImage2D(this->panoramicPath);
+			this->skybox_panoramic_texture = TextureImporter::loadImage2D(this->panoramicPath);
 		}
 
 		virtual void draw() override {
@@ -232,14 +269,12 @@ namespace glsample {
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
-			/*	*/
-
 			/*	Compute fast fourier transformation.	*/
 			{
 				/*	*/
 				glUseProgram(this->spectrum_compute_program);
-				glBindVertexArray(this->ocean_vao);
-				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->ssbo_ocean_buffer_binding, this->ocean_vbo, 0, 0);
+				glBindVertexArray(this->ocean.vao);
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->ssbo_ocean_buffer_binding, this->ocean.vbo, 0, 0);
 				glDispatchCompute(ocean_width + 64, ocean_height, 1);
 
 				/*	*/
@@ -254,15 +289,18 @@ namespace glsample {
 			{
 				/*	Bind reflective material.	*/
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->skybox_texture);
+				glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic_texture);
 
 				glUseProgram(this->ocean_graphic_program);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->ocean_vao);
+				glBindVertexArray(this->ocean.vao);
+				glPatchParameteri(GL_PATCH_VERTICES, 3);
 				glDrawElements(GL_PATCHES, ocean_width * ocean_height * 2, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
+
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 			/*	Render Skybox.	*/
 			{
@@ -275,11 +313,11 @@ namespace glsample {
 				glUseProgram(this->skybox_program);
 
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic);
+				glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic_texture);
 
 				/*	Draw triangle*/
-				glBindVertexArray(this->skybox_vao);
-				glDrawArrays(GL_TRIANGLES, 0, 7); // TODO fix
+				glBindVertexArray(this->skybox.vao);
+				glDrawArrays(GL_TRIANGLES, 0, this->skybox.count); // TODO fix
 				glBindVertexArray(0);
 			}
 		}

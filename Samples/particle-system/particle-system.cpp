@@ -107,8 +107,8 @@ namespace glsample {
 
 			/*	*/
 			GLint minMapBufferSize;
-			glGetIntegerv(GL_MIN_MAP_BUFFER_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize += uniformBufferSize % minMapBufferSize;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			uniformBufferSize += minMapBufferSize - (uniformBufferSize % minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -160,6 +160,7 @@ namespace glsample {
 			glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 			/*	*/
+			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			/*	*/
 			glViewport(0, 0, width, height);
