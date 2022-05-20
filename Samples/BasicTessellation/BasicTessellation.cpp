@@ -8,7 +8,7 @@
 #include <iostream>
 
 namespace glsample {
-
+	
 	class BasicTessellation : public GLSampleWindow {
 	  public:
 		BasicTessellation() : GLSampleWindow() {

@@ -18,12 +18,11 @@ namespace glsample {
 			alignas(16) glm::mat4 proj;
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
-			alignas(16) glm::mat4 normalMatrix;
 
 			/*light source.	*/
-			glm::vec3 direction = glm::vec3(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0);
+			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4);
+			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 		} mvp;
 
 		/*	*/
@@ -44,12 +43,12 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
 		CameraController camera;
 
-		std::string diffuseTexturePath = "diffuse.png";
-		std::string normalTexturePath = "normalmap.png";
+		std::string diffuseTexturePath = "asset/diffuse.png";
+		std::string normalTexturePath = "asset/normalmap.png";
 
 		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert";
 		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag";
@@ -70,7 +69,6 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	Load shader source.	*/
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
@@ -94,11 +92,11 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
+			uniformBufferSize += minMapBufferSize - (uniformBufferSize % minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
@@ -152,16 +150,17 @@ namespace glsample {
 			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glViewport(0, 0, width, height);
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
+							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
 
 			/*	*/
+			glViewport(0, 0, width, height);
+			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
-
 			glUseProgram(this->normalMapping_program);
+
+			glDisable(GL_CULL_FACE);
 
 			/*	*/
 			glActiveTexture(GL_TEXTURE0);
@@ -185,12 +184,14 @@ namespace glsample {
 			this->mvp.model = glm::mat4(1.0f);
 			this->mvp.model =
 				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(0.95f));
-			this->mvp.modelViewProjection = this->mvp.proj * camera.getViewMatrix() * this->mvp.model;
+			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
+			this->mvp.view = this->camera.getViewMatrix();
+			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p = glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
-									   uniformSize, GL_MAP_WRITE_BIT);
+			void *p = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(p, &this->mvp, sizeof(mvp));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}

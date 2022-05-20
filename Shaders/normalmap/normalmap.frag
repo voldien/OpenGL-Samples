@@ -7,15 +7,14 @@ layout(location = 0) in vec2 UV;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 tangent;
 
-layout(binding = 0) uniform UniformBufferBlock {
+layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
 	mat4 modelView;
 	mat4 modelViewProjection;
-	mat4 normalMatrix;
 	/*	Light source.	*/
-	vec3 direction;
+	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
 }
@@ -41,7 +40,7 @@ void main() {
 	vec3 alteredNormal = normalize(mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump);
 
 	// Compute directional light
-	vec4 lightColor = computeLightContributionFactor(ubo.direction, alteredNormal) * ubo.lightColor;
+	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
 
-	fragColor =  texture(DiffuseTexture, UV) * ( ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, UV) * ( ubo.ambientColor + lightColor);
 }
