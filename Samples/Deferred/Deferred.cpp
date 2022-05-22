@@ -1,14 +1,14 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "ShaderLoader.h"
 #include <GL/glew.h>
 
 #include <iostream>
 namespace glsample {
 
-	class Deferred : public GLWindow {
+	class Deferred : public GLSampleWindow {
 	  public:
-		Deferred() : GLWindow(-1, -1, -1, -1) {}
+		Deferred() : GLSampleWindow() {}
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];

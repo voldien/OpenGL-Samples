@@ -34,6 +34,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	vkscommon::Time &getTimer() noexcept { return this->time; }
 	size_t getFrameCount() noexcept { return this->frameCount; }
 
+	void captureScreenShot();
+
   protected:
 	virtual void displayMenuBar() override;
 	virtual void renderUI() override;

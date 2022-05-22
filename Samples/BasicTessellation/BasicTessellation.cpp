@@ -1,6 +1,6 @@
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
-#include <GLWindow.h>
+#include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
@@ -8,7 +8,7 @@
 #include <iostream>
 
 namespace glsample {
-	
+
 	class BasicTessellation : public GLSampleWindow {
 	  public:
 		BasicTessellation() : GLSampleWindow() {
@@ -23,16 +23,16 @@ namespace glsample {
 			glm::mat4 proj;
 			glm::mat4 modelView;
 			glm::mat4 modelViewProjection;
-			glm::mat4 normalMatrix;
+
+			/*light source.	*/
+			glm::vec4 direction = glm::vec4(-1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
+			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			glm::vec4 ambientLight = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
 
 			/*	Tessellation settings.	*/
 			glm::vec3 eyePos = glm::vec3(1.0f);
 			float gDisplace = 1.0f;
-
-			/*light source.	*/
-			glm::vec3 direction = glm::vec3(0, 1, 0);
-			glm::vec4 lightColor = glm::vec4(1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4);
+			float tessLevel = 1.0f;
 
 		} mvp;
 
@@ -44,7 +44,7 @@ namespace glsample {
 			}
 			virtual void draw() override { // ImGui::SliderFloat("Displace", &this->uniform.gDisplace, 0.0f, 100.0f);
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
-				ImGui::DragFloat("Tessellation Levels", &this->uniform.gDisplace, 1, 0.0f, 10.0f);
+				ImGui::DragFloat("Tessellation Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 			}
@@ -66,7 +66,6 @@ namespace glsample {
 		unsigned int ibo;
 		unsigned int vao;
 		unsigned int nrElements;
-		bool split = false;
 		/*	*/
 		unsigned int tessellation_program;
 		unsigned int wireframe_program;
@@ -77,8 +76,8 @@ namespace glsample {
 		unsigned int diffuse_texture;
 		unsigned int heightmap_texture;
 
-		const std::string diffuseTexturePath = "tessellation_diffusemap.png";
-		const std::string heightTexturePath = "tessellation_heightmap.png";
+		const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
+		const std::string heightTexturePath = "asset/tessellation_heightmap.png";
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert";
 		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag";
@@ -94,6 +93,7 @@ namespace glsample {
 
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
+			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
 		virtual void Initialize() override {
@@ -112,7 +112,7 @@ namespace glsample {
 			glUseProgram(this->tessellation_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->tessellation_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->tessellation_program, "diffuse"), 0);
-			glUniform1iARB(glGetUniformLocation(this->tessellation_program, "heightmap"), 1);
+			glUniform1iARB(glGetUniformLocation(this->tessellation_program, "gDisplacementMap"), 1);
 			glUniformBlockBinding(this->tessellation_program, this->uniform_buffer_index, 0);
 
 			glUseProgram(0);
@@ -166,31 +166,23 @@ namespace glsample {
 			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(20));
 
-			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
-
 			glBindVertexArray(0);
-
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
 		}
 
 		virtual void draw() override {
+			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
 
 			this->update();
 
 			int width, height;
 			getSize(&width, &height);
 
-			if (split) {
-			}
 			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			glUseProgram(this->tessellation_program);
@@ -203,10 +195,6 @@ namespace glsample {
 			glActiveTexture(GL_TEXTURE0 + 1);
 			glBindTexture(GL_TEXTURE_2D, this->heightmap_texture);
 
-			// Draw split.
-			// if (split) {
-			// 	glScissor(0, 0, width / 2.0, height);
-			// }
 			glDisable(GL_CULL_FACE);
 			glEnable(GL_DEPTH_TEST);
 
@@ -231,7 +219,7 @@ namespace glsample {
 			this->mvp.model = glm::translate(this->mvp.model, glm::vec3(0, 0, 10));
 			this->mvp.model = glm::rotate(this->mvp.model, (float)Math::PI_half, glm::vec3(1, 0, 0));
 			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10, 10, 10));
-			this->mvp.normalMatrix = this->mvp.model;
+
 			this->mvp.view = camera.getViewMatrix();
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
 			this->mvp.eyePos = camera.getPosition();

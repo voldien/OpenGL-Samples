@@ -8,24 +8,22 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec3 VertexPosition;
 layout(location = 1) in vec2 UV;
 layout(location = 2) in vec3 normal;
-layout(location = 3) in vec3 tangent;
 
-layout(binding = 0) uniform UniformBufferBlock {
+layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
 	mat4 modelView;
 	mat4 modelViewProjection;
-	mat4 normalMatrix;
-
-	vec3 gEyeWorldPos;
-	float gDispFactor;
 
 	/*	Light source.	*/
-	vec3 direction;
+	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
 
+	vec3 gEyeWorldPos;
+	float gDispFactor;
+	float tessLevel;
 }
 ubo;
 
@@ -38,8 +36,8 @@ float computeLightContributionFactor(in vec3 direction, in vec3 normalInput) {
 
 void main() {
 
-	// Compute directional light
-	vec4 lightColor = computeLightContributionFactor(ubo.direction, normal) * ubo.lightColor;
+	/*	Compute directional light	*/
+	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, normal) * ubo.lightColor;
 
 	fragColor = texture(diffuse, UV) * (ubo.ambientColor + lightColor);
 }

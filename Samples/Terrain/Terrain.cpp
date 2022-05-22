@@ -1,6 +1,6 @@
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
-#include <GLWindow.h>
+#include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
@@ -9,9 +9,9 @@
 
 namespace glsample {
 
-	class Terrain : public GLWindow {
+	class Terrain : public GLSampleWindow {
 	  public:
-		Terrain() : GLWindow(-1, -1, -1, -1) {}
+		Terrain() : GLSampleWindow() {}
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];

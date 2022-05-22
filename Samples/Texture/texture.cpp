@@ -1,5 +1,5 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "Importer/ImageImport.h"
 #include "ShaderLoader.h"
 #include "Util/CameraController.h"

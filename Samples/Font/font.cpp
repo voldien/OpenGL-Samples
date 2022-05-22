@@ -1,5 +1,5 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "ShaderLoader.h"
 #include <FontFactory.h>
 #include <GL/glew.h>
@@ -7,9 +7,9 @@
 #include <iostream>
 namespace glsample {
 
-	class Font : public GLWindow {
+	class Font : public GLSampleWindow {
 	  public:
-		Font() : GLWindow(-1, -1, -1, -1) {}
+		Font() : GLSampleWindow() {}
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];

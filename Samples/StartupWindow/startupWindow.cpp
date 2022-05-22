@@ -1,5 +1,5 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include <GL/glew.h>
 
 #include <iostream>
@@ -17,10 +17,10 @@ class SampleComponent : public nekomimi::UIComponent {
 	float color[4];
 };
 
-class StartUpWindow : public GLWindow {
+class StartUpWindow : public GLSampleWindow {
   public:
 	std::shared_ptr<SampleComponent> com;
-	StartUpWindow() : GLWindow(-1, -1, -1, -1) {
+	StartUpWindow() : GLSampleWindow() {
 		// com = std::make_shared<SampleComponent>();
 		// this->addUIComponent(com);
 	}

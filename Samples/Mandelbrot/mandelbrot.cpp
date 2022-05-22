@@ -1,9 +1,10 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "Importer/ImageImport.h"
 #include "ShaderLoader.h"
 #include "Util/CameraController.h"
 #include <GL/glew.h>
+#include <ShaderCompiler.h>
 
 #include <glm/glm.hpp>
 #include <iostream>

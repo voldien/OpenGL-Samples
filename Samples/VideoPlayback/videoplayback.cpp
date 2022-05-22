@@ -1,7 +1,6 @@
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
-#include <GLWindow.h>
-//#include <OpenALAudioInterface.h>
+#include <OpenALAudioInterface.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
 #include <fmt/core.h>
@@ -48,7 +47,7 @@ namespace glsample {
 			float uv[2];
 		} Vertex;
 
-		static const size_t nrVideoFrames = 3;
+		static const size_t nrVideoFrames = 2;
 		int nthVideoFrame = 0;
 		int frameSize;
 
@@ -89,6 +88,11 @@ namespace glsample {
 		size_t videoStageBufferMemorySize = 0;
 		std::array<unsigned int, nrVideoFrames> videoFrameTextures;
 		unsigned int videoStagingTextureBuffer; // PBO buffers
+
+		fragcore::AudioClip *clip;
+		fragcore::AudioListener *listener;
+		fragcore::AudioSource *audioSource;
+		std::shared_ptr<fragcore::OpenALAudioInterface> audioInterface;
 
 		std::string videoPath = "video.mp4";
 
@@ -201,20 +205,12 @@ namespace glsample {
 			if (this->pVideoCtx == nullptr)
 				throw cxxexcept::RuntimeException("Failed to allocate video decoder context");
 
-			// AV_PIX_FMT_FLAG_RGB
-			/*  Modify the target pixel format. */
-			// this->pVideoCtx->get_format = get_format;
-			//	pVideoCodecParam->format = AV_PIX_FMT_BGR24;
-			//	pVideoCodecParam->codec_tag = avcodec_pix_fmt_to_codec_tag(AV_PIX_FMT_BGR24);
-			//	pVideoCodecParam->color_space = AVCOL_SPC_RGB;
 			result = avcodec_parameters_to_context(this->pVideoCtx, pVideoCodecParam);
 			if (result < 0) {
 				char buf[AV_ERROR_MAX_STRING_SIZE];
 				av_strerror(result, buf, sizeof(buf));
 				throw cxxexcept::RuntimeException("Failed to set codec parameters : {}", buf);
 			}
-			// av_find_best_pix_fmt_of_2
-			// avcodec_default_get_format()
 
 			if ((result = avcodec_open2(this->pVideoCtx, pVideoCodec, nullptr)) != 0) {
 				char buf[AV_ERROR_MAX_STRING_SIZE];
@@ -237,7 +233,6 @@ namespace glsample {
 			av_image_alloc(this->frameoutput->data, this->frameoutput->linesize, this->pVideoCtx->width,
 						   this->pVideoCtx->height, AV_PIX_FMT_RGBA, 4);
 
-			// AVPacket *pPacket = av_packet_alloc();
 			this->sws_ctx = sws_getContext(this->pVideoCtx->width, this->pVideoCtx->height, this->pVideoCtx->pix_fmt,
 										   this->pVideoCtx->width, this->pVideoCtx->height, AV_PIX_FMT_RGBA,
 										   SWS_BICUBIC, nullptr, nullptr, nullptr);
@@ -247,6 +242,27 @@ namespace glsample {
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
+			this->audioInterface = std::make_shared<fragcore::OpenALAudioInterface>(nullptr);
+
+			fragcore::AudioListenerDesc list_desc = {.position = fragcore::Vector3(0, 0, 0),
+													 .rotation = fragcore::Quaternion::Identity()};
+			list_desc.position = fragcore::Vector3::Zero();
+			listener = audioInterface->createAudioListener(&list_desc);
+			listener->setVolume(1.0f);
+			fragcore::AudioSourceDesc source_desc = {};
+			source_desc.position = fragcore::Vector3::Zero();
+			audioSource = audioInterface->createAudioSource(&source_desc);
+
+			fragcore::AudioClipDesc clip_desc = {};
+			clip_desc.decoder = nullptr;
+			clip_desc.samples = audio_sample_rate;
+			clip_desc.sampleRate = audio_bit_rate;
+			clip_desc.format = fragcore::AudioFormat::eStero;
+			clip_desc.datamode = fragcore::AudioDataMode::Streaming;
+
+			this->clip = audioInterface->createAudioClip(&clip_desc);
+			this->audioSource->setClip(this->clip);
 
 			loadVideo(this->videoPath.c_str());
 
@@ -310,6 +326,8 @@ namespace glsample {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 			}
 			glBindTexture(GL_TEXTURE_2D, 0);
+
+			this->audioSource->play();
 		}
 
 		virtual void onResize(int width, int height) override {}
@@ -349,7 +367,9 @@ namespace glsample {
 			}
 
 			int res, result;
-			// res = av_seek_frame(this->pformatCtx, this->videoStream, 60000, AVSEEK_FLAG_FRAME);
+			// TODO sync
+			// res = av_seek_frame(this->pformatCtx, this->videoStream, (int64_t)(getTimer().getElapsed() * 1000000.0f),
+			// 					AVSEEK_FLAG_ANY);
 
 			res = av_read_frame(this->pformatCtx, packet);
 			if (res == 0) {
@@ -426,17 +446,25 @@ namespace glsample {
 						}
 						int data_size = av_get_bytes_per_sample(pAudioCtx->sample_fmt);
 
+						this->frame->linesize[0];
 						av_get_channel_layout_nb_channels(this->frame->channel_layout);
 						this->frame->format != AV_SAMPLE_FMT_S16P;
 						this->frame->channel_layout;
 
+						// TODO queue info
+						// this->clip->
+						printf("%d %d\n", this->frame->linesize, this->frame->nb_samples);
+
 						/*	Assign new audio data.	*/
-						for (int i = 0; i < frame->nb_samples; i++)
-							for (int ch = 0; ch < pAudioCtx->channels; ch++)
+						for (int i = 0; i < frame->nb_samples; i++) {
+							for (int ch = 0; ch < pAudioCtx->channels; ch++) {
+
+								// clip->setData(this->frame->data[0], data_size, 0);
 								continue;
-						// clip->setData(this->frame->data[0], data_size, 0);
+							}
+						}
+						this->audioSource->play();
 					}
-					// this->audioSource->play();
 				}
 			}
 			av_packet_unref(packet);

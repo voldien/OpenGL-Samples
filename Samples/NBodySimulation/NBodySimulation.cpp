@@ -1,5 +1,5 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "ShaderLoader.h"
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -279,8 +279,8 @@ namespace glsample {
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *p = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize, uniformBufferSize,
-				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
 			memcpy(p, &this->uniform_stage, sizeof(uniform_stage));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);

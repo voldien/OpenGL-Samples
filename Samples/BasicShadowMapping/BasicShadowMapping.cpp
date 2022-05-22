@@ -1,14 +1,14 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <utils/CameraController.h>
 
 #include <iostream>
 namespace glsample {
 
-	class BasicShadowMapping : public GLWindow {
+	class BasicShadowMapping : public GLSampleWindow {
 	  public:
-		BasicShadowMapping() : GLWindow(-1, -1, -1, -1) {}
+		BasicShadowMapping() : GLSampleWindow() {}
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];
@@ -23,7 +23,7 @@ namespace glsample {
 		unsigned int graphic_program;
 		unsigned int shadow_program;
 
-				CameraController camera;
+		CameraController camera;
 
 		const std::string vertexShaderPath = "Shaders/triangle/vertex.glsl";
 		const std::string fragmentShaderPath = "Shaders/triangle/fragment.glsl";

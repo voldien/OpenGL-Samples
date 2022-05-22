@@ -1,14 +1,14 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "ShaderLoader.h"
 #include <GL/glew.h>
 
 #include <iostream>
 namespace glsample {
 
-	class MultiPass : public GLWindow {
+	class MultiPass : public GLSampleWindow {
 	  public:
-		MultiPass() : GLWindow(-1, -1, -1, -1) {}
+		MultiPass() : GLSampleWindow() {}
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];

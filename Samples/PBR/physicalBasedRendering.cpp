@@ -1,13 +1,13 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "ShaderLoader.h"
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <iostream>
 
-class PhysicalBasedRendering : public GLWindow {
+class PhysicalBasedRendering : public GLSampleWindow {
   public:
-	PhysicalBasedRendering() : GLWindow(-1, -1, -1, -1) { this->setTitle(" "); }
+	PhysicalBasedRendering() : GLSampleWindow() { this->setTitle(" "); }
 	typedef struct _vertex_t {
 		float pos[2];
 		float color[3];

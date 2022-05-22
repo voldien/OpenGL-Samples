@@ -18,7 +18,7 @@ struct particle_setting {
 layout(std430, binding = 1) buffer Positions { particle_t pos[]; }
 positions;
 
-layout(binding = 0) uniform UniformBufferBlock {
+layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;

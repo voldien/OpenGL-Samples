@@ -1,5 +1,5 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "Importer/ImageImport.h"
 #include "ShaderLoader.h"
 #include "Util/CameraController.h"
@@ -9,9 +9,9 @@
 #include <iostream>
 namespace glsample {
 
-	class VolumeShadow : public GLWindow {
+	class VolumeShadow : public GLSampleWindow {
 	  public:
-		VolumeShadow() : GLWindow(-1, -1, -1, -1) {}
+		VolumeShadow() : GLSampleWindow() {}
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];

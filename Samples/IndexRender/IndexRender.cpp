@@ -1,6 +1,6 @@
 
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "Importer/ImageImport.h"
 #include "ShaderLoader.h"
 #include "Util/CameraController.h"
@@ -11,9 +11,9 @@
 
 namespace glsample {
 
-	class IndexRender : public GLWindow {
+	class IndexRender : public GLSampleWindow {
 	  public:
-		IndexRender() : GLWindow(-1, -1, -1, -1) {}
+		IndexRender() : GLSampleWindow() {}
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];

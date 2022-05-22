@@ -1,5 +1,5 @@
 #include "GLSampleWindow.h"
-#include "GLWindow.h"
+
 #include "ImageImport.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
@@ -8,9 +8,9 @@
 
 namespace glsample {
 
-	class Instance : public GLWindow {
+	class Instance : public GLSampleWindow {
 	  public:
-		Instance() : GLWindow(-1, -1, -1, -1) { this->setTitle("Instance"); }
+		Instance() : GLSampleWindow() { this->setTitle("Instance"); }
 		typedef struct _vertex_t {
 			float pos[3];
 			float uv[2];
