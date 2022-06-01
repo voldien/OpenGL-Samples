@@ -171,7 +171,7 @@ int main(int argc, const char **argv) {
 	try {
 		glsample::TextureGLSample sample(argc, argv);
 		sample.run();
-	} catch (std::exception &ex) {
+	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;

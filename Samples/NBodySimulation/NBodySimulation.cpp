@@ -242,11 +242,15 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glViewport(0, 0, width, height);
 
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, this->particle_texture);
+
 			glUseProgram(this->particle_graphic_program);
 
-			//	glEnable(GL_BLEND);
-			// glBlendEquationSeparate(GL_SRC_ALPHA, GL_SRC_ALPHA);
+			glEnable(GL_BLEND);
 			// TODO add blend factor.
+			glBlendEquationSeparate(GL_SRC_ALPHA, GL_SRC_ALPHA);
+
 			glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
 			/*	Draw triangle*/
@@ -294,7 +298,7 @@ int main(int argc, const char **argv) {
 
 		sample.run();
 
-	} catch (std::exception &ex) {
+	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;

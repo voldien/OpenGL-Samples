@@ -10,9 +10,9 @@
 #include <iostream>
 namespace glsample {
 
-	class MandelBrot : public GLSampleWindow {
+	class GameOfLife : public GLSampleWindow {
 	  public:
-		MandelBrot() : GLSampleWindow() { this->setTitle("MandelBrot - Compute"); }
+		GameOfLife() : GLSampleWindow() { this->setTitle("GameOfLife - Compute"); }
 
 		struct UniformBufferBlock {
 			float posX, posY;
@@ -22,11 +22,11 @@ namespace glsample {
 			int nrSamples;
 		} params;
 
-		unsigned int mandelbrot_framebuffer;
-		unsigned int mandelbrot_program;
-		unsigned int mandelbrot_texture;
-		unsigned int mandelbrot_texture_width;
-		unsigned int mandelbrot_texture_height;
+		unsigned int gameoflife_framebuffer;
+		unsigned int gameoflife_program;
+		unsigned int gameoflife_texture;
+		unsigned int gameoflife_texture_width;
+		unsigned int gameoflife_texture_height;
 
 		// TODO change to vector
 		unsigned int uniform_buffer_index;
@@ -36,30 +36,30 @@ namespace glsample {
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
 		/*	*/
-		const std::string computeShaderPath = "Shaders/mandelbrot/mandelbrot.comp";
+		const std::string computeShaderPath = "Shaders/gameoflife/gameoflife.comp";
 
 		virtual void Release() override {
-			glDeleteProgram(this->mandelbrot_program);
-			glDeleteFramebuffers(1, &this->mandelbrot_framebuffer);
+			glDeleteProgram(this->gameoflife_program);
+			glDeleteFramebuffers(1, &this->gameoflife_framebuffer);
 			glDeleteBuffers(1, &this->uniform_buffer);
-			glDeleteTextures(1, (const GLuint *)&this->mandelbrot_texture);
+			glDeleteTextures(1, (const GLuint *)&this->gameoflife_texture);
 		}
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			std::vector<char> mandelbrot_source = IOUtil::readFileData(computeShaderPath);
+			std::vector<char> gameoflife_source = IOUtil::readFileData(computeShaderPath);
 
-			// mandelbrot_source =
-			// 	fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, fragcore::ShaderLanguage::GLSL);
+			// gameoflife_source =
+			// 	fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, fragcore::ShaderLanguage::GLSL);
 
 			/*	Load shader	*/
-			this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_source});
+			this->gameoflife_program = ShaderLoader::loadComputeProgram({&gameoflife_source});
 
-			glUseProgram(this->mandelbrot_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->mandelbrot_program, uniform_buffer_index, this->uniform_buffer_binding);
-			glUniform1iARB(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
+			glUseProgram(this->gameoflife_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->gameoflife_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->gameoflife_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniform1iARB(glGetUniformLocation(this->gameoflife_program, "img_output"), 0);
 			glUseProgram(0);
 
 			/*	*/
@@ -73,24 +73,24 @@ namespace glsample {
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
-			glGenFramebuffers(1, &this->mandelbrot_framebuffer);
-			glBindFramebuffer(GL_FRAMEBUFFER, this->mandelbrot_framebuffer);
+			glGenFramebuffers(1, &this->gameoflife_framebuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->gameoflife_framebuffer);
 
-			glGenTextures(1, &this->mandelbrot_texture);
+			glGenTextures(1, &this->gameoflife_texture);
 			onResize(this->width(), this->height());
 		}
 
 		virtual void onResize(int width, int height) override {
-			this->mandelbrot_texture_width = width;
-			this->mandelbrot_texture_height = height;
+			gameoflife_texture_width = width;
+			gameoflife_texture_height = height;
 
-			glBindFramebuffer(GL_FRAMEBUFFER, this->mandelbrot_framebuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->gameoflife_framebuffer);
 			/*	Resize the image.	*/
-			glBindTexture(GL_TEXTURE_2D, this->mandelbrot_texture);
+			glBindTexture(GL_TEXTURE_2D, this->gameoflife_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-			// glBindTexture(GL_TEXTURE_2D, 0);
+			glBindTexture(GL_TEXTURE_2D, 0);
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->mandelbrot_texture, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->gameoflife_texture, 0);
 
 			const GLenum drawAttach = GL_COLOR_ATTACHMENT0;
 			glDrawBuffers(1, &drawAttach);
@@ -120,21 +120,19 @@ namespace glsample {
 							  this->uniformBufferSize);
 
 			{
+				glUseProgram(this->gameoflife_program);
+				const size_t localInvokation = 32;
 
-				glBindImageTexture(0, this->mandelbrot_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+				glBindImageTexture(0, this->gameoflife_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
-				glUseProgram(this->mandelbrot_program);
-				const size_t localInvokation = 16; // TODO extract if possible.
-
-				glDispatchCompute(std::ceil(mandelbrot_texture_width / localInvokation),
-								  std::ceil(mandelbrot_texture_height / localInvokation), 1);
+				glDispatchCompute(std::ceil(width / localInvokation), std::ceil(height / localInvokation), 1);
 
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 			}
 			/*	Blit mandelbrot framebuffer to default framebuffer.	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->mandelbrot_framebuffer);
-			glBlitFramebuffer(0, 0, mandelbrot_texture_width, mandelbrot_texture_height, 0, 0, width, height,
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->gameoflife_framebuffer);
+			glBlitFramebuffer(0, 0, gameoflife_texture_width, gameoflife_texture_height, 0, 0, width, height,
 							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		}
 
@@ -163,7 +161,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::MandelBrot> sample(argc, argv);
+		GLSample<glsample::GameOfLife> sample(argc, argv);
 		sample.run();
 	} catch (const std::exception &ex) {
 

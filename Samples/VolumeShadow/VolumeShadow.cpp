@@ -7,6 +7,7 @@
 
 #include <glm/glm.hpp>
 #include <iostream>
+
 namespace glsample {
 
 	class VolumeShadow : public GLSampleWindow {
@@ -26,7 +27,7 @@ namespace glsample {
 
 		glm::mat4 mvp;
 		CameraController camera;
-		
+
 		std::string texturePath = "texture.png";
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
@@ -53,8 +54,6 @@ namespace glsample {
 
 			/*	Load shader	*/
 			this->texture_program = ShaderLoader::loadProgram(&vertex_source, &fragment_source);
-
-
 
 			glUseProgram(this->texture_program);
 			this->mvp_uniform = glGetUniformLocation(this->texture_program, "MVP");
@@ -131,7 +130,7 @@ int main(int argc, const char **argv) {
 	try {
 		glsample::VolumeShadow sample(argc, argv);
 		sample.run();
-	} catch (std::exception &ex) {
+	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;

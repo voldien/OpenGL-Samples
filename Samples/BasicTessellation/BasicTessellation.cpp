@@ -1,6 +1,5 @@
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
-#include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
@@ -108,7 +107,7 @@ namespace glsample {
 			this->tessellation_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
 																		  &control_source, &evolution_source);
 
-			/*	*/
+			/*	Setup Shader.	*/
 			glUseProgram(this->tessellation_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->tessellation_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->tessellation_program, "diffuse"), 0);
@@ -243,7 +242,7 @@ int main(int argc, const char **argv) {
 
 		sample.run();
 
-	} catch (std::exception &ex) {
+	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;

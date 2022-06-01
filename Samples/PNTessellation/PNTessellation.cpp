@@ -1,17 +1,17 @@
-#include "GLSampleWindow.h"
-
-#include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
+#include <ShaderLoader.h>
 #include <Util/CameraController.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
 namespace glsample {
 
 	class PNTessellation : public GLSampleWindow {
 	  public:
 		PNTessellation() : GLSampleWindow() {
-			this->setTitle("PN Tessellation");
+			this->setTitle("PNTessellation");
 			com = std::make_shared<TessellationSettingComponent>(this->mvp);
 			this->addUIComponent(com);
 		}
@@ -77,7 +77,6 @@ namespace glsample {
 
 		const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
 		const std::string heightTexturePath = "asset/tessellation_heightmap.png";
-
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/pntessellation/pntessellation.vert";
 		const std::string fragmentShaderPath = "Shaders/pntessellation/pntessellation.frag";
@@ -87,10 +86,10 @@ namespace glsample {
 		virtual void Release() override {
 			glDeleteProgram(this->tessellation_program);
 
-			/**/
+			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, (const GLuint *)&this->heightmap_texture);
-			/*	*/
+
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -98,6 +97,7 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			/*	*/
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
 			std::vector<char> control_source = IOUtil::readFile(ControlShaderPath);
@@ -107,7 +107,7 @@ namespace glsample {
 			this->tessellation_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
 																		  &control_source, &evolution_source);
 
-			/*	*/
+			/*	Setup Shader.	*/
 			glUseProgram(this->tessellation_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->tessellation_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->tessellation_program, "diffuse"), 0);
@@ -125,7 +125,6 @@ namespace glsample {
 			std::vector<unsigned int> indices;
 			ProceduralGeometry::generatePlan(1, vertices, indices);
 
-			// fragcore::ProceduralGeometry::generatePlan();
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
@@ -173,18 +172,17 @@ namespace glsample {
 			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
 
 			this->update();
+
 			int width, height;
 			getSize(&width, &height);
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
-
 			/*	*/
 			glViewport(0, 0, width, height);
-
-			/*	*/
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			glUseProgram(this->tessellation_program);
 
@@ -236,13 +234,15 @@ namespace glsample {
 
 } // namespace glsample
 
+// TODO add custom image support.
+
 int main(int argc, const char **argv) {
 	try {
 		GLSample<glsample::PNTessellation> sample(argc, argv);
 
 		sample.run();
 
-	} catch (std::exception &ex) {
+	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;

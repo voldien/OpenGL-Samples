@@ -10,7 +10,7 @@ layout(location = 0) out vec2 UV;
 layout(location = 1) out vec3 normal;
 layout(location = 2) out vec3 tangent;
 
-layout(binding = 0,std140) uniform UniformBufferBlock {
+layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
