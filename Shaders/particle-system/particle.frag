@@ -4,10 +4,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(location = 0) out vec4 outColor;
+
 layout(location = 0) in vec4 velocity;
 
-layout(binding = 1) uniform sampler2D texSampler;
-
+layout(binding = 1) uniform sampler2D spriteTexture;
 
 struct particle_setting {
 	float speed;
@@ -29,5 +29,6 @@ layout(binding = 0) uniform UniformBufferBlock {
 }
 ubo;
 
-
-void main() { outColor = vec4(0, 1, velocity.x, 1.0); }
+void main() {
+	outColor = texture(spriteTexture, gl_PointCoord.xy) * vec4(abs(velocity.xyz), 1.0);
+}

@@ -4,8 +4,8 @@
 layout(local_size_x = 32, local_size_y = 1) in;
 
 struct particle_t {
-	vec3 pos;
-	float t;
+	vec3 position;
+	float time;
 	vec4 velocity;
 };
 
@@ -15,10 +15,13 @@ struct particle_setting {
 	float gravity;
 };
 
-layout(std430, binding = 1) buffer Positions { particle_t pos[]; }
-positions;
+layout(std430, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
+readBuffer;
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
+layout(std430, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]; }
+writeBuffer;
+
+layout(binding = 0) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -44,37 +47,31 @@ float rand(vec2 co) {
 void main() {
 	uint index = gl_GlobalInvocationID.x;
 
-	vec3 pos = positions.pos[index].pos;
-	float newW = positions.pos[index].t;
-	vec4 vel = positions.pos[index].velocity;
+	vec3 position = readBuffer.particle[index].position;
+	float time = readBuffer.particle[index].time;
+	vec4 vel = readBuffer.particle[index].velocity;
 
 	float globalSpeed = ubo.setting.speed;
-
-	vec3 force_impulse = vec3(0);
-
-	for (int i = 0; i < 32; i++) {
-		// forcePoint += attractors[i].xyz;
-	}
+	vec3 force_impulse = vec3(rand(gl_GlobalInvocationID.xy));
 
 	float k_v = 1.5;
 
-	float f = force_impulse.x + 1.0;
+	float deltaTime = ubo.deltaTime * globalSpeed;
+	/*	*/
+	vec3 v = vel.xyz + (force_impulse * deltaTime) * k_v;
+	vec3 nextPosition = position + v;
 
-	float newDT = ubo.deltaTime * 1.0;
-
-	newW -= newDT;
-
-	vec3 v = vel.xyz + (f * newDT) * k_v;
-	vec3 s = pos + v * newDT;
-
-	if (newW <= 0) {
-		s = -s + rand(s.xy + vec2(index, index)) * 20.0 - rand(s.yz + vec2(index, index)) * 20.0;
-		v.xyz *= 0.01f;
-		newW = 2.99;
+	/*	Reset particle when expired.	*/
+	time -= deltaTime;
+	if (time <= 0) {
+		nextPosition = -nextPosition + rand(nextPosition.xy + vec2(index, index)) * 20.0 -
+					   rand(nextPosition.yz + vec2(index, index)) * 20.0;
+		v.xyz *= rand(nextPosition.yz + vec2(index, index)) * 0.1;
+		time = ubo.setting.lifetime;
 	}
 
 	/*	Update particle.	*/
-	positions.pos[index].t = newW;
-	positions.pos[index].pos = s;
-	positions.pos[index].velocity = vec4(v, vel.w);
+	writeBuffer.particle[index].time = time;
+	writeBuffer.particle[index].position = nextPosition;
+	writeBuffer.particle[index].velocity = vec4(v, vel.w);
 }

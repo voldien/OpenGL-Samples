@@ -28,8 +28,7 @@ ubo;
 
 void main() {
 
-
 	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition.xyz, 1.0);
-	gl_PointSize = 230 / gl_Position.w;
+	gl_PointSize = (10000.0f / gl_Position.w) * inPosition.w;
 	velocity = inVelocity;
 }

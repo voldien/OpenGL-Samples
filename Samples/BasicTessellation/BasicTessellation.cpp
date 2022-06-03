@@ -12,8 +12,8 @@ namespace glsample {
 	  public:
 		BasicTessellation() : GLSampleWindow() {
 			this->setTitle("Basic Tessellation");
-			com = std::make_shared<TessellationSettingComponent>(this->mvp);
-			this->addUIComponent(com);
+			tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
+			this->addUIComponent(tessellationSettingComponent);
 		}
 
 		struct UniformBufferBlock {
@@ -39,19 +39,22 @@ namespace glsample {
 
 		  public:
 			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Sample Window");
+				this->setName("Tessellation Settings");
 			}
-			virtual void draw() override { // ImGui::SliderFloat("Displace", &this->uniform.gDisplace, 0.0f, 100.0f);
+			virtual void draw() override {
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Tessellation Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
+
+			bool showWireFrame;
 
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<TessellationSettingComponent> com;
+		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
 
 		// TODO change to vector
 		unsigned int uniform_buffer_index;
@@ -204,8 +207,10 @@ namespace glsample {
 			glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
 
 			/*	Draw wireframe outline.	*/
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
+			if (this->tessellationSettingComponent->showWireFrame) {
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
+			}
 			glBindVertexArray(0);
 		}
 

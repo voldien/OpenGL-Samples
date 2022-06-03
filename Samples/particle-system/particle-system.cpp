@@ -2,6 +2,7 @@
 
 #include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <Importer/ImageImport.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -13,16 +14,21 @@ namespace glsample {
 		ParticleSystem() : GLSampleWindow() { this->setTitle("Particle System"); }
 
 		/*	*/
-		unsigned int vao;
-		unsigned int vbo;
-
-		unsigned int particle_texture;
-
-		unsigned int particle_graphic_program;
-		unsigned int particle_compute_program;
-
 		const unsigned int localInvoke = 32;
 		unsigned int nrParticles = localInvoke * 256;
+		const size_t nrParticleBuffers = 2;
+		size_t ParticleMemorySize = nrParticles * sizeof(Particle);
+
+		/*	*/
+		unsigned int vao_particle;
+		unsigned int vbo_particle;
+
+		/*	*/
+		unsigned int particle_texture;
+
+		/*	*/
+		unsigned int particle_graphic_program;
+		unsigned int particle_compute_program;
 
 		typedef struct particle_setting_t {
 			float speed = 1.0f;
@@ -53,9 +59,13 @@ namespace glsample {
 
 		// TODO change to vector
 		unsigned int uniform_buffer_index;
-		unsigned int particle_buffer_index;
+
+		int particle_buffer_read_index;
+		int particle_buffer_write_index;
+		int particle_read_buffer_binding = 1;
+		int particle_write_buffer_binding = 2;
+
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int particle_buffer_binding = 1;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
@@ -64,13 +74,15 @@ namespace glsample {
 		const std::string fragmentShaderPath = "Shaders/particle-system/particle.frag";
 		const std::string computeShaderPath = "Shaders/particle-system/particle.comp";
 
+		const std::string particleTexturePath = "asset/particle.png";
+
 		virtual void Release() override {
 			glDeleteProgram(this->particle_graphic_program);
 			glDeleteProgram(this->particle_compute_program);
 
-			glDeleteBuffers(1, &this->vbo);
+			glDeleteBuffers(1, &this->vbo_particle);
 			glDeleteBuffers(1, &this->uniform_buffer);
-			glDeleteVertexArrays(1, &this->vao);
+			glDeleteVertexArrays(1, &this->vao_particle);
 		}
 
 		virtual void Initialize() override {
@@ -88,27 +100,39 @@ namespace glsample {
 			this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
 
 			/*	*/
+			this->particle_texture = TextureImporter::loadImage2D(particleTexturePath);
+
+			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->particle_graphic_program);
-			glUniform1iARB(glGetUniformLocation(this->particle_graphic_program, "diffuse"), 0);
+			glUniform1iARB(glGetUniformLocation(this->particle_graphic_program, "spriteTexture"), 0);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->particle_graphic_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->particle_graphic_program, this->uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	*/
+			/*	Setup particle simulation pipeline.	*/
 			glUseProgram(this->particle_compute_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->particle_compute_program, "UniformBufferBlock");
-			this->particle_buffer_index = glGetUniformBlockIndex(this->particle_compute_program, "Positions");
-			this->particle_buffer_index = 1;
+			this->particle_buffer_read_index = glGetUniformBlockIndex(this->particle_compute_program, "ReadBuffer");
+			this->particle_buffer_write_index = glGetUniformBlockIndex(this->particle_compute_program, "WriteBuffer");
+			// TODO fix
+			this->particle_buffer_read_index = 1;
+			this->particle_buffer_write_index = 2;
+
 			glUniformBlockBinding(this->particle_compute_program, this->uniform_buffer_index,
 								  this->uniform_buffer_binding);
-			glUniformBlockBinding(this->particle_compute_program, this->particle_buffer_index, particle_buffer_binding);
+			/*	*/
+			glShaderStorageBlockBinding(this->particle_compute_program, this->particle_buffer_read_index,
+										this->particle_read_buffer_binding);
+			glShaderStorageBlockBinding(this->particle_compute_program, this->particle_buffer_write_index,
+										this->particle_write_buffer_binding);
+
 			glUseProgram(0);
 
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize += minMapBufferSize - (uniformBufferSize % minMapBufferSize);
+			uniformBufferSize = Math::align<size_t>(uniformBufferSize, minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -116,14 +140,30 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
+			glGenBuffers(1, &this->vbo_particle);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, vbo_particle);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, ParticleMemorySize * nrParticleBuffers, nullptr, GL_DYNAMIC_DRAW);
+
+			/*	*/
+			Particle *particle_buffer =
+				(Particle *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, ParticleMemorySize * nrParticleBuffers,
+											 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+			for (int i = 0; i < nrParticles * nrParticleBuffers; i++) {
+				particle_buffer[i].position =
+					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
+							  Random::normalizeRand<float>() * 100.0f,
+							  Random::normalizeRand<float>() * mvp.particleSetting.lifetime);
+				particle_buffer[i].velocity =
+					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
+							  Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f);
+			}
+			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			glGenVertexArrays(1, &this->vao_particle);
+			glBindVertexArray(this->vao_particle);
 
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, nrParticles * sizeof(Particle), nullptr, GL_DYNAMIC_DRAW);
-
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_particle);
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
 			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), nullptr);
@@ -135,8 +175,6 @@ namespace glsample {
 			glBindVertexArray(0);
 
 			fragcore::resetErrorFlag();
-
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
 		}
 
 		virtual void draw() override {
@@ -146,18 +184,28 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+
+			/*	Bind uniform buffer.	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
 							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
 
+			/*	Bind read particle buffer.	*/
+			glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_read_index, this->vbo_particle,
+							  ((this->getFrameCount()) % nrParticleBuffers) * ParticleMemorySize, ParticleMemorySize);
+
+			/*	Bind write particle buffer.	*/
+			glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_write_index, this->vbo_particle,
+							  ((this->getFrameCount() + 1) % nrParticleBuffers) * ParticleMemorySize,
+							  ParticleMemorySize);
+
 			/*	*/
 			glUseProgram(this->particle_compute_program);
-			glBindVertexArray(this->vao);
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, particle_buffer_index, this->vbo);
+			glBindVertexArray(this->vao_particle);
 
 			/*	*/
 			glDispatchCompute(nrParticles / localInvoke, 1, 1);
 			glBindVertexArray(0);
-			glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 			/*	*/
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -165,13 +213,27 @@ namespace glsample {
 			/*	*/
 			glViewport(0, 0, width, height);
 
+			glActiveTexture(GL_TEXTURE0 + 0);
+			glBindTexture(GL_TEXTURE_2D, particle_texture);
+
 			glUseProgram(this->particle_graphic_program);
-			//	glEnable(GL_BLEND);
-			// glBlendEquationSeparate(GL_SRC_ALPHA, GL_SRC_ALPHA);
-			// TODO add blend factor.
-			glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+			glEnable(GL_BLEND);
+			glBlendEquation(GL_FUNC_ADD);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			glEnable(GL_PROGRAM_POINT_SIZE_ARB);
+			glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
+			glPointParameteri(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
+			glPointParameterf(GL_POINT_SIZE_MIN_ARB, 1.0f);
+			glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 1.0f);
+
 			/*	Draw triangle*/
-			glBindVertexArray(this->vao);
+			glBindVertexArray(this->vao_particle);
+			glBindVertexBuffer(0, this->vbo_particle, (this->getFrameCount() % nrParticleBuffers) * ParticleMemorySize,
+							   sizeof(Particle));
+			glBindVertexBuffer(1, this->vbo_particle, (this->getFrameCount() % nrParticleBuffers) * ParticleMemorySize,
+							   sizeof(Particle));
+
 			glDrawArrays(GL_POINTS, 0, nrParticles);
 			glBindVertexArray(0);
 
@@ -180,6 +242,8 @@ namespace glsample {
 
 		void update() {
 			/*	*/
+			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
+
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
@@ -190,11 +254,11 @@ namespace glsample {
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			fragcore::checkError();
+
 			void *p =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
 								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			fragcore::checkError();
+
 			memcpy(p, &this->mvp, sizeof(mvp));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}

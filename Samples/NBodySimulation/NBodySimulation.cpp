@@ -246,12 +246,15 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, this->particle_texture);
 
 			glUseProgram(this->particle_graphic_program);
-
 			glEnable(GL_BLEND);
-			// TODO add blend factor.
-			glBlendEquationSeparate(GL_SRC_ALPHA, GL_SRC_ALPHA);
+			glBlendEquation(GL_FUNC_ADD);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-			glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+			glEnable(GL_PROGRAM_POINT_SIZE_ARB);
+			glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
+			glPointParameteri(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
+			glPointParameterf(GL_POINT_SIZE_MIN_ARB, 1.0f);
+			glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 1.0f);
 
 			/*	Draw triangle*/
 			glBindVertexArray(this->vao_particle);
