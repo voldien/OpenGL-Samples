@@ -38,9 +38,12 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/triangle/triangle.vert";
 		const std::string fragmentShaderPath = "Shaders/triangle/triangle.frag";
 
-		const std::vector<Vertex> vertices = {{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, /*	Vertex (2), Color(3)	*/
-											  {0.5f, 0.5f, 0.0f, 1.0f, 0.0f},  /*	Vertex (2), Color(3)	*/
-											  {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f} /*	Vertex (2), Color(3)	*/};
+		const std::vector<Vertex> vertices = {
+			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, /*	Vertex (2), Color(3)	*/
+			{0.5f, 0.5f, 0.0f, 1.0f, 0.0f},	 /*	Vertex (2), Color(3)	*/
+			{-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}	 /*	Vertex (2), Color(3)	*/
+
+		};
 
 		virtual void Release() override {
 			glDeleteProgram(this->triangle_program);
@@ -49,11 +52,11 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
 
+			//TODO add support
 			// vertex_source = fragcore::ShaderCompiler::convertSPIRV(vertex_source, fragcore::ShaderLanguage::GLSL);
 			// fragment_source = fragcore::ShaderCompiler::convertSPIRV(fragment_source,
 			// fragcore::ShaderLanguage::GLSL);
@@ -90,6 +93,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Clear default framebuffer color attachment.	*/
+			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			glDisable(GL_DEPTH_TEST);
@@ -97,7 +101,7 @@ namespace glsample {
 			/*	Bind shader pipeline.	*/
 			glUseProgram(this->triangle_program);
 
-			/*	Draw triangle*/
+			/*	Draw triangle.	*/
 			glBindVertexArray(this->vao);
 			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
 			glBindVertexArray(0);

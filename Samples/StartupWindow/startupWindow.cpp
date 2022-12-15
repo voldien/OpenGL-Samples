@@ -4,47 +4,21 @@
 
 #include <iostream>
 
-class SampleComponent : public nekomimi::UIComponent {
-  private:
-  public:
-	SampleComponent() { this->setName("Sample Window"); }
-	virtual void draw() override {
-
-		ImGui::ColorEdit4("color 1", color);
-		if (ImGui::Button("Press me")) {
-		}
-	}
-	float color[4];
-};
-
 class StartUpWindow : public GLSampleWindow {
   public:
-	std::shared_ptr<SampleComponent> com;
-	StartUpWindow() : GLSampleWindow() {
-		// com = std::make_shared<SampleComponent>();
-		// this->addUIComponent(com);
-	}
+	StartUpWindow() : GLSampleWindow() {			this->setTitle("StartUp Window");}
 	virtual void Release() override {}
 
-	virtual void Initialize() override {
-
-		int w, h;
-		getSize(&w, &h);
-		onResize(w, h);
-	}
+	virtual void Initialize() override {}
 
 	virtual void draw() override {
 
 		int w, h;
 		getSize(&w, &h);
-		glClearColor(com->color[0], com->color[1], com->color[2], 1.0f);
+		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+		glViewport(0, 0, w, h);
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
-
-	virtual void onResize(int width, int height) override { glViewport(0, 0, width, height); }
-
-  private:
-	float color[4];
 };
 
 int main(int argc, const char **argv) {
