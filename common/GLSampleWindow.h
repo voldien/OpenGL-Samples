@@ -29,6 +29,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	virtual void onResize(int width, int height) {}
 
+	virtual void setTitle(const std::string &title) override;
+
   public:
 	FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }
 	vkscommon::Time &getTimer() noexcept { return this->time; }
@@ -44,6 +46,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	FPSCounter<float> fpsCounter;
 	vkscommon::Time time;
 	size_t frameCount = 0;
+	unsigned int queries[10];
 
   protected:
 	// TODO Enable RenderDoc

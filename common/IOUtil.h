@@ -13,10 +13,14 @@ namespace glsample {
 
 	class FVDECLSPEC IOUtil {
 	  public:
-		static std::vector<char> readFile(const std::string &filename) {
+		static std::vector<char> readFile(const std::string &filename, IFileSystem *filesystem) {
 
-			Ref<IO> ref = Ref<IO>(FileSystem::getFileSystem()->openFile(filename.c_str(), IO::IOMode::READ));
+			Ref<IO> ref = Ref<IO>(filesystem->openFile(filename.c_str(), IO::IOMode::READ));
 			return fragcore::IOUtil::readString<char>(ref);
+		}
+
+		static std::vector<char> readFile(const std::string &filename) {
+			return readFile(filename, FileSystem::getFileSystem());
 		}
 
 		static std::vector<char> readFileData(const std::string &filename) {

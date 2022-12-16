@@ -6,4 +6,10 @@ layout(location = 0) in vec3 vVertex;
 
 layout(binding = 0) uniform samplerCube texture0;
 
+layout(binding = 0) uniform UniformBufferBlock {
+	mat4 MVP;
+	float exposure;
+}
+ubo;
+
 void main(void) { fragColor = texture(texture0, vVertex); }

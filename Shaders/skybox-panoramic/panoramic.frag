@@ -6,6 +6,12 @@ layout(location = 0) in vec3 vVertex;
 
 layout(binding = 0) uniform sampler2D panorama;
 
+layout(binding = 0) uniform UniformBufferBlock {
+	mat4 MVP;
+	float exposure;
+}
+ubo;
+
 vec3 equirectangular(vec2 xy) {
 	vec2 tc = xy / vec2(2.0) - 0.5;
 	vec2 thetaphi =
@@ -24,5 +30,5 @@ vec2 inverse_equirectangular(vec3 direction) {
 
 void main() {
 	vec2 uv = inverse_equirectangular(normalize(vVertex));
-	fragColor = texture(panorama, uv);
+	fragColor = texture(panorama, uv) * ubo.exposure;
 }

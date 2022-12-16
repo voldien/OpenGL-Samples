@@ -1,6 +1,5 @@
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
-#include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
@@ -31,8 +30,15 @@ namespace glsample {
 			glm::vec4 ambientLight = glm::vec4(0.4);
 		} mvp;
 
-		unsigned int skybox_vbo;
-		unsigned vao;
+		GeometryObject skybox;
+		GeometryObject terrain;
+
+		/*	*/
+		unsigned int terrain_vao;
+		unsigned int terrain_vbo;
+		unsigned int ibo;
+		unsigned int nrElements;
+
 		unsigned int skybox_program;
 		unsigned int terrain_program;
 
@@ -43,13 +49,15 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
-		int skybox_panoramic;
+		int terrain_diffuse_texture;
 		int terrain_heightMap;
 		std::string panoramicPath = "panoramic.jpg";
+
+		glm::mat4 proj;
 		CameraController camera;
 
-		const std::string vertexShaderPath = "Shaders/terrain/terrain.vert";
-		const std::string fragmentShaderPath = "Shaders/terrain/terrain.frag";
+		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert";
+		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag";
 
 		const std::vector<Vertex> vertices = {{-1.0f, -1.0f, -1.0f, 0, 0}, // triangle 1 : begin
 											  {-1.0f, -1.0f, 1.0f, 0, 1},
@@ -92,20 +100,25 @@ namespace glsample {
 
 		virtual void Release() override {
 			glDeleteProgram(this->skybox_program);
-			glDeleteVertexArrays(1, &this->vao);
-			glDeleteBuffers(1, &this->skybox_vbo);
+
+			glDeleteVertexArrays(1, &this->terrain_vao);
+			glDeleteBuffers(1, &this->terrain_vbo);
+			glDeleteBuffers(1, &this->ibo);
+
+			// glDeleteBuffers(1, &this->skybox_vbo);
 			// glDeleteTextures(1, &this->skybox_panoramic);
 		}
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-			/*	Load shader	*/
 
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
+			/*	Load shader	*/
+			std::vector<char> vertex_source = IOUtil::readFile(vertexTerrainShaderPath);
+			std::vector<char> fragment_source = IOUtil::readFile(fragmentTerrainShaderPath);
 
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
+			/*	Create Terrain Shade.	*/
 			glUseProgram(this->skybox_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->skybox_program, "DiffuseTexture"), 0);
@@ -113,20 +126,50 @@ namespace glsample {
 			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			this->skybox_panoramic = TextureImporter::loadImage2D(this->panoramicPath);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			/*	Create terrain texture.	*/
+			TextureImporter textureImporter(FileSystem::getFileSystem());
+			this->terrain_diffuse_texture = textureImporter.loadImage2D(this->panoramicPath);
 
 			/*	*/
-			glGenBuffers(1, &this->skybox_vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, this->skybox_vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+			GLint minMapBufferSize;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
+
+			/*	Create uniform buffer.	*/
+			glGenBuffers(1, &this->uniform_buffer);
+			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+
+			/*	Load geometry.	*/
+			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<unsigned int> indices;
+			ProceduralGeometry::generatePlan(20, vertices, indices, 128, 128);
+
+			//		ProceduralGeometry::generateCube(1, vertices, indices);
+
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenVertexArrays(1, &this->terrain_vao);
+			glBindVertexArray(this->terrain_vao);
+
+			glGenBuffers(1, &this->ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+			this->nrElements = indices.size();
+
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenBuffers(1, &this->terrain_vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, terrain_vbo);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+
+			glEnableVertexAttribArrayARB(1);
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 		}
@@ -145,9 +188,9 @@ namespace glsample {
 			glUseProgram(this->terrain_program);
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic);
+			glBindTexture(GL_TEXTURE_2D, this->terrain_diffuse_texture);
 
-			glBindVertexArray(this->vao);
+			glBindVertexArray(this->terrain_vao);
 			glDrawElements(GL_TRIANGLES, this->vertices.size(), GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
 
@@ -159,18 +202,42 @@ namespace glsample {
 			glDisable(GL_BLEND);
 			glEnable(GL_STENCIL);
 
+			/*	Draw Skybox.	*/
 			glUseProgram(this->skybox_program);
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic);
+			glBindTexture(GL_TEXTURE_2D, this->terrain_diffuse_texture);
 
-			/*	Draw triangle*/
-			glBindVertexArray(this->vao);
-			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+			glBindVertexArray(this->terrain_vao);
+			glDrawElements(GL_TRIANGLES, this->nrElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
 		}
 
-		virtual void update() {}
+		virtual void update() {
+			/*	Update Camera.	*/
+			float elapsedTime = getTimer().getElapsed();
+			camera.update(getTimer().deltaTime());
+
+			// this->proj =
+			//	glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+			// this->uniform_stage_buffer.modelViewProjection = (this->proj * camera.getViewMatrix());
+			//
+			// glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			// void *uniformMappedMemory = glMapBufferRange(
+			//	GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize, uniformSize,
+			//	GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			// memcpy(uniformMappedMemory, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
+			// glUnmapBufferARB(GL_UNIFORM_BUFFER);
+		}
+	};
+
+	class TerrainGLSample : public GLSample<Terrain> {
+	  public:
+		TerrainGLSample(int argc, const char **argv) : GLSample<Terrain>(argc, argv) {}
+		virtual void commandline(cxxopts::Options &options) override {
+			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+												  cxxopts::value<std::string>()->default_value("texture.png"));
+		}
 	};
 } // namespace glsample
 

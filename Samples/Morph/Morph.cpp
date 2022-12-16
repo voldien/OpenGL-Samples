@@ -8,12 +8,12 @@
 
 namespace glsample {
 
-	class PNTessellation : public GLSampleWindow {
+	class Morph : public GLSampleWindow {
 	  public:
-		PNTessellation() : GLSampleWindow() {
-			this->setTitle("PNTessellation");
-			com = std::make_shared<TessellationSettingComponent>(this->mvp);
-			this->addUIComponent(com);
+		Morph() : GLSampleWindow() {
+			this->setTitle("Morph");
+			tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
+			this->addUIComponent(tessellationSettingComponent);
 		}
 
 		struct UniformBufferBlock {
@@ -39,19 +39,27 @@ namespace glsample {
 
 		  public:
 			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Sample Window");
+				this->setName("Tessellation Settings");
 			}
-			virtual void draw() override { // ImGui::SliderFloat("Displace", &this->uniform.gDisplace, 0.0f, 100.0f);
+			virtual void draw() override {
+				int nrMorphTargets = 3;
+				for (size_t i = 0; i < nrMorphTargets; i++) {
+					ImGui::DragFloat("Morph Target", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
+				}
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Tessellation Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
+
+			bool showWireFrame;
 
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<TessellationSettingComponent> com;
+		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
 
 		// TODO change to vector
 		unsigned int uniform_buffer_index;
@@ -78,10 +86,10 @@ namespace glsample {
 		const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
 		const std::string heightTexturePath = "asset/tessellation_heightmap.png";
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/pntessellation/pntessellation.vert";
-		const std::string fragmentShaderPath = "Shaders/pntessellation/pntessellation.frag";
-		const std::string ControlShaderPath = "Shaders/pntessellation/pntessellation.tesc";
-		const std::string EvoluationShaderPath = "Shaders/pntessellation/pntessellation.tese";
+		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert";
+		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag";
+		const std::string ControlShaderPath = "Shaders/tessellation/tessellation.tesc";
+		const std::string EvoluationShaderPath = "Shaders/tessellation/tessellation.tese";
 
 		virtual void Release() override {
 			glDeleteProgram(this->tessellation_program);
@@ -92,6 +100,7 @@ namespace glsample {
 
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
+			glDeleteBuffers(1, &this->ibo);
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
@@ -117,9 +126,8 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Load Diffuse and Height Map Texture.	*/
-			TextureImporter textureImporter(FileSystem::getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
-			this->heightmap_texture = textureImporter.loadImage2D(this->heightTexturePath);
+			this->diffuse_texture = TextureImporter::loadImage2D(this->diffuseTexturePath);
+			this->heightmap_texture = TextureImporter::loadImage2D(this->heightTexturePath);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
@@ -205,8 +213,10 @@ namespace glsample {
 			glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
 
 			/*	Draw wireframe outline.	*/
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
+			if (this->tessellationSettingComponent->showWireFrame) {
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+				glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
+			}
 			glBindVertexArray(0);
 		}
 
@@ -239,7 +249,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::PNTessellation> sample(argc, argv);
+		GLSample<glsample::Morph> sample(argc, argv);
 
 		sample.run();
 

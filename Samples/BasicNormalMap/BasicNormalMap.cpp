@@ -66,6 +66,7 @@ namespace glsample {
 			/*	*/
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
+			glDeleteBuffers(1, &this->ibo);
 		}
 
 		virtual void Initialize() override {
@@ -86,13 +87,15 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	load Textures	*/
-			this->diffuse_texture = TextureImporter::loadImage2D(this->diffuseTexturePath);
-			this->normal_texture = TextureImporter::loadImage2D(this->normalTexturePath);
+			TextureImporter textureImporter(FileSystem::getFileSystem());
+			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize += minMapBufferSize - (uniformBufferSize % minMapBufferSize);
+			uniformBufferSize = Math::align(uniformBufferSize, (size_t)minMapBufferSize);
+			// += minMapBufferSize - (uniformBufferSize % minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -177,10 +180,11 @@ namespace glsample {
 		}
 
 		void update() {
-			/*	*/
+			/*	Update Camera.	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
+			/*	*/
 			this->mvp.model = glm::mat4(1.0f);
 			this->mvp.model =
 				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -194,6 +198,15 @@ namespace glsample {
 				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(p, &this->mvp, sizeof(mvp));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+		}
+	};
+	class NormalMapGLSample : public GLSample<BasicNormalMap> {
+	  public:
+		NormalMapGLSample(int argc, const char **argv) : GLSample<BasicNormalMap>(argc, argv) {}
+		virtual void commandline(cxxopts::Options &options) override {
+			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+												  cxxopts::value<std::string>()->default_value("texture.png"))(
+				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 

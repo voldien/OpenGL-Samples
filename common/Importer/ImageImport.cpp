@@ -6,11 +6,13 @@
 #include <stdexcept>
 
 using namespace fragcore;
+TextureImporter::TextureImporter(FileSystem *filesystem) : filesystem(filesystem) {}
 
 int TextureImporter::loadImage2D(const std::string &path) {
 
 	ImageLoader imageLoader;
-	Image image = imageLoader.loadImage(path);
+	Ref<IO> io = Ref<IO>(filesystem->openFile(path.c_str(), IO::IOMode::READ));
+	Image image = imageLoader.loadImage(io);
 
 	GLenum target = GL_TEXTURE_2D;
 	GLuint texture;
@@ -81,7 +83,7 @@ int TextureImporter::loadCubeMap(const std::string &px, const std::string &nx, c
 								 const std::string &ny, const std::string &pz, const std::string &nz) {
 
 	std::vector<std::string> paths = {px, nx, py, ny, pz, nz};
-	loadCubeMap(paths);
+	return loadCubeMap(paths);
 }
 
 int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
@@ -97,7 +99,8 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
 	for (size_t i = 0; i < paths.size(); i++) {
-		Image image = imageLoader.loadImage(paths[i]);
+		Ref<IO> io = Ref<IO>(filesystem->openFile(paths[i].c_str(), IO::IOMode::READ));
+		Image image = imageLoader.loadImage(io);
 
 		GLenum format, internalformat, type;
 		switch (image.getFormat()) {

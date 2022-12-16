@@ -95,6 +95,7 @@ namespace glsample {
 
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
+			glDeleteBuffers(1, &this->ibo);
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
@@ -120,8 +121,9 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Load Diffuse and Height Map Texture.	*/
-			this->diffuse_texture = TextureImporter::loadImage2D(this->diffuseTexturePath);
-			this->heightmap_texture = TextureImporter::loadImage2D(this->heightTexturePath);
+			TextureImporter textureImporter(FileSystem::getFileSystem());
+			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+			this->heightmap_texture = textureImporter.loadImage2D(this->heightTexturePath);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;

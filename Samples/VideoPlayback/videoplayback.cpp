@@ -104,6 +104,8 @@ namespace glsample {
 											  {1.0f, -1.0f, 0.0f, 1.0f, 1.0f},
 											  {1.0f, 1.0f, 0.0f, 1.0f, 0.0f}};
 
+		// TODO add support to toggle between quad and blit.
+
 		virtual void Release() override {
 			glDeleteProgram(this->videoplayback_program);
 			glDeleteVertexArrays(1, &this->vao);
@@ -453,7 +455,7 @@ namespace glsample {
 
 						// TODO queue info
 						// this->clip->
-						printf("%d %d\n", this->frame->linesize, this->frame->nb_samples);
+						printf("%d %d\n", this->frame->linesize[0], this->frame->nb_samples);
 
 						/*	Assign new audio data.	*/
 						for (int i = 0; i < frame->nb_samples; i++) {

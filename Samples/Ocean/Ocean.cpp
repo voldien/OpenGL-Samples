@@ -251,7 +251,8 @@ namespace glsample {
 			glBindVertexArray(0);
 
 			/*	Load skybox for reflective.	*/
-			this->skybox_panoramic_texture = TextureImporter::loadImage2D(this->panoramicPath);
+			TextureImporter textureImporter(FileSystem::getFileSystem());
+			this->skybox_panoramic_texture = textureImporter.loadImage2D(this->panoramicPath);
 		}
 
 		virtual void draw() override {

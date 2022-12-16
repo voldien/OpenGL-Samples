@@ -17,9 +17,8 @@ namespace glsample {
 			float pos[2];
 			float color[3];
 		} Vertex;
-		/*	*/
-		unsigned int vao;
-		unsigned int vbo;
+
+		GeometryObject planGeometry;
 
 		int texture_program;
 		int gl_texture;
@@ -43,17 +42,17 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag";
 
-		// TODO add square.
-		const std::vector<Vertex> vertices = {
-			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f, 0.0f}, {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}};
+		std::vector<ProceduralGeometry::Vertex> vertices;
+		std::vector<unsigned int> indices;
 
 		virtual void Release() override {
 			glDeleteProgram(this->texture_program);
 
 			glDeleteTextures(1, (const GLuint *)&this->gl_texture);
 
-			glDeleteVertexArrays(1, &this->vao);
-			glDeleteBuffers(1, &this->vbo);
+			glDeleteVertexArrays(1, &this->planGeometry.vao);
+			glDeleteBuffers(1, &this->planGeometry.vbo);
+			glDeleteBuffers(1, &this->planGeometry.ibo);
 		}
 
 		virtual void Initialize() override {
@@ -71,11 +70,13 @@ namespace glsample {
 			glUseProgram(0);
 
 			// Load Texture
-			this->gl_texture = TextureImporter::loadImage2D(this->texturePath);
+			TextureImporter textureImporter(FileSystem::getFileSystem());
+			this->gl_texture = textureImporter.loadImage2D(this->texturePath);
 
+			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
+			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -89,20 +90,27 @@ namespace glsample {
 			ProceduralGeometry::generatePlan(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			glGenVertexArrays(1, &this->planGeometry.vao);
+			glBindVertexArray(this->planGeometry.vao);
+
+			glGenBuffers(1, &this->planGeometry.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,planGeometry.ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+			this->planGeometry.nrIndicesElements = indices.size();
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+			glGenBuffers(1, &this->planGeometry.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, planGeometry.vbo);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(sizeof(float) * 2));
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 		}
@@ -113,10 +121,6 @@ namespace glsample {
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
-
-			camera.update(getTimer().deltaTime());
-			this->proj =
-				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
 			int width, height;
 			getSize(&width, &height);
@@ -130,17 +134,20 @@ namespace glsample {
 
 			glUseProgram(this->texture_program);
 
+			glDisable(GL_CULL_FACE);
+
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, this->gl_texture);
 
 			/*	Draw triangle*/
-			glBindVertexArray(this->vao);
-			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+			glBindVertexArray(this->planGeometry.vao);
+			glDrawElements(GL_TRIANGLES, this->planGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
 		}
 
 		virtual void update() {
-			/*	*/
+
+			/*	Update Camera.	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
@@ -149,10 +156,10 @@ namespace glsample {
 			this->uniform_stage_buffer.modelViewProjection = (this->proj * camera.getViewMatrix());
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
-								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(p, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
+			void *uniformMappedMemory = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize, uniformSize,
+				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformMappedMemory, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

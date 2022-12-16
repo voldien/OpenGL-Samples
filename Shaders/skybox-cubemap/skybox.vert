@@ -4,7 +4,10 @@
 layout(location = 0) in vec3 vertex;
 layout(location = 0) out vec3 vVertex;
 
-layout(binding = 0) uniform UniformBufferBlock { mat4 MVP;  }
+layout(binding = 0) uniform UniformBufferBlock {
+	mat4 MVP;
+	float exposure;
+}
 ubo;
 
 void main() {

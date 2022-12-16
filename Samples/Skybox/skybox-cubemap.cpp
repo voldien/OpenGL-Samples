@@ -13,18 +13,20 @@ namespace glsample {
 
 	class SkyBoxPanoramic : public GLSampleWindow {
 	  public:
-		SkyBoxPanoramic() : GLSampleWindow() { this->setTitle(""); }
+		SkyBoxPanoramic() : GLSampleWindow() { this->setTitle("Skybox Cubemap"); }
 		typedef struct _vertex_t {
 			float vertex[3];
 			float uv[2];
 		} Vertex;
 
+		GeometryObject SkyboxCube;
 		unsigned int vbo;
 		unsigned vao;
 		unsigned int skybox_program;
 
 		struct UniformBufferBlock {
 			glm::mat4 modelViewProjection;
+			float exposure = 1.0f;
 		} uniform_stage_buffer;
 
 		glm::mat4 proj;
@@ -101,12 +103,13 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Load cubemap.	*/
+			TextureImporter textureImporter(FileSystem::getFileSystem());
 			this->skybox_cubemap =
-				TextureImporter::loadCubeMap({"X+.png", "X-.png", "Y+.png", "Y-.png", "Z+.png", "Z-.png"});
+				textureImporter.loadCubeMap({"X+.png", "X-.png", "Y+.png", "Y-.png", "Z+.png", "Z-.png"});
 
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
+			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);

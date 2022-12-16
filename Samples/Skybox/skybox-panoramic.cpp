@@ -11,19 +11,27 @@
 namespace glsample {
 
 	class SkyBoxPanoramic : public GLSampleWindow {
+
 	  public:
-		SkyBoxPanoramic() : GLSampleWindow() { this->setTitle(""); }
+		SkyBoxPanoramic() : GLSampleWindow() { this->setTitle("SkyBoxPanoramic"); }
 		typedef struct _vertex_t {
 			float vertex[3];
 			float uv[2];
 		} Vertex;
 
 		unsigned int vbo;
-		unsigned vao;
+		unsigned int vao;
+		unsigned int ibo;
+
+		unsigned int nrIndicesElements;
+		// TODO use.
+		GeometryObject cubeGeometry;
+
 		unsigned int skybox_program;
 
 		struct UniformBufferBlock {
 			glm::mat4 modelViewProjection;
+			float exposure = 1.0f;
 		} uniform_stage_buffer;
 
 		glm::mat4 proj;
@@ -41,44 +49,28 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/skybox-panoramic/skybox.vert";
 		const std::string fragmentShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
 
-		const std::vector<Vertex> vertices = {{-1.0f, -1.0f, -1.0f, 0, 0}, // triangle 1 : begin
-											  {-1.0f, -1.0f, 1.0f, 0, 1},
-											  {-1.0f, 1.0f, 1.0f, 1, 1}, // triangle 1 : end
-											  {1.0f, 1.0f, -1.0f, 1, 1}, // triangle 2 : begin
-											  {-1.0f, -1.0f, -1.0f, 1, 0},
-											  {-1.0f, 1.0f, -1.0f, 0, 0}, // triangle 2 : end
-											  {1.0f, -1.0f, 1.0f, 0, 0},
-											  {-1.0f, -1.0f, -1.0f, 0, 1},
-											  {1.0f, -1.0f, -1.0f, 1, 1},
-											  {1.0f, 1.0f, -1.0f, 0, 0},
-											  {1.0f, -1.0f, -1.0f, 1, 1},
-											  {-1.0f, -1.0f, -1.0f, 1, 0},
-											  {-1.0f, -1.0f, -1.0f, 0, 0},
-											  {-1.0f, 1.0f, 1.0f, 0, 1},
-											  {-1.0f, 1.0f, -1.0f, 1, 1},
-											  {1.0f, -1.0f, 1.0f, 0, 0},
-											  {-1.0f, -1.0f, 1.0f, 1, 1},
-											  {-1.0f, -1.0f, -1.0f, 0, 1},
-											  {-1.0f, 1.0f, 1.0f, 0, 0},
-											  {-1.0f, -1.0f, 1.0f, 0, 1},
-											  {1.0f, -1.0f, 1.0f, 1, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {1.0f, -1.0f, -1.0f, 1, 1},
-											  {1.0f, 1.0f, -1.0f, 1, 0},
-											  {1.0f, -1.0f, -1.0f, 0, 0},
-											  {1.0f, 1.0f, 1.0f, 0, 1},
-											  {1.0f, -1.0f, 1.0f, 1, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {1.0f, 1.0f, -1.0f, 1, 1},
-											  {-1.0f, 1.0f, -1.0f, 0, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {-1.0f, 1.0f, -1.0f, 0, 1},
-											  {-1.0f, 1.0f, 1.0f, 1, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {-1.0f, 1.0f, 1.0f, 1, 1},
-											  {1.0f, -1.0f, 1.0f, 1, 0}
+	  public:
+		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
 
+		  public:
+			SkyboxPanoramicSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Tessellation Settings");
+			}
+			virtual void draw() override {
+				// ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
+				// ImGui::DragFloat("Tessellation Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
+				// ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				// ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame;
+
+		  private:
+			struct UniformBufferBlock &uniform;
 		};
+		std::shared_ptr<SkyboxPanoramicSettingComponent> skyboxSettingComponent;
+
 		virtual void Release() override {
 			glDeleteProgram(this->skybox_program);
 			glDeleteVertexArrays(1, &this->vao);
@@ -99,11 +91,13 @@ namespace glsample {
 			glUniform1iARB(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
-			this->skybox_panoramic = TextureImporter::loadImage2D(this->panoramicPath);
+			TextureImporter textureImporter(FileSystem::getFileSystem());
+			this->skybox_panoramic = textureImporter.loadImage2D(this->panoramicPath);
+			// TODO disable texture LOD
 
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
+			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -111,18 +105,33 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
+			/*	Load geometry.	*/
+			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<unsigned int> indices;
+			ProceduralGeometry::generateCube(1.0f, vertices, indices);
+
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->vao);
 			glBindVertexArray(this->vao);
 
-			/*	*/
+			glGenBuffers(1, &this->ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+			this->nrIndicesElements = indices.size();
+
+			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+
+			glEnableVertexAttribArrayARB(1);
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 		}
@@ -153,7 +162,7 @@ namespace glsample {
 
 			/*	Draw triangle*/
 			glBindVertexArray(this->vao);
-			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+			glDrawElements(GL_TRIANGLES, this->nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
 		}
 

@@ -25,7 +25,8 @@ template <class T> class GLSample : public GLSampleSession {
 			"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
 			"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
 			"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
-			"g,opengl-version", "OpenGL Version", cxxopts::value<bool>()->default_value("false"));
+			"g,opengl-version", "OpenGL Version", cxxopts::value<bool>()->default_value("false"))(
+			"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."));
 
 		/*	*/
 		this->commandline(options);
@@ -58,13 +59,22 @@ template <class T> class GLSample : public GLSampleSession {
 			height = display.height();
 		}
 
-		FileSystem::createFileSystem();
+		/*	*/
+		activeFileSystem = FileSystem::createFileSystem();
+		std::string filesystemPath = result["filesystem"].as<std::string>();
+		if (!activeFileSystem->isDirectory(filesystemPath.c_str())) {
+			std::string extension = activeFileSystem->getFileExtension(filesystemPath.c_str());
+			if (extension == ".zip") {
+				activeFileSystem = ZipFileSystem::createZipFileObject(filesystemPath.c_str());
+			}
+		}
 
 		this->sampleRef = new T();
-		/*	Prevent residual errors to cuase crash.	*/
+		/*	Prevent residual errors to cause crash.	*/
 		fragcore::resetErrorFlag();
 
 		this->sampleRef->Initialize();
+		// TODO add support
 		// this->sampleRef->vsync(vsync);
 		this->sampleRef->setFullScreen(fullscreen);
 	}

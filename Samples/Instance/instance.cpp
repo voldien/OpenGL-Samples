@@ -1,6 +1,7 @@
 #include "GLSampleWindow.h"
 
 #include "ImageImport.h"
+#include "ModelImporter.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -36,12 +37,10 @@ namespace glsample {
 		std::vector<glm::mat4> instance_model_matrices;
 
 		/*	*/
-		unsigned int vbo;
-		unsigned int vao;
+		GeometryObject instanceGeometry;
 
 		/*	*/
 		unsigned int diffuse_texture;
-
 		/*	*/
 		unsigned int instance_program;
 
@@ -49,6 +48,8 @@ namespace glsample {
 		unsigned int instance_model_buffer;
 
 		/*  */
+		int rows;
+		int cols;
 
 		// TODO change to vector
 		unsigned int uniform_buffer_index;
@@ -77,8 +78,8 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_buffer);
 
 			/*	*/
-			glDeleteVertexArrays(1, &this->vao);
-			glDeleteBuffers(1, &this->vbo);
+			glDeleteVertexArrays(1, &this->instanceGeometry.vao);
+			glDeleteBuffers(1, &this->instanceGeometry.vbo);
 		}
 
 		virtual void Initialize() override {
@@ -100,7 +101,8 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	load Textures	*/
-			this->diffuse_texture = TextureImporter::loadImage2D(this->diffuseTexturePath);
+			TextureImporter textureImporter(FileSystem::getFileSystem());
+			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 
 			/*	*/
 			GLint minMapBufferSize;
@@ -113,14 +115,17 @@ namespace glsample {
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			// TODO create geometry
+			std::string modelPath = "awesome.glfp";
+			ModelImporter modelLoader(FileSystem::getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			glGenVertexArrays(1, &this->instanceGeometry.vao);
+			glBindVertexArray(this->instanceGeometry.vao);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			glGenBuffers(1, &this->instanceGeometry.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, instanceGeometry.vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 			/*	Vertices.	*/
@@ -165,7 +170,7 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 			/*	Draw triangle.	*/
-			glBindVertexArray(this->vao);
+			glBindVertexArray(this->instanceGeometry.vao);
 			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
 			glBindVertexArray(0);
 		}
@@ -175,7 +180,25 @@ namespace glsample {
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
+			// Update all instances.
 			for (int i = 0; i < instance_model_matrices.size(); i++) {
+			}
+
+			for (unsigned int i = 0; i < rows; i++) {
+				for (unsigned int j = 0; j < cols; j++) {
+					int index = i * rows + j;
+					// hpmvec4f pos = {i, 0, j, 0};
+					// pos *= 3;
+					//
+					///*	Create model matrix.	*/
+					// hpm_quat_axisf(&scene->quat[index], 0, rot + i, 0);
+					// hpm_mat4x4_translationfv(scene->model[index], &pos);
+					// hpm_mat4x4_multi_rotationQfv(scene->model[index], &scene->quat[index]);
+					//
+					///*	Create mode view matrix.	*/
+					// hpm_mat4x4_multiply_mat4x4fv(scene->view, scene->model[index], scene->modelview[index]);
+					// hpm_mat4x4_multiply_mat4x4fv(scene->proj, scene->modelview[index], scene->mvp[index]);
+				}
 			}
 
 			this->mvp.model = glm::mat4(1.0f);

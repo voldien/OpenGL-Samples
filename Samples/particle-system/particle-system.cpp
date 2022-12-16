@@ -99,7 +99,8 @@ namespace glsample {
 			this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
 
 			/*	*/
-			this->particle_texture = TextureImporter::loadImage2D(particleTexturePath);
+			TextureImporter textureImporter(FileSystem::getFileSystem());
+			this->particle_texture = textureImporter.loadImage2D(particleTexturePath);
 
 			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->particle_graphic_program);
