@@ -1,8 +1,8 @@
 
-#include "ImageImport.h"
-#include "ShaderLoader.h"
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
+#include <ImageImport.h>
+#include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
@@ -26,10 +26,7 @@ namespace glsample {
 		} mvp;
 
 		/*	*/
-		unsigned int vbo;
-		unsigned int vao;
-		unsigned int ibo;
-		unsigned int nrElements;
+		GeometryObject plan;
 
 		/*	*/
 		unsigned int diffuse_texture;
@@ -64,9 +61,9 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_buffer);
 
 			/*	*/
-			glDeleteVertexArrays(1, &this->vao);
-			glDeleteBuffers(1, &this->vbo);
-			glDeleteBuffers(1, &this->ibo);
+			glDeleteVertexArrays(1, &this->plan.vao);
+			glDeleteBuffers(1, &this->plan.vbo);
+			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
 		virtual void Initialize() override {
@@ -95,7 +92,6 @@ namespace glsample {
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			uniformBufferSize = Math::align(uniformBufferSize, (size_t)minMapBufferSize);
-			// += minMapBufferSize - (uniformBufferSize % minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -105,22 +101,22 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices);
+			ProceduralGeometry::generateCube(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			glGenVertexArrays(1, &this->plan.vao);
+			glBindVertexArray(this->plan.vao);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			glGenBuffers(1, &this->plan.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
-			glGenBuffers(1, &this->ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+			glGenBuffers(1, &this->plan.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->nrElements = indices.size();
+			this->plan.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
 			glEnableVertexAttribArrayARB(0);
@@ -174,8 +170,8 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, this->normal_texture);
 
 			/*	Draw triangle.	*/
-			glBindVertexArray(this->vao);
-			glDrawElements(GL_TRIANGLES, this->nrElements, GL_UNSIGNED_INT, nullptr);
+			glBindVertexArray(this->plan.vao);
+			glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
 		}
 

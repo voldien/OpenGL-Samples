@@ -12,6 +12,8 @@ namespace glsample {
 	  public:
 		ParticleSystem() : GLSampleWindow() { this->setTitle("Particle System"); }
 
+		// std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
+
 		/*	*/
 		const unsigned int localInvoke = 32;
 		unsigned int nrParticles = localInvoke * 256;

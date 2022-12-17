@@ -20,8 +20,7 @@ namespace glsample {
 		} Vertex;
 
 		GeometryObject SkyboxCube;
-		unsigned int vbo;
-		unsigned vao;
+
 		unsigned int skybox_program;
 
 		struct UniformBufferBlock {
@@ -44,48 +43,10 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/skybox-panoramic/skybox.vert";
 		const std::string fragmentShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
 
-		const std::vector<Vertex> vertices = {{-1.0f, -1.0f, -1.0f, 0, 0}, // triangle 1 : begin
-											  {-1.0f, -1.0f, 1.0f, 0, 1},
-											  {-1.0f, 1.0f, 1.0f, 1, 1}, // triangle 1 : end
-											  {1.0f, 1.0f, -1.0f, 1, 1}, // triangle 2 : begin
-											  {-1.0f, -1.0f, -1.0f, 1, 0},
-											  {-1.0f, 1.0f, -1.0f, 0, 0}, // triangle 2 : end
-											  {1.0f, -1.0f, 1.0f, 0, 0},
-											  {-1.0f, -1.0f, -1.0f, 0, 1},
-											  {1.0f, -1.0f, -1.0f, 1, 1},
-											  {1.0f, 1.0f, -1.0f, 0, 0},
-											  {1.0f, -1.0f, -1.0f, 1, 1},
-											  {-1.0f, -1.0f, -1.0f, 1, 0},
-											  {-1.0f, -1.0f, -1.0f, 0, 0},
-											  {-1.0f, 1.0f, 1.0f, 0, 1},
-											  {-1.0f, 1.0f, -1.0f, 1, 1},
-											  {1.0f, -1.0f, 1.0f, 0, 0},
-											  {-1.0f, -1.0f, 1.0f, 1, 1},
-											  {-1.0f, -1.0f, -1.0f, 0, 1},
-											  {-1.0f, 1.0f, 1.0f, 0, 0},
-											  {-1.0f, -1.0f, 1.0f, 0, 1},
-											  {1.0f, -1.0f, 1.0f, 1, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {1.0f, -1.0f, -1.0f, 1, 1},
-											  {1.0f, 1.0f, -1.0f, 1, 0},
-											  {1.0f, -1.0f, -1.0f, 0, 0},
-											  {1.0f, 1.0f, 1.0f, 0, 1},
-											  {1.0f, -1.0f, 1.0f, 1, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {1.0f, 1.0f, -1.0f, 1, 1},
-											  {-1.0f, 1.0f, -1.0f, 0, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {-1.0f, 1.0f, -1.0f, 0, 1},
-											  {-1.0f, 1.0f, 1.0f, 1, 1},
-											  {1.0f, 1.0f, 1.0f, 0, 0},
-											  {-1.0f, 1.0f, 1.0f, 1, 1},
-											  {1.0f, -1.0f, 1.0f, 1, 0}
-
-		};
 		virtual void Release() override {
 			glDeleteProgram(this->skybox_program);
-			glDeleteVertexArrays(1, &this->vao);
-			glDeleteBuffers(1, &this->vbo);
+			glDeleteVertexArrays(1, &this->SkyboxCube.vao);
+			glDeleteBuffers(1, &this->SkyboxCube.vbo);
 			glDeleteTextures(1, (const GLuint *)&this->skybox_cubemap);
 		}
 
@@ -117,18 +78,33 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			/*	Load geometry.	*/
+			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<unsigned int> indices;
+			ProceduralGeometry::generateCube(1.0f, vertices, indices);
 
-			/*	*/
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenVertexArrays(1, &this->SkyboxCube.vao);
+			glBindVertexArray(this->SkyboxCube.vao);
+
+			glGenBuffers(1, &this->SkyboxCube.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SkyboxCube.ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+			this->SkyboxCube.nrIndicesElements = indices.size();
+
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenBuffers(1, &this->SkyboxCube.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, SkyboxCube.vbo);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+
+			glEnableVertexAttribArrayARB(1);
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 		}
@@ -158,8 +134,8 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, this->skybox_cubemap);
 
 			/*	Draw triangle*/
-			glBindVertexArray(this->vao);
-			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+			glBindVertexArray(this->SkyboxCube.vao);
+			glDrawElements(GL_TRIANGLES, this->SkyboxCube.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
 		}
 

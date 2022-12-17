@@ -49,7 +49,7 @@ namespace glsample {
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
-			bool showWireFrame;
+			bool showWireFrame = false;
 
 		  private:
 			struct UniformBufferBlock &uniform;
@@ -128,11 +128,11 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices);
+			ProceduralGeometry::generateCube(1, vertices, indices);
 
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
+			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -204,15 +204,17 @@ namespace glsample {
 
 			/*	Draw triangle*/
 			glBindVertexArray(this->vao);
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, tessellationSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
 			glPatchParameteri(GL_PATCH_VERTICES, 3);
 			glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
 
 			/*	Draw wireframe outline.	*/
-			if (this->tessellationSettingComponent->showWireFrame) {
-				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-				glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
-			}
+			//if (this->tessellationSettingComponent->showWireFrame) {
+			//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			//	glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
+			//}
 			glBindVertexArray(0);
 		}
 

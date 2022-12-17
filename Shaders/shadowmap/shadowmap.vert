@@ -6,10 +6,6 @@ layout(location = 1) in vec2 TextureCoord;
 layout(location = 2) in vec3 Normal;
 layout(location = 3) in vec3 Tangent;
 
-layout(location = 0) out vec2 UV;
-layout(location = 1) out vec3 normal;
-layout(location = 2) out vec3 tangent;
-
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -23,9 +19,11 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
+//layout(binding = 1, std140) uniform UniformModelBufferBlock {
+//
+//}ss;
+
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
-	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
-	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
-	UV = TextureCoord;
+
 }

@@ -14,8 +14,8 @@
 #include <assimp/types.h>
 #include <assimp/vector3.h>
 #include <cassert>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 typedef struct model_object {
 	GeometryObject geometryObject;
@@ -133,6 +133,9 @@ class ModelImporter {
 	// VDAnimationClip *initAnimation(const aiAnimation *animation, unsigned int index);
 	//
 	// VDLight *initLight(const aiLight *light, unsigned int index);
+
+	const std::vector<NodeObject *> getNodes() const { return this->nodes; }
+	const NodeObject *getNodeRoot() const { return this->rootNode; }
 
   private:
 	aiScene *sceneRef;

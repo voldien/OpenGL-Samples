@@ -33,7 +33,8 @@ namespace glsample {
 		} Vertex;
 
 		unsigned int vbo;
-		unsigned vao;
+		unsigned int vao;
+
 		unsigned int triangle_program;
 		const std::string vertexShaderPath = "Shaders/triangle/triangle.vert";
 		const std::string fragmentShaderPath = "Shaders/triangle/triangle.frag";
@@ -56,7 +57,7 @@ namespace glsample {
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
 
-			//TODO add support
+			// TODO add support
 			// vertex_source = fragcore::ShaderCompiler::convertSPIRV(vertex_source, fragcore::ShaderLanguage::GLSL);
 			// fragment_source = fragcore::ShaderCompiler::convertSPIRV(fragment_source,
 			// fragcore::ShaderLanguage::GLSL);

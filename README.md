@@ -28,6 +28,8 @@ A collection of OpenGL Samples.
 
 - **Shadow Map**
 
+- **Fog**
+
 - **Tessellation Basic**
 
 - **PN Tessellation**
@@ -53,6 +55,8 @@ A collection of OpenGL Samples.
 - **Ray Tracing**
 
 - **Game Of Life**
+
+- **Bloom**
 
 
 ## License

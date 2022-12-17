@@ -13,11 +13,12 @@ namespace glsample {
 	class SkyBoxPanoramic : public GLSampleWindow {
 
 	  public:
-		SkyBoxPanoramic() : GLSampleWindow() { this->setTitle("SkyBoxPanoramic"); }
-		typedef struct _vertex_t {
-			float vertex[3];
-			float uv[2];
-		} Vertex;
+		SkyBoxPanoramic() : GLSampleWindow() {
+			this->setTitle("SkyBoxPanoramic");
+
+			skyboxSettingComponent = std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
+			this->addUIComponent(skyboxSettingComponent);
+		}
 
 		unsigned int vbo;
 		unsigned int vao;
@@ -25,7 +26,7 @@ namespace glsample {
 
 		unsigned int nrIndicesElements;
 		// TODO use.
-		GeometryObject cubeGeometry;
+		GeometryObject SkyboxCube;
 
 		unsigned int skybox_program;
 
@@ -54,13 +55,14 @@ namespace glsample {
 
 		  public:
 			SkyboxPanoramicSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Tessellation Settings");
+				this->setName("SkyBox Settings");
 			}
 			virtual void draw() override {
 				// ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
 				// ImGui::DragFloat("Tessellation Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
 				// ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				// ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat("Exposure", &this->uniform.exposure);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -155,6 +157,8 @@ namespace glsample {
 			glDisable(GL_CULL_FACE);
 			glDisable(GL_BLEND);
 			glDisable(GL_DEPTH_TEST);
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, skyboxSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 			glUseProgram(this->skybox_program);
 			glActiveTexture(GL_TEXTURE0);

@@ -18,15 +18,9 @@ namespace glsample {
 			float ht_real_img[2];
 		} OceanVertex;
 
-		typedef struct geometry_t {
-			unsigned int vao;
-			unsigned int vbo;
-			unsigned int ibo;
-			unsigned int count;
-		} Geometry;
-
-		Geometry skybox;
-		Geometry ocean;
+		GeometryObject skybox;
+		GeometryObject ocean;
+		
 		/*	*/
 		int skybox_panoramic_texture;
 
@@ -36,7 +30,8 @@ namespace glsample {
 		unsigned int spectrum_compute_program;
 		unsigned int kff_compute_program;
 
-		unsigned int ocean_width, ocean_height;
+		unsigned int ocean_width = 64;
+		unsigned int ocean_height = 64;
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -70,7 +65,7 @@ namespace glsample {
 			glm::vec4 velocity; /*	Velocity.	*/
 		} Particle;
 
-		std::string panoramicPath = "panoramic.jpg";
+		std::string panoramicPath = "asset/panoramic.jpg";
 
 		const std::string vertexSkyboxShaderPath = "Shaders/skybox-panoramic/skybox.vert";
 		const std::string fragmentSkyboxShaderPath = "Shaders/skybox-panoramic/skybox-panoramic.frag";
@@ -192,7 +187,7 @@ namespace glsample {
 			/*	Compute uniform size that is aligned with the requried for the hardware.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
+			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -202,7 +197,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices);
+			ProceduralGeometry::generatePlan(1, vertices, indices, ocean_width, ocean_height);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->ocean.vao);
@@ -217,7 +212,7 @@ namespace glsample {
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ocean.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
 						 GL_STATIC_DRAW);
-			this->ocean.count = indices.size();
+			this->ocean.nrIndicesElements = indices.size();
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
@@ -235,18 +230,30 @@ namespace glsample {
 
 			glBindVertexArray(0);
 
+			ProceduralGeometry::generateCube(1, vertices, indices);
+
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->skybox.vbo);
 			glBindVertexArray(this->skybox.vao);
 
-			/*	*/
+			glGenBuffers(1, &this->skybox.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+			this->skybox.nrIndicesElements = indices.size();
+
+			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->skybox.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
-			// glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), nullptr); // TODO fix.
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+
+			glEnableVertexAttribArrayARB(1);
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 
@@ -318,7 +325,7 @@ namespace glsample {
 
 				/*	Draw triangle*/
 				glBindVertexArray(this->skybox.vao);
-				glDrawArrays(GL_TRIANGLES, 0, this->skybox.count); // TODO fix
+				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
 		}
@@ -337,7 +344,7 @@ namespace glsample {
 			/*	Updated uniform data.	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *p = glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
-									   uniformSize, GL_MAP_WRITE_BIT);
+									   uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(p, &this->mvp, sizeof(mvp));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
