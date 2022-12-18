@@ -4,6 +4,48 @@
 layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec2 uv;
 
-layout(binding = 1) uniform sampler2D diffuse;
+layout(binding = 1) uniform sampler2D DiffuseTexture;
+layout(binding = 1) uniform sampler2D ShadowTexture;
 
-void main() { fragColor = texture(diffuse, uv); }
+layout(binding = 0, std140) uniform UniformBufferBlock {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+	mat4 modelView;
+	mat4 modelViewProjection;
+	mat4 lightSpaceMatrix;
+	/*	Light source.	*/
+	vec4 direction;
+	vec4 lightColor;
+	vec4 ambientColor;
+
+	float bias;
+	float shadowStrength;
+}
+ubo;
+
+float ShadowCalculation(vec4 fragPosLightSpace) {
+	// perform perspective divide
+	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+	// transform to [0,1] range
+	projCoords = projCoords * 0.5 + 0.5;
+	// get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+	float closestDepth = texture(ShadowTexture, projCoords.xy).r;
+	// get depth of current fragment from light's perspective
+	float currentDepth = projCoords.z;
+	// check whether current frag pos is in shadow
+	// float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+	float bias = 0.005;
+	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+	if (projCoords.z > 1.0)
+		shadow = 0.0;
+
+	return shadow;
+}
+
+void main() {
+
+	float shadowFactor = ShadowCalculation(vec4(1, 1, 1, 1)) * ubo.shadowStrength;
+	fragColor = texture(DiffuseTexture, uv) * shadowFactor;
+}

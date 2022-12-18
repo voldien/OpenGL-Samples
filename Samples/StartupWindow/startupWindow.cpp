@@ -1,12 +1,10 @@
 #include "GLSampleWindow.h"
-
 #include <GL/glew.h>
-
 #include <iostream>
 
 class StartUpWindow : public GLSampleWindow {
   public:
-	StartUpWindow() : GLSampleWindow() {			this->setTitle("StartUp Window");}
+	StartUpWindow() : GLSampleWindow() { this->setTitle("StartUp Window"); }
 	virtual void Release() override {}
 
 	virtual void Initialize() override {}

@@ -11,8 +11,8 @@ namespace glsample {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
 			this->setTitle("ShadowMap");
-			shadowSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
-			this->addUIComponent(shadowSettingComponent);
+			tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
+			this->addUIComponent(tessellationSettingComponent);
 		}
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -22,14 +22,13 @@ namespace glsample {
 			alignas(16) glm::mat4 modelViewProjection;
 			alignas(16) glm::mat4 lightModelProject;
 
-			/*	light source.	*/
+			/*light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec3 lightPosition;
 
-			float bias = 0.01f;
-			float shadowStrength = 1.0f;
+			float bias;
+			float shadowStrength;
 		} mvp;
 
 		unsigned int shadowFramebuffer;
@@ -71,7 +70,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<TessellationSettingComponent> shadowSettingComponent;
+		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
 
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag";
@@ -108,7 +107,7 @@ namespace glsample {
 			glUseProgram(this->graphic_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-			glUniform1iARB(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
+			glUniform1iARB(glGetUniformLocation(this->graphic_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -132,13 +131,11 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT,
 							 GL_FLOAT, nullptr);
-				/*	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-				/*	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -150,7 +147,6 @@ namespace glsample {
 
 					/*  Delete  */
 					glDeleteFramebuffers(1, &shadowFramebuffer);
-					// TODO add error message.
 					throw RuntimeException("Failed to create framebuffer, {}", frstat);
 				}
 				glDrawBuffer(GL_NONE);
@@ -248,7 +244,6 @@ namespace glsample {
 				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f),
 												  glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-				this->mvp.lightModelProject = lightSpaceMatrix;
 
 				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
 
@@ -256,7 +251,6 @@ namespace glsample {
 				glViewport(0, 0, shadowWidth, shadowHeight);
 				glUseProgram(this->shadow_program);
 				glCullFace(GL_FRONT);
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 				/*	Setup the shadow.	*/
 
@@ -282,8 +276,6 @@ namespace glsample {
 				glUseProgram(this->graphic_program);
 
 				glCullFace(GL_BACK);
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/**/
 				glActiveTexture(GL_TEXTURE0);
@@ -312,12 +304,10 @@ namespace glsample {
 
 			/*	*/
 			this->mvp.model = glm::mat4(1.0f);
-			//			this->mvp.model =
-			//				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f,
-			// 0.0f));
+			this->mvp.model =
+				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
 			this->mvp.view = this->camera.getViewMatrix();
-
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);

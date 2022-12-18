@@ -2,19 +2,21 @@ FILE(GLOB SOURCE_VIDEO_PLAYBACK_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 FILE(GLOB HEADER_VIDEO_PLAYBACK_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 IF(PKG_CONFIG_FOUND)
-	MESSAGE(STATUS "Found pkg-config: ${PKG_CONFIG_EXECUTABLE} -- version ${PKG_CONFIG_VERSION_STRING}.")
+    MESSAGE(STATUS "Found pkg-config: ${PKG_CONFIG_EXECUTABLE} -- version ${PKG_CONFIG_VERSION_STRING}.")
     PKG_CHECK_MODULES(AVFORMAT QUIET libavformat)
     PKG_CHECK_MODULES(AVCODEC QUIET libavcodec)
     PKG_CHECK_MODULES(AVUTIL QUIET libavutil)
     PKG_CHECK_MODULES(SWSCALE QUIET libswscale)
 ELSE()
-	MESSAGE(ERROR "Could not find AV Libraries.")
-	# TODO add logic for handling if pkg-config not available.
+    MESSAGE(ERROR "Could not find AV Libraries.")
+
+    # TODO add logic for handling if pkg-config not available.
 ENDIF()
 
-ADD_EXECUTABLE(VideoPlayback ${SOURCE_VIDEO_PLAYBACK_FILES} ${HEADER_VIDEO_PLAYBACK_FILES} )
+ADD_EXECUTABLE(VideoPlayback ${SOURCE_VIDEO_PLAYBACK_FILES} ${HEADER_VIDEO_PLAYBACK_FILES})
 TARGET_LINK_LIBRARIES(VideoPlayback glCommon fragcore-aal fragcore-audio-interface ${AVUTIL_LIBRARIES} ${AVFORMAT_LIBRARIES} ${AVCODEC_LIBRARIES} ${SWSCALE_LIBRARIES})
-#fragcore-aal
+
+# fragcore-aal
 # OpenGL dependies headers.
 TARGET_INCLUDE_DIRECTORIES(VideoPlayback PRIVATE ${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS})
 add_dependencies(VideoPlayback glCommon)

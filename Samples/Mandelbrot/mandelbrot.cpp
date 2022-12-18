@@ -22,6 +22,7 @@ namespace glsample {
 			int nrSamples;
 		} params;
 
+		/*	*/
 		unsigned int mandelbrot_framebuffer;
 		unsigned int mandelbrot_program;
 		unsigned int mandelbrot_texture;

@@ -107,7 +107,7 @@ namespace glsample {
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize += minMapBufferSize - (uniformSize % minMapBufferSize);
+			uniformSize = fragcore::Math::align(uniformSize, (size_t)minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);

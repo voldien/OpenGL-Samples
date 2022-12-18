@@ -8,9 +8,13 @@
 
 namespace glsample {
 
-	class BasicNormalMap : public GLSampleWindow {
+	class SimpleOcean : public GLSampleWindow {
 	  public:
-		BasicNormalMap() : GLSampleWindow() { this->setTitle("NormalMap"); }
+		SimpleOcean() : GLSampleWindow() {
+			this->setTitle("SimpleOcean");
+			simpleOceanSettingComponent = std::make_shared<SimpleOceanSettingComponent>(this->mvp);
+			this->addUIComponent(simpleOceanSettingComponent);
+		}
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -20,42 +24,67 @@ namespace glsample {
 			alignas(16) glm::mat4 modelViewProjection;
 
 			/*light source.	*/
+			glm::vec4 lookDirection;
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 position;
+
+			float time;
+
 		} mvp;
 
 		/*	*/
 		GeometryObject plan;
-
-		/*	Textures.	*/
-		unsigned int diffuse_texture;
-		unsigned int normal_texture;
+		GeometryObject skybox;
 
 		/*	*/
-		unsigned int normalMapping_program;
+		unsigned int normal_texture;
+		unsigned int reflection_texture;
 
-		// TODO change to vector
+		/*	*/
+		unsigned int simpleOcean_program;
+
+		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
+		class SimpleOceanSettingComponent : public nekomimi::UIComponent {
+
+		  public:
+			SimpleOceanSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Tessellation Settings");
+			}
+			virtual void draw() override {
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<SimpleOceanSettingComponent> simpleOceanSettingComponent;
+
 		CameraController camera;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
+		std::string panoramicPath = "asset/panoramic.jpg";
 		std::string normalTexturePath = "asset/normalmap.png";
 
-		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert";
-		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag";
+		const std::string vertexShaderPath = "Shaders/simpleocean/simpleocean.vert";
+		const std::string fragmentShaderPath = "Shaders/simpleocean/simpleocean.frag";
 
 		virtual void Release() override {
 			/*	*/
-			glDeleteProgram(this->normalMapping_program);
+			glDeleteProgram(this->simpleOcean_program);
 
 			/*	*/
-			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
+			glDeleteTextures(1, (const GLuint *)&this->reflection_texture);
 			glDeleteTextures(1, (const GLuint *)&this->normal_texture);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -73,26 +102,27 @@ namespace glsample {
 			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
 
 			/*	Load shader	*/
-			this->normalMapping_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->simpleOcean_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
-			/*	*/
-			glUseProgram(this->normalMapping_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->normalMapping_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->normalMapping_program, "DiffuseTexture"), 0);
-			glUniform1iARB(glGetUniformLocation(this->normalMapping_program, "NormalTexture"), 1);
-			glUniformBlockBinding(this->normalMapping_program, uniform_buffer_index, this->uniform_buffer_binding);
+			/*	Setup graphic pipeline settings.    */
+			glUseProgram(this->simpleOcean_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->simpleOcean_program, "UniformBufferBlock");
+			glUniform1iARB(glGetUniformLocation(this->simpleOcean_program, "ReflectionTexture"), 0);
+			glUniform1iARB(glGetUniformLocation(this->simpleOcean_program, "NormalTexture"), 1);
+			glUniformBlockBinding(this->simpleOcean_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(FileSystem::getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
+			this->reflection_texture = textureImporter.loadImage2D(this->panoramicPath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			uniformBufferSize = Math::align(uniformBufferSize, (size_t)minMapBufferSize);
 
+			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
@@ -101,7 +131,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateCube(1, vertices, indices);
+			ProceduralGeometry::generatePlan(1, vertices, indices, 128, 128);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->plan.vao);
@@ -113,6 +143,7 @@ namespace glsample {
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
+			/*  Create index buffer.    */
 			glGenBuffers(1, &this->plan.ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
@@ -157,13 +188,15 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			glUseProgram(this->normalMapping_program);
+			glUseProgram(this->simpleOcean_program);
 
 			glDisable(GL_CULL_FACE);
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 			/*	*/
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
+			glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
 
 			/*	*/
 			glActiveTexture(GL_TEXTURE0 + 1);
@@ -182,12 +215,17 @@ namespace glsample {
 
 			/*	*/
 			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model =
-				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
+			this->mvp.model = glm::rotate(this->mvp.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(20.95f));
 			this->mvp.view = this->camera.getViewMatrix();
+			this->mvp.lookDirection = glm::vec4(this->camera.getLookDirection().x, this->camera.getLookDirection().z,
+												this->camera.getLookDirection().y, 0);
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
+			this->mvp.position =
+				glm::vec4(this->camera.getPosition().x, this->camera.getPosition().z, this->camera.getPosition().y, 0);
+			std::cout << this->mvp.position.x << std::endl;
 
+			/*  */
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *p = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
@@ -196,9 +234,9 @@ namespace glsample {
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};
-	class NormalMapGLSample : public GLSample<BasicNormalMap> {
+	class SimpleOceanGLSample : public GLSample<SimpleOcean> {
 	  public:
-		NormalMapGLSample(int argc, const char **argv) : GLSample<BasicNormalMap>(argc, argv) {}
+		SimpleOceanGLSample(int argc, const char **argv) : GLSample<SimpleOcean>(argc, argv) {}
 		virtual void commandline(cxxopts::Options &options) override {
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
@@ -211,7 +249,7 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::BasicNormalMap> sample(argc, argv);
+		GLSample<glsample::SimpleOcean> sample(argc, argv);
 
 		sample.run();
 

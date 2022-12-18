@@ -22,6 +22,7 @@ namespace glsample {
 		GeometryObject SkyboxCube;
 
 		unsigned int skybox_program;
+				int skybox_cubemap;
 
 		struct UniformBufferBlock {
 			glm::mat4 modelViewProjection;
@@ -29,8 +30,7 @@ namespace glsample {
 		} uniform_stage_buffer;
 
 		glm::mat4 proj;
-		int skybox_cubemap;
-		std::string panoramicPath = "asset/panoramic.jpg";
+
 		CameraController camera;
 
 		// TODO change to vector
