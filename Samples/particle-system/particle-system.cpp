@@ -10,9 +10,11 @@ namespace glsample {
 
 	class ParticleSystem : public GLSampleWindow {
 	  public:
-		ParticleSystem() : GLSampleWindow() { this->setTitle("Particle System"); }
-
-		// std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
+		ParticleSystem() : GLSampleWindow() {
+			this->setTitle("Particle System");
+			tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
+			this->addUIComponent(tessellationSettingComponent);
+		}
 
 		/*	*/
 		const unsigned int localInvoke = 32;
@@ -61,16 +63,35 @@ namespace glsample {
 		// TODO change to vector
 		unsigned int uniform_buffer_index;
 
+		/*	*/
 		int particle_buffer_read_index;
 		int particle_buffer_write_index;
 		int particle_read_buffer_binding = 1;
 		int particle_write_buffer_binding = 2;
 
+		/*	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
+		class TessellationSettingComponent : public nekomimi::UIComponent {
+
+		  public:
+			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Particle Settings");
+			}
+			virtual void draw() override {
+				ImGui::DragFloat("Speed", &this->uniform.particleSetting.speed, 1, 0.0f, 100.0f);
+				ImGui::DragFloat("LifeTime", &this->uniform.particleSetting.lifetime, 1, 0.0f, 10.0f);
+			}
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
+
+		/*	*/
 		const std::string vertexShaderPath = "Shaders/particle-system/particle.vert";
 		const std::string fragmentShaderPath = "Shaders/particle-system/particle.frag";
 		const std::string computeShaderPath = "Shaders/particle-system/particle.comp";
@@ -78,30 +99,34 @@ namespace glsample {
 		const std::string particleTexturePath = "asset/particle.png";
 
 		virtual void Release() override {
+			/*	*/
 			glDeleteProgram(this->particle_graphic_program);
 			glDeleteProgram(this->particle_compute_program);
 
-			glDeleteBuffers(1, &this->vbo_particle);
+			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
 			glDeleteVertexArrays(1, &this->vao_particle);
+			glDeleteBuffers(1, &this->vbo_particle);
 		}
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
-			std::vector<char> vertex_source = glsample::IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = glsample::IOUtil::readFile(fragmentShaderPath);
+			std::vector<char> vertex_source = glsample::IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source =
+				glsample::IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
 
 			/*	*/
-			std::vector<char> compute_source = glsample::IOUtil::readFile(computeShaderPath);
+			std::vector<char> compute_source =
+				glsample::IOUtil::readFileString(computeShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
 			this->particle_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 			this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
 
 			/*	*/
-			TextureImporter textureImporter(FileSystem::getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->particle_texture = textureImporter.loadImage2D(particleTexturePath);
 
 			/*	Setup graphic render pipeline.	*/
@@ -186,65 +211,72 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+			{
+				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
-			/*	Bind uniform buffer.	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+				/*	Bind uniform buffer.	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
+								  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
 
-			/*	Bind read particle buffer.	*/
-			glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_read_index, this->vbo_particle,
-							  ((this->getFrameCount()) % nrParticleBuffers) * ParticleMemorySize, ParticleMemorySize);
+				/*	Bind read particle buffer.	*/
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_read_index, this->vbo_particle,
+								  ((this->getFrameCount()) % nrParticleBuffers) * ParticleMemorySize,
+								  ParticleMemorySize);
 
-			/*	Bind write particle buffer.	*/
-			glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_write_index, this->vbo_particle,
-							  ((this->getFrameCount() + 1) % nrParticleBuffers) * ParticleMemorySize,
-							  ParticleMemorySize);
+				/*	Bind write particle buffer.	*/
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_write_index, this->vbo_particle,
+								  ((this->getFrameCount() + 1) % nrParticleBuffers) * ParticleMemorySize,
+								  ParticleMemorySize);
 
-			/*	*/
-			glUseProgram(this->particle_compute_program);
-			glBindVertexArray(this->vao_particle);
+				/*	*/
+				glUseProgram(this->particle_compute_program);
+				glBindVertexArray(this->vao_particle);
 
-			/*	*/
-			glDispatchCompute(nrParticles / localInvoke, 1, 1);
-			glBindVertexArray(0);
+				/*	*/
+				glDispatchCompute(nrParticles / localInvoke, 1, 1);
+				glBindVertexArray(0);
+			}
 
-			/*	*/
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			/*	*/
-			glViewport(0, 0, width, height);
+			{
+				/*	*/
+				glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				/*	*/
+				glViewport(0, 0, width, height);
 
-			glActiveTexture(GL_TEXTURE0 + 0);
-			glBindTexture(GL_TEXTURE_2D, particle_texture);
+				glActiveTexture(GL_TEXTURE0 + 0);
+				glBindTexture(GL_TEXTURE_2D, particle_texture);
 
-			glUseProgram(this->particle_graphic_program);
-			glEnable(GL_BLEND);
-			glBlendEquation(GL_FUNC_ADD);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glUseProgram(this->particle_graphic_program);
+				glEnable(GL_BLEND);
+				glBlendEquation(GL_FUNC_ADD);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-			glEnable(GL_PROGRAM_POINT_SIZE_ARB);
-			glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
-			glPointParameteri(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
-			glPointParameterf(GL_POINT_SIZE_MIN_ARB, 1.0f);
-			glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 1.0f);
+				glEnable(GL_PROGRAM_POINT_SIZE_ARB);
+				glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
+				glPointParameteri(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
+				glPointParameterf(GL_POINT_SIZE_MIN_ARB, 1.0f);
+				glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 1.0f);
 
-			/*	Draw triangle*/
-			glBindVertexArray(this->vao_particle);
-			glBindVertexBuffer(0, this->vbo_particle, (this->getFrameCount() % nrParticleBuffers) * ParticleMemorySize,
-							   sizeof(Particle));
-			glBindVertexBuffer(1, this->vbo_particle, (this->getFrameCount() % nrParticleBuffers) * ParticleMemorySize,
-							   sizeof(Particle));
+				/*	Draw triangle*/
+				glBindVertexArray(this->vao_particle);
+				glBindVertexBuffer(0, this->vbo_particle,
+								   (this->getFrameCount() % nrParticleBuffers) * ParticleMemorySize, sizeof(Particle));
+				glBindVertexBuffer(1, this->vbo_particle,
+								   (this->getFrameCount() % nrParticleBuffers) * ParticleMemorySize, sizeof(Particle));
 
-			glDrawArrays(GL_POINTS, 0, nrParticles);
-			glBindVertexArray(0);
+				glDrawArrays(GL_POINTS, 0, nrParticles);
+				glBindVertexArray(0);
 
-			glUseProgram(0);
+				glUseProgram(0);
+			}
 		}
 
 		void update() {
 			/*	*/
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
+			this->mvp.proj =
+				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());

@@ -18,13 +18,10 @@ namespace glsample {
 
 			skyboxSettingComponent = std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(skyboxSettingComponent);
+
+			camera.enableNavigation(false);
 		}
 
-		unsigned int vbo;
-		unsigned int vao;
-		unsigned int ibo;
-
-		unsigned int nrIndicesElements;
 		// TODO use.
 		GeometryObject SkyboxCube;
 
@@ -58,15 +55,11 @@ namespace glsample {
 				this->setName("SkyBox Settings");
 			}
 			virtual void draw() override {
-				// ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
-				// ImGui::DragFloat("Tessellation Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
-				// ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				// ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Exposure", &this->uniform.exposure);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
-			bool showWireFrame;
+			bool showWireFrame = false;
 
 		  private:
 			struct UniformBufferBlock &uniform;
@@ -75,27 +68,30 @@ namespace glsample {
 
 		virtual void Release() override {
 			glDeleteProgram(this->skybox_program);
-			glDeleteVertexArrays(1, &this->vao);
-			glDeleteBuffers(1, &this->vbo);
+			glDeleteVertexArrays(1, &this->SkyboxCube.vao);
+			glDeleteBuffers(1, &this->SkyboxCube.vbo);
+			glDeleteBuffers(1, &this->SkyboxCube.ibo);
 			glDeleteTextures(1, (const GLuint *)&this->skybox_panoramic);
 		}
 
 		virtual void Initialize() override {
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath);
 
+			/*	*/
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
+			/*	*/
 			glUseProgram(this->skybox_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
 			glUniform1iARB(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
+			/*	*/
 			TextureImporter textureImporter(FileSystem::getFileSystem());
 			this->skybox_panoramic = textureImporter.loadImage2D(this->panoramicPath);
-			// TODO disable texture LOD
 
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -113,24 +109,25 @@ namespace glsample {
 			ProceduralGeometry::generateCube(1.0f, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			glGenVertexArrays(1, &this->SkyboxCube.vao);
+			glBindVertexArray(this->SkyboxCube.vao);
 
-			glGenBuffers(1, &this->ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+			/*	*/
+			glGenBuffers(1, &this->SkyboxCube.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SkyboxCube.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->nrIndicesElements = indices.size();
+			this->SkyboxCube.nrIndicesElements = indices.size();
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			glGenBuffers(1, &this->SkyboxCube.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, SkyboxCube.vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
+			/*	*/
 			glEnableVertexAttribArrayARB(1);
 			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(12));
@@ -165,14 +162,13 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic);
 
 			/*	Draw triangle*/
-			glBindVertexArray(this->vao);
-			glDrawElements(GL_TRIANGLES, this->nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+			glBindVertexArray(this->SkyboxCube.vao);
+			glDrawElements(GL_TRIANGLES, this->SkyboxCube.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
 		}
 
 		virtual void update() {
 			/*	*/
-			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
 			this->proj =

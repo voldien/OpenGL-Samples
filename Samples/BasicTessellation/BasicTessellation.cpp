@@ -102,10 +102,10 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
-			std::vector<char> control_source = IOUtil::readFile(ControlShaderPath);
-			std::vector<char> evolution_source = IOUtil::readFile(EvoluationShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			std::vector<char> control_source = IOUtil::readFileString(ControlShaderPath, this->getFileSystem());
+			std::vector<char> evolution_source = IOUtil::readFileString(EvoluationShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
 			this->tessellation_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
@@ -121,7 +121,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Load Diffuse and Height Map Texture.	*/
-			TextureImporter textureImporter(FileSystem::getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 			this->heightmap_texture = textureImporter.loadImage2D(this->heightTexturePath);
 
@@ -211,7 +211,7 @@ namespace glsample {
 			glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
 
 			/*	Draw wireframe outline.	*/
-			//if (this->tessellationSettingComponent->showWireFrame) {
+			// if (this->tessellationSettingComponent->showWireFrame) {
 			//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			//	glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
 			//}

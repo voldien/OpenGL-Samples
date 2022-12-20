@@ -35,14 +35,12 @@ void main() {
 	Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
 	vec3 bittagnet = cross(Ttangent, Mnormal);
 
-	/*	Convert normal map texture to a vector.	*/
 	vec3 NormalMapBump = 2.0 * texture(NormalTexture, UV).xyz - vec3(1.0, 1.0, 1.0);
 
-	/*	Compute the new normal vector on the specific surface normal.	*/
 	vec3 alteredNormal = normalize(mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump);
 
 	// Compute directional light
 	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
 
-	fragColor = texture(DiffuseTexture, UV) * (ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, UV) * ( ubo.ambientColor + lightColor);
 }

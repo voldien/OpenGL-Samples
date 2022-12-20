@@ -4,6 +4,7 @@
 #include "GLSample.h"
 #include "IOUtil.h"
 #include "Util/Time.hpp"
+#include <Core/IO/IFileSystem.h>
 #include <MIMIWindow.h>
 #include <ProceduralGeometry.h>
 
@@ -38,6 +39,9 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	void captureScreenShot();
 
+	fragcore::IFileSystem *getFileSystem() const { return filesystem; }
+	void setFileSystem(fragcore::IFileSystem *filesystem) { this->filesystem = filesystem; }
+
   protected:
 	virtual void displayMenuBar() override;
 	virtual void renderUI() override;
@@ -47,6 +51,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	vkscommon::Time time;
 	size_t frameCount = 0;
 	unsigned int queries[10];
+	fragcore::IFileSystem *filesystem;
 
   protected:
 	// TODO Enable RenderDoc

@@ -14,6 +14,7 @@ namespace glsample {
 			shadowSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
 			this->addUIComponent(shadowSettingComponent);
 		}
+
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
@@ -37,6 +38,9 @@ namespace glsample {
 		unsigned int shadowWidth = 1024;
 		unsigned int shadowHeight = 1024;
 
+		std::string diffuseTexturePath = "asset/diffuse.png";
+		unsigned int diffuse_texture;
+
 		GeometryObject plan;
 		GeometryObject cube;
 		GeometryObject sphere;
@@ -59,8 +63,8 @@ namespace glsample {
 				this->setName("Tessellation Settings");
 			}
 			virtual void draw() override {
-				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 100.0f);
-				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 10.0f);
+				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
+				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -73,8 +77,8 @@ namespace glsample {
 		};
 		std::shared_ptr<TessellationSettingComponent> shadowSettingComponent;
 
-		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
-		const std::string fragmentShaderPath = "Shaders/texture/texture.frag";
+		const std::string vertexShaderPath = "Shaders/shadowmap/texture.vert";
+		const std::string fragmentShaderPath = "Shaders/shadowmap/texture.frag";
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag";
 
@@ -84,25 +88,41 @@ namespace glsample {
 
 			glDeleteBuffers(1, &this->uniform_buffer);
 
-			// glDeleteVertexArrays(1, &this->vao);
-			// glDeleteBuffers(1, &this->vbo);
-			// glDeleteBuffers(1, &this->ibo);
+			glDeleteVertexArrays(1, &this->plan.vao);
+			glDeleteBuffers(1, &this->plan.vbo);
+			glDeleteBuffers(1, &this->plan.ibo);
+
+			glDeleteVertexArrays(1, &this->sphere.vao);
+			glDeleteBuffers(1, &this->sphere.vbo);
+			glDeleteBuffers(1, &this->sphere.ibo);
+
+			glDeleteVertexArrays(1, &this->cube.vao);
+			glDeleteBuffers(1, &this->cube.vbo);
+			glDeleteBuffers(1, &this->cube.ibo);
 		}
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath, FileSystem::getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath, FileSystem::getFileSystem());
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, getFileSystem());
 
-			std::vector<char> vertex_shadow_source =
-				IOUtil::readFile(vertexShadowShaderPath, FileSystem::getFileSystem());
+			std::vector<char> vertex_shadow_source = IOUtil::readFileString(vertexShadowShaderPath, getFileSystem());
 			std::vector<char> fragment_shadow_source =
-				IOUtil::readFile(fragmentShadowShaderPath, FileSystem::getFileSystem());
+				IOUtil::readFileString(fragmentShadowShaderPath, getFileSystem());
 
 			/*	Load shaders	*/
 			this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 			this->shadow_program = ShaderLoader::loadGraphicProgram(&vertex_shadow_source, &fragment_shadow_source);
+
+			/*	load Textures	*/
+			TextureImporter textureImporter(getFileSystem());
+			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+
+			glUseProgram(this->shadow_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->shadow_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(0);
 
 			/*	*/
 			glUseProgram(this->graphic_program);
@@ -133,8 +153,8 @@ namespace glsample {
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT,
 							 GL_FLOAT, nullptr);
 				/*	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -151,7 +171,7 @@ namespace glsample {
 					/*  Delete  */
 					glDeleteFramebuffers(1, &shadowFramebuffer);
 					// TODO add error message.
-					throw RuntimeException("Failed to create framebuffer, {}", frstat);
+					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
 				}
 				glDrawBuffer(GL_NONE);
 				glReadBuffer(GL_NONE);
@@ -178,6 +198,7 @@ namespace glsample {
 							 sizeof(ProceduralGeometry::Vertex),
 						 nullptr, GL_STATIC_DRAW);
 
+			/*	*/
 			glBufferSubData(GL_ARRAY_BUFFER, 0, planVertices.size() * sizeof(ProceduralGeometry::Vertex),
 							planVertices.data());
 			glBufferSubData(GL_ARRAY_BUFFER, planVertices.size() * sizeof(ProceduralGeometry::Vertex),
@@ -186,19 +207,21 @@ namespace glsample {
 							(planVertices.size() + cubeVertices.size()) * sizeof(ProceduralGeometry::Vertex),
 							sphereVertices.size() * sizeof(ProceduralGeometry::Vertex), sphereVertices.data());
 
+			/*	*/
 			glGenBuffers(1, &plan.ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER,
 						 (planIndices.size() + cubeIndices.size() + sphereIndices.size()) * sizeof(indices[0]), nullptr,
 						 GL_STATIC_DRAW);
 
+			/*	*/
 			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, planIndices.size() * sizeof(indices[0]), planIndices.data());
 			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, planIndices.size() * sizeof(indices[0]),
 							cubeIndices.size() * sizeof(indices[0]), cubeIndices.data());
 			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, (planIndices.size() + cubeIndices.size()) * sizeof(indices[0]),
 							sphereIndices.size() * sizeof(indices[0]), sphereIndices.data());
 
-			/*		*/
+			/*	Setup */
 			this->plan.nrIndicesElements = planIndices.size();
 			this->plan.indices_offset = 0;
 			this->cube.nrIndicesElements = cubeIndices.size();
@@ -256,6 +279,7 @@ namespace glsample {
 				glViewport(0, 0, shadowWidth, shadowHeight);
 				glUseProgram(this->shadow_program);
 				glCullFace(GL_FRONT);
+				glEnable(GL_CULL_FACE);
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 				/*	Setup the shadow.	*/
@@ -278,18 +302,19 @@ namespace glsample {
 				glViewport(0, 0, width, height);
 
 				/*	*/
-				glClear(GL_COLOR_BUFFER_BIT);
+				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 				glUseProgram(this->graphic_program);
 
 				glCullFace(GL_BACK);
+				glDisable(GL_CULL_FACE);
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				/**/
+				/*	*/
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
+				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-				/**/
+				/*	*/
 				glActiveTexture(GL_TEXTURE0 + 1);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
@@ -307,17 +332,12 @@ namespace glsample {
 
 		virtual void update() {
 			/*	Update Camera.	*/
-			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
 			this->mvp.model = glm::mat4(1.0f);
-			//			this->mvp.model =
-			//				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f,
-			// 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
+			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
 			this->mvp.view = this->camera.getViewMatrix();
-
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -328,21 +348,22 @@ namespace glsample {
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};
-	// class NormalMapGLSample : public GLSample<BasicNormalMap> {
-	//  public:
-	//	NormalMapGLSample(int argc, const char **argv) : GLSample<BasicNormalMap>(argc, argv) {}
-	//	virtual void commandline(cxxopts::Options &options) override {
-	//		options.add_options("Texture-Sample")("T,texture", "Texture Path",
-	//											  cxxopts::value<std::string>()->default_value("texture.png"))(
-	//			"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
-	//	}
-	//};
+
+	class ShadowMappingGLSample : public GLSample<BasicShadowMapping> {
+	  public:
+		ShadowMappingGLSample(int argc, const char **argv) : GLSample<BasicShadowMapping>(argc, argv) {}
+		virtual void commandline(cxxopts::Options &options) override {
+			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+												  cxxopts::value<std::string>()->default_value("texture.png"))(
+				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+		}
+	};
 
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::BasicShadowMapping> sample(argc, argv);
+		glsample::ShadowMappingGLSample sample(argc, argv);
 
 		sample.run();
 

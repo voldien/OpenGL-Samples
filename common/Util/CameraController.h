@@ -30,15 +30,24 @@ class CameraController {
 		xprev = x;
 		yprev = y;
 
+		if (!enable_Navigation) {
+			w = false;
+			a = false;
+			s = false;
+			d = false;
+		}
+
 		float speed = 100.0f;
 		if (shift) {
 			speed *= 2.5f;
 		}
 		if (!alt) {
-			flythrough_camera_update(&pos[0], &look[0], &up[0], &view[0][0], delta, speed, 0.5f * activated, fov,
-									 xDiff, yDiff, w, a, s, d, 0, 0, 0);
+			flythrough_camera_update(&pos[0], &look[0], &up[0], &view[0][0], delta, speed, 0.5f * activated, fov, xDiff,
+									 yDiff, w, a, s, d, 0, 0, 0);
 		}
 	}
+	void enableNavigation(bool enable) { this->enable_Navigation = enable; }
+
 	const glm::mat4 &getViewMatrix() const noexcept { return this->view; }
 
 	const glm::vec3 getPosition() const noexcept { return this->pos; }
@@ -51,6 +60,8 @@ class CameraController {
 	float activated = 1.0f;
 	float xspeed = 0.5f;
 	float yspeed = 0.5f;
+
+	bool enable_Navigation = true;
 
 	int x, y, xprev, yprev;
 

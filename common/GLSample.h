@@ -63,8 +63,10 @@ template <class T> class GLSample : public GLSampleSession {
 		activeFileSystem = FileSystem::createFileSystem();
 		std::string filesystemPath = result["filesystem"].as<std::string>();
 		if (!activeFileSystem->isDirectory(filesystemPath.c_str())) {
+
 			std::string extension = activeFileSystem->getFileExtension(filesystemPath.c_str());
 			if (extension == ".zip") {
+				std::cout << "Found Zip File System: " << filesystemPath << std::endl;
 				activeFileSystem = ZipFileSystem::createZipFileObject(filesystemPath.c_str());
 			}
 		}
@@ -73,10 +75,14 @@ template <class T> class GLSample : public GLSampleSession {
 		/*	Prevent residual errors to cause crash.	*/
 		fragcore::resetErrorFlag();
 
-		this->sampleRef->Initialize();
-		// TODO add support
+		/*	Internal initialize.	*/
+		this->sampleRef->setFileSystem(activeFileSystem);
+
 		// this->sampleRef->vsync(vsync);
 		this->sampleRef->setFullScreen(fullscreen);
+
+		/*	Init the sample.	*/
+		this->sampleRef->Initialize();
 	}
 
 	~GLSample() { this->sampleRef->Release(); }

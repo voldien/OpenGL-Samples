@@ -138,15 +138,15 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	Load source code for the ocean shader.	*/
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
-			std::vector<char> control_source = IOUtil::readFile(tesscShaderPath);
-			std::vector<char> evolution_source = IOUtil::readFile(teseShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath);
+			std::vector<char> control_source = IOUtil::readFileString(tesscShaderPath);
+			std::vector<char> evolution_source = IOUtil::readFileString(teseShaderPath);
 
 			/*	Load source code for spectrum compute shader.	*/
-			std::vector<char> compute_spectrum_source = IOUtil::readFile(computeShaderPath);
+			std::vector<char> compute_spectrum_source = IOUtil::readFileString(computeShaderPath);
 			/*	Load source code for fast furious transform.	*/
-			std::vector<char> compute_kff_source = IOUtil::readFile(computeKFFShaderPath);
+			std::vector<char> compute_kff_source = IOUtil::readFileString(computeKFFShaderPath);
 
 			/*	Load graphic program for skybox.	*/
 			this->ocean_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,

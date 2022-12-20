@@ -11,7 +11,7 @@
  */
 class TextureImporter {
   public:
-	TextureImporter(FileSystem *filesystem);
+	TextureImporter(IFileSystem *filesystem);
 
 	int loadImage2D(const std::string &path);
 	int loadCubeMap(const std::string &px, const std::string &nx, const std::string &py, const std::string &ny,
@@ -19,7 +19,7 @@ class TextureImporter {
 	int loadCubeMap(const std::vector<std::string> &paths);
 
   private:
-	FileSystem *filesystem;
+	IFileSystem *filesystem;
 };
 
 #endif

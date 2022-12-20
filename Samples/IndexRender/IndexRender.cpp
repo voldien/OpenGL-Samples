@@ -37,10 +37,11 @@ namespace glsample {
 			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f, 0.0f}, {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}};
 
 		virtual void Release() override {
+			/*	*/
 			glDeleteProgram(this->texture_program);
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
-
+			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->gl_texture);
 		}
 

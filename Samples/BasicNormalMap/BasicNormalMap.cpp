@@ -69,13 +69,13 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
 			this->normalMapping_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
-			/*	*/
+			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normalMapping_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->normalMapping_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->normalMapping_program, "DiffuseTexture"), 0);
@@ -84,7 +84,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	load Textures	*/
-			TextureImporter textureImporter(FileSystem::getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
 
@@ -93,6 +93,7 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			uniformBufferSize = Math::align(uniformBufferSize, (size_t)minMapBufferSize);
 
+			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
@@ -113,6 +114,7 @@ namespace glsample {
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
+			/*	*/
 			glGenBuffers(1, &this->plan.ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
@@ -157,22 +159,24 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			glUseProgram(this->normalMapping_program);
+			{
+				glUseProgram(this->normalMapping_program);
 
-			glDisable(GL_CULL_FACE);
+				glDisable(GL_CULL_FACE);
 
-			/*	*/
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-			/*	*/
-			glActiveTexture(GL_TEXTURE0 + 1);
-			glBindTexture(GL_TEXTURE_2D, this->normal_texture);
+				/*	*/
+				glActiveTexture(GL_TEXTURE0 + 1);
+				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
 
-			/*	Draw triangle.	*/
-			glBindVertexArray(this->plan.vao);
-			glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-			glBindVertexArray(0);
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->plan.vao);
+				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+			}
 		}
 
 		void update() {

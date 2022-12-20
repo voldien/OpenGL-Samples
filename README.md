@@ -14,6 +14,8 @@ A collection of OpenGL Samples.
 
 - **Texture**
 
+- **Point Lights**
+
 - **Normal Mapping**
 
 - **SkyBox Cubemap**

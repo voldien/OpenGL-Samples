@@ -98,8 +98,8 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath);
 
 			/*	Load shader	*/
 			this->simpleOcean_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
@@ -187,25 +187,26 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			{
+				glUseProgram(this->simpleOcean_program);
 
-			glUseProgram(this->simpleOcean_program);
+				glDisable(GL_CULL_FACE);
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-			glDisable(GL_CULL_FACE);
-			/*	Optional - to display wireframe.	*/
-			glPolygonMode(GL_FRONT_AND_BACK, simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
 
-			/*	*/
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
+				/*	*/
+				glActiveTexture(GL_TEXTURE0 + 1);
+				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
 
-			/*	*/
-			glActiveTexture(GL_TEXTURE0 + 1);
-			glBindTexture(GL_TEXTURE_2D, this->normal_texture);
-
-			/*	Draw triangle.	*/
-			glBindVertexArray(this->plan.vao);
-			glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-			glBindVertexArray(0);
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->plan.vao);
+				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+			}
 		}
 
 		void update() {

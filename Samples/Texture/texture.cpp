@@ -57,8 +57,8 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
 			this->texture_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
@@ -70,7 +70,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			// Load Texture
-			TextureImporter textureImporter(FileSystem::getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->gl_texture = textureImporter.loadImage2D(this->texturePath);
 
 			/*	*/
@@ -94,7 +94,7 @@ namespace glsample {
 			glBindVertexArray(this->planGeometry.vao);
 
 			glGenBuffers(1, &this->planGeometry.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,planGeometry.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planGeometry.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
 			this->planGeometry.nrIndicesElements = indices.size();
 

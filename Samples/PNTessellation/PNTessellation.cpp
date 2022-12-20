@@ -98,10 +98,10 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
-			std::vector<char> control_source = IOUtil::readFile(ControlShaderPath);
-			std::vector<char> evolution_source = IOUtil::readFile(EvoluationShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath);
+			std::vector<char> control_source = IOUtil::readFileString(ControlShaderPath);
+			std::vector<char> evolution_source = IOUtil::readFileString(EvoluationShaderPath);
 
 			/*	Load shader	*/
 			this->tessellation_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,

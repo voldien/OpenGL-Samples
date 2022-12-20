@@ -63,8 +63,9 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFile(vertexTerrainShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentTerrainShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexTerrainShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source =
+				IOUtil::readFileString(fragmentTerrainShaderPath, this->getFileSystem());
 
 			this->terrain_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
@@ -77,7 +78,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Create terrain texture.	*/
-			TextureImporter textureImporter(FileSystem::getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->terrain_diffuse_texture = textureImporter.loadImage2D(this->panoramicPath);
 
 			/*	*/

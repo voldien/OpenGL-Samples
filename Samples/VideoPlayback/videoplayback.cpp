@@ -107,10 +107,12 @@ namespace glsample {
 		// TODO add support to toggle between quad and blit.
 
 		virtual void Release() override {
+			/*	*/
 			glDeleteProgram(this->videoplayback_program);
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
 
+			/*	*/
 			glDeleteBuffers(1, &videoStagingTextureBuffer);
 			glDeleteTextures(this->videoFrameTextures.size(), this->videoFrameTextures.data());
 		}
@@ -166,8 +168,9 @@ namespace glsample {
 			}
 
 			/*  Get selected codec parameters. */
-			if (!video_st)
+			if (!video_st) {
 				throw cxxexcept::RuntimeException("Failed to find a video stream in {}.", path);
+			}
 
 			if (audio_st) {
 				AVCodecParameters *pAudioCodecParam = audio_st->codecpar;
@@ -201,11 +204,13 @@ namespace glsample {
 
 			/*	*/
 			AVCodec *pVideoCodec = avcodec_find_decoder(pVideoCodecParam->codec_id);
-			if (pVideoCodec == nullptr)
+			if (pVideoCodec == nullptr) {
 				throw cxxexcept::RuntimeException("failed to find decoder");
+			}
 			this->pVideoCtx = avcodec_alloc_context3(pVideoCodec);
-			if (this->pVideoCtx == nullptr)
+			if (this->pVideoCtx == nullptr) {
 				throw cxxexcept::RuntimeException("Failed to allocate video decoder context");
+			}
 
 			result = avcodec_parameters_to_context(this->pVideoCtx, pVideoCodecParam);
 			if (result < 0) {
@@ -269,8 +274,8 @@ namespace glsample {
 			loadVideo(this->videoPath.c_str());
 
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
 
 			/*  */
 			this->videoplayback_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
@@ -471,6 +476,15 @@ namespace glsample {
 			}
 			av_packet_unref(packet);
 			av_packet_free(&packet);
+		}
+	};
+
+	class VideoPlaybackGLSample : public GLSample<VideoPlayback> {
+	  public:
+		VideoPlaybackGLSample(int argc, const char **argv) : GLSample<VideoPlayback>(argc, argv) {}
+		virtual void commandline(cxxopts::Options &options) override {
+			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+												  cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 } // namespace glsample

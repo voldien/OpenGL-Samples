@@ -22,7 +22,7 @@ namespace glsample {
 		GeometryObject SkyboxCube;
 
 		unsigned int skybox_program;
-				int skybox_cubemap;
+		unsigned int skybox_cubemap;
 
 		struct UniformBufferBlock {
 			glm::mat4 modelViewProjection;
@@ -52,8 +52,8 @@ namespace glsample {
 
 		virtual void Initialize() override {
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFile(fragmentShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath);
 
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 

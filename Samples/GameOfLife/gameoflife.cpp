@@ -48,7 +48,7 @@ namespace glsample {
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			std::vector<char> gameoflife_source = IOUtil::readFileData(computeShaderPath);
+			std::vector<char> gameoflife_source = IOUtil::readFileString(computeShaderPath, this->getFileSystem());
 
 			// gameoflife_source =
 			// 	fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, fragcore::ShaderLanguage::GLSL);
@@ -56,6 +56,7 @@ namespace glsample {
 			/*	Load shader	*/
 			this->gameoflife_program = ShaderLoader::loadComputeProgram({&gameoflife_source});
 
+			/*	*/
 			glUseProgram(this->gameoflife_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->gameoflife_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->gameoflife_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -67,6 +68,7 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			uniformBufferSize = Math::align<size_t>(uniformBufferSize, minMapBufferSize);
 
+			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
@@ -81,8 +83,8 @@ namespace glsample {
 		}
 
 		virtual void onResize(int width, int height) override {
-			gameoflife_texture_width = width;
-			gameoflife_texture_height = height;
+			this->gameoflife_texture_width = width;
+			this->gameoflife_texture_height = height;
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->gameoflife_framebuffer);
 			/*	Resize the image.	*/

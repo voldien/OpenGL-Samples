@@ -30,5 +30,5 @@ vec2 inverse_equirectangular(vec3 direction) {
 
 void main() {
 	vec2 uv = inverse_equirectangular(normalize(vVertex));
-	fragColor = texture(panorama, uv) * ubo.exposure;
+	fragColor = textureLod(panorama, uv, 0) * ubo.exposure;
 }

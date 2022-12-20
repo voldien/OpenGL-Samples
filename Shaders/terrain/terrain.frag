@@ -23,4 +23,10 @@ ubo;
 layout(binding = 1) uniform sampler2D DiffuseTexture;
 layout(binding = 2) uniform sampler2D NormalTexture;
 
-void main() { fragColor = texture(DiffuseTexture, UV); }
+void main() {
+
+	// Compute directional light
+	// vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
+
+	fragColor = texture(DiffuseTexture, UV);
+}

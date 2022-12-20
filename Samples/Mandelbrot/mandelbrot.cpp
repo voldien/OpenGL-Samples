@@ -49,7 +49,7 @@ namespace glsample {
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			std::vector<char> mandelbrot_source = IOUtil::readFileData(computeShaderPath);
+			std::vector<char> mandelbrot_source = IOUtil::readFileString(computeShaderPath, this->getFileSystem());
 
 			// mandelbrot_source =
 			// 	fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, fragcore::ShaderLanguage::GLSL);

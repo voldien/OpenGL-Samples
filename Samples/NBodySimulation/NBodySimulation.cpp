@@ -119,11 +119,11 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
-			std::vector<char> vertex_source = glsample::IOUtil::readFile(vertexShaderPath);
-			std::vector<char> fragment_source = glsample::IOUtil::readFile(fragmentShaderPath);
+			std::vector<char> vertex_source = glsample::IOUtil::readFileString(vertexShaderPath);
+			std::vector<char> fragment_source = glsample::IOUtil::readFileString(fragmentShaderPath);
 
 			/*	*/
-			std::vector<char> compute_source = glsample::IOUtil::readFile(computeShaderPath);
+			std::vector<char> compute_source = glsample::IOUtil::readFileString(computeShaderPath);
 
 			/*	Load shader	*/
 			this->particle_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
