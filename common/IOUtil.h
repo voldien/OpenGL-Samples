@@ -11,8 +11,13 @@ using namespace fragcore;
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class FVDECLSPEC IOUtil {
 	  public:
+	  
 		static std::vector<char> readFileString(const std::string &filename, IFileSystem *filesystem) {
 
 			Ref<IO> ref = Ref<IO>(filesystem->openFile(filename.c_str(), IO::IOMode::READ));

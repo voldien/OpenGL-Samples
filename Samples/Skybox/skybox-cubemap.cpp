@@ -40,8 +40,8 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
-		const std::string vertexShaderPath = "Shaders/skybox-panoramic/skybox.vert";
-		const std::string fragmentShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/skybox.vert";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
 
 		virtual void Release() override {
 			glDeleteProgram(this->skybox_program);
@@ -52,8 +52,8 @@ namespace glsample {
 
 		virtual void Initialize() override {
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexSkyboxPanoramicShaderPath);
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath);
 
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 

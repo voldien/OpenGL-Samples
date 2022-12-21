@@ -5,7 +5,7 @@ layout(location = 0) in vec3 vertex;
 layout(location = 0) out vec3 vVertex;
 
 layout(binding = 0) uniform UniformBufferBlock {
-	mat4 MVP;
+	mat4 MVP; // TODO change to rotation and projection only.
 	float exposure;
 }
 ubo;

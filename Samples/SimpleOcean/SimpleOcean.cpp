@@ -31,6 +31,8 @@ namespace glsample {
 			glm::vec4 position;
 
 			float time;
+			float freq = 2.0f;
+			float amplitude = 1.0f;
 
 		} mvp;
 
@@ -44,6 +46,7 @@ namespace glsample {
 
 		/*	*/
 		unsigned int simpleOcean_program;
+		unsigned int skybox_program;
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_index;
@@ -56,11 +59,14 @@ namespace glsample {
 
 		  public:
 			SimpleOceanSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Tessellation Settings");
+				this->setName("Simple Ocean Settings");
 			}
 			virtual void draw() override {
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				// Speed
+				// amplitude.
+				// ImGui::Edit("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -78,6 +84,9 @@ namespace glsample {
 
 		const std::string vertexShaderPath = "Shaders/simpleocean/simpleocean.vert";
 		const std::string fragmentShaderPath = "Shaders/simpleocean/simpleocean.frag";
+
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/skybox.vert";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
 
 		virtual void Release() override {
 			/*	*/
@@ -98,11 +107,19 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath);
+			std::vector<char> vertex_simple_ocean_source =
+				IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_simple_ocean_source =
+				IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			std::vector<char> vertex_source =
+				IOUtil::readFileString(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source =
+				IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
-			this->simpleOcean_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->simpleOcean_program =
+				ShaderLoader::loadGraphicProgram(&vertex_simple_ocean_source, &fragment_simple_ocean_source);
+			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->simpleOcean_program);
@@ -112,8 +129,15 @@ namespace glsample {
 			glUniformBlockBinding(this->simpleOcean_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
+			/*	*/
+			glUseProgram(this->skybox_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
+			glUniform1iARB(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUseProgram(0);
+
 			/*	load Textures	*/
-			TextureImporter textureImporter(FileSystem::getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
 			this->reflection_texture = textureImporter.loadImage2D(this->panoramicPath);
 
@@ -131,7 +155,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices, 128, 128);
+			ProceduralGeometry::generatePlan(1, vertices, indices, 256, 256);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->plan.vao);
@@ -169,6 +193,33 @@ namespace glsample {
 									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
+
+			ProceduralGeometry::generateCube(1, vertices, indices);
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenVertexArrays(1, &this->skybox.vao);
+			glBindVertexArray(this->skybox.vao);
+
+			/*	*/
+			glGenBuffers(1, &this->skybox.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+			this->skybox.nrIndicesElements = indices.size();
+
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenBuffers(1, &this->skybox.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
+
+			/*	*/
+			glEnableVertexAttribArrayARB(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			/*	*/
+			glEnableVertexAttribArrayARB(1);
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(12));
+
+			glBindVertexArray(0);
 		}
 
 		virtual void draw() override {
@@ -191,6 +242,7 @@ namespace glsample {
 				glUseProgram(this->simpleOcean_program);
 
 				glDisable(GL_CULL_FACE);
+				glEnable(GL_DEPTH_TEST);
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
@@ -207,6 +259,26 @@ namespace glsample {
 				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
+			/*	*/
+			{
+				glUseProgram(this->simpleOcean_program);
+
+				glDisable(GL_CULL_FACE);
+				glDisable(GL_BLEND);
+				glDisable(GL_DEPTH_TEST);
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
+
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->skybox.vao);
+				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+			}
+			// Skybox
 		}
 
 		void update() {
@@ -217,7 +289,7 @@ namespace glsample {
 			/*	*/
 			this->mvp.model = glm::mat4(1.0f);
 			this->mvp.model = glm::rotate(this->mvp.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(20.95f));
+			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
 			this->mvp.view = this->camera.getViewMatrix();
 			this->mvp.lookDirection = glm::vec4(this->camera.getLookDirection().x, this->camera.getLookDirection().z,
 												this->camera.getLookDirection().y, 0);
@@ -225,6 +297,7 @@ namespace glsample {
 			this->mvp.position =
 				glm::vec4(this->camera.getPosition().x, this->camera.getPosition().z, this->camera.getPosition().y, 0);
 			std::cout << this->mvp.position.x << std::endl;
+			this->mvp.time = elapsedTime;
 
 			/*  */
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -234,7 +307,7 @@ namespace glsample {
 			memcpy(p, &this->mvp, sizeof(mvp));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
-	};
+	}; // namespace glsample
 	class SimpleOceanGLSample : public GLSample<SimpleOcean> {
 	  public:
 		SimpleOceanGLSample(int argc, const char **argv) : GLSample<SimpleOcean>(argc, argv) {}
@@ -250,7 +323,7 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::SimpleOcean> sample(argc, argv);
+		glsample::SimpleOceanGLSample sample(argc, argv);
 
 		sample.run();
 

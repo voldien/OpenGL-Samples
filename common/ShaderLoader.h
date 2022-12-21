@@ -1,15 +1,19 @@
 #pragma once
 #include <Core/IO/IOUtil.h>
 
-class FVDECLSPEC ShaderLoader {
-  public:
-	static int loadGraphicProgram(const std::vector<char> *vertex, const std::vector<char> *fragment,
-						   const std::vector<char> *geometry = nullptr, const std::vector<char> *tesselationc = nullptr,
-						   const std::vector<char> *tesselatione = nullptr);
+namespace glsample {
 
-	static int loadComputeProgram(const std::vector<std::vector<char> *> &computePaths);
-	static int loadComputeProgram(const std::vector<char> &compute);
+	class FVDECLSPEC ShaderLoader {
+	  public:
+		static int loadGraphicProgram(const std::vector<char> *vertex, const std::vector<char> *fragment,
+									  const std::vector<char> *geometry = nullptr,
+									  const std::vector<char> *tesselationc = nullptr,
+									  const std::vector<char> *tesselatione = nullptr);
 
-  private:
-	static int loadShader(const std::vector<char> &path, int type);
-};
+		static int loadComputeProgram(const std::vector<std::vector<char> *> &computePaths);
+		static int loadComputeProgram(const std::vector<char> &compute);
+
+	  private:
+		static int loadShader(const std::vector<char> &path, int type);
+	};
+} // namespace glsample

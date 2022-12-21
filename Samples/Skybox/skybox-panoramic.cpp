@@ -44,8 +44,8 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
-		const std::string vertexShaderPath = "Shaders/skybox-panoramic/skybox.vert";
-		const std::string fragmentShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/skybox.vert";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
 
 	  public:
 		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
@@ -76,8 +76,8 @@ namespace glsample {
 
 		virtual void Initialize() override {
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
 			/*	*/
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
@@ -90,7 +90,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
-			TextureImporter textureImporter(FileSystem::getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_panoramic = textureImporter.loadImage2D(this->panoramicPath);
 
 			GLint minMapBufferSize;

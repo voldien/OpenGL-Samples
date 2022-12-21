@@ -23,7 +23,10 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 	vec4 position;
+
 	float time;
+	float freq;
+	float amplitude;
 }
 ubo;
 
@@ -34,8 +37,8 @@ void main() {
 	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
 	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
 
-	float freq = 20.0;
-	float height = cos(vertex.x * freq) + sin(vertex.z * freq);
+
+	float height = cos(ubo.time + vertex.x * ubo.freq) + sin(ubo.time + vertex.z * ubo.freq);
 
 	vertex = vertex + (normalize(normal) * height);
 	gl_Position = ubo.modelViewProjection * vec4(vertex, 1.0);

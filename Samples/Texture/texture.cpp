@@ -148,7 +148,6 @@ namespace glsample {
 		virtual void update() {
 
 			/*	Update Camera.	*/
-			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
 			this->proj =

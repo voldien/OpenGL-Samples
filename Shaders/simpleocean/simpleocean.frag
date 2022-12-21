@@ -21,8 +21,10 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 	vec4 position;
-	float time;
 
+	float time;
+	float freq;
+	float amplitude;
 }
 ubo;
 
@@ -65,7 +67,7 @@ void main() {
 	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
 
 	vec3 I = normalize(ubo.position.xyz - vertex);
-	vec3 reflection = reflect(I,  alteredNormal);
+	vec3 reflection = reflect(I, alteredNormal);
 	vec2 reflection_uv = inverse_equirectangular(reflection);
 
 	// TODO light improvemetns

@@ -3,6 +3,8 @@
 #include <GLHelper.h>
 #include <GLRendererInterface.h>
 
+using namespace glsample;
+
 int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std::vector<char> *fragment,
 									 const std::vector<char> *geometry, const std::vector<char> *tesselationc,
 									 const std::vector<char> *tesselatione) {

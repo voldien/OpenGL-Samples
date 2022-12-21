@@ -8,10 +8,10 @@
 
 namespace glsample {
 
-	class PointLights : public GLSampleWindow {
+	class PhongBlinn : public GLSampleWindow {
 	  public:
-		PointLights() : GLSampleWindow() {
-			this->setTitle("PointLights");
+		PhongBlinn() : GLSampleWindow() {
+			this->setTitle("PhongBlinn");
 			pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->mvp);
 			this->addUIComponent(pointLightSettingComponent);
 		}
@@ -35,6 +35,9 @@ namespace glsample {
 
 			/*light source.	*/
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			glm::vec3 viewPos;
+			float shininess = 8;
 
 			PointLight pointLights[4];
 		} mvp;
@@ -85,6 +88,8 @@ namespace glsample {
 					ImGui::PopID();
 				}
 				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Specular Color", &this->uniform.specularColor[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat("Shinnes", &this->uniform.shininess);
 			}
 
 		  private:
@@ -95,8 +100,8 @@ namespace glsample {
 
 		std::string diffuseTexturePath = "asset/diffuse.png";
 
-		const std::string vertexShaderPath = "Shaders/pointlights/pointlights.vert";
-		const std::string fragmentShaderPath = "Shaders/pointlights/pointlights.frag";
+		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert";
+		const std::string fragmentShaderPath = "Shaders/phongblinn/phongblinn.frag";
 
 		virtual void Release() override {
 			/*	*/
@@ -192,7 +197,7 @@ namespace glsample {
 			for (size_t i = 0; i < nrPointLights; i++) {
 				mvp.pointLights[i].range = 5.0f;
 				mvp.pointLights[i].position =
-					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 8.0f + glm::vec3(1.0f, 1.0f, 1.0f);
+					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(1.0f, 1.0f, 1.0f);
 				mvp.pointLights[i].color = colors[i];
 				mvp.pointLights[i].constant_attenuation = 1.0f;
 				mvp.pointLights[i].linear_attenuation = 0.1f;
@@ -244,6 +249,7 @@ namespace glsample {
 			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(45.95f));
 			this->mvp.view = this->camera.getViewMatrix();
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
+			this->mvp.viewPos = this->camera.getPosition();
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -254,13 +260,12 @@ namespace glsample {
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};
-	class PointLightsGLSample : public GLSample<PointLights> {
+	class PhongBlinnGLSample : public GLSample<PhongBlinn> {
 	  public:
-		PointLightsGLSample(int argc, const char **argv) : GLSample<PointLights>(argc, argv) {}
+		PhongBlinnGLSample(int argc, const char **argv) : GLSample<PhongBlinn>(argc, argv) {}
 		virtual void commandline(cxxopts::Options &options) override {
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+												  cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 
@@ -269,8 +274,7 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::PointLightsGLSample sample(argc, argv);
-
+		glsample::PhongBlinnGLSample sample(argc, argv);
 		sample.run();
 
 	} catch (const std::exception &ex) {

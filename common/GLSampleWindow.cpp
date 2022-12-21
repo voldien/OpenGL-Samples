@@ -20,9 +20,13 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 	glGenQueries(sizeof(this->queries) / sizeof(this->queries[0]), &this->queries[0]);
+
+	/*	*/
+	//glEnable(GL_FRAMEBUFFER_SRGB);
 }
 
 void GLSampleWindow::displayMenuBar() {}
+
 void GLSampleWindow::renderUI() {
 
 	/*	*/
@@ -30,6 +34,7 @@ void GLSampleWindow::renderUI() {
 	glBeginQuery(GL_SAMPLES_PASSED, this->queries[1]);
 	glBeginQuery(GL_PRIMITIVES_GENERATED, this->queries[2]);
 
+	/*	*/
 	this->draw();
 
 	/*	*/
