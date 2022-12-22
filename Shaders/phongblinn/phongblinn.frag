@@ -6,7 +6,6 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec2 uv;
 layout(location = 2) in vec3 normal;
-layout(location = 3) in vec3 tangent;
 
 struct point_light {
 	vec3 position;
@@ -29,9 +28,11 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 ambientColor;
 	vec4 specularColor;
 	vec3 viewPos;
-	float shininess;
 
 	point_light point_light[4];
+
+	float shininess;
+	bool phong;
 }
 ubo;
 
@@ -41,10 +42,11 @@ void main() {
 
 	float spec = 0.0;
 
-	vec3 viewDir = normalize(ubo.viewPos - vertex);
+	vec3 viewDir = normalize(ubo.viewPos.xyz - vertex);
 
 	// Compute directional light
 	vec4 pointLightColors = vec4(0);
+	vec4 pointLightSpecular = vec4(0);
 	for (int i = 0; i < 4; i++) {
 
 		vec3 diffVertex = (ubo.point_light[i].position - vertex);
@@ -61,15 +63,17 @@ void main() {
 							ubo.point_light[i].intensity;
 
 		/*  */
-		vec3 halfwayDir = normalize(lightDir + viewDir);
-		spec = pow(max(dot(normal, halfwayDir), 0.0), ubo.shininess);
+		if (ubo.phong == true) {
+			vec3 halfwayDir = normalize(lightDir + viewDir);
+			spec = pow(max(dot(normal, halfwayDir), 0.0), ubo.shininess);
+		} else {
+			vec3 reflectDir = reflect(-lightDir, normal);
+			spec = pow(max(dot(viewDir, reflectDir), 0.0), ubo.shininess);
+		}
 
-		// vec3 reflectDir = reflect(-lightDir, normal);
-		// spec = pow(max(dot(viewDir, reflectDir), 0.0), ubo.shin);
-
-		pointLightColors += (ubo.specularColor * spec);
+		pointLightSpecular += (ubo.specularColor * spec);
 	}
 	pointLightColors.a = 1.0;
 
-	fragColor = texture(DiffuseTexture, uv) * (ubo.ambientColor + pointLightColors);
+	fragColor = texture(DiffuseTexture, uv) * (ubo.ambientColor + pointLightColors + pointLightSpecular);
 }

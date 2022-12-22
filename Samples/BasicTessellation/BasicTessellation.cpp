@@ -45,6 +45,7 @@ namespace glsample {
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Tessellation Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -169,6 +170,11 @@ namespace glsample {
 			glEnableVertexAttribArrayARB(2);
 			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(20));
+
+			/*	Tangent.	*/
+			glEnableVertexAttribArrayARB(3);
+			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 		}

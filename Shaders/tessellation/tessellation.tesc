@@ -5,11 +5,13 @@ layout(vertices = 3) out;
 layout(location = 0) in vec3 WorldPos_CS_in[];
 layout(location = 1) in vec2 TexCoord_CS_in[];
 layout(location = 2) in vec3 Normal_CS_in[];
+layout(location = 3) in vec3 Tangent_CS_in[];
 
 // attributes of the output CPs
 layout(location = 0) out vec3 WorldPos_ES_in[3];
 layout(location = 1) out vec2 TexCoord_ES_in[3];
 layout(location = 2) out vec3 Normal_ES_in[3];
+layout(location = 3) out vec3 Tangent_ES_in[3];
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -50,7 +52,7 @@ void main() {
 	WorldPos_ES_in[gl_InvocationID] = WorldPos_CS_in[gl_InvocationID];
 	TexCoord_ES_in[gl_InvocationID] = TexCoord_CS_in[gl_InvocationID];
 	Normal_ES_in[gl_InvocationID] = Normal_CS_in[gl_InvocationID];
-
+	Tangent_ES_in[gl_InvocationID] = Tangent_CS_in[gl_InvocationID];
 
 	/*	Calculate the distance from the camera to the three control points	*/
 	float EyeToVertexDistance0 = distance(ubo.gEyeWorldPos, WorldPos_ES_in[0]);
@@ -62,4 +64,6 @@ void main() {
 	gl_TessLevelOuter[1] = GetTessLevel(EyeToVertexDistance2, EyeToVertexDistance0) * ubo.tessLevel;
 	gl_TessLevelOuter[2] = GetTessLevel(EyeToVertexDistance0, EyeToVertexDistance1) * ubo.tessLevel;
 	gl_TessLevelInner[0] = gl_TessLevelOuter[2];
+
+	//gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 }

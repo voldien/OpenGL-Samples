@@ -1,3 +1,5 @@
+#include <AL/al.h>
+#include <AL/alc.h>
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <OpenALAudioInterface.h>
@@ -31,10 +33,13 @@ namespace glsample {
 
 	class VideoPlayback : public GLSampleWindow {
 	  public:
-		VideoPlayback() : GLSampleWindow() { this->setTitle(fmt::format("VideoPlayback {}", this->videoPath).c_str()); }
+		VideoPlayback() : GLSampleWindow() {
+			this->setTitle(fmt::format("VideoPlayback: {}", this->videoPath).c_str());
+		}
 		virtual ~VideoPlayback() {
-			if (this->frame)
+			if (this->frame) {
 				av_frame_free(&this->frame);
+			}
 			avcodec_free_context(&this->pAudioCtx);
 			avcodec_free_context(&this->pVideoCtx);
 
@@ -81,6 +86,8 @@ namespace glsample {
 		unsigned int vbo;
 		unsigned vao;
 
+		unsigned int mSource;
+
 		/*  */
 		unsigned int videoplayback_program;
 
@@ -107,6 +114,7 @@ namespace glsample {
 		// TODO add support to toggle between quad and blit.
 
 		virtual void Release() override {
+
 			/*	*/
 			glDeleteProgram(this->videoplayback_program);
 			glDeleteVertexArrays(1, &this->vao);
@@ -120,6 +128,7 @@ namespace glsample {
 		void loadVideo(const char *path) {
 			int result;
 
+			/*	*/
 			this->pformatCtx = avformat_alloc_context();
 			if (!pformatCtx) {
 				throw cxxexcept::RuntimeException("Failed to allocate memory for the 'AVFormatContext'");
@@ -127,6 +136,7 @@ namespace glsample {
 			// Determine the input-format:
 			this->pformatCtx->iformat = av_find_input_format(path);
 
+			/*	*/
 			result = avformat_open_input(&this->pformatCtx, path, nullptr, nullptr);
 			if (result != 0) {
 				char buf[AV_ERROR_MAX_STRING_SIZE];
@@ -134,6 +144,7 @@ namespace glsample {
 				throw cxxexcept::RuntimeException("Failed to open input : {}", buf);
 			}
 
+			/*	*/
 			if ((result = avformat_find_stream_info(this->pformatCtx, nullptr)) < 0) {
 				char buf[AV_ERROR_MAX_STRING_SIZE];
 				av_strerror(result, buf, sizeof(buf));
@@ -172,6 +183,7 @@ namespace glsample {
 				throw cxxexcept::RuntimeException("Failed to find a video stream in {}.", path);
 			}
 
+			/*	*/
 			if (audio_st) {
 				AVCodecParameters *pAudioCodecParam = audio_st->codecpar;
 
@@ -207,18 +219,19 @@ namespace glsample {
 			if (pVideoCodec == nullptr) {
 				throw cxxexcept::RuntimeException("failed to find decoder");
 			}
+			/*	*/
 			this->pVideoCtx = avcodec_alloc_context3(pVideoCodec);
 			if (this->pVideoCtx == nullptr) {
 				throw cxxexcept::RuntimeException("Failed to allocate video decoder context");
 			}
-
+			/*	*/
 			result = avcodec_parameters_to_context(this->pVideoCtx, pVideoCodecParam);
 			if (result < 0) {
 				char buf[AV_ERROR_MAX_STRING_SIZE];
 				av_strerror(result, buf, sizeof(buf));
 				throw cxxexcept::RuntimeException("Failed to set codec parameters : {}", buf);
 			}
-
+			/*	*/
 			if ((result = avcodec_open2(this->pVideoCtx, pVideoCodec, nullptr)) != 0) {
 				char buf[AV_ERROR_MAX_STRING_SIZE];
 				av_strerror(result, buf, sizeof(buf));
@@ -235,15 +248,18 @@ namespace glsample {
 				throw cxxexcept::RuntimeException("Failed to allocate frame");
 			}
 
+			/*	*/
 			size_t m_bufferSize =
 				av_image_get_buffer_size(AV_PIX_FMT_RGBA, this->pVideoCtx->width, this->pVideoCtx->height, 4);
 			av_image_alloc(this->frameoutput->data, this->frameoutput->linesize, this->pVideoCtx->width,
 						   this->pVideoCtx->height, AV_PIX_FMT_RGBA, 4);
 
+			/*	*/
 			this->sws_ctx = sws_getContext(this->pVideoCtx->width, this->pVideoCtx->height, this->pVideoCtx->pix_fmt,
 										   this->pVideoCtx->width, this->pVideoCtx->height, AV_PIX_FMT_RGBA,
 										   SWS_BICUBIC, nullptr, nullptr, nullptr);
 
+			/*	*/
 			this->frame_timer = av_gettime() / 1000000.0;
 		}
 
@@ -260,16 +276,17 @@ namespace glsample {
 			fragcore::AudioSourceDesc source_desc = {};
 			source_desc.position = fragcore::Vector3::Zero();
 			audioSource = audioInterface->createAudioSource(&source_desc);
-
-			fragcore::AudioClipDesc clip_desc = {};
-			clip_desc.decoder = nullptr;
-			clip_desc.samples = audio_sample_rate;
-			clip_desc.sampleRate = audio_bit_rate;
-			clip_desc.format = fragcore::AudioFormat::eStero;
-			clip_desc.datamode = fragcore::AudioDataMode::Streaming;
-
-			this->clip = audioInterface->createAudioClip(&clip_desc);
-			this->audioSource->setClip(this->clip);
+			
+			mSource = this->audioSource->getNativePtr();
+			// fragcore::AudioClipDesc clip_desc = {};
+			// clip_desc.decoder = nullptr;
+			// clip_desc.samples = audio_sample_rate;
+			// clip_desc.sampleRate = audio_bit_rate;
+			// clip_desc.format = fragcore::AudioFormat::eStero;
+			// clip_desc.datamode = fragcore::AudioDataMode::Streaming;
+			//
+			// this->clip = audioInterface->createAudioClip(&clip_desc);
+			// this->audioSource->setClip(this->clip);
 
 			loadVideo(this->videoPath.c_str());
 
@@ -334,7 +351,8 @@ namespace glsample {
 			}
 			glBindTexture(GL_TEXTURE_2D, 0);
 
-			this->audioSource->play();
+			alSourcePlay(this->audioSource->getNativePtr());
+			// this->audioSource->play();
 		}
 
 		virtual void onResize(int width, int height) override {}
@@ -444,15 +462,18 @@ namespace glsample {
 
 					while (result >= 0) {
 						result = avcodec_receive_frame(this->pAudioCtx, this->frame);
-						if (result == AVERROR(EAGAIN) || result == AVERROR_EOF)
+						if (result == AVERROR(EAGAIN) || result == AVERROR_EOF) {
 							break;
+						}
 						if (result < 0) {
 							char buf[AV_ERROR_MAX_STRING_SIZE];
 							av_strerror(result, buf, sizeof(buf));
 							throw cxxexcept::RuntimeException(" : {}", buf);
 						}
+						/*	*/
 						int data_size = av_get_bytes_per_sample(pAudioCtx->sample_fmt);
 
+						/*	*/
 						this->frame->linesize[0];
 						av_get_channel_layout_nb_channels(this->frame->channel_layout);
 						this->frame->format != AV_SAMPLE_FMT_S16P;
@@ -466,11 +487,33 @@ namespace glsample {
 						for (int i = 0; i < frame->nb_samples; i++) {
 							for (int ch = 0; ch < pAudioCtx->channels; ch++) {
 
+								ALint processed, queued;
+								alGetSourcei((ALuint)this->audioSource->getNativePtr(), AL_BUFFERS_PROCESSED,
+											 &processed);
 								// clip->setData(this->frame->data[0], data_size, 0);
+
+								// alBufferData(bufid, mFormat, samples.get(), buffer_len, mCodecCtx->sample_rate);
+								// alSourceQueueBuffers(mSource, 1, &bufid);
 								continue;
 							}
 						}
-						this->audioSource->play();
+						/* Check that the source is playing. */
+						int state;
+						alGetSourcei(mSource, AL_SOURCE_STATE, &state);
+						if (state == AL_STOPPED) {
+							alSourceRewind(mSource);
+							alSourcei(mSource, AL_BUFFER, 0);
+							// if (alcGetInteger64vSOFT) {
+							//	/* Also update the device start time with the current
+							//	 * device clock, so the decoder knows we're running behind.
+							//	 */
+							//	int64_t devtime{};
+							//	alcGetInteger64vSOFT(alcGetContextsDevice(alcGetCurrentContext()),
+							//						 ALC_DEVICE_CLOCK_SOFT, 1, &devtime);
+							//	mDeviceStartTime = nanoseconds{devtime} - mCurrentPts;
+							//}
+						}
+						// this->audioSource->play();
 					}
 				}
 			}

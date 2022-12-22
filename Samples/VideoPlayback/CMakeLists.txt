@@ -14,7 +14,7 @@ ELSE()
 ENDIF()
 
 ADD_EXECUTABLE(VideoPlayback ${SOURCE_VIDEO_PLAYBACK_FILES} ${HEADER_VIDEO_PLAYBACK_FILES})
-TARGET_LINK_LIBRARIES(VideoPlayback glCommon fragcore-aal fragcore-audio-interface ${AVUTIL_LIBRARIES} ${AVFORMAT_LIBRARIES} ${AVCODEC_LIBRARIES} ${SWSCALE_LIBRARIES})
+TARGET_LINK_LIBRARIES(VideoPlayback glCommon fragcore-aal fragcore-audio-interface  ${AVUTIL_LIBRARIES} ${AVFORMAT_LIBRARIES} ${AVCODEC_LIBRARIES} ${SWSCALE_LIBRARIES})
 
 # fragcore-aal
 # OpenGL dependies headers.

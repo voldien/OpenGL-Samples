@@ -76,8 +76,10 @@ namespace glsample {
 
 		virtual void Initialize() override {
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<char> vertex_source =
+				IOUtil::readFileString(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source =
+				IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
 			/*	*/
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);

@@ -33,13 +33,15 @@ namespace glsample {
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
 
-			/*light source.	*/
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec3 viewPos;
-			float shininess = 8;
 
+			/*	light source.	*/
 			PointLight pointLights[4];
+
+			float shininess = 8;
+			bool useBlinn = true;
 		} mvp;
 
 		/*	*/
@@ -90,6 +92,7 @@ namespace glsample {
 				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Specular Color", &this->uniform.specularColor[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Shinnes", &this->uniform.shininess);
+				ImGui::Checkbox("Blinn", &this->uniform.useBlinn);
 			}
 
 		  private:
@@ -152,7 +155,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices);
+			ProceduralGeometry::generateTorus(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->plan.vao);

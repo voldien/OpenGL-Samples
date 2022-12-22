@@ -308,6 +308,7 @@ namespace glsample {
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	}; // namespace glsample
+	
 	class SimpleOceanGLSample : public GLSample<SimpleOcean> {
 	  public:
 		SimpleOceanGLSample(int argc, const char **argv) : GLSample<SimpleOcean>(argc, argv) {}

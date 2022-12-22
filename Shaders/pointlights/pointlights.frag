@@ -49,7 +49,7 @@ void main() {
 		pointLightColors += attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range *
 							ubo.point_light[i].intensity;
 	}
-	pointLightColors.a = 1.0;
+	//pointLightColors.a = 1.0;
 
 	fragColor = texture(DiffuseTexture, uv) * (ubo.ambientColor + pointLightColors);
 }

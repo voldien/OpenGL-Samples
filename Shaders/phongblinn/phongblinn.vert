@@ -29,15 +29,17 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 ambientColor;
 	vec4 specularColor;
 	vec3 viewPos;
-	float shininess;
 
 	point_light point_light[4];
+
+	float shininess;
+	bool phong;
 }
 ubo;
 
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
 	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
-	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
+	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
 	uv = TextureCoord;
 }

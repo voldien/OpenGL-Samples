@@ -29,6 +29,7 @@ ubo;
 
 /*  */
 layout(binding = 1) uniform sampler2D diffuse;
+layout(binding = 1) uniform sampler2D heightMap;
 
 float computeLightContributionFactor(in vec3 direction, in vec3 normalInput) {
 	return max(0.0, dot(-normalInput, direction));

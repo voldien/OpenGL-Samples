@@ -34,6 +34,6 @@ ubo;
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
 	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
-	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
+	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
 	uv = TextureCoord;
 }

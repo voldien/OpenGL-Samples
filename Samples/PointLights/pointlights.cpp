@@ -190,7 +190,7 @@ namespace glsample {
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
 			for (size_t i = 0; i < nrPointLights; i++) {
-				mvp.pointLights[i].range = 5.0f;
+				mvp.pointLights[i].range = 35.0f;
 				mvp.pointLights[i].position =
 					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 8.0f + glm::vec3(1.0f, 1.0f, 1.0f);
 				mvp.pointLights[i].color = colors[i];
