@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED( VERSION 3.8 )
+CMAKE_MINIMUM_REQUIRED(VERSION 3.8)
 PROJECT(OpenGLSamples)
 
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin CACHE INTERNAL "" FORCE)
@@ -17,24 +17,25 @@ IF(PKG_CONFIG_FOUND)
 	PKG_CHECK_MODULES(SDL2 QUIET sdl2)
 ELSE()
 	MESSAGE(ERROR "")
+
 	# TODO add logic for handling if pkg-config not available.
 ENDIF()
 
 IF(SDL2_FOUND)
-    MESSAGE(STATUS "SDL found: ${SDL2_LINK_LIBRARIES}.")
+	MESSAGE(STATUS "SDL found: ${SDL2_LINK_LIBRARIES}.")
 ENDIF()
 
 IF(GLEW_FOUND)
-    MESSAGE(STATUS "Glew found: ${GLEW_LIBRARIES}.")
+	MESSAGE(STATUS "Glew found: ${GLEW_LIBRARIES}.")
 ENDIF()
 
 IF(OPENGL_FOUND)
-    MESSAGE(STATUS "OpenGL found: ${OPENGL_LIBRARIES}.")
+	MESSAGE(STATUS "OpenGL found: ${OPENGL_LIBRARIES}.")
 ENDIF()
 
-############################################
+# ###########################################
 # Backend libraries
-############################################
+# ###########################################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/cxxopts EXCLUDE_FROM_ALL)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi EXCLUDE_FROM_ALL)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/taskscheduler/TaskSch EXCLUDE_FROM_ALL)
@@ -43,15 +44,14 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/mod
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/audio EXCLUDE_FROM_ALL)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/audio/openal EXCLUDE_FROM_ALL)
 
-###################################################
+# ##################################################
 # Backend common logic for all OpenGL Samples
-####################################################
+# ###################################################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/common)
 
-
-####################################
-#	OpenGL Samples
-####################################
+# ###################################
+# OpenGL Samples
+# ###################################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SDLGLContext)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/StartupWindow)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Triangle)
@@ -62,10 +62,12 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Skybox)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Font)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/PhongBlinn)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/BasicShadowMapping)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VolumeShadow)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SimpleOcean)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Instance)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/BasicTessellation)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/PNTessellation)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SimpleParticleSystem)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/particle-system)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/NBodySimulation)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/PBR)
@@ -75,18 +77,18 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VideoPlayback)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Mandelbrot)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/GameOfLife)
 
-FILE( GLOB_RECURSE GLSL_SOURCE_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.frag
-    ${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.vert
-    ${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.comp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.rgen
-    ${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.rmiss
-    ${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.geom
-    ${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.tese
-    ${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.tesc
+FILE(GLOB_RECURSE GLSL_SOURCE_FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.frag
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.vert
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.comp
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.rgen
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.rmiss
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.geom
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.tese
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.tesc
 )
 
-#TODO Create SPIRV.
+# TODO Create SPIRV.
 FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	get_filename_component(FILE_NAME ${GLSL} ABSOLUTE)
 
@@ -100,9 +102,9 @@ FOREACH(GLSL ${GLSL_SOURCE_FILES})
 endforeach(GLSL)
 
 add_custom_target(
-    Shaders
-    DEPENDS ${SPIRV_BINARY_FILES}
-    )
+	Shaders
+	DEPENDS ${SPIRV_BINARY_FILES}
+)
 
 # All shader files.
 FILE(CREATE_LINK ${CMAKE_CURRENT_SOURCE_DIR}/Shaders ${CMAKE_CURRENT_BINARY_DIR}/Shaders SYMBOLIC)

@@ -1,6 +1,6 @@
 #ifndef _GL_SAMPLES_COMMON_FPS_COUNTER_H_
 #define _GL_SAMPLES_COMMON_FPS_COUNTER_H_ 1
-
+#include <stddef.h>
 /**
  * @brief
  *
@@ -52,7 +52,7 @@ template <typename T = double> class FPSCounter {
 	}
 
   private:
-	int totalFPS;
+	size_t totalFPS;
 	int fpsSample;
 	unsigned int averageFPS;
 	long int prevTimeSample;

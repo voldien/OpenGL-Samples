@@ -20,7 +20,7 @@ namespace glsample {
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
 
-			/*light source.	*/
+			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
@@ -48,6 +48,7 @@ namespace glsample {
 
 		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert";
 		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag";
+		
 		virtual void Release() override {
 			glDeleteProgram(this->terrain_program);
 
@@ -157,21 +158,26 @@ namespace glsample {
 
 			/*	*/
 			glViewport(0, 0, width, height);
-
-			/*	Draw Skybox.	*/
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glDisable(GL_CULL_FACE);
+			{
 
-			/*	Draw terrain.	*/
-			glUseProgram(this->terrain_program);
+				/*	Draw Skybox.	*/
 
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->terrain_diffuse_texture);
+				glDisable(GL_CULL_FACE);
 
-			glBindVertexArray(this->terrain.vao);
-			glDrawElements(GL_TRIANGLES, terrain.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-			glBindVertexArray(0);
+				/*	Draw terrain.	*/
+				glUseProgram(this->terrain_program);
 
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->terrain_diffuse_texture);
+
+				glBindVertexArray(this->terrain.vao);
+				glDrawElements(GL_TRIANGLES, terrain.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+			}
+			{
+				
+			}
 			// glEnable(GL_DEPTH_TEST);
 			// TODO disable depth write.
 			// glDisable(GL_BLEND);

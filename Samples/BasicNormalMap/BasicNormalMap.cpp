@@ -10,7 +10,11 @@ namespace glsample {
 
 	class BasicNormalMap : public GLSampleWindow {
 	  public:
-		BasicNormalMap() : GLSampleWindow() { this->setTitle("NormalMap"); }
+		BasicNormalMap() : GLSampleWindow() {
+			this->setTitle("NormalMap");
+			normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->mvp);
+			this->addUIComponent(normalMapSettingComponent);
+		}
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -20,7 +24,7 @@ namespace glsample {
 			alignas(16) glm::mat4 modelViewProjection;
 
 			/*light source.	*/
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
+			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 		} mvp;
@@ -44,6 +48,26 @@ namespace glsample {
 
 		CameraController camera;
 
+		class NormalMapSettingComponent : public nekomimi::UIComponent {
+
+		  public:
+			NormalMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("NormalMap Settings");
+			}
+			virtual void draw() override {
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
+
 		std::string diffuseTexturePath = "asset/diffuse.png";
 		std::string normalTexturePath = "asset/normalmap.png";
 
@@ -58,6 +82,7 @@ namespace glsample {
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, (const GLuint *)&this->normal_texture);
 
+			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
 
 			/*	*/
@@ -148,6 +173,7 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
+			/*	*/
 			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
@@ -171,6 +197,9 @@ namespace glsample {
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + 1);
 				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
+
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);

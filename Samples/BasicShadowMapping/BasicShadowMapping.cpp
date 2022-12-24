@@ -10,8 +10,8 @@ namespace glsample {
 	class BasicShadowMapping : public GLSampleWindow {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
-			this->setTitle("ShadowMap");
-			shadowSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
+			this->setTitle("ShadowMapping");
+			shadowSettingComponent = std::make_shared<BasicShadowMapSettingComponent>(this->uniform);
 			this->addUIComponent(shadowSettingComponent);
 		}
 
@@ -31,7 +31,7 @@ namespace glsample {
 
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
-		} mvp;
+		} uniform;
 
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
@@ -56,11 +56,11 @@ namespace glsample {
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
 		CameraController camera;
-		class TessellationSettingComponent : public nekomimi::UIComponent {
 
+		class BasicShadowMapSettingComponent : public nekomimi::UIComponent {
 		  public:
-			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Tessellation Settings");
+			BasicShadowMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Basic Shadow Mapping Settings");
 			}
 			virtual void draw() override {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
@@ -75,10 +75,11 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<TessellationSettingComponent> shadowSettingComponent;
+		std::shared_ptr<BasicShadowMapSettingComponent> shadowSettingComponent;
 
-		const std::string vertexShaderPath = "Shaders/shadowmap/texture.vert";
-		const std::string fragmentShaderPath = "Shaders/shadowmap/texture.frag";
+		/*	*/
+		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert";
+		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag";
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag";
 
@@ -104,9 +105,11 @@ namespace glsample {
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, getFileSystem());
+			/*	*/
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexGraphicShaderPath, getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentGraphicShaderPath, getFileSystem());
 
+			/*	*/
 			std::vector<char> vertex_shadow_source = IOUtil::readFileString(vertexShadowShaderPath, getFileSystem());
 			std::vector<char> fragment_shadow_source =
 				IOUtil::readFileString(fragmentShadowShaderPath, getFileSystem());
@@ -119,6 +122,7 @@ namespace glsample {
 			TextureImporter textureImporter(getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 
+			/*	*/
 			glUseProgram(this->shadow_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->shadow_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -148,6 +152,7 @@ namespace glsample {
 				glGenFramebuffers(1, &shadowFramebuffer);
 				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
 
+				/*	*/
 				glGenTextures(1, &this->shadowTexture);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT,
@@ -155,10 +160,8 @@ namespace glsample {
 				/*	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-				/*	*/
+				/*	Border clamped to max value, it makes the outside area.	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -198,7 +201,7 @@ namespace glsample {
 							 sizeof(ProceduralGeometry::Vertex),
 						 nullptr, GL_STATIC_DRAW);
 
-			/*	*/
+			/*	Write each of the geometries to the single VBO.	*/
 			glBufferSubData(GL_ARRAY_BUFFER, 0, planVertices.size() * sizeof(ProceduralGeometry::Vertex),
 							planVertices.data());
 			glBufferSubData(GL_ARRAY_BUFFER, planVertices.size() * sizeof(ProceduralGeometry::Vertex),
@@ -257,7 +260,7 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -271,7 +274,7 @@ namespace glsample {
 				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f),
 												  glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-				this->mvp.lightModelProject = lightSpaceMatrix;
+				this->uniform.lightModelProject = lightSpaceMatrix;
 
 				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
 
@@ -286,7 +289,7 @@ namespace glsample {
 
 				glBindVertexArray(this->plan.vao);
 
-				/*  Draw light source.  */
+				/*  Draw Shadow Object.  */
 				glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
 										 plan.indices_offset);
 				glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
@@ -318,7 +321,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + 1);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
-				/*	Draw triangle*/
+				/*	Draw triangle	*/
 				glBindVertexArray(this->plan.vao);
 				glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
 										 plan.indices_offset);
@@ -335,17 +338,17 @@ namespace glsample {
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
+			this->uniform.model = glm::mat4(1.0f);
 			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
-			this->mvp.view = this->camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
+			this->uniform.view = this->camera.getViewMatrix();
+			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *p = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
 				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(p, &this->mvp, sizeof(mvp));
+			memcpy(p, &this->uniform, sizeof(uniform));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

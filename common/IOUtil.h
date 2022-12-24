@@ -12,12 +12,11 @@ using namespace fragcore;
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class FVDECLSPEC IOUtil {
 	  public:
-	  
 		static std::vector<char> readFileString(const std::string &filename, IFileSystem *filesystem) {
 
 			Ref<IO> ref = Ref<IO>(filesystem->openFile(filename.c_str(), IO::IOMode::READ));
@@ -30,10 +29,10 @@ namespace glsample {
 			return readFileString(filename, FileSystem::getFileSystem());
 		}
 
-		static std::vector<char> readFileData(const std::string &filename) {
+		template <typename T> static std::vector<T> readFileData(const std::string &filename, IFileSystem *filesystem) {
 
-			Ref<IO> ref = Ref<IO>(FileSystem::getFileSystem()->openFile(filename.c_str(), IO::IOMode::READ));
-			std::vector<char> buffer = fragcore::IOUtil::readFile<char>(ref);
+			Ref<IO> ref = Ref<IO>(filesystem->openFile(filename.c_str(), IO::IOMode::READ));
+			std::vector<T> buffer = fragcore::IOUtil::readFile<T>(ref);
 			ref->close();
 			return buffer;
 		}

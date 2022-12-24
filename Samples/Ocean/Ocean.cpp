@@ -18,9 +18,10 @@ namespace glsample {
 			float ht_real_img[2];
 		} OceanVertex;
 
+		/*	*/
 		GeometryObject skybox;
 		GeometryObject ocean;
-		
+
 		/*	*/
 		int skybox_panoramic_texture;
 
@@ -30,8 +31,9 @@ namespace glsample {
 		unsigned int spectrum_compute_program;
 		unsigned int kff_compute_program;
 
-		unsigned int ocean_width = 64;
-		unsigned int ocean_height = 64;
+		/*	*/
+		unsigned int ocean_width = 128;
+		unsigned int ocean_height = 128;
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -39,6 +41,7 @@ namespace glsample {
 			alignas(16) glm::mat4 proj;
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
+
 			float delta;
 			/*	*/
 			float speed;
@@ -84,11 +87,14 @@ namespace glsample {
 			glDeleteProgram(this->ocean_graphic_program);
 			glDeleteProgram(this->spectrum_compute_program);
 			glDeleteProgram(this->kff_compute_program);
+
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->skybox_panoramic_texture);
+
 			/*	*/
 			glDeleteVertexArrays(1, &this->ocean.vao);
 			glDeleteVertexArrays(1, &this->skybox.vao);
+
 			/*	*/
 			glDeleteBuffers(1, &this->ocean.vbo);
 			glDeleteBuffers(1, &this->ocean.ibo);
@@ -138,15 +144,16 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	Load source code for the ocean shader.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath);
-			std::vector<char> control_source = IOUtil::readFileString(tesscShaderPath);
-			std::vector<char> evolution_source = IOUtil::readFileString(teseShaderPath);
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			std::vector<char> control_source = IOUtil::readFileString(tesscShaderPath, this->getFileSystem());
+			std::vector<char> evolution_source = IOUtil::readFileString(teseShaderPath, this->getFileSystem());
 
 			/*	Load source code for spectrum compute shader.	*/
-			std::vector<char> compute_spectrum_source = IOUtil::readFileString(computeShaderPath);
+			std::vector<char> compute_spectrum_source =
+				IOUtil::readFileString(computeShaderPath, this->getFileSystem());
 			/*	Load source code for fast furious transform.	*/
-			std::vector<char> compute_kff_source = IOUtil::readFileString(computeKFFShaderPath);
+			std::vector<char> compute_kff_source = IOUtil::readFileString(computeKFFShaderPath, this->getFileSystem());
 
 			/*	Load graphic program for skybox.	*/
 			this->ocean_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
@@ -251,6 +258,7 @@ namespace glsample {
 			glEnableVertexAttribArrayARB(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
+			/*	*/
 			glEnableVertexAttribArrayARB(1);
 			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(12));
@@ -258,7 +266,7 @@ namespace glsample {
 			glBindVertexArray(0);
 
 			/*	Load skybox for reflective.	*/
-			TextureImporter textureImporter(FileSystem::getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_panoramic_texture = textureImporter.loadImage2D(this->panoramicPath);
 		}
 

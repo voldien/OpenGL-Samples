@@ -52,11 +52,15 @@ namespace glsample {
 
 		virtual void Initialize() override {
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexSkyboxPanoramicShaderPath);
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath);
+			std::vector<char> vertex_source =
+				IOUtil::readFileString(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source =
+				IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
+			/*  */
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
+			/*  */
 			glUseProgram(this->skybox_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
@@ -64,10 +68,11 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Load cubemap.	*/
-			TextureImporter textureImporter(FileSystem::getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_cubemap =
 				textureImporter.loadCubeMap({"X+.png", "X-.png", "Y+.png", "Y-.png", "Z+.png", "Z-.png"});
 
+			/*  */
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
@@ -87,6 +92,7 @@ namespace glsample {
 			glGenVertexArrays(1, &this->SkyboxCube.vao);
 			glBindVertexArray(this->SkyboxCube.vao);
 
+			/*  */
 			glGenBuffers(1, &this->SkyboxCube.ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SkyboxCube.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
@@ -129,6 +135,7 @@ namespace glsample {
 			glDisable(GL_BLEND);
 			glDisable(GL_DEPTH_TEST);
 
+			/*  */
 			glUseProgram(this->skybox_program);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, this->skybox_cubemap);

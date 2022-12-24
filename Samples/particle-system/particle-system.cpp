@@ -11,7 +11,7 @@ namespace glsample {
 	class ParticleSystem : public GLSampleWindow {
 	  public:
 		ParticleSystem() : GLSampleWindow() {
-			this->setTitle("Particle System");
+			this->setTitle("Particle-System");
 			tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
 			this->addUIComponent(tessellationSettingComponent);
 		}

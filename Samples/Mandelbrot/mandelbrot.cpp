@@ -12,14 +12,18 @@ namespace glsample {
 
 	class MandelBrot : public GLSampleWindow {
 	  public:
-		MandelBrot() : GLSampleWindow() { this->setTitle("MandelBrot - Compute"); }
+		MandelBrot() : GLSampleWindow() {
+			this->setTitle("MandelBrot-Compute");
+			mandelbrotSettingComponent = std::make_shared<MandelBrotSettingComponent>(this->params);
+			this->addUIComponent(mandelbrotSettingComponent);
+		}
 
 		struct UniformBufferBlock {
 			float posX, posY;
 			float mousePosX, mousePosY;
 			float zoom; /*  */
 			float c;	/*  */
-			int nrSamples;
+			int nrSamples = 128;
 		} params;
 
 		/*	*/
@@ -36,10 +40,32 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
+		class MandelBrotSettingComponent : public nekomimi::UIComponent {
+
+		  public:
+			MandelBrotSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Mandelbrot Settings");
+			}
+			virtual void draw() override {
+				ImGui::DragInt("Number of Samples", &this->uniform.nrSamples, 1, 0, 128);
+				ImGui::DragFloat("C", &this->uniform.c);
+				//				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
+				//				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				//				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<MandelBrotSettingComponent> mandelbrotSettingComponent;
+
 		/*	*/
 		const std::string computeShaderPath = "Shaders/mandelbrot/mandelbrot.comp";
 
 		virtual void Release() override {
+
 			glDeleteProgram(this->mandelbrot_program);
 			glDeleteFramebuffers(1, &this->mandelbrot_framebuffer);
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -82,14 +108,18 @@ namespace glsample {
 		}
 
 		virtual void onResize(int width, int height) override {
+
 			this->mandelbrot_texture_width = width;
 			this->mandelbrot_texture_height = height;
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->mandelbrot_framebuffer);
 			/*	Resize the image.	*/
 			glBindTexture(GL_TEXTURE_2D, this->mandelbrot_texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
-			// glBindTexture(GL_TEXTURE_2D, 0);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->mandelbrot_texture, 0);
 
@@ -119,16 +149,18 @@ namespace glsample {
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
-
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			{
 
-				glBindImageTexture(0, this->mandelbrot_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-
 				glUseProgram(this->mandelbrot_program);
-				const size_t localInvokation = 32; // TODO extract if possible.
+				glBindImageTexture(0, this->mandelbrot_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
-				glDispatchCompute(std::ceil(mandelbrot_texture_width / localInvokation),
-								  std::ceil(mandelbrot_texture_height / localInvokation), 1);
+				int localWorkGroupSize[3];
+
+				glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+
+				glDispatchCompute(std::ceil(this->mandelbrot_texture_width / (float)localWorkGroupSize[0]),
+								  std::ceil(this->mandelbrot_texture_height / (float)localWorkGroupSize[1]), 1);
 
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
 			}
@@ -137,8 +169,8 @@ namespace glsample {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->mandelbrot_framebuffer);
 
-			glBlitFramebuffer(0, 0, mandelbrot_texture_width, mandelbrot_texture_height, 0, 0, width, height,
-							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBlitFramebuffer(0, 0, this->mandelbrot_texture_width, this->mandelbrot_texture_height, 0, 0, width,
+							  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		}
 
 		virtual void update() {
@@ -158,7 +190,6 @@ namespace glsample {
 			params.posX = 0;
 			params.posY = 0;
 			params.zoom = 1.0f;
-			params.nrSamples = 128;
 		}
 	};
 

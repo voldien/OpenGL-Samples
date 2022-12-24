@@ -40,14 +40,18 @@ namespace glsample {
 
 		virtual void Release() override {
 			glDeleteProgram(this->gameoflife_program);
+
 			glDeleteFramebuffers(1, &this->gameoflife_framebuffer);
+
 			glDeleteBuffers(1, &this->uniform_buffer);
+
 			glDeleteTextures(1, (const GLuint *)&this->gameoflife_texture);
 		}
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
+			/*	*/
 			std::vector<char> gameoflife_source = IOUtil::readFileString(computeShaderPath, this->getFileSystem());
 
 			// gameoflife_source =
@@ -56,7 +60,7 @@ namespace glsample {
 			/*	Load shader	*/
 			this->gameoflife_program = ShaderLoader::loadComputeProgram({&gameoflife_source});
 
-			/*	*/
+			/*	Setup shader.	*/
 			glUseProgram(this->gameoflife_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->gameoflife_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->gameoflife_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -78,6 +82,7 @@ namespace glsample {
 			glGenFramebuffers(1, &this->gameoflife_framebuffer);
 			glBindFramebuffer(GL_FRAMEBUFFER, this->gameoflife_framebuffer);
 
+			/*	*/
 			glGenTextures(1, &this->gameoflife_texture);
 			onResize(this->width(), this->height());
 		}
@@ -87,9 +92,14 @@ namespace glsample {
 			this->gameoflife_texture_height = height;
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->gameoflife_framebuffer);
+			
 			/*	Resize the image.	*/
 			glBindTexture(GL_TEXTURE_2D, this->gameoflife_texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->gameoflife_texture, 0);
@@ -121,16 +131,19 @@ namespace glsample {
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			{
 				glUseProgram(this->gameoflife_program);
-				const size_t localInvokation = 32;
+				const float localInvokation = 32;
 
 				glBindImageTexture(0, this->gameoflife_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
-				glDispatchCompute(std::ceil(width / localInvokation), std::ceil(height / localInvokation), 1);
+				glDispatchCompute(std::ceil((float)width / localInvokation), std::ceil((float)height / localInvokation),
+								  1);
 
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 			}
+
 			/*	Blit mandelbrot framebuffer to default framebuffer.	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->gameoflife_framebuffer);
@@ -141,9 +154,9 @@ namespace glsample {
 		virtual void update() {
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount()) % nrUniformBuffer) * uniformBufferSize,
-								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			void *p = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(p, &params, sizeof(params));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 

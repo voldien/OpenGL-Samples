@@ -32,12 +32,14 @@ namespace glsample {
 			float color[3];
 		} Vertex;
 
+		GeometryObject plan;
+
 		unsigned int vbo;
 		unsigned int vao;
 
 		unsigned int triangle_program;
-		const std::string vertexShaderPath = "Shaders/triangle/triangle.vert";
-		const std::string fragmentShaderPath = "Shaders/triangle/triangle.frag";
+		const std::string vertexShaderPath = "Shaders/triangle/triangle.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/triangle/triangle.frag.spv";
 
 		const std::vector<Vertex> vertices = {
 			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, /*	Vertex (2), Color(3)	*/
@@ -54,17 +56,17 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			std::vector<uint32_t> vertex_source = IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source = IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
 
 			// TODO add support
-			// vertex_source = fragcore::ShaderCompiler::convertSPIRV(vertex_source, fragcore::ShaderLanguage::GLSL);
-			// fragment_source = fragcore::ShaderCompiler::convertSPIRV(fragment_source,
+			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, fragcore::ShaderLanguage::GLSL);
+			std::vector<char> fragment_source_T = fragcore::ShaderCompiler::convertSPIRV(fragment_source, fragcore::ShaderLanguage::GLSL);
 			// fragcore::ShaderLanguage::GLSL);
 
 			/*	Load shader	*/
-			this->triangle_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
-			
+			this->triangle_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->vao);
 			glBindVertexArray(this->vao);

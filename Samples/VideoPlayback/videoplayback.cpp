@@ -29,6 +29,8 @@ extern "C" {
 #define av_frame_free avcodec_free_frame
 #endif
 
+// TODO add support for framebuffer blit or quad texture.
+
 namespace glsample {
 
 	class VideoPlayback : public GLSampleWindow {
@@ -83,6 +85,7 @@ namespace glsample {
 		double frame_last_delay;
 
 		/*  */
+		unsigned int videoFramebuffer;
 		unsigned int vbo;
 		unsigned vao;
 
@@ -276,7 +279,7 @@ namespace glsample {
 			fragcore::AudioSourceDesc source_desc = {};
 			source_desc.position = fragcore::Vector3::Zero();
 			audioSource = audioInterface->createAudioSource(&source_desc);
-			
+
 			mSource = this->audioSource->getNativePtr();
 			// fragcore::AudioClipDesc clip_desc = {};
 			// clip_desc.decoder = nullptr;
@@ -351,6 +354,26 @@ namespace glsample {
 			}
 			glBindTexture(GL_TEXTURE_2D, 0);
 
+			glGenFramebuffers(1, &this->videoFramebuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->videoFramebuffer);
+
+			for (size_t i = 0; i < this->videoFrameTextures.size(); i++) {
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D,
+									   this->videoFrameTextures[i], 0);
+			}
+
+			// const GLenum drawAttach = GL_COLOR_ATTACHMENT0;
+			// glDrawBuffers(1, &drawAttach);
+
+			/*  Validate if created properly.*/
+			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
+				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
+			}
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			/*	*/
 			alSourcePlay(this->audioSource->getNativePtr());
 			// this->audioSource->play();
 		}
@@ -367,20 +390,31 @@ namespace glsample {
 			/*	*/
 			glViewport(0, 0, width, height);
 
-			/*	*/
-			glDisable(GL_CULL_FACE);
-			glDisable(GL_DEPTH_TEST);
-			glDisable(GL_BLEND);
+			bool blit = false;
+			if (blit) {
+				/*	*/
+				glDisable(GL_CULL_FACE);
+				glDisable(GL_DEPTH_TEST);
+				glDisable(GL_BLEND);
 
-			glUseProgram(this->videoplayback_program);
+				glUseProgram(this->videoplayback_program);
 
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->videoFrameTextures[nthVideoFrame]);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->videoFrameTextures[nthVideoFrame]);
 
-			/*	Draw triangle*/
-			glBindVertexArray(this->vao);
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, this->vertices.size());
-			glBindVertexArray(0);
+				/*	Draw triangle*/
+				glBindVertexArray(this->vao);
+				glDrawArrays(GL_TRIANGLE_STRIP, 0, this->vertices.size());
+				glBindVertexArray(0);
+			} else {
+				/*	Blit mandelbrot framebuffer to default framebuffer.	*/
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->videoFramebuffer);
+				glReadBuffer(GL_COLOR_ATTACHMENT0 + nthVideoFrame);
+
+				glBlitFramebuffer(0, 0, this->video_width, this->video_height, 0, 0, width, height, GL_COLOR_BUFFER_BIT,
+								  GL_LINEAR);
+			}
 		}
 
 		virtual void update() {
@@ -392,7 +426,8 @@ namespace glsample {
 			}
 
 			int res, result;
-			// TODO sync
+			// FIXME: add support for sync.
+
 			// res = av_seek_frame(this->pformatCtx, this->videoStream, (int64_t)(getTimer().getElapsed() * 1000000.0f),
 			// 					AVSEEK_FLAG_ANY);
 
@@ -526,8 +561,8 @@ namespace glsample {
 	  public:
 		VideoPlaybackGLSample(int argc, const char **argv) : GLSample<VideoPlayback>(argc, argv) {}
 		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"));
+			options.add_options("VideoPlayback-Sample")("v,video", "Video Path",
+														cxxopts::value<std::string>()->default_value("video.mp4"));
 		}
 	};
 } // namespace glsample

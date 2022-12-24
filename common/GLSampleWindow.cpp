@@ -22,7 +22,7 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 	glGenQueries(sizeof(this->queries) / sizeof(this->queries[0]), &this->queries[0]);
 
 	/*	*/
-	//glEnable(GL_FRAMEBUFFER_SRGB);
+	// glEnable(GL_FRAMEBUFFER_SRGB);
 }
 
 void GLSampleWindow::displayMenuBar() {}
@@ -53,11 +53,11 @@ void GLSampleWindow::renderUI() {
 	this->getTimer().update();
 	this->fpsCounter.incrementFPS(SDL_GetPerformanceCounter());
 
-	std::cout << "FPS " << getFPSCounter().getFPS() << " Elapsed Time: " << getTimer().getElapsed() << std::endl;
+	std::cout << "FPS " << this->getFPSCounter().getFPS() << " Elapsed Time: " << getTimer().getElapsed() << std::endl;
 
 	const Uint8 *state = SDL_GetKeyboardState(nullptr);
 	if (state[SDL_SCANCODE_F12]) {
-		captureScreenShot();
+		this->captureScreenShot();
 	}
 }
 
@@ -70,6 +70,7 @@ void GLSampleWindow::captureScreenShot() {
 	int screen_grab_width_size = this->width();
 	int screen_grab_height_size = this->height();
 
+	/*	Make sure the frame is completed before extracing pixel data.	*/
 	glFinish();
 
 	// unsigned int pboBuffer;
@@ -79,6 +80,7 @@ void GLSampleWindow::captureScreenShot() {
 	// glBufferData(GL_PIXEL_PACK_BUFFER, screen_grab_width_size * screen_grab_height_size * 4, nullptr,
 	// GL_STREAM_READ);
 
+	// FIXME: make sure that the image format is used correctly.
 	glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, screen_grab_width_size, screen_grab_height_size, GL_BGRA, GL_UNSIGNED_BYTE, nullptr);
 
@@ -88,6 +90,7 @@ void GLSampleWindow::captureScreenShot() {
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	// glDeleteBuffers(1, &pboBuffer);
 
+	/*	*/
 	Image image(screen_grab_width_size, screen_grab_height_size, TextureFormat::RGBA32);
 	image.setPixelData(pixelData, screen_grab_width_size * screen_grab_height_size * 4);
 	ImageLoader loader;

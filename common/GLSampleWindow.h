@@ -34,12 +34,16 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
   public:
 	FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }
+	const FPSCounter<float> &getFPSCounter() const noexcept { return this->fpsCounter; }
+
+	const vkscommon::Time &getTimer() const noexcept { return this->time; }
 	vkscommon::Time &getTimer() noexcept { return this->time; }
 	size_t getFrameCount() noexcept { return this->frameCount; }
 
 	void captureScreenShot();
 
-	fragcore::IFileSystem *getFileSystem() const { return filesystem; }
+	fragcore::IFileSystem *getFileSystem() const noexcept { return filesystem; }
+
 	void setFileSystem(fragcore::IFileSystem *filesystem) { this->filesystem = filesystem; }
 
   protected:

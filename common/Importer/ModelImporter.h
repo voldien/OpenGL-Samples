@@ -142,3 +142,5 @@ class ModelImporter {
 	std::vector<NodeObject *> nodes;
 	NodeObject *rootNode;
 };
+
+static void drawScene(NodeObject *node) {}

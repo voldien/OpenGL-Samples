@@ -1,0 +1,89 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+// Contains the cells information.
+layout(set = 0, binding = 0, std430) writeonly buffer img_current_cells { vec2 AB[]; }
+CurrentAB;
+
+layout(set = 0, binding = 1, std430) readonly buffer img_previous_cells { vec2 AB[]; }
+PreviousAB;
+
+layout(rgba32f, set = 0, binding = 2) uniform image2D img_output;
+
+layout(set = 0, binding = 3) uniform UniformBufferBlock {
+	mat4 kernelA;
+	mat4 kernelB;
+	float feedRate;
+	float killRate;
+	float diffuseRateA;
+	float diffuseRateB;
+	float delta;
+
+	float posX, posY;
+	float mousePosX, mousePosY;
+	float zoom; /*  */
+	float c;	/*  */
+}
+ubo;
+
+float computeDiffuseRateA(float A, float B, float diverage, float killRate, float feedRate, float diffuseRate,
+						  float delta) {
+	return A + (diffuseRate * diverage - A * pow(B, 2) + feedRate * (1 - A)) * delta;
+}
+
+float computeDiffuseRateB(float A, float B, float diverage, float killRate, float feedRate, float diffuseRate,
+						  float delta) {
+	return B + (diffuseRate * diverage + A * pow(B, 2) - (killRate - feedRate) * B) * delta;
+}
+
+int memoryAddress(ivec2 invokedPixelCoord, ivec2 imageSize, ivec2 offset) {
+	ivec2 pixelCoord = (invokedPixelCoord + offset) % imageSize;
+	return pixelCoord.y * imageSize.y + pixelCoord.x;
+}
+
+float lapacianA(ivec2 pixelCord, ivec2 imageSize, mat4 convolutionKernel) {
+	float result = 0;
+	for (int y = 0; y < 3; y++) {
+		for (int x = 0; x < 3; x++) {
+			result += convolutionKernel[x][2 - y] *
+					  PreviousAB.AB[memoryAddress(pixelCord, imageSize, ivec2(-1 + x, -1 + y))].x;
+		}
+	}
+	return result;
+}
+
+float lapacianB(ivec2 pixelCord, ivec2 imageSize, mat4 convolutionKernel) {
+	float result = 0;
+	for (int y = 0; y < 3; y++) {
+		for (int x = 0; x < 3; x++) {
+			result += convolutionKernel[x][2 - y] *
+					  PreviousAB.AB[memoryAddress(pixelCord, imageSize, ivec2(-1 + x, -1 + y))].y;
+		}
+	}
+	return result;
+}
+
+void main() {
+
+	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+	const uint memory_index = gl_LocalInvocationIndex;
+	const ivec2 cellCellImageSize = imageSize(img_output);
+	vec2 uv = vec2(pixel_coords) / vec2(cellCellImageSize);
+
+	vec2 AB = PreviousAB.AB[memory_index];
+
+	float diverageA = lapacianA(pixel_coords, cellCellImageSize, ubo.kernelA);
+	float diverageB = lapacianB(pixel_coords, cellCellImageSize, ubo.kernelB);
+
+	float pA = computeDiffuseRateA(AB.x, AB.y, diverageA, ubo.killRate, ubo.feedRate, ubo.diffuseRateA, ubo.delta);
+	float pB = computeDiffuseRateB(AB.x, AB.y, diverageB, ubo.killRate, ubo.feedRate, ubo.diffuseRateB, ubo.delta);
+
+	CurrentAB.AB[memory_index] = vec2(pA, pB);
+
+	/*	Display the color.	*/
+	vec4 pixel = vec4(diverageA, 0, diverageB, 1);
+	// TODO forward the diverage to a buffer to be drawn
+	imageStore(img_output, pixel_coords, pixel);
+}

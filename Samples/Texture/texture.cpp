@@ -13,15 +13,11 @@ namespace glsample {
 	class Texture : public GLSampleWindow {
 	  public:
 		Texture() : GLSampleWindow() { this->setTitle("Texture"); }
-		typedef struct _vertex_t {
-			float pos[2];
-			float color[3];
-		} Vertex;
 
 		GeometryObject planGeometry;
 
 		int texture_program;
-		int gl_texture;
+		int diffuse_texture;
 
 		struct UniformBufferBlock {
 			glm::mat4 modelViewProjection;
@@ -46,10 +42,13 @@ namespace glsample {
 		std::vector<unsigned int> indices;
 
 		virtual void Release() override {
+			/*	*/
 			glDeleteProgram(this->texture_program);
 
-			glDeleteTextures(1, (const GLuint *)&this->gl_texture);
+			/*	*/
+			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 
+			/*	*/
 			glDeleteVertexArrays(1, &this->planGeometry.vao);
 			glDeleteBuffers(1, &this->planGeometry.vbo);
 			glDeleteBuffers(1, &this->planGeometry.ibo);
@@ -57,21 +56,23 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			/*	*/
+			const std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+			const std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
 			this->texture_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
+			/*	*/
 			glUseProgram(this->texture_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->texture_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->texture_program, this->uniform_buffer_index, 0);
 			glUniform1iARB(glGetUniformLocation(this->texture_program, "diffuse"), 0);
 			glUseProgram(0);
 
-			// Load Texture
+			/*	Load Texture	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->gl_texture = textureImporter.loadImage2D(this->texturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(this->texturePath);
 
 			/*	*/
 			GLint minMapBufferSize;
@@ -87,7 +88,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices);
+			ProceduralGeometry::generateCube(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->planGeometry.vao);
@@ -137,7 +138,7 @@ namespace glsample {
 			glDisable(GL_CULL_FACE);
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->gl_texture);
+			glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 			/*	Draw triangle*/
 			glBindVertexArray(this->planGeometry.vao);

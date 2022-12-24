@@ -214,6 +214,7 @@ namespace glsample {
 			/*	*/
 			glEnableVertexAttribArrayARB(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+
 			/*	*/
 			glEnableVertexAttribArrayARB(1);
 			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
@@ -238,6 +239,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			
 			{
 				glUseProgram(this->simpleOcean_program);
 
@@ -308,7 +310,7 @@ namespace glsample {
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	}; // namespace glsample
-	
+
 	class SimpleOceanGLSample : public GLSample<SimpleOcean> {
 	  public:
 		SimpleOceanGLSample(int argc, const char **argv) : GLSample<SimpleOcean>(argc, argv) {}

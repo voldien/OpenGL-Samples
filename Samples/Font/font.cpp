@@ -21,6 +21,27 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/font/font.vert";
 		const std::string fragmentShaderPath = "Shaders/font/font.frag";
 
+		class TessellationSettingComponent : public nekomimi::UIComponent {
+
+		  public:
+			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Tessellation Settings");
+			}
+			virtual void draw() override {
+				//				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
+				//				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
+				//				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				//				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<TessellationSettingComponent> shadowSettingComponent;
+
 		const std::vector<Vertex> vertices = {
 			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f, 0.0f}, {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}};
 
@@ -75,11 +96,10 @@ namespace glsample {
 
 			/*	*/
 			glClear(GL_COLOR_BUFFER_BIT);
-						glDisable(GL_CULL_FACE);
-			//glEnable(GL_DEPTH_TEST);
+			glDisable(GL_CULL_FACE);
+			// glEnable(GL_DEPTH_TEST);
 			glDisable(GL_BLEND);
 			glEnable(GL_STENCIL);
-
 
 			glUseProgram(this->triangle_program);
 			glActiveTexture(GL_TEXTURE0);

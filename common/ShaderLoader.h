@@ -1,5 +1,6 @@
 #pragma once
 #include <Core/IO/IOUtil.h>
+#include <ShaderCompiler.h>
 
 namespace glsample {
 

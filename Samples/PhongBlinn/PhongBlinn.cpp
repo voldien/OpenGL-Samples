@@ -75,7 +75,6 @@ namespace glsample {
 					ImGui::PushID(1000 + i);
 					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightVisable[i],
 												ImGuiTreeNodeFlags_CollapsingHeader)) {
-						// if (ImGui::BeginChild(i + 1000)) {
 
 						ImGui::ColorEdit4("Light Color", &this->uniform.pointLights[i].color[0],
 										  ImGuiColorEditFlags_Float);
@@ -83,9 +82,6 @@ namespace glsample {
 						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
 						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
 						ImGui::DragFloat("Intensity", &this->uniform.pointLights[i].intensity);
-
-						//}
-						// ImGui::EndChild();
 					}
 					ImGui::PopID();
 				}
