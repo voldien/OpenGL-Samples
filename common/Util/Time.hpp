@@ -15,9 +15,12 @@ namespace vkscommon {
 		void start() { this->ticks = SDL_GetPerformanceCounter(); }
 
 		float getElapsed() const noexcept {
-			return (float)(SDL_GetPerformanceCounter() - this->_private_level_startup) / (float)this->timeResolution;
+			return (float)(SDL_GetPerformanceCounter() - this->_private_level_startup) /
+				   static_cast<float>(this->timeResolution);
 		}
-		float deltaTime() const noexcept { return (float)delta_data / (float)this->timeResolution; }
+		float deltaTime() const noexcept {
+			return static_cast<float>(this->delta_data) / static_cast<float>(this->timeResolution);
+		}
 		void update() {
 			delta_data = SDL_GetPerformanceCounter() - ticks;
 			ticks = SDL_GetPerformanceCounter();

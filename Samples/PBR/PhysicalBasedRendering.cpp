@@ -1,6 +1,9 @@
 #include "GLSampleWindow.h"
 
+#include "ImageImport.h"
+#include "ModelImporter.h"
 #include "ShaderLoader.h"
+
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <iostream>
@@ -9,27 +12,29 @@ namespace glsample {
 
 	class PhysicalBasedRendering : public GLSampleWindow {
 	  public:
-		PhysicalBasedRendering() : GLSampleWindow() { this->setTitle(" "); }
-		typedef struct _vertex_t {
-			float pos[2];
-			float color[3];
-		} Vertex;
+		PhysicalBasedRendering() : GLSampleWindow() {
+			this->setTitle(fmt::format("Physical Based Rendering: {}", "path"));
+			this->skyboxSettingComponent =
+				std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
+			this->addUIComponent(skyboxSettingComponent);
+		}
+
+		int skybox_panoramic;
 
 		/*	*/
-		unsigned int vao;
-		unsigned int vbo;
+		GeometryObject instanceGeometry;
+
+		unsigned int physical_based_rendering_program;
 
 		// TODO change to vector
+		unsigned int uniform_buffer_index;
+		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
+		size_t uniformSize = sizeof(UniformBufferBlock);
 
-		unsigned int particle_texture;
-
-		unsigned int particle_graphic_program;
-		unsigned int particle_compute_program;
-
-		unsigned int nrParticles = 1000;
-		const unsigned int localInvoke = 32;
+		const NodeObject *rootNode;
+		CameraController camera;
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -45,103 +50,161 @@ namespace glsample {
 			float lifetime;
 			float gravity;
 
-		} mvp;
+		} uniform_stage_buffer;
 
-		typedef struct particle_t {
-			glm::vec4 position; /*	Position, time	*/
-			glm::vec4 velocity; /*	Velocity.	*/
-		} Particle;
+		const std::string modelPath = "asset/bunny.obj";
+		std::string panoramicPath = "asset/panoramic.jpg";
 
-		const std::string vertexShaderPath = "Shaders/pbr/pbr.vert";
-		const std::string fragmentShaderPath = "Shaders/pbr/pbr.frag";
-		const std::string computeShaderPath = "Shaders/pbr/pbr.comp";
+		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert";
+		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag";
+		const std::string ControlShaderPath = "Shaders/tessellation/tessellation.tesc";
+		const std::string EvoluationShaderPath = "Shaders/tessellation/tessellation.tese";
 
-		const std::vector<Vertex> vertices = {
-			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f, 0.0f}, {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}};
+		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
 
-		virtual void Release() override {
-			glDeleteProgram(this->particle_graphic_program);
-			glDeleteBuffers(1, &this->vbo);
-		}
+		  public:
+			SkyboxPanoramicSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("SkyBox Settings");
+			}
+			virtual void draw() override {
+				//	ImGui::DragFloat("Exposure", &this->uniform.exposure);
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<SkyboxPanoramicSettingComponent> skyboxSettingComponent;
+
+		virtual void Release() override { glDeleteProgram(this->physical_based_rendering_program); }
+
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			/*	*/
-			// std::vector<char> vertex_source = fragcore::IOUtil::readFile(vertexShaderPath);
-			// std::vector<char> fragment_source = fragcore::IOUtil::readFile(fragmentShaderPath);
+			/*	Load shader source.	*/
+			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
 
-			// /*	*/
-			// std::vector<char> compute_source = fragcore::IOUtil::readFile(computeShaderPath);
-
-			// /*	Load shader	*/
-			// this->particle_graphic_program = ShaderLoader::loadProgram(&vertex_source, &fragment_source);
-			// this->particle_compute_program = ShaderLoader::loadComputeProgram(&compute_source);
+			this->physical_based_rendering_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
 			/*	*/
-			glUseProgram(this->particle_graphic_program);
-			// this->mvp_uniform = glGetUniformLocation(this->particle_graphic_program, "MVP");
-			glUniform1iARB(glGetUniformLocation(this->particle_graphic_program, "diffuse"), 0);
+			glUseProgram(this->physical_based_rendering_program);
+			this->uniform_buffer_index =
+				glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "Diffuse"), 0);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "Normal"), 1);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "AmbientOcclusion"), 2);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "HightMap"), 3);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "Irradiance"), 4);
+			glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
+								  this->uniform_buffer_binding);
+			this->uniform_buffer_index =
+				glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
+								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
+			GLint minMapBufferSize;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			uniformSize = fragcore::Math::align(uniformSize, (size_t)minMapBufferSize);
+
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, sizeof(UniformBufferBlock) * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
+			ModelImporter modelLoader(FileSystem::getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
+
+			rootNode = modelLoader.getNodeRoot();
+			const ModelSystemObject &modelRef = modelLoader.getModels()[0];
+
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			glGenVertexArrays(1, &this->instanceGeometry.vao);
+			glBindVertexArray(this->instanceGeometry.vao);
 
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, nrParticles * sizeof(Particle), vertices.data(), GL_STATIC_DRAW);
+			for (size_t i = 0; i < modelLoader.getModels().size(); i++) {
 
-			/*	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenBuffers(1, &this->instanceGeometry.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, instanceGeometry.vbo);
+				glBufferData(GL_ARRAY_BUFFER, modelRef.nrVertices * modelRef.vertexStride, modelRef.vertexData,
+							 GL_STATIC_DRAW);
 
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(sizeof(float) * 2));
+				/*	*/
+				glGenBuffers(1, &this->instanceGeometry.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, instanceGeometry.ibo);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, modelRef.nrIndices * modelRef.indicesStride, modelRef.indicesData,
+							 GL_STATIC_DRAW);
+				this->instanceGeometry.nrIndicesElements = modelRef.nrIndices;
 
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(sizeof(float) * 2));
+				/*	Vertices.	*/
+				glEnableVertexAttribArrayARB(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, nullptr);
 
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(sizeof(float) * 2));
+				/*	UVs	*/
+				glEnableVertexAttribArrayARB(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(12));
 
-			glBindVertexArray(0);
+				/*	Normals.	*/
+				glEnableVertexAttribArrayARB(2);
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(20));
+
+				/*	Tangent.	*/
+				glEnableVertexAttribArrayARB(3);
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(32));
+
+				glBindVertexArray(0);
+			}
 		}
 
 		virtual void draw() override {
 
 			int width, height;
 			getSize(&width, &height);
-
+			// glBindBufferRange(GL_UNIFORM_BUFFER, 0, uniform_buffer, sizeof(UniformBufferBlock),
+			//				  sizeof(UniformBufferBlock));
 			/*	*/
 			glClear(GL_COLOR_BUFFER_BIT);
+			{
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, 0, uniform_buffer, sizeof(UniformBufferBlock),
-							  sizeof(UniformBufferBlock));
-
-			glUseProgram(this->particle_compute_program);
-			glBindVertexArray(this->vao);
-			glDispatchCompute(nrParticles / localInvoke, 1, 1);
-
-			/*	*/
-			glViewport(0, 0, width, height);
-
-			glUseProgram(this->particle_graphic_program);
-			glEnable(GL_BLEND);
-			// TODO add blend factor.
-
-			/*	Draw triangle*/
-			glBindVertexArray(this->vao);
-			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
-			glBindVertexArray(0);
+				//
+				// glUseProgram(this->particle_compute_program);
+				// glBindVertexArray(this->vao);
+				// glDispatchCompute(nrParticles / localInvoke, 1, 1);
+				//
+				///*	*/
+				// glViewport(0, 0, width, height);
+				//
+				// glUseProgram(this->particle_graphic_program);
+				// glEnable(GL_BLEND);
+				//// TODO add blend factor.
+				//
+				///*	Draw triangle*/
+				// glBindVertexArray(this->vao);
+				// glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+				// glBindVertexArray(0);
+			}
 		}
 
-		virtual void update() {}
+		virtual void update() {
+			/*	*/
+			camera.update(getTimer().deltaTime());
+
+			this->uniform_stage_buffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+			this->uniform_stage_buffer.modelViewProjection = (this->uniform_stage_buffer.proj * camera.getViewMatrix());
+
+			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			void *p =
+				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
+								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			memcpy(p, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
+			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+		}
 	};
 	class PhysicalBasedRenderingGLSample : public GLSample<PhysicalBasedRendering> {
 	  public:

@@ -12,7 +12,7 @@ namespace glsample {
 
 	class VolumeShadow : public GLSampleWindow {
 	  public:
-		VolumeShadow() : GLSampleWindow() {}
+		VolumeShadow() : GLSampleWindow() { this->setTitle("Volume Shadow"); }
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];

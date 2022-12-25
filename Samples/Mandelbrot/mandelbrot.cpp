@@ -33,6 +33,8 @@ namespace glsample {
 		unsigned int mandelbrot_texture_width;
 		unsigned int mandelbrot_texture_height;
 
+		int localWorkGroupSize[3];
+
 		// TODO change to vector
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
@@ -87,6 +89,7 @@ namespace glsample {
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->mandelbrot_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUniform1iARB(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
+			glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 			glUseProgram(0);
 
 			/*	*/

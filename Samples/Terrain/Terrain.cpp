@@ -48,7 +48,7 @@ namespace glsample {
 
 		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert";
 		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag";
-		
+
 		virtual void Release() override {
 			glDeleteProgram(this->terrain_program);
 
@@ -96,12 +96,11 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(20, vertices, indices, 256, 256);
+			ProceduralGeometry::generatePlan(20, vertices, indices, 1024, 1024);
 
 			/*	Create offset.	*/
 			for (size_t i = 0; i < vertices.size(); i++) {
-				float height = Math::PerlinNoise(vertices[i].vertex[0] * 2.0f, vertices[i].vertex[1] * 2.0f,
-												 vertices[i].vertex[2] * 2.0f);
+				float height = Math::PerlinNoise(vertices[i].vertex[0] * 1.5f, vertices[i].vertex[1] * 1.5f);
 				vertices[i].vertex[2] = height;
 			}
 
@@ -115,6 +114,7 @@ namespace glsample {
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
+			/*	*/
 			glGenBuffers(1, &this->terrain.ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrain.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
@@ -175,9 +175,7 @@ namespace glsample {
 				glDrawElements(GL_TRIANGLES, terrain.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
-			{
-				
-			}
+			{}
 			// glEnable(GL_DEPTH_TEST);
 			// TODO disable depth write.
 			// glDisable(GL_BLEND);
@@ -201,12 +199,12 @@ namespace glsample {
 
 			/*	*/
 			this->mvp.model = glm::mat4(1.0f);
-			// this->mvp.model =
-			//	glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
+			this->mvp.model = glm::rotate(this->mvp.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(500.95f));
 			this->mvp.view = this->camera.getViewMatrix();
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
 
+			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *p = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
@@ -228,7 +226,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Terrain> sample(argc, argv);
+		glsample::TerrainGLSample sample(argc, argv);
 
 		sample.run();
 

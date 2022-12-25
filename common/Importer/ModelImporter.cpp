@@ -8,14 +8,14 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	std::vector<char> bufferIO = IOUtil::readFile<char>(io);
 
 	/*  */
-	const aiScene *pScene =
-		importer.ReadFileFromMemory(bufferIO.data(), bufferIO.size(),
-									aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs |
-										aiProcess_SplitLargeMeshes | aiProcess_ValidateDataStructure);
+	const aiScene *pScene = importer.ReadFileFromMemory(
+		bufferIO.data(), bufferIO.size(),
+		aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_SplitLargeMeshes |
+			aiProcess_ValidateDataStructure | aiProcess_FindInstances | aiProcess_EmbedTextures);
 
 	bufferIO.clear();
 	if (pScene == nullptr) {
-		throw RuntimeException(importer.GetErrorString());
+		throw RuntimeException("Failed to load file: {} - Error: {}", path, importer.GetErrorString());
 	}
 
 	/*	*/
@@ -39,33 +39,37 @@ void ModelImporter::clear() {
 void ModelImporter::initScene(const aiScene *scene) {
 	int x;
 
-	// /*	 */
+	/*	 */
 	if (scene->HasMeshes()) {
-		for (unsigned int x = 0; x < scene->mNumMeshes; x++) {
+		this->models.resize(scene->mNumMeshes);
+		for (size_t x = 0; x < scene->mNumMeshes; x++) {
 			this->initMesh(scene->mMeshes[x], x);
 		}
 	}
 
 	// /*	*/
-	// if (scene->HasAnimations() ) {
-	// 	for (unsigned int x = 0; x < scene->mNumAnimations; x++) {
-	// 		this->initAnimation(scene->mAnimations[x], x);
-	// 	}
-	// }
+	if (scene->HasAnimations()) {
+		this->animations.reserve(scene->mNumAnimations);
+		for (unsigned int x = 0; x < scene->mNumAnimations; x++) {
+			//	this->initAnimation(scene->mAnimations[x], x);
+		}
+	}
 
 	// /*	*/
-	// if (scene->HasTextures()) {
-	// 	for (unsigned int x = 0; x < scene->mNumTextures; x++) {
-	// 		this->initTexture(scene->mTextures[x], x);
-	// 	}
-	// }
+	if (scene->HasTextures()) {
+		this->textures.resize(scene->mNumTextures);
+		for (size_t x = 0; x < scene->mNumTextures; x++) {
+			this->initTexture(scene->mTextures[x], x);
+		}
+	}
 
 	// /*	*/
-	// if (scene->HasMaterials() ) {
-	// 	for (unsigned int x = 0; x < scene->mNumMaterials; x++) {
-	// 		this->initMaterial(scene->mMaterials[x]);
-	// 	}
-	// }
+	if (scene->HasMaterials()) {
+		this->materials.resize(scene->mNumMaterials);
+		for (size_t x = 0; x < scene->mNumMaterials; x++) {
+			this->initMaterial(scene->mMaterials[x], x);
+		}
+	}
 
 	// /*	*/
 	// if (scene->HasLights()) {
@@ -74,25 +78,15 @@ void ModelImporter::initScene(const aiScene *scene) {
 	// 	}
 	// }
 
-	// /*	*/
-	// if (scene->HasCameras() ) {
-	// 	for (unsigned int x = 0; x < scene->mNumCameras; x++) {
-	// 		this->initCamera(scene->mCameras[x], x);
-	// 	}
-	// }
-
-	// /*	*/
-	// //if (this->getFlag() & IMPORT_HIERARCHY) {
-	// 	this->initNoodeRoot(scene->mRootNode);
-	// //}
+	this->initNoodeRoot(scene->mRootNode);
 }
 
 void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
-	unsigned int gameObjectCount = 0;
-	unsigned int meshCount = 0;
+	size_t gameObjectCount = 0;
+	size_t meshCount = 0;
 
 	/*	iterate through each child of parent node.	*/
-	for (unsigned int x = 0; x < nodes->mNumChildren; x++) {
+	for (size_t x = 0; x < nodes->mNumChildren; x++) {
 		unsigned int meshCount = 0;
 		aiVector3D position, scale;
 		aiQuaternion rotation;
@@ -116,27 +110,27 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 
 		/**/
 		if (nodes->mChildren[x]->mMeshes) {
+			nodes->mChildren[x]->mTransformation;
+			// if (*nodes->mChildren[x]->mMeshes >= 0 && this->meshs.size() > *nodes->mChildren[x]->mMeshes) {
 
-			//if (*nodes->mChildren[x]->mMeshes >= 0 && this->meshs.size() > *nodes->mChildren[x]->mMeshes) {
-
-				///*	get mesh by index.	*/
-				// mesh = getMesh(*nodes->mChildren[x]->mMeshes);
-				//
-				// if (!this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->HasBones()) {
-				//	renderer = pobject->addComponet<VDRenderer>();
-				//}
-				//
-				// if (renderer) {
-				//	this->setRenderer(renderer);
-				//	renderer->setMesh(mesh);
-				//}
-				// if (this->getFlag() & IMPORT_MATERIAL) {
-				//	VDMaterial *mat =
-				//		this->getMaterial(this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->mMaterialIndex);
-				//	if (renderer != nullptr) {
-				//		renderer->setMaterial(mat);
-				//	}
-				//}
+			///*	get mesh by index.	*/
+			// mesh = getMesh(*nodes->mChildren[x]->mMeshes);
+			//
+			// if (!this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->HasBones()) {
+			//	renderer = pobject->addComponet<VDRenderer>();
+			//}
+			//
+			// if (renderer) {
+			//	this->setRenderer(renderer);
+			//	renderer->setMesh(mesh);
+			//}
+			// if (this->getFlag() & IMPORT_MATERIAL) {
+			//	VDMaterial *mat =
+			//		this->getMaterial(this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->mMaterialIndex);
+			//	if (renderer != nullptr) {
+			//		renderer->setMaterial(mat);
+			//	}
+			//}
 			//}
 		}
 
@@ -154,8 +148,8 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 }
 
 ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int index) {
-	ModelSystemObject *pmesh;
-	unsigned int z;
+	ModelSystemObject *pmesh = &this->models[index];
+	size_t z;
 
 	size_t vertexSize =
 		(3 + 2 + 3 + 3) * sizeof(float); // VDMesh::getVertexStrideSize((VDMesh::MeshComponent)this->flags);
@@ -164,7 +158,6 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 	unsigned int VertexIndex = 0, IndicesIndex = 0, bonecount = 0, initilzebone = 0;
 
-	indicesSize = 4; /*TODO remove later, if not it cased the geometry notbe rendered proparly*/
 	float *vertices = (float *)malloc(aimesh->mNumVertices * vertexSize);
 	unsigned char *Indice = (unsigned char *)malloc(indicesSize * aimesh->mNumFaces * 3);
 
@@ -205,7 +198,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	vertices = temp;
 
 	/*	some issues with this I thing? */
-	for (unsigned int x = 0; x < aimesh->mNumFaces; x++) {
+	for (size_t x = 0; x < aimesh->mNumFaces; x++) {
 		const aiFace &face = aimesh->mFaces[x];
 		assert(face.mNumIndices == 3); // Check if Indices Count is 3 other case error
 		memcpy(Indice, &face.mIndices[0], indicesSize);
@@ -217,6 +210,13 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	}
 
 	Indice = Itemp;
+
+	pmesh->indicesData = Indice;
+	pmesh->indicesStride = indicesSize;
+	pmesh->nrIndices = aimesh->mNumFaces * 3;
+	pmesh->nrVertices = aimesh->mNumVertices;
+	pmesh->vertexData = vertices;
+	pmesh->vertexStride = vertexSize;
 
 	// if (this->getFlag() & IMPORT_MESH) {
 	//
@@ -238,173 +238,109 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	// free(Indice);
 
 	/**/
-	return pmesh;// this->getMesh(this->getMeshCount() - 1);
+	return pmesh; // this->getMesh(this->getMeshCount() - 1);
 }
 
-// VDMaterial *ModelImporter::initMaterial(aiMaterial *pmaterial) {
-//	unsigned int x;
-//	unsigned int y;
-//	char absolutepath[PATH_MAX];
-//	VDMaterial *mate = nullptr;
-//	VDTexture *tex;
+MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index) {
+	unsigned int x;
+	unsigned int y;
+	char absolutepath[PATH_MAX];
+
+	char *data;
+	aiString name;
+	aiString path;
+	aiTextureMapping mapping;
+	unsigned int uvindex;
+	float blend;
+	aiTextureOp op;
+	aiTextureMapMode mapmode = aiTextureMapMode::aiTextureMapMode_Wrap;
+	aiShadingMode model;
+
+	float specular;
+	float blendfunc;
+	glm::vec4 color;
+	float shininessStrength;
+
+	MaterialObject *material = &this->materials[index];
+
+	if (!pmaterial) {
+		return nullptr;
+	}
+
+	/**/
+	pmaterial->Get(AI_MATKEY_NAME, name);
+	material->name = name.C_Str();
+
+	/*	load all texture assoicated with texture.	*/
+	for (y = 0; y < aiTextureType::aiTextureType_UNKNOWN; y++) {
+		for (x = 0; x < pmaterial->GetTextureCount((aiTextureType)y); x++) {
+
+			/*	extract texture information.	*/
+			if (pmaterial->GetTexture((aiTextureType)y, x, &path, nullptr, nullptr, nullptr, nullptr, &mapmode) ==
+				aiReturn::aiReturn_SUCCESS) {
+				if (path.C_Str()) {
+					// std::string thepath = VDFile::getDirectory(this->getPath()) + "/" + path.C_Str();
+					//// tex = findTexture(thepath.c_str());
+					//
+					// if (tex == nullptr) {
+					//	tex = VDResources::load<VDTexture2D>(thepath.c_str());
+					//
+					//	/*	texture mapmode.	*/
+					//	if (tex != nullptr) {
+					//		switch (mapmode) {
+					//		case aiTextureMapMode_Clamp:
+					//			tex->setWrapMode(VDTexture::eClamp);
+					//			break;
+					//		case aiTextureMapMode_Wrap:
+					//			tex->setWrapMode(VDTexture::eRepeat);
+					//			break;
+					//		}
+					//	}
+					//}
+
+					// mate->setTexture(y - 1, tex);
+				}
+			}
+
+			// tex = nullptr;
+		} /**/
+	}	  /**/
+
+	/*	Determine shader type.	*/
+	// pmaterial->Get(AI_MATKEY_SHADING_MODEL, name);
+	// pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, specular);
+	// pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc);
+	// pmaterial->Get(AI_MATKEY_TWOSIDED, blendfunc);
+
+	/*	Assign shader attributes.	*/
+	// pmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]);
+	// mate->setColor("DiffuseColor", color);
+	// pmaterial->Get(AI_MATKEY_COLOR_SPECULAR, color[0]);
+	// mate->setColor("SpecularColor", color);
+	// pmaterial->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]);
+	// mate->setColor("", color);
+	// pmaterial->Get(AI_MATKEY_REFLECTIVITY, color[0]);
+	// mate->setColor("", color);
+	// pmaterial->Get(AI_MATKEY_SHININESS, shininessStrength);
+	// mate->setColor("", color);
+	// pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, color[0]);
+	// mate->setColor("", color);
+
+	return material;
+}
 //
-//	char *data;
-//	aiString name;
-//	unsigned int index;
-//	aiString path;
-//	aiTextureMapping mapping;
-//	unsigned int uvindex;
-//	float blend;
-//	aiTextureOp op;
-//	aiTextureMapMode mapmode = aiTextureMapMode::aiTextureMapMode_Wrap;
-//	aiShadingMode model;
-//
-//	float specular;
-//	float blendfunc;
-//	VDColor color;
-//	float shininessStrength;
-//
-//	if (!pmaterial) {
-//		VDDebug::debugLog("(nullptr) Assimp Material.\n");
-//		return nullptr;
-//	}
-//
-//	/**/
-//	mate = VDMaterial::createMaterial();
-//	pmaterial->Get(AI_MATKEY_NAME, name);
-//	mate->setName(name.C_Str());
-//
-//	/*	load all texture assoicated with texture.	*/
-//	for (y = 0; y < aiTextureType::aiTextureType_UNKNOWN; y++) {
-//		for (x = 0; x < pmaterial->GetTextureCount((aiTextureType)y); x++) {
-//
-//			/*	extract texture information.	*/
-//			if (pmaterial->GetTexture((aiTextureType)y, x, &path, nullptr, nullptr, nullptr, nullptr, &mapmode) ==
-//				aiReturn::aiReturn_SUCCESS) {
-//				if (path.C_Str()) {
-//					std::string thepath = VDFile::getDirectory(this->getPath()) + "/" + path.C_Str();
-//					tex = findTexture(thepath.c_str());
-//
-//					if (tex == nullptr) {
-//						tex = VDResources::load<VDTexture2D>(thepath.c_str());
-//
-//						/*	texture mapmode.	*/
-//						if (tex != nullptr) {
-//							switch (mapmode) {
-//							case aiTextureMapMode_Clamp:
-//								tex->setWrapMode(VDTexture::eClamp);
-//								break;
-//							case aiTextureMapMode_Wrap:
-//								tex->setWrapMode(VDTexture::eRepeat);
-//								break;
-//							}
-//						}
-//					}
-//
-//					mate->setTexture(y - 1, tex);
-//				}
-//			}
-//
-//			tex = nullptr;
-//		} /**/
-//	}	  /**/
-//
-//	/*	Determine shader type.	*/
-//	pmaterial->Get(AI_MATKEY_SHADING_MODEL, name);
-//	pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, specular);
-//	pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc);
-//	pmaterial->Get(AI_MATKEY_TWOSIDED, blendfunc);
-//
-//	if (mate->getTexture(VDShaderConstant::eNormalTexture) != nullptr) {
-//		if (specular > 0.0)
-//			mate->setShader(VDShaderCreator::SpecularNormal());
-//		else
-//			mate->setShader(VDShaderCreator::NormalDiffuse());
-//	}
-//
-//	/*	Assign shader attributes.	*/
-//	pmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]);
-//	mate->setColor("DiffuseColor", color);
-//	pmaterial->Get(AI_MATKEY_COLOR_SPECULAR, color[0]);
-//	mate->setColor("SpecularColor", color);
-//	pmaterial->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]);
-//	mate->setColor("", color);
-//	pmaterial->Get(AI_MATKEY_REFLECTIVITY, color[0]);
-//	mate->setColor("", color);
-//	pmaterial->Get(AI_MATKEY_SHININESS, shininessStrength);
-//	mate->setColor("", color);
-//	pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, color[0]);
-//	mate->setColor("", color);
-//
-//	if (mate->getShader() == nullptr) {
-//		mate->setShader(VDMaterial::getDefaultMaterial()->getShader());
-//	}
-//	this->setMaterial(mate);
-//	return mate;
-//}
-//
-// VDTexture2D *ModelImporter::initTexture(aiTexture *texture, unsigned int index) {
-//	VDTexture2D *mtexture = new VDTexture2D(texture->mWidth, texture->mWidth, texture->achFormatHint[0]);
-//	mtexture->setPixelData(0, mtexture->width(), mtexture->height(), 0, VDTexture::eRGB, VDTexture::eRGB,
-//						   VDTexture::eUnsignedByte, texture->pcData, 0);
-//	setTexture(mtexture);
-//	return mtexture;
-//}
-//
-// VDCamera *ModelImporter::initCamera(aiCamera *pCamera, unsigned int Index) {
-//	VDCamera *camera = new VDCamera();
-//
-//	/*TODO resolve */
-//	camera->setFar(pCamera->mClipPlaneFar);
-//	camera->setNear(pCamera->mClipPlaneNear);
-//	camera->setFov(pCamera->mHorizontalFOV);
-//	camera->setRatio(pCamera->mAspect);
-//
-//	this->setCamera(camera);
-//	return camera;
-//}
-//
-// VDLight *ModelImporter::initLight(const aiLight *Llight, unsigned int index) {
-//	VDLight *light = nullptr;
-//	light = new VDLight();
-//
-//	light->setColor(*(VDColor *)&Llight->mColorDiffuse);
-//	light->setIntensity(((VDVector3 *)&Llight->mColorDiffuse)->length());
-//
-//	light->setOuterCone(Llight->mAngleOuterCone);
-//	light->setInnerCone(Llight->mAngleInnerCone);
-//
-//	switch (Llight->mType) {
-//	case aiLightSource_POINT:
-//		light->setType(VDLight::ePoint);
-//		break;
-//	case aiLightSource_DIRECTIONAL:
-//		light->setType(VDLight::eDirection);
-//		break;
-//	case aiLightSource_SPOT:
-//		light->setType(VDLight::eSpot);
-//		break;
-//	case aiLightSource_UNDEFINED:
-//	case _aiLightSource_Force32Bit:
-//		break;
-//	default:
-//		break;
-//	}
-//	light->enableShadow(true);
-//	this->setLight(light);
-//
-//	for (unsigned int x = 0; x < this->object.size(); x++) {
-//		if (strcmp(object[x]->getName(), Llight->mName.data) == 0) {
-//			this->object[x]->addComponet(light);
-//
-//			this->object[x]->transform()->setPosition(*(VDVector3 *)&Llight->mPosition);
-//
-//			break;
-//		}
-//	}
-//	return light;
-//}
-//
+TextureObject *ModelImporter::initTexture(aiTexture *texture, unsigned int index) {
+	TextureObject *mTexture = &textures[index];
+	mTexture->width = texture->mWidth;
+	mTexture->height = texture->mHeight;
+	mTexture->filepath = texture->mFilename.C_Str();
+	// VDTexture2D *mtexture = new VDTexture2D(texture->mWidth, texture->mWidth, texture->achFormatHint[0]);
+	// mtexture->setPixelData(0, mtexture->width(), mtexture->height(), 0, VDTexture::eRGB, VDTexture::eRGB,
+	//					   VDTexture::eUnsignedByte, texture->pcData, 0);
+	// setTexture(mtexture);
+	return mTexture;
+}
+
 // VDAnimationClip *ModelImporter::initAnimation(const aiAnimation *panimation, unsigned int index) {
 //	VDAnimationClip *clip = new VDAnimationClip(panimation->mDuration, panimation->mTicksPerSecond);
 //	unsigned int channel_index = 0;

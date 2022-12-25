@@ -70,8 +70,8 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			std::vector<char> vertex_source = IOUtil::readFileString(this->vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(this->fragmentShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
 			this->normalMapping_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);

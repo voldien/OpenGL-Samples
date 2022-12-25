@@ -12,14 +12,14 @@ namespace glsample {
 	  public:
 		ParticleSystem() : GLSampleWindow() {
 			this->setTitle("Particle-System");
-			tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
-			this->addUIComponent(tessellationSettingComponent);
+			particleSystemSettingComponent = std::make_shared<ParticleSystemSettingComponent>(this->mvp);
+			this->addUIComponent(particleSystemSettingComponent);
 		}
 
 		/*	*/
 		const unsigned int localInvoke = 32;
 		unsigned int nrParticles = localInvoke * 256;
-		const size_t nrParticleBuffers = 2;
+		const size_t nrParticleBuffers = 3;
 		size_t ParticleMemorySize = nrParticles * sizeof(Particle);
 
 		/*	*/
@@ -28,6 +28,8 @@ namespace glsample {
 
 		/*	*/
 		unsigned int particle_texture;
+
+		int localWorkGroupSize[3];
 
 		/*	*/
 		unsigned int particle_graphic_program;
@@ -75,10 +77,10 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
-		class TessellationSettingComponent : public nekomimi::UIComponent {
+		class ParticleSystemSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			ParticleSystemSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Particle Settings");
 			}
 			virtual void draw() override {
@@ -89,7 +91,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
+		std::shared_ptr<ParticleSystemSettingComponent> particleSystemSettingComponent;
 
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/particle-system/particle.vert";
@@ -103,6 +105,8 @@ namespace glsample {
 			glDeleteProgram(this->particle_graphic_program);
 			glDeleteProgram(this->particle_compute_program);
 
+			glDeleteTextures(1, &this->particle_texture);
+
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
 			glDeleteVertexArrays(1, &this->vao_particle);
@@ -110,7 +114,7 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
 
 			/*	*/
 			std::vector<char> vertex_source = glsample::IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
@@ -142,6 +146,7 @@ namespace glsample {
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->particle_compute_program, "UniformBufferBlock");
 			this->particle_buffer_read_index = glGetUniformBlockIndex(this->particle_compute_program, "ReadBuffer");
 			this->particle_buffer_write_index = glGetUniformBlockIndex(this->particle_compute_program, "WriteBuffer");
+			glGetProgramiv(this->particle_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 			// TODO fix
 			this->particle_buffer_read_index = 1;
 			this->particle_buffer_write_index = 2;
@@ -167,6 +172,7 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
+			/*	*/
 			glGenBuffers(1, &this->vbo_particle);
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, vbo_particle);
 			glBufferData(GL_SHADER_STORAGE_BUFFER, ParticleMemorySize * nrParticleBuffers, nullptr, GL_DYNAMIC_DRAW);
@@ -211,12 +217,13 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
+			/*	Compute particles.	*/
 			{
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 				/*	Bind uniform buffer.	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-								  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+								  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
 				/*	Bind read particle buffer.	*/
@@ -226,18 +233,19 @@ namespace glsample {
 
 				/*	Bind write particle buffer.	*/
 				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_write_index, this->vbo_particle,
-								  ((this->getFrameCount() + 1) % nrParticleBuffers) * ParticleMemorySize,
-								  ParticleMemorySize);
+								  ((this->getFrameCount() + 1) % this->nrParticleBuffers) * this->ParticleMemorySize,
+								  this->ParticleMemorySize);
 
 				/*	*/
 				glUseProgram(this->particle_compute_program);
-				glBindVertexArray(this->vao_particle);
 
 				/*	*/
 				glDispatchCompute(nrParticles / localInvoke, 1, 1);
-				glBindVertexArray(0);
+
+				glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 			}
 
+			/*	Draw Particles.	*/
 			{
 				/*	*/
 				glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -252,6 +260,7 @@ namespace glsample {
 				glEnable(GL_BLEND);
 				glBlendEquation(GL_FUNC_ADD);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glDisable(GL_DEPTH_TEST);
 
 				glEnable(GL_PROGRAM_POINT_SIZE_ARB);
 				glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
@@ -259,14 +268,16 @@ namespace glsample {
 				glPointParameterf(GL_POINT_SIZE_MIN_ARB, 1.0f);
 				glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 1.0f);
 
-				/*	Draw triangle*/
+				/*	Draw triangle	*/
 				glBindVertexArray(this->vao_particle);
 				glBindVertexBuffer(0, this->vbo_particle,
-								   (this->getFrameCount() % nrParticleBuffers) * ParticleMemorySize, sizeof(Particle));
+								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * ParticleMemorySize,
+								   sizeof(Particle));
 				glBindVertexBuffer(1, this->vbo_particle,
-								   (this->getFrameCount() % nrParticleBuffers) * ParticleMemorySize, sizeof(Particle));
+								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * ParticleMemorySize,
+								   sizeof(Particle));
 
-				glDrawArrays(GL_POINTS, 0, nrParticles);
+				glDrawArrays(GL_POINTS, 0, this->nrParticles);
 				glBindVertexArray(0);
 
 				glUseProgram(0);
@@ -281,7 +292,7 @@ namespace glsample {
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
-			this->mvp.delta = getTimer().deltaTime();
+			this->mvp.delta = this->getTimer().deltaTime();
 
 			this->mvp.model = glm::mat4(1.0f);
 			this->mvp.view = camera.getViewMatrix();

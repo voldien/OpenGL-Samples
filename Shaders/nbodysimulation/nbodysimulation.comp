@@ -17,7 +17,6 @@ struct particle_setting {
 
 	float _SofteningSquared, _DeltaTime, _Damping;
 	uint _NumBodies;
-
 };
 
 layout(binding = 0) uniform UniformBufferBlock {
@@ -111,7 +110,7 @@ vec3 computeBodyForce(vec4 pos, ivec3 groupID, ivec3 threadID) {
 	uint tile = tile0;
 	uint finish = start + n / q;
 
-	// 
+	//
 	for (uint i = start; i < finish; i += p, tile++) {
 		sharedPos[threadID.x + ubo.setting._ThreadDim.x * threadID.y] =
 			(multithreadBodies)

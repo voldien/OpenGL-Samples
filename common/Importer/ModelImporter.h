@@ -22,6 +22,7 @@ typedef struct model_object {
 	glm::vec3 position;
 	glm::quat rotation;
 	glm::vec3 scale;
+	glm::mat4 transform;
 
 	struct model_object *parent;
 	std::string name;
@@ -37,12 +38,33 @@ typedef struct model_system_object {
 
 } ModelSystemObject;
 
+typedef struct texture_object_t {
+	size_t texture;
+	size_t width;
+	size_t height;
+	std::string filepath;
+} TextureObject;
+
+typedef struct material_object_t {
+	std::string name;
+	glm::vec4 diffuse;
+	glm::vec4 specular;
+	glm::vec4 transparent;
+	glm::vec4 reflectivity;
+	float shinininess;
+	float hinininessStrength;
+} MaterialObject;
+
+typedef struct animation_object_t {
+
+} AnimationObject;
+
 using namespace Assimp;
 class ModelImporter {
   public:
 	IFileSystem *fileSystem;
 	ModelImporter(IFileSystem *fileSystem) : fileSystem(fileSystem) {}
-	~ModelImporter() { clear(); }
+	~ModelImporter() { this->clear(); }
 
 	void loadContent(const std::string &path, unsigned long int supportFlag);
 
@@ -50,96 +72,36 @@ class ModelImporter {
 
   protected:
 	void initScene(const aiScene *scene);
-	// {
-	//	unsigned int z;
-	//
-	//	unsigned int vertexSize = 0;
-	//	unsigned int indicesSize = 0;
-	//
-	//	unsigned int VertexIndex = 0, IndicesIndex = 0, bonecount = 0, initilzebone = 0;
-	//
-	//	indicesSize = 4; /*TODO remove later, if not it cased the geometry notbe rendered proparly*/
-	//	float *vertices = (float *)malloc(aimesh->mNumVertices * vertexSize);
-	//	unsigned char *Indice = (unsigned char *)malloc(indicesSize * aimesh->mNumFaces * 3);
-	//
-	//	float *temp = vertices;
-	//	unsigned char *Itemp = Indice;
-	//
-	//	const aiVector3D Zero = aiVector3D(0, 0, 0);
-	//
-	//	for (unsigned int x = 0; x < aimesh->mNumVertices; x++) {
-	//		const aiVector3D *Pos = &(aimesh->mVertices[x]);
-	//		aiVector3D *pNormal = &(aimesh->mNormals[x]);
-	//		const aiVector3D *pTexCoord = aimesh->HasTextureCoords(0) ? &(aimesh->mTextureCoords[0][x]) : &Zero;
-	//		// VDVector3 mtangent;
-	//
-	//		*vertices++ = Pos->x;
-	//		*vertices++ = Pos->y;
-	//		*vertices++ = Pos->z;
-	//
-	//		*vertices++ = pTexCoord->x;
-	//		*vertices++ = pTexCoord->y;
-	//
-	//		pNormal->Normalize();
-	//		*vertices++ = pNormal->x;
-	//		*vertices++ = pNormal->y;
-	//		*vertices++ = pNormal->z;
-	//
-	//		// mtangent = tangent(VDVector3(pNormal->x, pNormal->y, pNormal->z));
-	//		// mtangent.makeUnitVector();
-	//
-	//		*vertices++ = mtangent.x();
-	//		*vertices++ = mtangent.y();
-	//		*vertices++ = mtangent.z();
-	//
-	//	} /**/
-	//
-	//	vertices = temp;
-	//
-	//	/*	some issues with this I thing? */
-	//	for (unsigned int x = 0; x < aimesh->mNumFaces; x++) {
-	//		const aiFace &face = aimesh->mFaces[x];
-	//		assert(face.mNumIndices == 3); // Check if Indices Count is 3 other case error
-	//		memcpy(Indice, &face.mIndices[0], indicesSize);
-	//		Indice += indicesSize;
-	//		memcpy(Indice, &face.mIndices[1], indicesSize);
-	//		Indice += indicesSize;
-	//		memcpy(Indice, &face.mIndices[2], indicesSize);
-	//		Indice += indicesSize;
-	//	}
-	//
-	//	Indice = Itemp;
-	//
-	//	/*	*/
-	//
-	//	/**/
-	//	free(vertices);
-	//	free(Indice);
-	//}
 
 	/**
 	 *
 	 */
 	void initNoodeRoot(const aiNode *nodes, NodeObject *parent = nullptr);
 
-	// VDMaterial *initMaterial(aiMaterial *material);
+	MaterialObject *initMaterial(aiMaterial *material, size_t index);
 
 	ModelSystemObject *initMesh(const aiMesh *mesh, unsigned int index);
 
-	// VDTexture2D *initTexture(aiTexture *texture, unsigned int index);
-	//
-	// VDCamera *initCamera(aiCamera *camera, unsigned int index);
-	//
+	TextureObject *initTexture(aiTexture *texture, unsigned int index);
+
 	// VDAnimationClip *initAnimation(const aiAnimation *animation, unsigned int index);
 	//
 	// VDLight *initLight(const aiLight *light, unsigned int index);
 
+  public:
 	const std::vector<NodeObject *> getNodes() const { return this->nodes; }
+	const std::vector<ModelSystemObject> &getModels() const { return this->models; }
 	const NodeObject *getNodeRoot() const { return this->rootNode; }
+	const std::vector<TextureObject> &getTextures() const { return this->textures; }
 
   private:
 	aiScene *sceneRef;
 	std::vector<NodeObject *> nodes;
+	std::vector<ModelSystemObject> models;
+	std::vector<MaterialObject> materials;
+	std::vector<TextureObject> textures;
+	std::vector<AnimationObject> animations;
+
 	NodeObject *rootNode;
 };
 
