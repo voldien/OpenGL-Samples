@@ -12,4 +12,4 @@ layout(binding = 0) uniform UniformBufferBlock {
 }
 ubo;
 
-void main(void) { fragColor = texture(texture0, vVertex); }
+void main() { fragColor = texture(texture0, vVertex); }

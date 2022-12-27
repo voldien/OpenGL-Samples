@@ -32,8 +32,6 @@ namespace glsample {
 			float color[3];
 		} Vertex;
 
-		GeometryObject plan;
-
 		unsigned int vbo;
 		unsigned int vao;
 
@@ -56,12 +54,16 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			std::vector<uint32_t> vertex_source = IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source = IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
+			std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
 
 			// TODO add support
-			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, fragcore::ShaderLanguage::GLSL);
-			std::vector<char> fragment_source_T = fragcore::ShaderCompiler::convertSPIRV(fragment_source, fragcore::ShaderLanguage::GLSL);
+			std::vector<char> vertex_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(vertex_source, fragcore::ShaderLanguage::GLSL);
+			std::vector<char> fragment_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_source, fragcore::ShaderLanguage::GLSL);
 			// fragcore::ShaderLanguage::GLSL);
 
 			/*	Load shader	*/

@@ -12,7 +12,7 @@ namespace glsample {
 
 	class SilhouetteDetection : public GLSampleWindow {
 	  public:
-		SilhouetteDetection() : GLSampleWindow() {}
+		SilhouetteDetection() : GLSampleWindow() { this->setTitle("SilhouetteDetection"); }
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];
@@ -20,7 +20,7 @@ namespace glsample {
 		/*	*/
 		GeometryObject plan;
 
-		int volumeshadow_program;
+		int solhouetteDetection_program;
 		int gl_texture;
 		int mvp_uniform;
 
@@ -32,12 +32,8 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag";
 
-		// TODO add square.
-		const std::vector<Vertex> vertices = {
-			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f, 0.0f}, {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}};
-
 		virtual void Release() override {
-			glDeleteProgram(this->volumeshadow_program);
+			glDeleteProgram(this->solhouetteDetection_program);
 
 			glDeleteTextures(1, (const GLuint *)&this->gl_texture);
 
@@ -48,15 +44,17 @@ namespace glsample {
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
+			/*	*/
 			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
 			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
-			this->volumeshadow_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->solhouetteDetection_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
-			glUseProgram(this->volumeshadow_program);
-			this->mvp_uniform = glGetUniformLocation(this->volumeshadow_program, "MVP");
-			glUniform1iARB(glGetUniformLocation(this->volumeshadow_program, "diffuse"), 0);
+			/*	*/
+			glUseProgram(this->solhouetteDetection_program);
+			this->mvp_uniform = glGetUniformLocation(this->solhouetteDetection_program, "MVP");
+			glUniform1iARB(glGetUniformLocation(this->solhouetteDetection_program, "diffuse"), 0);
 			glUseProgram(0);
 
 			// Load Texture
@@ -115,13 +113,13 @@ namespace glsample {
 
 			/*	*/
 			glViewport(0, 0, width, height);
-
+			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			/*	Draw the objects.	*/
 			{
 
 				glDisable(GL_STENCIL_TEST);
 
-				glUseProgram(this->volumeshadow_program);
+				glUseProgram(this->solhouetteDetection_program);
 				glUniformMatrix4fv(this->mvp_uniform, 1, GL_FALSE, &camera.getViewMatrix()[0][0]);
 
 				glActiveTexture(GL_TEXTURE0);
@@ -129,7 +127,7 @@ namespace glsample {
 
 				/*	Draw triangle	*/
 				glBindVertexArray(this->plan.vao);
-				glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+				// glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
 				glBindVertexArray(0);
 			}
 
@@ -148,7 +146,7 @@ namespace glsample {
 				glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
 
 				// Draw camera
-				glUseProgram(this->volumeshadow_program);
+				glUseProgram(this->solhouetteDetection_program);
 
 				glDisable(GL_DEPTH_CLAMP);
 				glEnable(GL_CULL_FACE);

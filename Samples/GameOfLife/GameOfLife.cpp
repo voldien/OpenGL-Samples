@@ -55,7 +55,7 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
-			std::vector<char> gameoflife_source = IOUtil::readFileString(computeShaderPath, this->getFileSystem());
+			std::vector<char> gameoflife_source = IOUtil::readFileString(this->computeShaderPath, this->getFileSystem());
 
 			// gameoflife_source =
 			// 	fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, fragcore::ShaderLanguage::GLSL);

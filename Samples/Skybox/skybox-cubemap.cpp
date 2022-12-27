@@ -14,10 +14,6 @@ namespace glsample {
 	class SkyBoxPanoramic : public GLSampleWindow {
 	  public:
 		SkyBoxPanoramic() : GLSampleWindow() { this->setTitle("Skybox Cubemap"); }
-		typedef struct _vertex_t {
-			float vertex[3];
-			float uv[2];
-		} Vertex;
 
 		GeometryObject SkyboxCube;
 

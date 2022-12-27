@@ -147,7 +147,6 @@ namespace glsample {
 				drawAttach[i] = GL_COLOR_ATTACHMENT0 + i;
 			}
 
-			// = GL_COLOR_ATTACHMENT0;
 			glDrawBuffers(drawAttach.size(), drawAttach.data());
 
 			/*  Validate if created properly.*/

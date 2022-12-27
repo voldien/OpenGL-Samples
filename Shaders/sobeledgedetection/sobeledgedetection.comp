@@ -10,7 +10,7 @@ layout(binding = 1, rgba8) uniform readonly image2D texture0;
 
 layout(binding = 0, rgba8) uniform writeonly image2D fragColor;
 
-void main(void) {
+void main() {
 
 	// Get output fragcolor texture coordinate.
 	ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);

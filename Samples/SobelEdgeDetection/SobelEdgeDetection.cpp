@@ -303,6 +303,7 @@ namespace glsample {
 				glBindVertexArray(0);
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
+			/*	Compute sobel edge detection.	*/
 			{
 				glUseProgram(this->sobel_program);
 				glBindImageTexture(0, this->colorTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);

@@ -21,6 +21,7 @@ namespace glsample {
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
 			alignas(16) glm::mat4 modelView;
+			alignas(16) glm::mat4 ViewProj;
 			alignas(16) glm::mat4 modelViewProjection;
 
 			/*light source.	*/
@@ -220,6 +221,7 @@ namespace glsample {
 			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
 			this->mvp.view = this->camera.getViewMatrix();
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
+			this->mvp.ViewProj = this->mvp.proj * this->mvp.view;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *p = glMapBufferRange(
