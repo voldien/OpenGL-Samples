@@ -36,7 +36,7 @@ void main() {
 	vec3 bittagnet = cross(Ttangent, Mnormal);
 
 	/*	Convert normal map texture to a vector.	*/
-	vec3 NormalMapBump = 2.0 * texture(NormalTexture,uv).xyz - vec3(1.0, 1.0, 1.0);
+	vec3 NormalMapBump = 2.0 * texture(NormalTexture, uv).xyz - vec3(1.0, 1.0, 1.0);
 
 	/*	Compute the new normal vector on the specific surface normal.	*/
 	vec3 alteredNormal = normalize(mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump);

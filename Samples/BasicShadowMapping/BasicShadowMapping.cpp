@@ -182,6 +182,12 @@ namespace glsample {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 
+			//			/*	*/
+			// ModelImporter modelLoader(FileSystem::getFileSystem());
+			// modelLoader.loadContent(modelPath, 0);
+			//
+			// const ModelSystemObject &modelRef = modelLoader.getModels()[0];
+
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices, planVertices, cubeVertices, sphereVertices;
 			std::vector<unsigned int> indices, planIndices, cubeIndices, sphereIndices;

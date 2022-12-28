@@ -40,7 +40,6 @@ namespace glsample {
 		/*	*/
 		unsigned int normalMapping_program;
 
-		// TODO change to vector
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;

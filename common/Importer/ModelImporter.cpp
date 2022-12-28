@@ -28,12 +28,17 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 		this->initScene(pScene);
 		importer.FreeScene();
 	} else {
-		throw RuntimeException("Failed to load");
+		throw RuntimeException("Failed to load model: {}", path);
 	}
-	// return importSuccess;
 }
+
 void ModelImporter::clear() {
 	// foreach all assets and clean.
+	this->nodes.clear();
+	this->models.clear();
+	this->materials.clear();
+	this->textures.clear();
+	this->animations.clear();
 }
 
 void ModelImporter::initScene(const aiScene *scene) {
@@ -92,14 +97,12 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 		aiQuaternion rotation;
 
 		NodeObject *pobject = new NodeObject();
-
 		/*	extract position, rotation, position from transformation matrix.	*/
 		nodes->mTransformation.Decompose(scale, rotation, position);
 		if (parent) {
 			pobject->parent = parent;
-			//			pobject->transform()->setParent(parent->transform());
 		} else {
-			//			pobject->transform()->setParent(nullptr);
+			pobject->parent = nullptr;
 		}
 
 		/*	TODO check if works.	*/
@@ -111,39 +114,14 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 		/**/
 		if (nodes->mChildren[x]->mMeshes) {
 			nodes->mChildren[x]->mTransformation;
-			// if (*nodes->mChildren[x]->mMeshes >= 0 && this->meshs.size() > *nodes->mChildren[x]->mMeshes) {
-
-			///*	get mesh by index.	*/
-			// mesh = getMesh(*nodes->mChildren[x]->mMeshes);
-			//
-			// if (!this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->HasBones()) {
-			//	renderer = pobject->addComponet<VDRenderer>();
-			//}
-			//
-			// if (renderer) {
-			//	this->setRenderer(renderer);
-			//	renderer->setMesh(mesh);
-			//}
-			// if (this->getFlag() & IMPORT_MATERIAL) {
-			//	VDMaterial *mat =
-			//		this->getMaterial(this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->mMaterialIndex);
-			//	if (renderer != nullptr) {
-			//		renderer->setMaterial(mat);
-			//	}
-			//}
-			//}
+			for (size_t y = 0; y < nodes->mChildren[x]->mNumMeshes; y++) {
+				this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->mMaterialIndex;
+			}
 		}
+		this->nodes.push_back(pobject);
 
-		/**/
-		// if ((getFlag() & IMPORT_ANIMATION) && this->getAnimationClipCount() > 0) {
-		//	if (pobject->transform() == pobject->transform()->root()) {
-		//		pobject->addComponet<VDAnimation>();
-		//		pobject->animation()->addClip(getAnimationClip(0));
-		//	}
-		//}
-
-		/**/
-		initNoodeRoot(nodes->mChildren[x], pobject);
+		/*	*/
+		this->initNoodeRoot(nodes->mChildren[x], pobject);
 	}
 }
 
@@ -155,6 +133,9 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		(3 + 2 + 3 + 3) * sizeof(float); // VDMesh::getVertexStrideSize((VDMesh::MeshComponent)this->flags);
 	// GLuint vertexSize = getdataStructSize(this->supportFlag);
 	size_t indicesSize = 4; // VDGeometryUtility::getindexBufferSize(aimesh->mNumFaces);
+
+	if (aimesh->HasBones()) {
+	}
 
 	unsigned int VertexIndex = 0, IndicesIndex = 0, bonecount = 0, initilzebone = 0;
 
@@ -192,6 +173,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		*vertices++ = mtangent.x;
 		*vertices++ = mtangent.y;
 		*vertices++ = mtangent.z;
+		// TODO add bone weights.
 
 	} /**/
 
@@ -210,6 +192,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	}
 
 	Indice = Itemp;
+	
 
 	pmesh->indicesData = Indice;
 	pmesh->indicesStride = indicesSize;

@@ -8,11 +8,11 @@ typedef struct geometry_object_t {
 	unsigned int vao;
 	unsigned int vbo;
 	unsigned int ibo;
-	unsigned int nrIndicesElements;
-	unsigned int nrVertices;
+	size_t nrIndicesElements;
+	size_t nrVertices;
 
-	unsigned int vertex_offset;
-	unsigned int indices_offset;
+	size_t vertex_offset;
+	size_t indices_offset;
 } GeometryObject;
 
 class FVDECLSPEC GLSampleSession {

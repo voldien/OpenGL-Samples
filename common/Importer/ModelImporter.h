@@ -36,6 +36,12 @@ typedef struct model_system_object {
 	void *vertexData;
 	void *indicesData;
 
+	unsigned int vertexOffset;
+	unsigned int normalOffset;
+	unsigned int tangentOffset;
+	unsigned int uvOffset;
+	unsigned int boneOffset;
+
 } ModelSystemObject;
 
 typedef struct texture_object_t {
@@ -60,7 +66,7 @@ typedef struct animation_object_t {
 } AnimationObject;
 
 using namespace Assimp;
-class ModelImporter {
+class FVDECLSPEC ModelImporter {
   public:
 	IFileSystem *fileSystem;
 	ModelImporter(IFileSystem *fileSystem) : fileSystem(fileSystem) {}
