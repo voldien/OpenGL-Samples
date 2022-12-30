@@ -57,6 +57,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	unsigned int queries[10];
 	fragcore::IFileSystem *filesystem;
 
+	int preWidth, preHeight;
+
   protected:
 	// TODO Enable RenderDoc
 };

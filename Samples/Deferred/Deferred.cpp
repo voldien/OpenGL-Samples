@@ -35,9 +35,12 @@ namespace glsample {
 			float qudratic_attenuation;
 		} PointLight;
 
+		std::vector<PointLight> pointLights;
+
 		/*	*/
 		GeometryObject plan;
 		GeometryObject sphere;
+		std::vector<GeometryObject> refObj;
 
 		unsigned int diffuse_texture;
 		unsigned int normal_texture;
@@ -57,6 +60,9 @@ namespace glsample {
 
 		CameraController camera;
 
+		
+		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
+		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/deferred/deferred.vert";
 		const std::string fragmentShaderPath = "Shaders/deferred/deferred.frag";
@@ -110,10 +116,10 @@ namespace glsample {
 			ProceduralGeometry::generatePlan(1, vertices, indices);
 
 			/*	*/
-			// ModelImporter modelLoader(FileSystem::getFileSystem());
-			// modelLoader.loadContent(modelPath, 0);
-			//
-			// const ModelSystemObject &modelRef = modelLoader.getModels()[0];
+			ModelImporter modelLoader(FileSystem::getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
+
+			const ModelSystemObject &modelRef = modelLoader.getModels()[0];
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->plan.vao);
@@ -225,8 +231,12 @@ namespace glsample {
 				glDisable(GL_CULL_FACE);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(this->refObj[0].vao);
+				for (size_t i = 0; i < this->refObj.size(); i++) {
+					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+											 this->refObj[i].vertex_offset);
+				}
 				glBindVertexArray(0);
 
 				glUseProgram(0);
@@ -237,6 +247,7 @@ namespace glsample {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				glViewport(0, 0, width, height);
 				glUseProgram(this->deferred_program);
+				// Enable blend.
 
 				glDisable(GL_CULL_FACE);
 				for (size_t i = 0; i < deferred_textures.size(); i++) {
@@ -244,8 +255,10 @@ namespace glsample {
 					glBindTexture(GL_TEXTURE_2D, this->deferred_textures[i]);
 				}
 				/*	*/
-
-				glDrawElementsInstanced(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr, 0);
+				glBindVertexArray(this->sphere.vao);
+				glDrawElementsInstanced(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+										this->pointLights.size());
+				glBindVertexArray(0);
 			}
 		}
 
@@ -260,7 +273,6 @@ namespace glsample {
 			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
 			this->mvp.view = this->camera.getViewMatrix();
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
-
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *p =

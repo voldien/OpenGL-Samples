@@ -15,27 +15,26 @@ namespace vkscommon {
 		void start() { this->ticks = SDL_GetPerformanceCounter(); }
 
 		float getElapsed() const noexcept {
-			return (float)(SDL_GetPerformanceCounter() - this->_private_level_startup) /
+			return static_cast<float>(SDL_GetPerformanceCounter() - this->_private_level_startup) /
 				   static_cast<float>(this->timeResolution);
 		}
 		float deltaTime() const noexcept {
 			return static_cast<float>(this->delta_data) / static_cast<float>(this->timeResolution);
 		}
 		void update() {
-			delta_data = SDL_GetPerformanceCounter() - ticks;
-			ticks = SDL_GetPerformanceCounter();
+			this->delta_data = SDL_GetPerformanceCounter() - this->ticks;
+			this->ticks = SDL_GetPerformanceCounter();
 		}
 
 	  private:
 		/*  */
-		long int ticks;
+		unsigned long int ticks;
 		float scale;
 		float fixed;
 
 		/*	TODO clean up later by relocating it to the time class.*/
 		float gc_fdelta;
 		float delta_data;
-		// unsigned int nDeltaTime = sizeof(delta_data) / sizeof(delta_data[0]);
 		unsigned int idelta;
 
 		/*  */

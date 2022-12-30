@@ -104,7 +104,6 @@ namespace glsample {
 
 			/*	*/
 			glGenFramebuffers(1, &this->mandelbrot_framebuffer);
-			glBindFramebuffer(GL_FRAMEBUFFER, this->mandelbrot_framebuffer);
 
 			glGenTextures(1, &this->mandelbrot_texture);
 			onResize(this->width(), this->height());

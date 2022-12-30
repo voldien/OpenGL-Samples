@@ -1,18 +1,24 @@
-#include "GLSampleWindow.h"
 
-#include "ImageImport.h"
-#include "ModelImporter.h"
-#include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
+#include <ImageImport.h>
+#include <ImportHelper.h>
+#include <ModelImporter.h>
+#include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace glsample {
 
-	// TODO add support for batching.
 	class Fog : public GLSampleWindow {
 	  public:
-		Instance() : GLSampleWindow() { this->setTitle("Fog"); }
+		Fog() : GLSampleWindow() {
+			this->setTitle("Fog");
+			this->shadowSettingComponent = std::make_shared<BasicShadowMapSettingComponent>(this->uniform);
+			this->addUIComponent(this->shadowSettingComponent);
+		}
+
+		enum class DogType { None, Linear, Exp, Exp2, Height };
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -20,59 +26,55 @@ namespace glsample {
 			alignas(16) glm::mat4 proj;
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
+			alignas(16) glm::mat4 lightModelProject;
 
-			/*	Light source.	*/
-			alignas(4) glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
-			glm::vec4 lightColor = glm::vec4(1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
-			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			alignas(4) glm::vec3 viewPos;
-			alignas(4) float shininess = 16.0f;
-		} uniformData;
+			/*	light source.	*/
+			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
+			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec3 lightPosition;
 
-		/*  */
-		size_t rows = 16;
-		size_t cols = 16;
+			int fogType;
+			float fog;
+		} uniform;
 
-		size_t instanceBatch = 64;
-		const size_t nrInstances = (rows * cols);
-		std::vector<glm::mat4> instance_model_matrices;
+		unsigned int shadowFramebuffer;
+		unsigned int shadowTexture;
+		unsigned int shadowWidth = 4096;
+		unsigned int shadowHeight = 4096;
 
-		/*	*/
-		GeometryObject instanceGeometry;
+		std::string diffuseTexturePath = "asset/diffuse.png";
 
-		/*	*/
 		unsigned int diffuse_texture;
-		/*	*/
-		unsigned int instance_program;
 
-		/*  Instance buffer model matrix.   */
-		unsigned int instance_model_buffer;
+		std::vector<GeometryObject> refObj;
+
+		unsigned int graphic_program;
+		unsigned int shadow_program;
 
 		// TODO change to vector
 		unsigned int uniform_buffer_index;
-		unsigned int uniform_instance_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_instance_buffer_binding = 1;
-		unsigned int uniform_mvp_buffer;
-		unsigned int uniform_instance_buffer;
+		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(UniformBufferBlock);
-		size_t uniformInstanceSize = 0;
+		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
 		CameraController camera;
 
-		class NormalMapSettingComponent : public nekomimi::UIComponent {
-
+		class BasicShadowMapSettingComponent : public nekomimi::UIComponent {
 		  public:
-			NormalMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("NormalMap Settings");
+			BasicShadowMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Basic Shadow Mapping Settings");
 			}
 			virtual void draw() override {
+				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
+				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+
+				//								ImGui::Image((ImTextureID)this->depth, ImVec2(128, 128));
 			}
 
 			bool showWireFrame = false;
@@ -80,212 +82,241 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
+		std::shared_ptr<BasicShadowMapSettingComponent> shadowSettingComponent;
 
-		const std::string diffuseTexturePath = "diffuse.png";
-		const std::string modelPath = "asset/bunny.obj";
+		const std::string modelPath = "asset/sponza/sponza.obj";
+		/*	*/
+		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert";
+		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag";
 
-		const std::string vertexShaderPath = "Shaders/instance/instance.vert";
-		const std::string fragmentShaderPath = "Shaders/instance/instance.frag";
+		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert";
+		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag";
 
 		virtual void Release() override {
-			/*	*/
-			glDeleteProgram(this->instance_program);
+			glDeleteProgram(this->graphic_program);
+			glDeleteProgram(this->shadow_program);
 
-			/*	*/
-			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
-
-			glDeleteBuffers(1, &this->uniform_mvp_buffer);
-
-			/*	*/
-			glDeleteVertexArrays(1, &this->instanceGeometry.vao);
-			glDeleteBuffers(1, &this->instanceGeometry.vbo);
+			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-
-			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
-
-			/*	Load shader	*/
-			this->instance_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
-			glUseProgram(this->instance_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->instance_program, "DiffuseTexture"), 0);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->instance_program, uniform_buffer_index, this->uniform_buffer_binding);
-			this->uniform_instance_buffer_index =
-				glGetUniformBlockIndex(this->instance_program, "UniformInstanceBlock");
+			std::vector<char> vertex_source =
+				IOUtil::readFileString(this->vertexGraphicShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source =
+				IOUtil::readFileString(this->fragmentGraphicShaderPath, this->getFileSystem());
 
-			glUseProgram(0);
+			/*	*/
+			std::vector<char> vertex_shadow_source =
+				IOUtil::readFileString(this->vertexShadowShaderPath, this->getFileSystem());
+			std::vector<char> fragment_shadow_source =
+				IOUtil::readFileString(this->fragmentShadowShaderPath, this->getFileSystem());
+
+			/*	Load shaders	*/
+			this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->shadow_program = ShaderLoader::loadGraphicProgram(&vertex_shadow_source, &fragment_shadow_source);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 
 			/*	*/
+			glUseProgram(this->shadow_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	*/
+			glUseProgram(this->graphic_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			glUniform1iARB(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
+			glUniform1iARB(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
+			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformSize = fragcore::Math::align(this->uniformSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
-			glGenBuffers(1, &this->uniform_mvp_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			// Create uniform buffer.
+			glGenBuffers(1, &this->uniform_buffer);
+			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
-			/*	*/
-			GLint uniformMaxSize;
-			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
-			this->instanceBatch = uniformMaxSize / sizeof(glm::mat4);
+			{
+				/*	Create shadow map.	*/
+				glGenFramebuffers(1, &shadowFramebuffer);
+				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
 
-			/*	*/
-			this->uniformInstanceSize =
-				fragcore::Math::align(this->instanceBatch * sizeof(glm::mat4), (size_t)minMapBufferSize);
-			this->instance_model_matrices.resize(nrInstances);
-			glGenBuffers(1, &this->uniform_instance_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+				/*	*/
+				glGenTextures(1, &this->shadowTexture);
+				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT,
+							 GL_FLOAT, nullptr);
+				/*	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				/*	Border clamped to max value, it makes the outside area.	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTexture, 0);
+				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+				if (frstat != GL_FRAMEBUFFER_COMPLETE) {
+
+					/*  Delete  */
+					glDeleteFramebuffers(1, &shadowFramebuffer);
+					// TODO add error message.
+					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+				}
+				glDrawBuffer(GL_NONE);
+				glReadBuffer(GL_NONE);
+
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
 
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
 
-			const ModelSystemObject &modelRef = modelLoader.getModels()[0];
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->instanceGeometry.vao);
-			glBindVertexArray(this->instanceGeometry.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->instanceGeometry.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, instanceGeometry.vbo);
-			glBufferData(GL_ARRAY_BUFFER, modelRef.nrVertices * modelRef.vertexStride, modelRef.vertexData,
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glGenBuffers(1, &this->instanceGeometry.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, instanceGeometry.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, modelRef.nrIndices * modelRef.indicesStride, modelRef.indicesData,
-						 GL_STATIC_DRAW);
-			this->instanceGeometry.nrIndicesElements = modelRef.nrIndices;
-
-			/*	Vertices.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, nullptr);
-
-			/*	UVs	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(12));
-
-			/*	Normals.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
+			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
 		virtual void draw() override {
 
 			update();
-
 			int width, height;
 			getSize(&width, &height);
 
-			/*	*/
-			this->uniformData.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glViewport(0, 0, width, height);
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
+							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
 
-			/*	*/
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			{
 
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_mvp_buffer,
-							  (getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
+				/*	Compute light matrices.	*/
+				float near_plane = -40.0f, far_plane = 40.5f;
+				glm::mat4 lightProjection = glm::ortho(-40.0f, 40.0f, -40.0f, 40.0f, near_plane, far_plane);
+				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+												  glm::vec3(0.0f, 1.0f, 0.0f));
+				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+				this->uniform.lightModelProject = lightSpaceMatrix;
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_index, this->uniform_instance_buffer,
-							  (getFrameCount() % this->nrUniformBuffer) * this->uniformInstanceSize,
-							  this->uniformInstanceSize);
+				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
 
-			// TODO add support for batching for limit amount of uniform buffers.
+				glClear(GL_DEPTH_BUFFER_BIT);
+				glViewport(0, 0, shadowWidth, shadowHeight);
+				glUseProgram(this->shadow_program);
+				glCullFace(GL_FRONT);
+				glEnable(GL_CULL_FACE);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-			glUseProgram(this->instance_program);
+				/*	Setup the shadow.	*/
 
-			glDisable(GL_CULL_FACE);
+				glBindVertexArray(this->refObj[0].vao);
+				for (size_t i = 0; i < this->refObj.size(); i++) {
+					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+											 this->refObj[i].vertex_offset);
+				}
+				glBindVertexArray(0);
 
-			/*	*/
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
+				///*  Draw Shadow Object.  */
+				// glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 plan.indices_offset);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 cube.indices_offset);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 sphere.indices_offset);
+				//
+				// glBindVertexArray(0);
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
+			{
+				/*	*/
+				glViewport(0, 0, width, height);
 
-			/*	Draw Instances.	*/
-			glBindVertexArray(this->instanceGeometry.vao);
-			glDrawElementsInstanced(GL_TRIANGLES, this->instanceGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-									this->nrInstances);
-			glBindVertexArray(0);
+				/*	*/
+				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+				glUseProgram(this->graphic_program);
+
+				glCullFace(GL_BACK);
+				glDisable(GL_CULL_FACE);
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0 + 1);
+				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
+
+				glBindVertexArray(this->refObj[0].vao);
+				for (size_t i = 0; i < this->refObj.size(); i++) {
+					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+											 this->refObj[i].vertex_offset);
+				}
+				glBindVertexArray(0);
+
+				///*	Draw triangle	*/
+				// glBindVertexArray(this->plan.vao);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 plan.indices_offset);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 cube.indices_offset);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 sphere.indices_offset);
+				// glBindVertexArray(0);
+			}
 		}
 
-		void update() {
-			/*	*/
-			float elapsedTime = getTimer().getElapsed();
+		virtual void update() {
+			/*	Update Camera.	*/
 			camera.update(getTimer().deltaTime());
 
-			for (size_t i = 0; i < rows; i++) {
-				for (size_t j = 0; j < cols; j++) {
-					const size_t index = i * cols + j;
-
-					glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(i * 10.0f, 0, j * 10.0f));
-					model = glm::rotate(model, glm::radians(elapsedTime * 45.0f + index * 11.5f),
-										glm::vec3(0.0f, 1.0f, 0.0f));
-					model = glm::scale(model, glm::vec3(1.95f));
-
-					instance_model_matrices[index] = model;
-				}
-			}
-
-			this->uniformData.model = glm::mat4(1.0f);
-			this->uniformData.view = camera.getViewMatrix();
-			this->uniformData.modelViewProjection = this->uniformData.model * camera.getViewMatrix();
-			this->uniformData.viewPos = this->camera.getPosition();
-			//	this->uniformData.viewPos = this->camera.getPosition();
+			/*	*/
+			this->uniform.model = glm::mat4(1.0f);
+			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
+			this->uniform.view = this->camera.getViewMatrix();
+			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
 
 			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
-			void *uniformMVP =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
-								 uniformSize, GL_MAP_WRITE_BIT);
-			memcpy(uniformMVP, &this->uniformData, sizeof(uniformData));
+			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			void *p = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(p, &this->uniform, sizeof(uniform));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+		}
+	};
 
-			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
-			void *uniformInstance = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformInstanceSize,
-				this->uniformInstanceSize, GL_MAP_WRITE_BIT);
-			memcpy(uniformInstance, instance_model_matrices.data(),
-				   sizeof(instance_model_matrices[0]) * instance_model_matrices.size());
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+	class FogGLSample : public GLSample<Fog> {
+	  public:
+		FogGLSample(int argc, const char **argv) : GLSample<Fog>(argc, argv) {}
+		virtual void commandline(cxxopts::Options &options) override {
+			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+												  cxxopts::value<std::string>()->default_value("texture.png"))(
+				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Fog> sample(argc, argv);
-
+		glsample::FogGLSample sample(argc, argv);
 		sample.run();
 
 	} catch (const std::exception &ex) {

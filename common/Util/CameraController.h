@@ -51,6 +51,7 @@ class CameraController {
 	const glm::mat4 &getViewMatrix() const noexcept { return this->view; }
 
 	const glm::vec3 getPosition() const noexcept { return this->pos; }
+	void getPosition(const glm::vec3 &position) noexcept { this->pos = position; }
 
 	const glm::vec3 getLookDirection() const noexcept { return this->look; }
 
@@ -66,7 +67,7 @@ class CameraController {
 	int x, y, xprev, yprev;
 
 	glm::mat4 view;
-	glm::vec3 pos = {0.0f, 0.0f, 0.0f};
+	glm::vec3 pos = {0.0f, 1.0f, 0.0f};
 	glm::vec3 look = {0.0f, 0.0f, 1.0f};
 	glm::vec3 up = {0.0f, 1.0f, 0.0f};
 };

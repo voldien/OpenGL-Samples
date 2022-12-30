@@ -219,7 +219,6 @@ namespace glsample {
 
 			/*	Compute particles.	*/
 			{
-				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 				/*	Bind uniform buffer.	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,

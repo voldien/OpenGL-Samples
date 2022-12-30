@@ -1,9 +1,9 @@
-#include "ImageImport.h"
-#include "ModelImporter.h"
-#include "ShaderLoader.h"
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
+#include <ImageImport.h>
 #include <ImportHelper.h>
+#include <ModelImporter.h>
+#include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
@@ -20,19 +20,15 @@ namespace glsample {
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
 
-			/*light source.	*/
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
-			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-		} mvp;
+		} uniformBuffer;
 
 		/*	*/
-		GeometryObject plan;
 		std::vector<GeometryObject> refObj;
 
 		unsigned int diffuse_texture;
 		unsigned int normal_texture;
 
+		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer;
 		unsigned int multipass_program;
 		unsigned int multipass_texture_width;
@@ -52,20 +48,22 @@ namespace glsample {
 		/*	*/
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
-
+		const std::string modelPath = "asset/sponza/sponza.obj";
 		virtual void Release() override {
 			glDeleteProgram(this->multipass_program);
+
+			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
+			glDeleteTextures(1, &this->depthTexture);
+			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
 
 			/*	*/
-			glDeleteVertexArrays(1, &this->plan.vao);
-			glDeleteBuffers(1, &this->plan.vbo);
-			glDeleteBuffers(1, &this->plan.ibo);
+			glDeleteVertexArrays(1, &this->refObj[0].vao);
+			glDeleteBuffers(1, &this->refObj[0].vbo);
+			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
-
-		const std::string modelPath = "asset/sponza/sponza.obj";
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -101,57 +99,14 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateCube(1, vertices, indices);
-
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
 
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
-
-			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	UV.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
-
-			/*	Normal.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
-
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);
 
 			this->multipass_textures.resize(4);
 			glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
@@ -163,12 +118,14 @@ namespace glsample {
 			this->multipass_texture_width = width;
 			this->multipass_texture_height = height;
 
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);
+
 			/*	Resize the image.	*/
 			std::vector<GLenum> drawAttach(multipass_textures.size());
-			for (size_t i = 0; i < multipass_textures.size(); i++) {
+			for (size_t i = 0; i < this->multipass_textures.size(); i++) {
 
 				glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, this->width(), this->height(), 0, GL_RGB, GL_UNSIGNED_BYTE,
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, this->multipass_texture_width, this->multipass_texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE,
 							 nullptr);
 				glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -179,10 +136,10 @@ namespace glsample {
 
 			glGenTextures(1, &this->depthTexture);
 			glBindTexture(GL_TEXTURE_2D, depthTexture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, this->width(), this->height(), 0, GL_DEPTH_COMPONENT,
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, this->multipass_texture_width, this->multipass_texture_height, 0, GL_DEPTH_COMPONENT,
 						 GL_FLOAT, NULL);
 			glBindTexture(GL_TEXTURE_2D, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
 
 			glDrawBuffers(drawAttach.size(), drawAttach.data());
 
@@ -203,7 +160,8 @@ namespace glsample {
 			getSize(&width, &height);
 
 			/*	*/
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniformBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -229,11 +187,6 @@ namespace glsample {
 				// glActiveTexture(GL_TEXTURE0 + 1);
 				// glBindTexture(GL_TEXTURE_2D, this->normal_texture);
 
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
-
 				glBindVertexArray(this->refObj[0].vao);
 				for (size_t i = 0; i < this->refObj.size(); i++) {
 					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
@@ -246,7 +199,6 @@ namespace glsample {
 			}
 
 			/*	Blit image targets to screen.	*/
-			// For each.
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
 
@@ -265,22 +217,23 @@ namespace glsample {
 		}
 
 		virtual void update() { /*	Update Camera.	*/
-			float elapsedTime = getTimer().getElapsed();
+			const float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model =
-				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
-			this->mvp.view = this->camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
+			this->uniformBuffer.model = glm::mat4(1.0f);
+			this->uniformBuffer.model =
+				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(40.95f));
+			this->uniformBuffer.view = this->camera.getViewMatrix();
+			this->uniformBuffer.modelViewProjection =
+				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *p =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
 								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(p, &this->mvp, sizeof(mvp));
+			memcpy(p, &this->uniformBuffer, sizeof(uniformBuffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

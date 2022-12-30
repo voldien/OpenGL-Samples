@@ -31,7 +31,7 @@ ubo;
 
 layout(location = 0) smooth out vec2 uv;
 layout(location = 1) smooth out vec4 gColor;
-layout(location = 0) in vec2 velocity[];
+layout(location = 0) in vec4 velocity[];
 
 void main() {
 	const int noffsets = 4;

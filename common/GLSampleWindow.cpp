@@ -21,6 +21,9 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 
 	glGenQueries(sizeof(this->queries) / sizeof(this->queries[0]), &this->queries[0]);
 
+	this->preWidth = this->width();
+	this->preHeight = this->height();
+
 	/*	*/
 	// glEnable(GL_FRAMEBUFFER_SRGB);
 }
@@ -28,6 +31,12 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 void GLSampleWindow::displayMenuBar() {}
 
 void GLSampleWindow::renderUI() {
+
+	if(this->preWidth != this->width() || this->preHeight != this->height()){
+		this->onResize(this->width(), this->height());
+	}
+	this->preWidth = this->width();
+	this->preHeight = this->height();
 
 	/*	*/
 	glBeginQuery(GL_TIME_ELAPSED, this->queries[0]);
@@ -55,6 +64,7 @@ void GLSampleWindow::renderUI() {
 
 	std::cout << "FPS " << this->getFPSCounter().getFPS() << " Elapsed Time: " << getTimer().getElapsed() << std::endl;
 
+	/*	*/
 	const Uint8 *state = SDL_GetKeyboardState(nullptr);
 	if (state[SDL_SCANCODE_F12]) {
 		this->captureScreenShot();

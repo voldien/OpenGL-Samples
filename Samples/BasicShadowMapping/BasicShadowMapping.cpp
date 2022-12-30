@@ -2,9 +2,12 @@
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
+#include <ImportHelper.h>
+#include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
 namespace glsample {
 
 	class BasicShadowMapping : public GLSampleWindow {
@@ -35,15 +38,14 @@ namespace glsample {
 
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
-		unsigned int shadowWidth = 1024;
-		unsigned int shadowHeight = 1024;
+		unsigned int shadowWidth = 4096;
+		unsigned int shadowHeight = 4096;
 
 		std::string diffuseTexturePath = "asset/diffuse.png";
+
 		unsigned int diffuse_texture;
 
-		GeometryObject plan;
-		GeometryObject cube;
-		GeometryObject sphere;
+		std::vector<GeometryObject> refObj;
 
 		unsigned int graphic_program;
 		unsigned int shadow_program;
@@ -67,7 +69,10 @@ namespace glsample {
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+
+//								ImGui::Image((ImTextureID)this->depth, ImVec2(128, 128));
 			}
 
 			bool showWireFrame = false;
@@ -77,9 +82,11 @@ namespace glsample {
 		};
 		std::shared_ptr<BasicShadowMapSettingComponent> shadowSettingComponent;
 
+		const std::string modelPath = "asset/sponza/sponza.obj";
 		/*	*/
 		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert";
 		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag";
+
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag";
 
@@ -88,44 +95,35 @@ namespace glsample {
 			glDeleteProgram(this->shadow_program);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			glDeleteVertexArrays(1, &this->plan.vao);
-			glDeleteBuffers(1, &this->plan.vbo);
-			glDeleteBuffers(1, &this->plan.ibo);
-
-			glDeleteVertexArrays(1, &this->sphere.vao);
-			glDeleteBuffers(1, &this->sphere.vbo);
-			glDeleteBuffers(1, &this->sphere.ibo);
-
-			glDeleteVertexArrays(1, &this->cube.vao);
-			glDeleteBuffers(1, &this->cube.vbo);
-			glDeleteBuffers(1, &this->cube.ibo);
 		}
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexGraphicShaderPath, getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentGraphicShaderPath, getFileSystem());
+			std::vector<char> vertex_source =
+				IOUtil::readFileString(this->vertexGraphicShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source =
+				IOUtil::readFileString(this->fragmentGraphicShaderPath, this->getFileSystem());
 
 			/*	*/
-			std::vector<char> vertex_shadow_source = IOUtil::readFileString(vertexShadowShaderPath, getFileSystem());
+			std::vector<char> vertex_shadow_source =
+				IOUtil::readFileString(this->vertexShadowShaderPath, this->getFileSystem());
 			std::vector<char> fragment_shadow_source =
-				IOUtil::readFileString(fragmentShadowShaderPath, getFileSystem());
+				IOUtil::readFileString(this->fragmentShadowShaderPath, this->getFileSystem());
 
 			/*	Load shaders	*/
 			this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 			this->shadow_program = ShaderLoader::loadGraphicProgram(&vertex_shadow_source, &fragment_shadow_source);
 
 			/*	load Textures	*/
-			TextureImporter textureImporter(getFileSystem());
+			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 
 			/*	*/
 			glUseProgram(this->shadow_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->shadow_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
@@ -133,18 +131,18 @@ namespace glsample {
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			glUniform1iARB(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = Math::align(uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			// Create uniform buffer.
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			{
@@ -182,82 +180,11 @@ namespace glsample {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 
-			//			/*	*/
-			// ModelImporter modelLoader(FileSystem::getFileSystem());
-			// modelLoader.loadContent(modelPath, 0);
-			//
-			// const ModelSystemObject &modelRef = modelLoader.getModels()[0];
-
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices, planVertices, cubeVertices, sphereVertices;
-			std::vector<unsigned int> indices, planIndices, cubeIndices, sphereIndices;
-			ProceduralGeometry::generatePlan(1, planVertices, planIndices, 1, 1);
-			ProceduralGeometry::generateSphere(1, cubeVertices, cubeIndices);
-			ProceduralGeometry::generateCube(1, sphereVertices, sphereIndices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, this->plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER,
-						 (planVertices.size() + cubeVertices.size() + sphereVertices.size()) *
-							 sizeof(ProceduralGeometry::Vertex),
-						 nullptr, GL_STATIC_DRAW);
-
-			/*	Write each of the geometries to the single VBO.	*/
-			glBufferSubData(GL_ARRAY_BUFFER, 0, planVertices.size() * sizeof(ProceduralGeometry::Vertex),
-							planVertices.data());
-			glBufferSubData(GL_ARRAY_BUFFER, planVertices.size() * sizeof(ProceduralGeometry::Vertex),
-							cubeVertices.size() * sizeof(ProceduralGeometry::Vertex), cubeVertices.data());
-			glBufferSubData(GL_ARRAY_BUFFER,
-							(planVertices.size() + cubeVertices.size()) * sizeof(ProceduralGeometry::Vertex),
-							sphereVertices.size() * sizeof(ProceduralGeometry::Vertex), sphereVertices.data());
-
 			/*	*/
-			glGenBuffers(1, &plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-						 (planIndices.size() + cubeIndices.size() + sphereIndices.size()) * sizeof(indices[0]), nullptr,
-						 GL_STATIC_DRAW);
+			ModelImporter modelLoader(FileSystem::getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
 
-			/*	*/
-			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, planIndices.size() * sizeof(indices[0]), planIndices.data());
-			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, planIndices.size() * sizeof(indices[0]),
-							cubeIndices.size() * sizeof(indices[0]), cubeIndices.data());
-			glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, (planIndices.size() + cubeIndices.size()) * sizeof(indices[0]),
-							sphereIndices.size() * sizeof(indices[0]), sphereIndices.data());
-
-			/*	Setup */
-			this->plan.nrIndicesElements = planIndices.size();
-			this->plan.indices_offset = 0;
-			this->cube.nrIndicesElements = cubeIndices.size();
-			this->cube.indices_offset = planVertices.size();
-			this->sphere.nrIndicesElements = sphereIndices.size();
-			this->sphere.indices_offset = planVertices.size() + cubeVertices.size();
-
-			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	UV.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
-
-			/*	Normal.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
+			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
 		virtual void draw() override {
@@ -275,8 +202,8 @@ namespace glsample {
 			{
 
 				/*	Compute light matrices.	*/
-				float near_plane = 1.0f, far_plane = 7.5f;
-				glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+				float near_plane = -40.0f, far_plane = 40.5f;
+				glm::mat4 lightProjection = glm::ortho(-40.0f, 40.0f, -40.0f, 40.0f, near_plane, far_plane);
 				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f),
 												  glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
@@ -293,17 +220,23 @@ namespace glsample {
 
 				/*	Setup the shadow.	*/
 
-				glBindVertexArray(this->plan.vao);
-
-				/*  Draw Shadow Object.  */
-				glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-										 plan.indices_offset);
-				glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-										 cube.indices_offset);
-				glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-										 sphere.indices_offset);
-
+				glBindVertexArray(this->refObj[0].vao);
+				for (size_t i = 0; i < this->refObj.size(); i++) {
+					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+											 this->refObj[i].vertex_offset);
+				}
 				glBindVertexArray(0);
+
+				///*  Draw Shadow Object.  */
+				// glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 plan.indices_offset);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 cube.indices_offset);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 sphere.indices_offset);
+				//
+				// glBindVertexArray(0);
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 			{
@@ -327,15 +260,23 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + 1);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
-				/*	Draw triangle	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-										 plan.indices_offset);
-				glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-										 cube.indices_offset);
-				glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-										 sphere.indices_offset);
+				glBindVertexArray(this->refObj[0].vao);
+				for (size_t i = 0; i < this->refObj.size(); i++) {
+					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+											 this->refObj[i].vertex_offset);
+				}
 				glBindVertexArray(0);
+
+				///*	Draw triangle	*/
+				// glBindVertexArray(this->plan.vao);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 plan.indices_offset);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 cube.indices_offset);
+				// glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						 sphere.indices_offset);
+				// glBindVertexArray(0);
 			}
 		}
 

@@ -17,7 +17,7 @@ void main() {
 
 	Diffuse = texture(DiffuseTexture, uv).rgb;
 
-	Normal = normal;
+	Normal = normalize(normal);
 	WorldSpace = vertex.xyz;
 	TextureCoord.xy = uv;
 }

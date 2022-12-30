@@ -144,9 +144,9 @@ void main(/*vec4 *particles, const vec2 *vectorfield, ivec2 particleBox, ivec2 v
 			vec2 force;
 
 			///*  Get particle.   */
-			// vec4 *part = &particles[pindex];
-			// vec2 velocity = part.zw;
-			// vec2 pos = part.xy;
+			//vec4 part = readBuffer.particles[pindex].position;
+			//vec2 velocity = part.zw;
+			//vec2 pos = part.xy;
 			//
 			///*  Get vector of incluense. - Bilinear   */
 			// const vec2 forceInf = computeInfluence(pos, vectorBox, vectorfield);
@@ -163,6 +163,7 @@ void main(/*vec4 *particles, const vec2 *vectorfield, ivec2 particleBox, ivec2 v
 			//
 			///*	Final position update.	*/
 			// part.xy = clamp(part.xy, min, max);
+			writeBuffer.particle[pindex].position = vec3(1);
 		}
 	}
 }

@@ -46,7 +46,7 @@ namespace glsample {
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
 
-		/*	*/
+		/*	Program.	*/
 		unsigned int pointLight_program;
 
 		// TODO change to vector
@@ -70,7 +70,6 @@ namespace glsample {
 					ImGui::PushID(1000 + i);
 					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightVisable[i],
 												ImGuiTreeNodeFlags_CollapsingHeader)) {
-						// if (ImGui::BeginChild(i + 1000)) {
 
 						ImGui::ColorEdit4("Light Color", &this->uniform.pointLights[i].color[0],
 										  ImGuiColorEditFlags_Float);
@@ -78,9 +77,6 @@ namespace glsample {
 						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
 						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
 						ImGui::DragFloat("Intensity", &this->uniform.pointLights[i].intensity);
-
-						//}
-						// ImGui::EndChild();
 					}
 					ImGui::PopID();
 				}
@@ -136,12 +132,12 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = Math::align(uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
@@ -199,19 +195,21 @@ namespace glsample {
 				mvp.pointLights[i].qudratic_attenuation = 0.05f;
 				mvp.pointLights[i].intensity = 1.0f;
 			}
+
+
 		}
 
 		virtual void draw() override {
 
-			update();
+			this->update();
 			int width, height;
 			getSize(&width, &height);
 
 			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
 
 			/*	*/
 			glViewport(0, 0, width, height);

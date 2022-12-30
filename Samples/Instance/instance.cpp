@@ -10,6 +10,7 @@
 namespace glsample {
 
 	// TODO add support for batching.
+	// TODO add support for color random.
 	class Instance : public GLSampleWindow {
 	  public:
 		Instance() : GLSampleWindow() { this->setTitle("Instance"); }
@@ -62,11 +63,11 @@ namespace glsample {
 
 		CameraController camera;
 
-		class NormalMapSettingComponent : public nekomimi::UIComponent {
+		class InstanceSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			NormalMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("NormalMap Settings");
+			InstanceSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Instance Settings");
 			}
 			virtual void draw() override {
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
@@ -80,7 +81,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
+		std::shared_ptr<InstanceSettingComponent> instanceSettingComponent;
 
 		const std::string diffuseTexturePath = "diffuse.png";
 		const std::string modelPath = "asset/bunny.obj";
@@ -106,8 +107,8 @@ namespace glsample {
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			std::vector<char> vertex_source = IOUtil::readFileString(this->vertexShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source = IOUtil::readFileString(this->fragmentShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
 			this->instance_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
@@ -134,7 +135,7 @@ namespace glsample {
 
 			glGenBuffers(1, &this->uniform_mvp_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/

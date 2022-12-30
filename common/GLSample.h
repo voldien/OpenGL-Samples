@@ -9,7 +9,6 @@
 #include <SDLDisplay.h>
 #include <cxxopts.hpp>
 
-
 template <class T> class GLSample : public GLSampleSession {
   public:
 	GLSample(int argc, const char **argv) {

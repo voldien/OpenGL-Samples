@@ -2,7 +2,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(location = 0) in vec4 Vertex;
-layout(location = 0) out vec4 Velocity;
+layout(location = 1) in vec4 Velocity;
+
+layout(location = 0) out vec4 velocity;
+layout(location = 2) out float ageTime;
 
 struct particle_setting {
 	float speed;
@@ -29,6 +32,7 @@ layout(binding = 0) uniform UniformBufferBlock {
 ubo;
 
 void main() {
-	gl_Position = Vertex;
-	Velocity = Vertex;
+	gl_Position = ubo.modelViewProjection * vec4(Vertex.xyz, 1.0);
+	ageTime = Vertex.w;
+	velocity = Velocity;
 }

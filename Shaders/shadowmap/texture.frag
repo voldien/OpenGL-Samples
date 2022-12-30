@@ -39,7 +39,7 @@ float ShadowCalculation(vec4 fragPosLightSpace) {
 	// get depth of current fragment from light's perspective
 	float currentDepth = projCoords.z;
 	// check whether current frag pos is in shadow
-	float bias = max(0.05 * (1.0 - dot(normal, ubo.direction.xyz)), 0.005);
+	float bias = max(0.05 * (1.0 - dot(normal, ubo.direction.xyz)), ubo.bias);
 	// float bias = 0.005;
 	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
@@ -50,6 +50,11 @@ float ShadowCalculation(vec4 fragPosLightSpace) {
 }
 
 void main() {
+	// vec3 viewDir = normalize(ubo.viewPos.xyz - vertex);
+	//
+	// vec3 halfwayDir = normalize(lightDir + viewDir);
+	// spec = pow(max(dot(normal, halfwayDir), 0.0), ubo.shininess);
+
 	vec4 color = texture(DiffuseTexture, UV);
 	float shadow = ShadowCalculation(lightSpace) * ubo.shadowStrength;
 	vec4 lighting = (ubo.ambientColor + (1.0 - shadow) * (ubo.lightColor /* + specular*/)) * color;

@@ -12,8 +12,8 @@ template <typename T = double> class FPSCounter {
 		this->fpsSample = nrFPSSample;
 		this->timeResolution = timeResolution;
 
-		averageFPS = 0;
-		totalFPS = 0;
+		this->averageFPS = 0;
+		this->totalFPS = 0;
 	}
 
 	void enabled(bool status) {}

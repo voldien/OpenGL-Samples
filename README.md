@@ -25,6 +25,8 @@ A collection of OpenGL Samples.
 
 - **SkyBox Panoramic**
 
+- **Ambient Occlusion**
+
 - **Fog**
 
 - **Terrain**
