@@ -46,6 +46,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	void setFileSystem(fragcore::IFileSystem *filesystem) { this->filesystem = filesystem; }
 
+	unsigned int getShaderVersion() const;
+
   protected:
 	virtual void displayMenuBar() override;
 	virtual void renderUI() override;

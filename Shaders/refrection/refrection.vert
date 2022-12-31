@@ -10,7 +10,6 @@ layout(location = 0) out vec3 vertex;
 layout(location = 1) out vec2 UV;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
-layout(location = 4) out vec4 lightSpace;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -18,23 +17,20 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
 	mat4 modelView;
 	mat4 modelViewProjection;
-	mat4 lightSpaceMatrix;
+
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
 	vec3 cameraPosition;
 
-	float bias;
-	float shadowStrength;
+	float IOR;
 }
 ubo;
 
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
-	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
 	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
-	lightSpace = ubo.lightSpaceMatrix * (ubo.model * vec4(Vertex, 1.0));
 	UV = TextureCoord;
 }

@@ -192,7 +192,6 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	}
 
 	Indice = Itemp;
-	
 
 	pmesh->indicesData = Indice;
 	pmesh->indicesStride = indicesSize;
@@ -225,8 +224,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 }
 
 MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index) {
-	unsigned int x;
-	unsigned int y;
+
 	char absolutepath[PATH_MAX];
 
 	char *data;
@@ -255,8 +253,8 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	material->name = name.C_Str();
 
 	/*	load all texture assoicated with texture.	*/
-	for (y = 0; y < aiTextureType::aiTextureType_UNKNOWN; y++) {
-		for (x = 0; x < pmaterial->GetTextureCount((aiTextureType)y); x++) {
+	for (size_t y = 0; y < aiTextureType::aiTextureType_UNKNOWN; y++) {
+		for (size_t x = 0; x < pmaterial->GetTextureCount((aiTextureType)y); x++) {
 
 			/*	extract texture information.	*/
 			if (pmaterial->GetTexture((aiTextureType)y, x, &path, nullptr, nullptr, nullptr, nullptr, &mapmode) ==
@@ -295,19 +293,23 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	// pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc);
 	// pmaterial->Get(AI_MATKEY_TWOSIDED, blendfunc);
 
+	// AI_MATKEY_OPACITY;
 	/*	Assign shader attributes.	*/
-	// pmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]);
-	// mate->setColor("DiffuseColor", color);
-	// pmaterial->Get(AI_MATKEY_COLOR_SPECULAR, color[0]);
-	// mate->setColor("SpecularColor", color);
-	// pmaterial->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]);
-	// mate->setColor("", color);
-	// pmaterial->Get(AI_MATKEY_REFLECTIVITY, color[0]);
-	// mate->setColor("", color);
-	// pmaterial->Get(AI_MATKEY_SHININESS, shininessStrength);
-	// mate->setColor("", color);
-	// pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, color[0]);
-	// mate->setColor("", color);
+	pmaterial->Get(AI_MATKEY_COLOR_AMBIENT, color[0]);
+	material->ambient = color;
+	pmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]);
+	material->diffuse = color;
+	pmaterial->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]);
+	material->emission = color;
+	pmaterial->Get(AI_MATKEY_COLOR_SPECULAR, color[0]);
+	material->specular = color;
+	pmaterial->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]);
+	material->transparent = color;
+	pmaterial->Get(AI_MATKEY_REFLECTIVITY, color[0]);
+	material->reflectivity = color;
+	pmaterial->Get(AI_MATKEY_SHININESS, shininessStrength);
+	material->hinininessStrength = shininessStrength;
+	pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, color[0]);
 
 	return material;
 }

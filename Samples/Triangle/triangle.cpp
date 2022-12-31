@@ -59,6 +59,7 @@ namespace glsample {
 			std::vector<uint32_t> fragment_source =
 				IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
 
+
 			// TODO add support
 			std::vector<char> vertex_source_T =
 				fragcore::ShaderCompiler::convertSPIRV(vertex_source, fragcore::ShaderLanguage::GLSL);

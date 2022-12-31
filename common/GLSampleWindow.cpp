@@ -1,4 +1,5 @@
 #include "GLSampleWindow.h"
+#include <GLRendererInterface.h>
 #include <ImageLoader.h>
 // TODO add supprt for renderdoc
 unsigned int pboBuffer;
@@ -32,7 +33,7 @@ void GLSampleWindow::displayMenuBar() {}
 
 void GLSampleWindow::renderUI() {
 
-	if(this->preWidth != this->width() || this->preHeight != this->height()){
+	if (this->preWidth != this->width() || this->preHeight != this->height()) {
 		this->onResize(this->width(), this->height());
 	}
 	this->preWidth = this->width();
@@ -118,4 +119,11 @@ void GLSampleWindow::captureScreenShot() {
 	std::string str(buffer);
 
 	loader.saveImage(SystemInfo::getAppliationName() + "-screenshot-" + str + ".png", image);
+}
+
+unsigned int GLSampleWindow::getShaderVersion() const {
+	const fragcore::GLRendererInterface *interface =
+		dynamic_cast<const fragcore::GLRendererInterface *>(this->getRenderInterface().get());
+	const char *shaderVersion = interface->getShaderVersion(fragcore::ShaderLanguage::GLSL);
+	return std::stoi(shaderVersion);
 }

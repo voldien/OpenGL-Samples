@@ -14,7 +14,8 @@ namespace glsample {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
 			this->setTitle("ShadowMapping");
-			shadowSettingComponent = std::make_shared<BasicShadowMapSettingComponent>(this->uniform);
+			shadowSettingComponent =
+				std::make_shared<BasicShadowMapSettingComponent>(this->uniform, this->shadowTexture);
 			this->addUIComponent(shadowSettingComponent);
 		}
 
@@ -30,7 +31,7 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec3 lightPosition;
+			glm::vec3 cameraPosition;
 
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
@@ -38,8 +39,8 @@ namespace glsample {
 
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
-		unsigned int shadowWidth = 4096;
-		unsigned int shadowHeight = 4096;
+		size_t shadowWidth = 4096;
+		size_t shadowHeight = 4096;
 
 		std::string diffuseTexturePath = "asset/diffuse.png";
 
@@ -50,7 +51,7 @@ namespace glsample {
 		unsigned int graphic_program;
 		unsigned int shadow_program;
 
-		// TODO change to vector
+		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -61,7 +62,8 @@ namespace glsample {
 
 		class BasicShadowMapSettingComponent : public nekomimi::UIComponent {
 		  public:
-			BasicShadowMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			BasicShadowMapSettingComponent(struct UniformBufferBlock &uniform, unsigned int &depth)
+				: uniform(uniform), depth(depth) {
 				this->setName("Basic Shadow Mapping Settings");
 			}
 			virtual void draw() override {
@@ -70,11 +72,14 @@ namespace glsample {
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
-
-//								ImGui::Image((ImTextureID)this->depth, ImVec2(128, 128));
+				ImGui::TextUnformatted("Depth Texture");
+				ImGui::Image((ImTextureID)this->depth, ImVec2(512, 512));
 			}
 
+			float distance = 50.0;
+			unsigned int &depth;
 			bool showWireFrame = false;
 
 		  private:
@@ -94,7 +99,14 @@ namespace glsample {
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->shadow_program);
 
+			glDeleteFramebuffers(1, &this->shadowFramebuffer);
+			glDeleteTextures(1, &this->shadowTexture);
+
 			glDeleteBuffers(1, &this->uniform_buffer);
+
+			glDeleteVertexArrays(1, &this->refObj[0].vao);
+			glDeleteBuffers(1, &this->refObj[0].vbo);
+			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
 		virtual void Initialize() override {
@@ -153,7 +165,7 @@ namespace glsample {
 				/*	*/
 				glGenTextures(1, &this->shadowTexture);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT,
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT,
 							 GL_FLOAT, nullptr);
 				/*	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -164,6 +176,8 @@ namespace glsample {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTexture, 0);
 				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -202,11 +216,19 @@ namespace glsample {
 			{
 
 				/*	Compute light matrices.	*/
-				float near_plane = -40.0f, far_plane = 40.5f;
-				glm::mat4 lightProjection = glm::ortho(-40.0f, 40.0f, -40.0f, 40.0f, near_plane, far_plane);
-				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-												  glm::vec3(0.0f, 1.0f, 0.0f));
+				float near_plane = -this->shadowSettingComponent->distance / 2.0f,
+					  far_plane = this->shadowSettingComponent->distance / 2.0f;
+				glm::mat4 lightProjection =
+					glm::ortho(-this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
+							   -this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
+							   near_plane, far_plane);
+				glm::mat4 lightView = glm::lookAt(
+					glm::vec3(-2.0f, 4.0f, -1.0f),
+					glm::vec3(this->uniform.direction.x, this->uniform.direction.y, this->uniform.direction.z),
+					glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+				glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
 				this->uniform.lightModelProject = lightSpaceMatrix;
 
 				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
@@ -214,9 +236,9 @@ namespace glsample {
 				glClear(GL_DEPTH_BUFFER_BIT);
 				glViewport(0, 0, shadowWidth, shadowHeight);
 				glUseProgram(this->shadow_program);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				glCullFace(GL_FRONT);
 				glEnable(GL_CULL_FACE);
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 				/*	Setup the shadow.	*/
 
@@ -227,19 +249,11 @@ namespace glsample {
 											 this->refObj[i].vertex_offset);
 				}
 				glBindVertexArray(0);
-
-				///*  Draw Shadow Object.  */
-				// glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 plan.indices_offset);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 cube.indices_offset);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 sphere.indices_offset);
-				//
-				// glBindVertexArray(0);
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
+
 			{
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				/*	*/
 				glViewport(0, 0, width, height);
 
@@ -248,7 +262,7 @@ namespace glsample {
 				glUseProgram(this->graphic_program);
 
 				glCullFace(GL_BACK);
-				glDisable(GL_CULL_FACE);
+				// glDisable(GL_CULL_FACE);
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
@@ -267,16 +281,6 @@ namespace glsample {
 											 this->refObj[i].vertex_offset);
 				}
 				glBindVertexArray(0);
-
-				///*	Draw triangle	*/
-				// glBindVertexArray(this->plan.vao);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 plan.indices_offset);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 cube.indices_offset);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 sphere.indices_offset);
-				// glBindVertexArray(0);
 			}
 		}
 
@@ -289,13 +293,14 @@ namespace glsample {
 			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
 			this->uniform.view = this->camera.getViewMatrix();
 			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
+			this->uniform.cameraPosition = this->camera.getPosition();
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
-				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(p, &this->uniform, sizeof(uniform));
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformPointer, &this->uniform, sizeof(uniform));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

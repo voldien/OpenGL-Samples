@@ -26,7 +26,7 @@ namespace glsample {
 
 		unsigned int physical_based_rendering_program;
 
-		// TODO change to vector
+		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -51,6 +51,10 @@ namespace glsample {
 			float gravity;
 
 		} uniform_stage_buffer;
+
+		typedef struct MaterialUniformBlock_t {
+
+		} MaterialUniformBlock;
 
 		const std::string modelPath = "asset/bunny.obj";
 		std::string panoramicPath = "asset/panoramic.jpg";
