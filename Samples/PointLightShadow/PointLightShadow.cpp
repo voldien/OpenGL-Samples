@@ -50,6 +50,7 @@ namespace glsample {
 		unsigned int shadow_program;
 
 		// TODO change to vector
+		unsigned int uniform_buffer_shadow_index;
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -84,8 +85,10 @@ namespace glsample {
 		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert";
 		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag";
 
-		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert";
-		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag";
+		/*	*/
+		const std::string vertexShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert";
+		const std::string geomtryShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert";
+		const std::string fragmentShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.frag";
 
 		virtual void Release() override {
 			glDeleteProgram(this->graphic_program);
@@ -106,12 +109,15 @@ namespace glsample {
 			/*	*/
 			std::vector<char> vertex_shadow_source =
 				IOUtil::readFileString(this->vertexShadowShaderPath, this->getFileSystem());
+			std::vector<char> geometry_shadow_source =
+				IOUtil::readFileString(this->geomtryShadowShaderPath, this->getFileSystem());
 			std::vector<char> fragment_shadow_source =
 				IOUtil::readFileString(this->fragmentShadowShaderPath, this->getFileSystem());
 
 			/*	Load shaders	*/
 			this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
-			this->shadow_program = ShaderLoader::loadGraphicProgram(&vertex_shadow_source, &fragment_shadow_source);
+			this->shadow_program = ShaderLoader::loadGraphicProgram(&vertex_shadow_source, &fragment_shadow_source,
+																	&geometry_shadow_source);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -144,25 +150,26 @@ namespace glsample {
 
 			{
 				/*	Create shadow map.	*/
-				glGenFramebuffers(1, &shadowFramebuffer);
-				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
+				glGenFramebuffers(1, &this->shadowFramebuffer);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
 
 				/*	*/
 				glGenTextures(1, &this->shadowTexture);
-				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT,
-							 GL_FLOAT, nullptr);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, this->shadowTexture);
+				glTexImage2D(GL_TEXTURE_CUBE_MAP, 0, GL_DEPTH_COMPONENT16, this->shadowWidth, this->shadowHeight, 0,
+							 GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 				/*	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+				glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTexture, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP, this->shadowTexture,
+									   0);
 				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 				if (frstat != GL_FRAMEBUFFER_COMPLETE) {
 
@@ -225,15 +232,6 @@ namespace glsample {
 				}
 				glBindVertexArray(0);
 
-				///*  Draw Shadow Object.  */
-				// glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 plan.indices_offset);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 cube.indices_offset);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 sphere.indices_offset);
-				//
-				// glBindVertexArray(0);
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 			{
@@ -246,6 +244,7 @@ namespace glsample {
 
 				glCullFace(GL_BACK);
 				glDisable(GL_CULL_FACE);
+
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
@@ -264,16 +263,6 @@ namespace glsample {
 											 this->refObj[i].vertex_offset);
 				}
 				glBindVertexArray(0);
-
-				///*	Draw triangle	*/
-				// glBindVertexArray(this->plan.vao);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 plan.indices_offset);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, cube.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 cube.indices_offset);
-				// glDrawElementsBaseVertex(GL_TRIANGLES, sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						 sphere.indices_offset);
-				// glBindVertexArray(0);
 			}
 		}
 
@@ -289,10 +278,10 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(p, &this->uniform, sizeof(uniform));
+			memcpy(uniformPointer, &this->uniform, sizeof(uniform));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

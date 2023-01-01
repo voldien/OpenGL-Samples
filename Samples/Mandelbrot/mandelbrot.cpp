@@ -178,10 +178,10 @@ namespace glsample {
 		virtual void update() {
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p =
+			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount()) % nrUniformBuffer) * uniformBufferSize,
 								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(p, &params, sizeof(params));
+			memcpy(uniformPointer, &params, sizeof(params));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 
 			/*	Update.	*/

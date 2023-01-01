@@ -11,7 +11,7 @@ namespace glsample {
 	  public:
 		Refrection() : GLSampleWindow() {
 			this->setTitle("Refrection");
-			this->refrectionSettingComponent = std::make_shared<RefrectionSettingComponent>(this->mvp);
+			this->refrectionSettingComponent = std::make_shared<RefrectionSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->refrectionSettingComponent);
 		}
 
@@ -29,9 +29,9 @@ namespace glsample {
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 position;
 
-			float IOR;
+			float IOR = 1.5;
 
-		} mvp;
+		} uniformBuffer;
 
 		/*	*/
 		GeometryObject torus;
@@ -45,6 +45,7 @@ namespace glsample {
 		unsigned int skybox_program;
 
 		/*  Uniform buffers.    */
+		unsigned int uniform_refrection_buffer_index;
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -60,6 +61,7 @@ namespace glsample {
 			virtual void draw() override {
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat("IOR", &this->uniform.IOR);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -74,8 +76,8 @@ namespace glsample {
 
 		std::string panoramicPath = "asset/panoramic.jpg";
 
-		const std::string vertexShaderPath = "Shaders/refrection/refrection.vert";
-		const std::string fragmentShaderPath = "Shaders/refrection/refrection.frag";
+		const std::string vertexRefrectionShaderPath = "Shaders/refrection/refrection.vert";
+		const std::string fragmentRefrectionShaderPath = "Shaders/refrection/refrection.frag";
 
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/skybox.vert";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
@@ -98,10 +100,11 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_simple_ocean_source =
-				IOUtil::readFileString(this->vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_simple_ocean_source =
-				IOUtil::readFileString(this->fragmentShaderPath, this->getFileSystem());
+			std::vector<char> vertex_refrection_source =
+				IOUtil::readFileString(this->vertexRefrectionShaderPath, this->getFileSystem());
+			std::vector<char> fragment_refrection_source =
+				IOUtil::readFileString(this->fragmentRefrectionShaderPath, this->getFileSystem());
+
 			std::vector<char> vertex_source =
 				IOUtil::readFileString(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
 			std::vector<char> fragment_source =
@@ -109,14 +112,16 @@ namespace glsample {
 
 			/*	Load shader	*/
 			this->refrection_program =
-				ShaderLoader::loadGraphicProgram(&vertex_simple_ocean_source, &fragment_simple_ocean_source);
+				ShaderLoader::loadGraphicProgram(&vertex_refrection_source, &fragment_refrection_source);
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->refrection_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->refrection_program, "UniformBufferBlock");
+			this->uniform_refrection_buffer_index =
+				glGetUniformBlockIndex(this->refrection_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->refrection_program, "ReflectionTexture"), 0);
-			glUniformBlockBinding(this->refrection_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->refrection_program, this->uniform_refrection_buffer_index,
+								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
@@ -133,18 +138,17 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = Math::align(uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices, 256, 256);
 			ProceduralGeometry::generateTorus(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
@@ -219,7 +223,8 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniformBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
@@ -249,13 +254,14 @@ namespace glsample {
 				glDrawElements(GL_TRIANGLES, this->torus.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
+
 			/*	Skybox. */
 			{
 				glUseProgram(this->skybox_program);
 
 				glDisable(GL_CULL_FACE);
 				glDisable(GL_BLEND);
-				glDisable(GL_DEPTH_TEST);
+				glEnable(GL_DEPTH_TEST);
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, refrectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
@@ -272,18 +278,21 @@ namespace glsample {
 
 		void update() {
 			/*	Update Camera.	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = this->getTimer().getElapsed();
+			camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model = glm::rotate(this->mvp.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
-			this->mvp.view = this->camera.getViewMatrix();
-			this->mvp.lookDirection = glm::vec4(this->camera.getLookDirection().x, this->camera.getLookDirection().z,
-												this->camera.getLookDirection().y, 0);
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
-			this->mvp.position =
+			this->uniformBuffer.model = glm::mat4(1.0f);
+			this->uniformBuffer.model =
+				glm::rotate(this->uniformBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
+			this->uniformBuffer.view = this->camera.getViewMatrix();
+			this->uniformBuffer.lookDirection =
+				glm::vec4(this->camera.getLookDirection().x, this->camera.getLookDirection().z,
+						  this->camera.getLookDirection().y, 0);
+			this->uniformBuffer.modelViewProjection =
+				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+			this->uniformBuffer.position =
 				glm::vec4(this->camera.getPosition().x, this->camera.getPosition().z, this->camera.getPosition().y, 0);
 
 			/*  */
@@ -291,7 +300,7 @@ namespace glsample {
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	}; // namespace glsample
@@ -300,9 +309,8 @@ namespace glsample {
 	  public:
 		RefrectionGLSample(int argc, const char **argv) : GLSample<Refrection>(argc, argv) {}
 		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options.add_options("Refrection-Sample")("T,texture", "Texture Path",
+													 cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 

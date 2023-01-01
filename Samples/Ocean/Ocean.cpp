@@ -351,9 +351,9 @@ namespace glsample {
 
 			/*	Updated uniform data.	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p = glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
+			void *uniformPointer = glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
 									   uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(p, &this->mvp, sizeof(mvp));
+			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

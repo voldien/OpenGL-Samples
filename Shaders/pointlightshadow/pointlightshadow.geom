@@ -4,7 +4,7 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 
-//layout(location = 0) in vec2 vUV[];
+// layout(location = 0) in vec2 vUV[];
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -14,12 +14,12 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 	/*	Light source.	*/
 	vec4 ambientColor;
-	//point_light point_light[4];
+	// point_light point_light[4];
 }
 ubo;
 
-//uniform mat4 ubo.ViewProjection[6];
-//uniform mat4 ubo.model;
+// uniform mat4 ubo.ViewProjection[6];
+// uniform mat4 ubo.model;
 
 void main() {
 

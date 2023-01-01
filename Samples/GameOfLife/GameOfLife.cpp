@@ -38,7 +38,6 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
 			std::vector<char> gameoflife_source =
@@ -55,7 +54,6 @@ namespace glsample {
 			glUniform1iARB(glGetUniformLocation(this->gameoflife_program, "previousCellsTexture"), 0);
 			glUniform1iARB(glGetUniformLocation(this->gameoflife_program, "currentCellsTexture"), 1);
 			glUniform1iARB(glGetUniformLocation(this->gameoflife_program, "renderTexture"), 2);
-
 			glGetProgramiv(this->gameoflife_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 			glUseProgram(0);
 
@@ -77,6 +75,7 @@ namespace glsample {
 			std::vector<uint8_t> textureData(this->gameoflife_texture_width * this->gameoflife_texture_width *
 											 sizeof(uint8_t));
 
+			/*	*/
 			Random random;
 			for (size_t j = 0; j < this->gameoflife_texture_height; j++) {
 				for (size_t i = 0; i < this->gameoflife_texture_width; i++) {
@@ -96,6 +95,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 
+			/*	*/
 			glGenTextures(1, &this->gameoflife_render_texture);
 			glBindTexture(GL_TEXTURE_2D, this->gameoflife_render_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->gameoflife_texture_width, this->gameoflife_texture_height, 0,

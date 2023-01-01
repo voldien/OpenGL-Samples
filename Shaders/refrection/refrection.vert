@@ -19,10 +19,11 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 
 	/*	Light source.	*/
+vec4 lookDirection;
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
-	vec3 cameraPosition;
+	vec4 cameraPosition;
 
 	float IOR;
 }
@@ -30,6 +31,8 @@ ubo;
 
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
+
+	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
 	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
 	UV = TextureCoord;

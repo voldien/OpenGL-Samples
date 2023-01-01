@@ -28,19 +28,23 @@ template <class T> class GLSample : public GLSampleSession {
 			"g,opengl-version", "OpenGL Version", cxxopts::value<bool>()->default_value("false"))(
 			"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."));
 
-		/*	*/
+		/*	Append command option for the specific sample.	*/
 		this->commandline(options);
 
+		/*	Parse the command line input.	*/
 		auto result = options.parse(argc, (char **&)argv);
+
 		/*	If mention help, Display help and exit!	*/
 		if (result.count("help") > 0) {
 			std::cout << options.help(options.groups());
 			exit(EXIT_SUCCESS);
 		}
 
+		/*	*/
 		bool debug = result["debug"].as<bool>();
 		bool fullscreen = result["fullscreen"].as<bool>();
 		bool vsync = result["vsync"].as<bool>();
+
 		/*	Enable debugging.	*/
 		if (debug) {
 			/*	*/
@@ -52,6 +56,7 @@ template <class T> class GLSample : public GLSampleSession {
 		int width = -1;
 		int height = -1;
 
+		/*	*/
 		if (fullscreen) {
 			// Compute window size
 			SDLDisplay display(0);
@@ -59,7 +64,7 @@ template <class T> class GLSample : public GLSampleSession {
 			height = display.height();
 		}
 
-		/*	*/
+		/*	Create filesystem that the asset will be read from.	*/
 		activeFileSystem = FileSystem::createFileSystem();
 		std::string filesystemPath = result["filesystem"].as<std::string>();
 		if (!activeFileSystem->isDirectory(filesystemPath.c_str())) {

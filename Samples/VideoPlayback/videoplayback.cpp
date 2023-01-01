@@ -467,13 +467,13 @@ namespace glsample {
 									  this->frameoutput->data, this->frameoutput->linesize);
 
 							glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStagingTextureBuffer);
-							void *p =
+							void *uniformPointer =
 								glMapBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, nthVideoFrame * videoStageBufferMemorySize,
 												 videoStageBufferMemorySize,
 												 GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT); // TODO fix access bit
 
 							/*	Upload the image to staging.	*/
-							memcpy(p, this->frameoutput->data[0], videoStageBufferMemorySize);
+							memcpy(uniformPointer, this->frameoutput->data[0], videoStageBufferMemorySize);
 							glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, 0, videoStageBufferMemorySize);
 							glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 

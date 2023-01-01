@@ -9,6 +9,7 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 
 layout(binding = 0) uniform sampler2D ReflectionTexture;
+
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -17,16 +18,17 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 
 	/*	Light source.	*/
+	vec4 lookDirection;
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
-	vec3 cameraPosition;
+	vec4 cameraPosition;
 
 	float IOR;
 }
 ubo;
 
-vec2 inverse_equirectangular(vec3 direction) {
+vec2 inverse_equirectangular(const in vec3 direction) {
 	const vec2 invAtan = vec2(0.1591, 0.3183);
 	vec2 uv = vec2(atan(direction.z, direction.x), asin(direction.y));
 	uv *= invAtan;
@@ -36,16 +38,16 @@ vec2 inverse_equirectangular(vec3 direction) {
 
 void main() {
 
-	vec3 viewDir = normalize(ubo.cameraPosition.xyz - vertex);
+	const vec3 viewDir = normalize(ubo.cameraPosition.xyz - vertex);
 
-	vec3 halfwayDir = normalize(ubo.direction.xyz + viewDir);
-	float spec = pow(max(dot(normal, halfwayDir), 0.0), 8);
+	const vec3 halfwayDir = normalize(normalize(ubo.direction.xyz) + viewDir);
+	const float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), 16.0);
 
-	float contribution = max(0.0, dot(normal, ubo.direction.xyz));
+	const float contribution = max(0.0, dot(normalize(normal), normalize(ubo.direction.xyz)));
 
-	vec3 refrectionDir = refract(viewDir, normal, 1.333);
+	const vec3 refrectionDir = normalize(refract(ubo.lookDirection.xyz, normalize(normal), ubo.IOR));
 
-	vec2 reflection_uv = inverse_equirectangular(refrectionDir);
+	const vec2 reflection_uv = inverse_equirectangular(refrectionDir);
 
-	fragColor = texture(ReflectionTexture, reflection_uv) * (ubo.ambientColor + spec);
+	fragColor = texture(ReflectionTexture, reflection_uv) * (ubo.ambientColor + spec + contribution * ubo.lightColor);
 }

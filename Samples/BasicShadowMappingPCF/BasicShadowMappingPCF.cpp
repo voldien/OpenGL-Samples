@@ -11,8 +11,8 @@ namespace glsample {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
 			this->setTitle("ShadowMap");
-			tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
-			this->addUIComponent(tessellationSettingComponent);
+			this->tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->tessellationSettingComponent);
 		}
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -29,7 +29,7 @@ namespace glsample {
 
 			float bias;
 			float shadowStrength;
-		} mvp;
+		} uniformBuffer;
 
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
@@ -230,7 +230,7 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniformBuffer.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -299,22 +299,22 @@ namespace glsample {
 
 		virtual void update() {
 			/*	Update Camera.	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = this->getTimer().getElapsed();
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model =
-				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
-			this->mvp.view = this->camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
+			this->uniformBuffer.model = glm::mat4(1.0f);
+			this->uniformBuffer.model =
+				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
+			this->uniformBuffer.view = this->camera.getViewMatrix();
+			this->uniformBuffer.modelViewProjection = this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(p, &this->mvp, sizeof(mvp));
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

@@ -4,6 +4,4 @@
 layout(location = 0) out float fragColor;
 layout(binding = 0) uniform sampler2D DiffuseTexture;
 
-void main() {
-	//	gl_FragDepth = gl_FragCoord.z;
-}
+void main() { fragColor = gl_FragCoord.z; }

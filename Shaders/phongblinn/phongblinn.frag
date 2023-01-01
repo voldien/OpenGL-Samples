@@ -47,6 +47,7 @@ void main() {
 	// Compute directional light
 	vec4 pointLightColors = vec4(0);
 	vec4 pointLightSpecular = vec4(0);
+	
 	for (int i = 0; i < 4; i++) {
 
 		vec3 diffVertex = (ubo.point_light[i].position - vertex);

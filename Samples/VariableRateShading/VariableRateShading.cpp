@@ -195,10 +195,10 @@ namespace glsample {
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p = glMapBufferRange(
+			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
 				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(p, &this->mvp, sizeof(mvp));
+			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

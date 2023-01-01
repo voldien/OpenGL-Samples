@@ -178,10 +178,10 @@ namespace glsample {
 			this->uniform_stage_buffer.modelViewProjection = (this->proj * camera.getViewMatrix());
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p =
+			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
 								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(p, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
+			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

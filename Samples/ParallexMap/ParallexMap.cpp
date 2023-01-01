@@ -12,7 +12,7 @@ namespace glsample {
 	  public:
 		ParallexMap() : GLSampleWindow() {
 			this->setTitle("ParallexMap");
-			normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->mvp);
+			normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(normalMapSettingComponent);
 		}
 
@@ -28,7 +28,7 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-		} mvp;
+		} uniformBuffer;
 
 		/*	*/
 		GeometryObject plan;
@@ -40,6 +40,7 @@ namespace glsample {
 		/*	*/
 		unsigned int normalMapping_program;
 
+		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -174,7 +175,7 @@ namespace glsample {
 			getSize(&width, &height);
 
 			/*	*/
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniformBuffer.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -210,26 +211,25 @@ namespace glsample {
 
 		void update() {
 			/*	Update Camera.	*/
-			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model =
-				glm::rotate(this->mvp.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
-			this->mvp.view = this->camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
-			this->mvp.ViewProj = this->mvp.proj * this->mvp.view;
+			this->uniformBuffer.model = glm::mat4(1.0f);
+			this->uniformBuffer.model = glm::rotate(this->uniformBuffer.model, glm::radians(0.0f * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
+			this->uniformBuffer.view = this->camera.getViewMatrix();
+			this->uniformBuffer.modelViewProjection = this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *p = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
-				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(p, &this->mvp, sizeof(mvp));
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};
+	
 	class ParallexMapGLSample : public GLSample<ParallexMap> {
 	  public:
 		ParallexMapGLSample(int argc, const char **argv) : GLSample<ParallexMap>(argc, argv) {}
@@ -245,7 +245,7 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::ParallexMapGLSample> sample(argc, argv);
+		glsample::ParallexMapGLSample sample(argc, argv);
 
 		sample.run();
 
