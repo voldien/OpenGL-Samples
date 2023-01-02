@@ -79,8 +79,8 @@ namespace glsample {
 		const std::string vertexRefrectionShaderPath = "Shaders/refrection/refrection.vert";
 		const std::string fragmentRefrectionShaderPath = "Shaders/refrection/refrection.frag";
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/skybox.vert";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag";
 
 		virtual void Release() override {
 			/*	*/
@@ -242,6 +242,7 @@ namespace glsample {
 
 				glDisable(GL_CULL_FACE);
 				glEnable(GL_DEPTH_TEST);
+				glDepthMask(GL_TRUE);
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->refrectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
@@ -262,6 +263,8 @@ namespace glsample {
 				glDisable(GL_CULL_FACE);
 				glDisable(GL_BLEND);
 				glEnable(GL_DEPTH_TEST);
+				//glDepthMask(GL_FALSE);
+
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, refrectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 

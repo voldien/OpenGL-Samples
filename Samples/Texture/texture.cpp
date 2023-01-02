@@ -149,7 +149,7 @@ namespace glsample {
 		virtual void update() {
 
 			/*	Update Camera.	*/
-			camera.update(getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime());
 
 			this->proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
@@ -168,6 +168,7 @@ namespace glsample {
 	  public:
 		TextureGLSample(int argc, const char **argv) : GLSample<Texture>(argc, argv) {}
 		virtual void commandline(cxxopts::Options &options) override {
+
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"));
 		}

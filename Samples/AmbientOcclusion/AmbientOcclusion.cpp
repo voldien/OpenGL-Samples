@@ -62,7 +62,7 @@ namespace glsample {
 		unsigned int ssao_program;
 		unsigned int random_texture;
 
-		// TODO change to vector
+		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_ssao_buffer_index;
 		unsigned int uniform_buffer_binding = 0;

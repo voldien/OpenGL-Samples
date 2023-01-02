@@ -23,7 +23,7 @@ namespace glsample {
 
 		int localWorkGroupSize[3];
 
-		unsigned int nthTexture;
+		unsigned int nthTexture = 0;
 
 		/*	*/
 		const std::string computeShaderPath = "Shaders/gameoflife/gameoflife.comp";

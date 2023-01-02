@@ -44,8 +44,8 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/skybox.vert";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag";
 
 	  public:
 		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
@@ -151,19 +151,22 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	*/
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 			glDisable(GL_CULL_FACE);
 			glDisable(GL_BLEND);
 			glDisable(GL_DEPTH_TEST);
+
 			/*	Optional - to display wireframe.	*/
 			glPolygonMode(GL_FRONT_AND_BACK, skyboxSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
+			/*	*/
 			glUseProgram(this->skybox_program);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic);
 
-			/*	Draw triangle*/
+			/*	Draw triangle.	*/
 			glBindVertexArray(this->SkyboxCube.vao);
 			glDrawElements(GL_TRIANGLES, this->SkyboxCube.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);

@@ -36,8 +36,8 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/skybox.vert";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag";
 
 		virtual void Release() override {
 			glDeleteProgram(this->skybox_program);
