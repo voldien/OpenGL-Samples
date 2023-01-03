@@ -32,7 +32,7 @@ layout(binding = 0) uniform UniformBufferBlock {
 ubo;
 
 void main() {
-	gl_Position = ubo.modelViewProjection * vec4(Vertex.xyz, 1.0);
+	gl_Position = vec4(Vertex.xyz, 1.0);
 	ageTime = Vertex.w;
 	velocity = Velocity;
 }

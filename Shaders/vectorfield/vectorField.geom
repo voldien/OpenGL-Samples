@@ -37,8 +37,7 @@ layout(location = 0) smooth out vec3 amplitude;
 vec3 computeColor(const in vec2 dir) { return vec3((dir.x + 1.0) / 2.0, (dir.y + 1.0) / 2.0, (dir.x - 1.0) / 2.0); }
 
 void main() {
-	
-	int i;
+
 	const float PI = 3.14159265359;
 	const float hPI = PI;
 	const float arrowAngle = PI / 7.0;
@@ -46,7 +45,7 @@ void main() {
 	const float arrowLength = 1.0 / 3.5;
 
 	/*  Create Billboard quad.    */
-	for (i = 0; i < gl_in.length(); i++) {
+	for (int i = 0; i < gl_in.length(); i++) {
 
 		const vec4 glpos = gl_in[i].gl_Position;
 

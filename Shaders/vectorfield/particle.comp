@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout(local_size_x = 2, local_size_y = 2, local_size_z = 2) in;
 
 struct particle_t {
 	vec3 position;
@@ -12,7 +12,9 @@ struct particle_t {
 struct particle_setting {
 	float speed;
 	float lifetime;
+
 	float gravity;
+	float deltatime;
 };
 
 /**
@@ -108,8 +110,7 @@ vec2 computeMotionInfluence(vec4 particle) {
 /**
  * Perform particle simulation with vector field.
  */
-void main(/*vec4 *particles, const vec2 *vectorfield, ivec2 particleBox, ivec2 vectorBox, float deltatime,
-			  int density, struct motion_t motion*/) {
+void main() {
 
 	/*	Particle mass.	*/
 	const float mass = 1.0;
@@ -141,29 +142,29 @@ void main(/*vec4 *particles, const vec2 *vectorfield, ivec2 particleBox, ivec2 v
 		/*	*/
 		for (int x = 0; x < nlw; x++) {
 			uint pindex = prow + x;
-			vec2 force;
 
-			///*  Get particle.   */
-			//vec4 part = readBuffer.particles[pindex].position;
-			//vec2 velocity = part.zw;
-			//vec2 pos = part.xy;
+			/*  Get particle.   */
+			vec3 position = readBuffer.particle[pindex].position;
+			vec3 velocity = readBuffer.particle[pindex].velocity.xyz;
+
 			//
 			///*  Get vector of incluense. - Bilinear   */
-			// const vec2 forceInf = computeInfluence(pos, vectorBox, vectorfield);
-			// const vec2 motionInf = computeMotionInfluence(*part, &motion);
-			//
-			///*  Compute total force.  */
-			// force = (velocity + forceInf + motionInf);
-			//
-			///*  Add force to particle position. */
-			// part.zw = force * invMass;
-			// velocity = part.zw;
-			///*	Update the position.	*/
-			// part.xy = pos.xy + velocity * deltatime;
+			const vec3 forceInf = vec3(0);	// computeInfluence(position, ubo.vectorBox, ubo.vectorfield);
+			const vec3 motionInf = vec3(0); // computeMotionInfluence(position, &motion);
+
+			/*  Compute total force.  */
+			vec3 force = (velocity + forceInf + motionInf);
+
+			/*  Add force to particle position. */
+			velocity = force * invMass;
+			/*	Update the position.	*/
+			position = position + velocity * ubo.setting.deltatime;
 			//
 			///*	Final position update.	*/
-			// part.xy = clamp(part.xy, min, max);
-			writeBuffer.particle[pindex].position = vec3(1);
+			// position.xy = clamp(position.xy, min, max);
+
+			writeBuffer.particle[pindex].position = position;
+			writeBuffer.particle[pindex].velocity = vec4(velocity, 1);
 		}
 	}
 }

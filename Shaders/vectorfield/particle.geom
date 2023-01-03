@@ -49,13 +49,13 @@ void main() {
 
 			/*	Compute inverse zoom - expressed as a polynominal.	*/
 			const float invZoom = (1.0f / ubo.zoom + ubo.zoom * (1.0f / 150.0f)) * 0.5f;
-			const vec3 particlePos = vec3(gl_in[i].gl_Position.xy, 0.0) + polyoffset[j] * invZoom;
+			const vec3 particlePos = gl_in[i].gl_Position.xyz + polyoffset[j] * invZoom;
 
 			/*	Velocity.	*/
 			// const vec2 velocity = gl_in[i].gl_Position.zw;
 
 			/*	*/
-			gl_Position = ubo.view * vec4(particlePos, 1.0);
+			gl_Position = ubo.modelViewProjection * vec4(particlePos, 1.0);
 
 			/*	Compute particle color.	*/
 			const float reduce = (1.0 / 20.0);

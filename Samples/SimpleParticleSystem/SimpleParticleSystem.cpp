@@ -12,8 +12,8 @@ namespace glsample {
 	  public:
 		SimpleParticleSystem() : GLSampleWindow() {
 			this->setTitle("SimpleParticleSystem");
-			tessellationSettingComponent = std::make_shared<SimpleParticleSystemSettingComponent>(this->mvp);
-			this->addUIComponent(tessellationSettingComponent);
+			this->simpleParticleSettingComponent = std::make_shared<SimpleParticleSystemSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->simpleParticleSettingComponent);
 		}
 
 		/*	*/
@@ -51,7 +51,7 @@ namespace glsample {
 			/*	*/
 			ParticleSetting particleSetting;
 
-		} mvp;
+		} uniformBuffer;
 
 		typedef struct particle_t {
 			glm::vec4 position; /*	Position, time	*/
@@ -88,7 +88,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<SimpleParticleSystemSettingComponent> tessellationSettingComponent;
+		std::shared_ptr<SimpleParticleSystemSettingComponent> simpleParticleSettingComponent;
 
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/simpleparticlesystem/simpleparticlesystem.vert";
@@ -153,7 +153,7 @@ namespace glsample {
 				particle_buffer[i].position =
 					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
 							  Random::normalizeRand<float>() * 100.0f,
-							  Random::normalizeRand<float>() * mvp.particleSetting.lifetime);
+							  Random::normalizeRand<float>() * uniformBuffer.particleSetting.lifetime);
 				particle_buffer[i].velocity =
 					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
 							  Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f);
@@ -222,17 +222,17 @@ namespace glsample {
 
 		void update() {
 			/*	*/
-			this->mvp.proj =
+			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
-			this->mvp.delta = getTimer().deltaTime();
+			this->uniformBuffer.delta = getTimer().deltaTime();
 
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.view = camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
+			this->uniformBuffer.model = glm::mat4(1.0f);
+			this->uniformBuffer.view = camera.getViewMatrix();
+			this->uniformBuffer.modelViewProjection = this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
@@ -240,7 +240,7 @@ namespace glsample {
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
 								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 
-			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

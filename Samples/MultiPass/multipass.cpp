@@ -46,9 +46,11 @@ namespace glsample {
 
 		std::string diffuseTexturePath = "asset/diffuse.png";
 		/*	*/
-		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
-		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
+		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
+		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
+
 		const std::string modelPath = "asset/sponza/sponza.obj";
+
 		virtual void Release() override {
 			glDeleteProgram(this->multipass_program);
 
@@ -66,15 +68,22 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			std::vector<char> vertex_source =
-				IOUtil::readFileString(this->vertexMultiPassShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
-				IOUtil::readFileString(this->fragmentMultiPassShaderPath, this->getFileSystem());
+			std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
+			std::vector<char> fragment_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
 
 			/*	Load shader	*/
-			this->multipass_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->multipass_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->multipass_program);
@@ -125,8 +134,8 @@ namespace glsample {
 			for (size_t i = 0; i < this->multipass_textures.size(); i++) {
 
 				glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, this->multipass_texture_width, this->multipass_texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE,
-							 nullptr);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->multipass_texture_width,
+							 this->multipass_texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D,
@@ -136,8 +145,8 @@ namespace glsample {
 
 			glGenTextures(1, &this->depthTexture);
 			glBindTexture(GL_TEXTURE_2D, depthTexture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, this->multipass_texture_width, this->multipass_texture_height, 0, GL_DEPTH_COMPONENT,
-						 GL_FLOAT, NULL);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
+						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
 

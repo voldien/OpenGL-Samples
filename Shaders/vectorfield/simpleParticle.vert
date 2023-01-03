@@ -45,5 +45,7 @@ void main() {
 	//const float reduce = (1.0 / 20.0);
 	//const float green = (1.0 / 20.0);
 	//const float blue = (1.0 / 50.0);
+
+	/*	*/
 	vColor = vec4(velocity.x * 10 * reduce * length(velocity), velocity.x * green, length(velocity) * blue, 1.0);
 }

@@ -89,11 +89,11 @@ namespace glsample {
 
 		const std::string modelPath = "asset/sponza/sponza.obj";
 		/*	*/
-		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert";
-		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag";
+		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
 
-		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert";
-		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag";
+		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
+		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
 
 		virtual void Release() override {
 			glDeleteProgram(this->graphic_program);
@@ -113,20 +113,33 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
-			std::vector<char> vertex_source =
-				IOUtil::readFileString(this->vertexGraphicShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
-				IOUtil::readFileString(this->fragmentGraphicShaderPath, this->getFileSystem());
+			std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
 			/*	*/
-			std::vector<char> vertex_shadow_source =
-				IOUtil::readFileString(this->vertexShadowShaderPath, this->getFileSystem());
-			std::vector<char> fragment_shadow_source =
-				IOUtil::readFileString(this->fragmentShadowShaderPath, this->getFileSystem());
+			std::vector<uint32_t> vertex_shadow_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_shadow_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
+			std::vector<char> fragment_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
+
+			std::vector<char> vertex_shadow_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(vertex_shadow_source, compilerOptions);
+			std::vector<char> fragment_shadow_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_shadow_source, compilerOptions);
 
 			/*	Load shaders	*/
-			this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
-			this->shadow_program = ShaderLoader::loadGraphicProgram(&vertex_shadow_source, &fragment_shadow_source);
+			this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+			this->shadow_program = ShaderLoader::loadGraphicProgram(&vertex_shadow_source_T, &fragment_shadow_source_T);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());

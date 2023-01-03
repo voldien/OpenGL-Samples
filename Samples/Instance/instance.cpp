@@ -32,8 +32,8 @@ namespace glsample {
 		} uniformData;
 
 		/*  */
-		size_t rows = 16;
-		size_t cols = 16;
+		size_t rows = 8;
+		size_t cols = 8;
 
 		size_t instanceBatch = 64;
 		const size_t nrInstances = (rows * cols);
@@ -86,8 +86,8 @@ namespace glsample {
 		const std::string diffuseTexturePath = "diffuse.png";
 		const std::string modelPath = "asset/bunny.obj";
 
-		const std::string vertexShaderPath = "Shaders/instance/instance.vert";
-		const std::string fragmentShaderPath = "Shaders/instance/instance.frag";
+		const std::string vertexShaderPath = "Shaders/instance/instance.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/instance/instance.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -107,11 +107,21 @@ namespace glsample {
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(this->vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(this->fragmentShaderPath, this->getFileSystem());
 
+			std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
+			std::vector<char> fragment_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
 			/*	Load shader	*/
-			this->instance_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->instance_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
 
 			/*	*/
 			glUseProgram(this->instance_program);
@@ -146,10 +156,11 @@ namespace glsample {
 			/*	*/
 			this->uniformInstanceSize =
 				fragcore::Math::align(this->instanceBatch * sizeof(glm::mat4), (size_t)minMapBufferSize);
-			this->instance_model_matrices.resize(nrInstances);
+			this->instance_model_matrices.resize(this->instanceBatch);
 			glGenBuffers(1, &this->uniform_instance_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/

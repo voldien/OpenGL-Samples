@@ -99,11 +99,11 @@ namespace glsample {
 		};
 		std::shared_ptr<AmbientOcclusionSettingComponent> ambientOcclusionSettingComponent;
 
-		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
-		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
+		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
+		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
 
-		const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert";
-		const std::string fragmentShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag";
+		const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -124,17 +124,37 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(this->vertexSSAOShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(this->fragmentShaderPath, this->getFileSystem());
+			std::vector<uint32_t> vertex_ssao_source =
+				IOUtil::readFileData<uint32_t>(this->vertexSSAOShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_ssao_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+
+			std::vector<uint32_t> vertex_multi_pass_source =
+				IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_multi_pass_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
+
+			std::vector<char> vertex_ssao_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(vertex_ssao_source, compilerOptions);
+			std::vector<char> fragment_ssao_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_ssao_source, compilerOptions);
+
+			std::vector<char> vertex_multi_pass_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(vertex_multi_pass_source, compilerOptions);
+			std::vector<char> fragment_multi_pass_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_multi_pass_source, compilerOptions);
 
 			/*	Load shader	*/
-			this->ssao_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->ssao_program = ShaderLoader::loadGraphicProgram(&vertex_ssao_source_T, &fragment_ssao_source_T);
 
-			vertex_source = IOUtil::readFileString(this->vertexMultiPassShaderPath, this->getFileSystem());
-			fragment_source = IOUtil::readFileString(this->fragmentMultiPassShaderPath, this->getFileSystem());
-
-			this->multipass_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			/*	Load shader	*/
+			this->multipass_program =
+				ShaderLoader::loadGraphicProgram(&vertex_multi_pass_source_T, &fragment_multi_pass_source_T);
 
 			/*	Setup graphic ambient occlusion pipeline.	*/
 			glUseProgram(this->ssao_program);
@@ -322,7 +342,7 @@ namespace glsample {
 
 			glGenTextures(1, &this->depthTexture);
 			glBindTexture(GL_TEXTURE_2D, depthTexture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, this->multipass_texture_width,
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
 						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
 			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));

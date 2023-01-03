@@ -1,0 +1,8 @@
+FILE(GLOB VOLUMETRIC_SCATTERING_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+FILE(GLOB HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+
+ADD_EXECUTABLE(VolumetricScattering ${VOLUMETRIC_SCATTERING_FILES} ${HEADER_FILES})
+TARGET_LINK_LIBRARIES(VolumetricScattering glCommon gl-sample-common-asset-importer)
+ADD_DEPENDENCIES(VolumetricScattering glCommon gl-sample-common-asset-importer)
+
+TARGET_INCLUDE_DIRECTORIES(VolumetricScattering PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

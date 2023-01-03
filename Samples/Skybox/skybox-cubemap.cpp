@@ -26,10 +26,9 @@ namespace glsample {
 		} uniform_stage_buffer;
 
 		glm::mat4 proj;
-
 		CameraController camera;
 
-		// TODO change to vector
+		/*	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;

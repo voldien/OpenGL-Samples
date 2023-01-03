@@ -12,8 +12,8 @@ namespace glsample {
 	  public:
 		PointLights() : GLSampleWindow() {
 			this->setTitle("PointLights");
-			pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->mvp);
-			this->addUIComponent(pointLightSettingComponent);
+			this->pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->pointLightSettingComponent);
 		}
 
 		typedef struct point_light_t {
@@ -37,7 +37,7 @@ namespace glsample {
 			glm::vec4 ambientLight = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
 
 			PointLight pointLights[4];
-		} mvp;
+		} uniformBuffer;
 
 		/*	*/
 		GeometryObject plan;
@@ -122,7 +122,7 @@ namespace glsample {
 			glUseProgram(this->pointLight_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->pointLight_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->pointLight_program, "DiffuseTexture"), 0);
-			glUniformBlockBinding(this->pointLight_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->pointLight_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
@@ -185,18 +185,16 @@ namespace glsample {
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
-			for (size_t i = 0; i < nrPointLights; i++) {
-				mvp.pointLights[i].range = 35.0f;
-				mvp.pointLights[i].position =
+			for (size_t i = 0; i < this->nrPointLights; i++) {
+				uniformBuffer.pointLights[i].range = 35.0f;
+				uniformBuffer.pointLights[i].position =
 					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 8.0f + glm::vec3(1.0f, 1.0f, 1.0f);
-				mvp.pointLights[i].color = colors[i];
-				mvp.pointLights[i].constant_attenuation = 1.0f;
-				mvp.pointLights[i].linear_attenuation = 0.1f;
-				mvp.pointLights[i].qudratic_attenuation = 0.05f;
-				mvp.pointLights[i].intensity = 1.0f;
+				uniformBuffer.pointLights[i].color = colors[i];
+				uniformBuffer.pointLights[i].constant_attenuation = 1.0f;
+				uniformBuffer.pointLights[i].linear_attenuation = 0.1f;
+				uniformBuffer.pointLights[i].qudratic_attenuation = 0.05f;
+				uniformBuffer.pointLights[i].intensity = 1.0f;
 			}
-
-
 		}
 
 		virtual void draw() override {
@@ -205,11 +203,12 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniformBuffer.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -237,18 +236,18 @@ namespace glsample {
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model = glm::rotate(this->mvp.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(45.95f));
-			this->mvp.view = this->camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
+			this->uniformBuffer.model = glm::mat4(1.0f);
+			this->uniformBuffer.model = glm::rotate(this->uniformBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(45.95f));
+			this->uniformBuffer.view = this->camera.getViewMatrix();
+			this->uniformBuffer.modelViewProjection = this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
-				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

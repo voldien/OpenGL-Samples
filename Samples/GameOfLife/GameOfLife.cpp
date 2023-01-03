@@ -14,6 +14,7 @@ namespace glsample {
 	  public:
 		GameOfLife() : GLSampleWindow() { this->setTitle("GameOfLife - Compute"); }
 
+		/*	*/
 		unsigned int gameoflife_framebuffer;
 		unsigned int gameoflife_program;
 		std::vector<unsigned int> gameoflife_texture;
@@ -26,7 +27,7 @@ namespace glsample {
 		unsigned int nthTexture = 0;
 
 		/*	*/
-		const std::string computeShaderPath = "Shaders/gameoflife/gameoflife.comp";
+		const std::string computeShaderPath = "Shaders/gameoflife/gameoflife.comp.spv";
 
 		virtual void Release() override {
 			glDeleteProgram(this->gameoflife_program);
@@ -40,14 +41,18 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			std::vector<char> gameoflife_source =
-				IOUtil::readFileString(this->computeShaderPath, this->getFileSystem());
+			std::vector<uint32_t> gameoflife_source =
+				IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
-			// gameoflife_source =
-			// 	fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, fragcore::ShaderLanguage::GLSL);
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> gameoflife_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, compilerOptions);
 
 			/*	Load shader	*/
-			this->gameoflife_program = ShaderLoader::loadComputeProgram({&gameoflife_source});
+			this->gameoflife_program = ShaderLoader::loadComputeProgram({&gameoflife_source_T});
 
 			/*	Setup shader.	*/
 			glUseProgram(this->gameoflife_program);
@@ -75,7 +80,7 @@ namespace glsample {
 			std::vector<uint8_t> textureData(this->gameoflife_texture_width * this->gameoflife_texture_width *
 											 sizeof(uint8_t));
 
-			/*	*/
+			/*	Generate random game state.	*/
 			Random random;
 			for (size_t j = 0; j < this->gameoflife_texture_height; j++) {
 				for (size_t i = 0; i < this->gameoflife_texture_width; i++) {
@@ -83,7 +88,7 @@ namespace glsample {
 				}
 			}
 
-			/*	Resize the image.	*/
+			/*	Create game of life state textures.	*/
 			for (size_t i = 0; i < this->gameoflife_texture.size(); i++) {
 				glBindTexture(GL_TEXTURE_2D, this->gameoflife_texture[i]);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, this->gameoflife_texture_width, this->gameoflife_texture_height,
@@ -95,7 +100,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 
-			/*	*/
+			/*	Create render target texture to show the result.	*/
 			glGenTextures(1, &this->gameoflife_render_texture);
 			glBindTexture(GL_TEXTURE_2D, this->gameoflife_render_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->gameoflife_texture_width, this->gameoflife_texture_height, 0,

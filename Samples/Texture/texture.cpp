@@ -35,8 +35,8 @@ namespace glsample {
 
 		std::string texturePath = "asset/texture.png";
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
-		const std::string fragmentShaderPath = "Shaders/texture/texture.frag";
+		const std::string vertexShaderPath = "Shaders/texture/texture.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/texture/texture.frag.spv";
 
 		std::vector<ProceduralGeometry::Vertex> vertices;
 		std::vector<unsigned int> indices;
@@ -57,11 +57,20 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			const std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			const std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
+			std::vector<char> fragment_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
 			/*	Load shader	*/
-			this->texture_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->texture_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
 
 			/*	*/
 			glUseProgram(this->texture_program);

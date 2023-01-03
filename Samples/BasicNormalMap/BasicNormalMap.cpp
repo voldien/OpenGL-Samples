@@ -72,8 +72,8 @@ namespace glsample {
 		std::string diffuseTexturePath = "asset/diffuse.png";
 		std::string normalTexturePath = "asset/normalmap.png";
 
-		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert";
-		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag";
+		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -95,11 +95,21 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
 
+			std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
+			std::vector<char> fragment_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
 			/*	Load shader	*/
-			this->normalMapping_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->normalMapping_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normalMapping_program);
