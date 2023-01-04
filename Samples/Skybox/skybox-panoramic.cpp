@@ -44,8 +44,8 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 	  public:
 		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
@@ -76,13 +76,22 @@ namespace glsample {
 
 		virtual void Initialize() override {
 			/*	Load shader	*/
-			std::vector<char> vertex_source =
-				IOUtil::readFileString(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
-				IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+
+			std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
+			std::vector<char> fragment_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
 
 			/*	*/
-			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
 
 			/*	*/
 			glUseProgram(this->skybox_program);

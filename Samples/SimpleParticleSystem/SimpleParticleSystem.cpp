@@ -11,7 +11,7 @@ namespace glsample {
 	class SimpleParticleSystem : public GLSampleWindow {
 	  public:
 		SimpleParticleSystem() : GLSampleWindow() {
-			this->setTitle("SimpleParticleSystem");
+			this->setTitle("Simple ParticleSystem");
 			this->simpleParticleSettingComponent = std::make_shared<SimpleParticleSystemSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->simpleParticleSettingComponent);
 		}
@@ -237,7 +237,7 @@ namespace glsample {
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));

@@ -1,5 +1,9 @@
-#version 450
+#version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_draw_instanced : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_explicit_attrib_location : enable
+#extension GL_ARB_uniform_buffer_object : enable
 
 layout(location = 0) in vec3 Vertex;
 layout(location = 1) in vec2 TextureCoord;
@@ -22,12 +26,12 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 ambientColor;
 
 	vec4 specularColor;
-	vec3 viewPos;
+	vec4 viewPos;
 	float shininess;
 }
 ubo;
 
-layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[256]; }
+layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[512]; }
 instance_ubo;
 
 void main() {

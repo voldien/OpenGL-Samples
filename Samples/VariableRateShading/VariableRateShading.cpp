@@ -35,7 +35,7 @@ namespace glsample {
 		/*	*/
 		unsigned int normalMapping_program;
 
-		// TODO change to vector
+		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -46,6 +46,8 @@ namespace glsample {
 
 		std::string diffuseTexturePath = "asset/diffuse.png";
 		std::string normalTexturePath = "asset/normalmap.png";
+
+		const std::string variablerateShading = "";
 
 		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert";
 		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag";

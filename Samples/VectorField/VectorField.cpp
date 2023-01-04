@@ -21,6 +21,7 @@ namespace glsample {
 		size_t nrParticles = 0;
 		const size_t nrParticleBuffers = 3;
 		size_t ParticleMemorySize = 0;
+		size_t VectorFieldMemorySize = 0;
 
 		/*	*/
 		GeometryObject particles;
@@ -42,14 +43,19 @@ namespace glsample {
 		unsigned int grid_graphic_program;
 		unsigned int vector_field_graphic_program;
 
+		typedef struct motion_t {
+			glm::vec2 pos; /*  Position in pixel space.    */
+			glm::vec2 velocity /*  direction and magnitude of mouse movement.  */;
+			float radius; /*  Radius of incluense, also the pressure of input.    */
+		} Motion;
+
 		typedef struct particle_setting_t {
+			glm::uvec3 particleBox = glm::uvec3(16, 16, 16);
 			float speed = 1.0f;
 			float lifetime = 5.0f;
 			float gravity = 9.82f;
 			float strength = 1.0f;
-			unsigned int width = 96;
-			unsigned int height = 96;
-			unsigned int depth = 96;
+			float density = 1.0f;
 		} ParticleSetting;
 
 		struct UniformBufferBlock {
@@ -64,19 +70,27 @@ namespace glsample {
 
 			/*	*/
 			ParticleSetting particleSetting;
+			Motion motion;
+
+			glm::vec4 ambientColor;
+			glm::vec4 color;
 
 		} uniformBuffer;
 
 		typedef struct particle_t {
 			glm::vec4 position; /*	Position, time	*/
-			glm::vec4 velocity; /*	Velocity.	*/
+			glm::vec4 velocity; /*	Velocity, mass	*/
 		} Particle;
+
 		CameraController camera;
 
 		/*	*/
-		unsigned int uniform_buffer_index;
+		unsigned int uniform_buffer_particle_graphic_index;
+		unsigned int uniform_buffer_particle_compute_index;
+		unsigned int uniform_buffer_vector_field_index;
 
 		/*	*/
+		int particle_buffer_vector_field_index;
 		int particle_buffer_read_index;
 		int particle_buffer_write_index;
 		int particle_read_buffer_binding = 1;
@@ -171,14 +185,18 @@ namespace glsample {
 			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->particle_graphic_program);
 			glUniform1iARB(glGetUniformLocation(this->particle_graphic_program, "spriteTexture"), 0);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->particle_graphic_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->particle_graphic_program, this->uniform_buffer_index,
+			this->uniform_buffer_particle_graphic_index =
+				glGetUniformBlockIndex(this->particle_graphic_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->particle_graphic_program, this->uniform_buffer_particle_graphic_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup particle simulation pipeline.	*/
 			glUseProgram(this->particle_compute_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->particle_compute_program, "UniformBufferBlock");
+			this->uniform_buffer_particle_compute_index =
+				glGetUniformBlockIndex(this->particle_compute_program, "UniformBufferBlock");
+			this->particle_buffer_vector_field_index =
+				glGetUniformBlockIndex(this->particle_compute_program, "VectorField");
 			this->particle_buffer_read_index = glGetUniformBlockIndex(this->particle_compute_program, "ReadBuffer");
 			this->particle_buffer_write_index = glGetUniformBlockIndex(this->particle_compute_program, "WriteBuffer");
 			glGetProgramiv(this->particle_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
@@ -186,7 +204,7 @@ namespace glsample {
 			this->particle_buffer_read_index = 1;
 			this->particle_buffer_write_index = 2;
 
-			glUniformBlockBinding(this->particle_compute_program, this->uniform_buffer_index,
+			glUniformBlockBinding(this->particle_compute_program, this->uniform_buffer_particle_compute_index,
 								  this->uniform_buffer_binding);
 			/*	*/
 			glShaderStorageBlockBinding(this->particle_compute_program, this->particle_buffer_read_index,
@@ -198,9 +216,9 @@ namespace glsample {
 
 			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->vector_field_graphic_program);
-			this->uniform_buffer_index =
+			this->uniform_buffer_vector_field_index =
 				glGetUniformBlockIndex(this->vector_field_graphic_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->vector_field_graphic_program, this->uniform_buffer_index,
+			glUniformBlockBinding(this->vector_field_graphic_program, this->uniform_buffer_vector_field_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -216,8 +234,9 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Compute number of particles and memory size.	*/
-			this->nrParticles = uniformBuffer.particleSetting.width * uniformBuffer.particleSetting.height *
-								uniformBuffer.particleSetting.depth;
+			this->nrParticles =
+				(size_t)(uniformBuffer.particleSetting.particleBox.x * uniformBuffer.particleSetting.particleBox.y *
+						 uniformBuffer.particleSetting.particleBox.z);
 			this->ParticleMemorySize = this->nrParticles * sizeof(Particle);
 
 			/*	Create buffer.	*/
@@ -235,9 +254,9 @@ namespace glsample {
 					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
 							  Random::normalizeRand<float>() * 100.0f,
 							  Random::normalizeRand<float>() * this->uniformBuffer.particleSetting.lifetime);
-				particle_buffer[i].velocity =
-					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
-							  Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f);
+				particle_buffer[i].velocity = glm::vec4(
+					Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
+					Random::normalizeRand<float>() * 100.0f, 1.0f / (Random::normalizeRand<float>() * 100.0f));
 			}
 			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
@@ -256,6 +275,21 @@ namespace glsample {
 
 			glBindVertexArray(0);
 
+			this->VectorFieldMemorySize = this->nrParticles * sizeof(glm::vec3);
+
+			glGenVertexArrays(1, &this->vectorField.vao);
+			glBindVertexArray(this->vectorField.vao);
+
+			glGenBuffers(1, &this->vectorField.vbo);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->vectorField.vbo);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, this->VectorFieldMemorySize, nullptr, GL_STATIC_DRAW);
+
+			/*	*/
+			glEnableVertexAttribArrayARB(0);
+			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+
+			glBindVertexArray(0);
+
 			fragcore::resetErrorFlag();
 		}
 
@@ -271,9 +305,12 @@ namespace glsample {
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 				/*	Bind uniform buffer.	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_particle_compute_index, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
+
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_vector_field_index,
+								  this->vectorField.vbo, 0, this->VectorFieldMemorySize);
 
 				/*	Bind read particle buffer.	*/
 				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_read_index, this->vbo_particle,
@@ -287,37 +324,49 @@ namespace glsample {
 
 				/*	Compute.	*/
 				glUseProgram(this->particle_compute_program);
-				glDispatchCompute(this->uniformBuffer.particleSetting.width / this->localWorkGroupSize[0],
-								  this->uniformBuffer.particleSetting.height / this->localWorkGroupSize[1],
-								  this->uniformBuffer.particleSetting.depth / this->localWorkGroupSize[2]);
+				glDispatchCompute(this->uniformBuffer.particleSetting.particleBox.x / this->localWorkGroupSize[0],
+								  this->uniformBuffer.particleSetting.particleBox.y / this->localWorkGroupSize[1],
+								  this->uniformBuffer.particleSetting.particleBox.z / this->localWorkGroupSize[2]);
 
 				glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+
+				glUseProgram(0);
 			}
+
+			/*	*/
+			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			/*	*/
+			glViewport(0, 0, width, height);
 
 			// Draw Vector field.
 			{
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_vector_field_index, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
 
 				/*  Draw grid.  */
 				glDisable(GL_BLEND);
 				glDisable(GL_CULL_FACE);
 
-				glActiveTexture(GL_TEXTURE0 + 0);
-				glBindTexture(GL_TEXTURE_2D, particle_texture);
-
 				glUseProgram(this->vector_field_graphic_program);
+
+				glLineWidth(3.0f);
+
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->vectorField.vao);
+				glDrawArrays(GL_POINTS, 0, this->nrParticles);
+				glBindVertexArray(0);
+
+				glUseProgram(0);
 			}
 
 			/*	Draw Particles.	*/
 			{
 
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_particle_graphic_index, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
-				/*	*/
-				glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				/*	*/
-				glViewport(0, 0, width, height);
 
 				glActiveTexture(GL_TEXTURE0 + 0);
 				glBindTexture(GL_TEXTURE_2D, particle_texture);
@@ -364,6 +413,7 @@ namespace glsample {
 			this->uniformBuffer.modelViewProjection =
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
+			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer = glMapBufferRange(

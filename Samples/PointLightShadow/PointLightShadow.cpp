@@ -13,7 +13,7 @@ namespace glsample {
 	  public:
 		PointLightShadow() : GLSampleWindow() {
 			this->setTitle("PointLightShadow");
-			shadowSettingComponent = std::make_shared<BasicShadowMapSettingComponent>(this->uniform);
+			shadowSettingComponent = std::make_shared<PointLightShadowSettingComponent>(this->uniform);
 			this->addUIComponent(shadowSettingComponent);
 		}
 
@@ -22,6 +22,7 @@ namespace glsample {
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
 			alignas(16) glm::mat4 modelView;
+			alignas(16) glm::mat4 ViewProjection[6];
 			alignas(16) glm::mat4 modelViewProjection;
 			alignas(16) glm::mat4 lightModelProject;
 
@@ -29,16 +30,19 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec3 lightPosition;
+			glm::vec4 lightPosition;
 
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
 		} uniform;
 
+		glm::mat4 PointView[6];
+
+		/*	*/
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
-		unsigned int shadowWidth = 4096;
-		unsigned int shadowHeight = 4096;
+		unsigned int shadowWidth = 1024;
+		unsigned int shadowHeight = 1024;
 
 		std::string diffuseTexturePath = "asset/diffuse.png";
 
@@ -46,10 +50,11 @@ namespace glsample {
 
 		std::vector<GeometryObject> refObj;
 
+		/*	*/
 		unsigned int graphic_program;
 		unsigned int shadow_program;
 
-		// TODO change to vector
+		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_shadow_index;
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
@@ -59,10 +64,10 @@ namespace glsample {
 
 		CameraController camera;
 
-		class BasicShadowMapSettingComponent : public nekomimi::UIComponent {
+		class PointLightShadowSettingComponent : public nekomimi::UIComponent {
 		  public:
-			BasicShadowMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Basic Shadow Mapping Settings");
+			PointLightShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Point Light Shadow Settings");
 			}
 			virtual void draw() override {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
@@ -78,16 +83,17 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<BasicShadowMapSettingComponent> shadowSettingComponent;
+		std::shared_ptr<PointLightShadowSettingComponent> shadowSettingComponent;
 
 		const std::string modelPath = "asset/sponza/sponza.obj";
-		/*	*/
+
+		/*	Graphic shader paths.	*/
 		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert";
 		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag";
 
-		/*	*/
+		/*	Shadow shader paths.	*/
 		const std::string vertexShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert";
-		const std::string geomtryShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert";
+		const std::string geomtryShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.geom";
 		const std::string fragmentShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.frag";
 
 		virtual void Release() override {
@@ -98,7 +104,6 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
 			std::vector<char> vertex_source =
@@ -142,7 +147,7 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
-			// Create uniform buffer.
+			/*	 Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
@@ -156,20 +161,32 @@ namespace glsample {
 				/*	*/
 				glGenTextures(1, &this->shadowTexture);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, this->shadowTexture);
-				glTexImage2D(GL_TEXTURE_CUBE_MAP, 0, GL_DEPTH_COMPONENT16, this->shadowWidth, this->shadowHeight, 0,
-							 GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
 				/*	*/
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				for (size_t i = 0; i < 6; i++) {
+					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT32, this->shadowWidth,
+								 this->shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+				}
+
+				/*	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-				glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, borderColor);
+				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP, this->shadowTexture,
-									   0);
+				/*	*/
+				for (size_t i = 0; i < 6; i++) {
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+										   this->shadowTexture, 0);
+				}
+
+				/*	*/
 				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 				if (frstat != GL_FRAMEBUFFER_COMPLETE) {
 
@@ -189,6 +206,15 @@ namespace glsample {
 			modelLoader.loadContent(modelPath, 0);
 
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
+
+			/*	*/
+			glm::mat4 model = glm::mat4(1.0f);
+			PointView[0] = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			PointView[1] = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			PointView[2] = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			PointView[3] = glm::rotate(model, glm::radians(270.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			PointView[4] = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			PointView[5] = glm::rotate(model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		}
 
 		virtual void draw() override {
@@ -201,11 +227,20 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
 			{
 
 				/*	Compute light matrices.	*/
+				for (size_t i = 0; i < 6; i++) {
+					glm::mat4 model = glm::mat4(1.0f);
+					model = model, PointView[i];
+					model = PointView[i] * glm::perspective(glm::radians(45.0f),
+															(float)this->shadowWidth / (float)this->shadowHeight, 0.15f,
+															1000.0f);
+				}
+
 				float near_plane = -40.0f, far_plane = 40.5f;
 				glm::mat4 lightProjection = glm::ortho(-40.0f, 40.0f, -40.0f, 40.0f, near_plane, far_plane);
 				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f),
@@ -213,10 +248,10 @@ namespace glsample {
 				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 				this->uniform.lightModelProject = lightSpaceMatrix;
 
-				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
 
 				glClear(GL_DEPTH_BUFFER_BIT);
-				glViewport(0, 0, shadowWidth, shadowHeight);
+				glViewport(0, 0, this->shadowWidth, this->shadowHeight);
 				glUseProgram(this->shadow_program);
 				glCullFace(GL_FRONT);
 				glEnable(GL_CULL_FACE);
@@ -254,7 +289,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + 1);
-				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, this->shadowTexture);
 
 				glBindVertexArray(this->refObj[0].vao);
 				for (size_t i = 0; i < this->refObj.size(); i++) {
@@ -275,6 +310,7 @@ namespace glsample {
 			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
 			this->uniform.view = this->camera.getViewMatrix();
 			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
+			this->uniform.lightPosition = glm::vec4(this->camera.getPosition(), 0);
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);

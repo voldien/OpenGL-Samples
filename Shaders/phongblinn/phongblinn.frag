@@ -1,4 +1,4 @@
-#version 450
+#version 460
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(location = 0) out vec4 fragColor;
@@ -27,7 +27,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	/*	Light source.	*/
 	vec4 ambientColor;
 	vec4 specularColor;
-	vec3 viewPos;
+	vec4 viewPos;
 
 	point_light point_light[4];
 
@@ -47,7 +47,7 @@ void main() {
 	// Compute directional light
 	vec4 pointLightColors = vec4(0);
 	vec4 pointLightSpecular = vec4(0);
-	
+
 	for (int i = 0; i < 4; i++) {
 
 		vec3 diffVertex = (ubo.point_light[i].position - vertex);
@@ -58,7 +58,7 @@ void main() {
 			1.0 / (ubo.point_light[i].constant_attenuation + ubo.point_light[i].linear_attenuation * dist +
 				   ubo.point_light[i].qudratic_attenuation * (dist * dist));
 
-		float contribution = max(dot(normal, lightDir), 0.0);
+		float contribution = max(dot(normalize(normal), lightDir), 0.0);
 
 		pointLightColors += attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range *
 							ubo.point_light[i].intensity;
@@ -66,9 +66,9 @@ void main() {
 		/*  */
 		if (ubo.phong == true) {
 			vec3 halfwayDir = normalize(lightDir + viewDir);
-			spec = pow(max(dot(normal, halfwayDir), 0.0), ubo.shininess);
+			spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), ubo.shininess);
 		} else {
-			vec3 reflectDir = reflect(-lightDir, normal);
+			vec3 reflectDir = reflect(-lightDir, normalize(normal));
 			spec = pow(max(dot(viewDir, reflectDir), 0.0), ubo.shininess);
 		}
 

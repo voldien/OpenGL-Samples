@@ -1,5 +1,8 @@
-#version 450
+#version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_explicit_attrib_location : enable
+#extension GL_ARB_uniform_buffer_object : enable
+
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
@@ -17,9 +20,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	// point_light point_light[4];
 }
 ubo;
-
-// uniform mat4 ubo.ViewProjection[6];
-// uniform mat4 ubo.model;
 
 void main() {
 

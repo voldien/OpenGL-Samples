@@ -23,12 +23,13 @@ namespace glsample {
 			alignas(16) glm::mat4 modelViewProjection;
 
 			/*	Light source.	*/
-			alignas(4) glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
+			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			alignas(4) glm::vec3 viewPos;
-			alignas(4) float shininess = 16.0f;
+			glm::vec4 viewPos;
+
+			float shininess = 16.0f;
 		} uniformData;
 
 		/*  */
@@ -269,14 +270,13 @@ namespace glsample {
 			this->uniformData.model = glm::mat4(1.0f);
 			this->uniformData.view = camera.getViewMatrix();
 			this->uniformData.modelViewProjection = this->uniformData.model * camera.getViewMatrix();
-			this->uniformData.viewPos = this->camera.getPosition();
-			//	this->uniformData.viewPos = this->camera.getPosition();
+			this->uniformData.viewPos = glm::vec4(this->camera.getPosition(), 0);
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
-			void *uniformMVP =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
-								 uniformSize, GL_MAP_WRITE_BIT);
+			void *uniformMVP = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
+				this->uniformSize, GL_MAP_WRITE_BIT);
 			memcpy(uniformMVP, &this->uniformData, sizeof(uniformData));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 
@@ -285,8 +285,9 @@ namespace glsample {
 			void *uniformInstance = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformInstanceSize,
 				this->uniformInstanceSize, GL_MAP_WRITE_BIT);
-			memcpy(uniformInstance, instance_model_matrices.data(),
-				   sizeof(instance_model_matrices[0]) * instance_model_matrices.size());
+			memcpy(uniformInstance, this->instance_model_matrices.data(),
+				   sizeof(this->instance_model_matrices[0]) * this->instance_model_matrices.size());
+
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

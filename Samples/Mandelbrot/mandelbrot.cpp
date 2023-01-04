@@ -33,9 +33,10 @@ namespace glsample {
 		unsigned int mandelbrot_texture_width;
 		unsigned int mandelbrot_texture_height;
 
+		/*	*/
 		int localWorkGroupSize[3];
 
-		// TODO change to vector
+		/*	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -51,9 +52,6 @@ namespace glsample {
 			virtual void draw() override {
 				ImGui::DragInt("Number of Samples", &this->uniform.nrSamples, 1, 0, 128);
 				ImGui::DragFloat("C", &this->uniform.c);
-				//				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
-				//				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				//				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 			}
 
 			bool showWireFrame = false;

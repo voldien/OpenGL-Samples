@@ -12,7 +12,7 @@ namespace glsample {
 	  public:
 		PhongBlinn() : GLSampleWindow() {
 			this->setTitle("PhongBlinn");
-			pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->mvp);
+			pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->uniform);
 			this->addUIComponent(pointLightSettingComponent);
 		}
 
@@ -33,16 +33,17 @@ namespace glsample {
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
 
+			/*	*/
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec3 viewPos;
+			glm::vec4 viewPos;
 
 			/*	light source.	*/
 			PointLight pointLights[4];
 
 			float shininess = 8;
 			bool useBlinn = true;
-		} mvp;
+		} uniform;
 
 		/*	*/
 		GeometryObject plan;
@@ -52,7 +53,7 @@ namespace glsample {
 		unsigned int diffuse_texture;
 
 		/*	*/
-		unsigned int pointLight_program;
+		unsigned int phongblinn_program;
 
 		// TODO change to vector
 		unsigned int uniform_buffer_index;
@@ -99,12 +100,12 @@ namespace glsample {
 
 		std::string diffuseTexturePath = "asset/diffuse.png";
 
-		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert";
-		const std::string fragmentShaderPath = "Shaders/phongblinn/phongblinn.frag";
+		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/phongblinn/phongblinn.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
-			glDeleteProgram(this->pointLight_program);
+			glDeleteProgram(this->phongblinn_program);
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
@@ -120,17 +121,29 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			/*	*/
+			std::vector<uint32_t> vertex_source_binary =
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source_binary =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> vertex_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(vertex_source_binary, compilerOptions);
+			std::vector<char> fragment_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_source_binary, compilerOptions);
 
 			/*	Load shader	*/
-			this->pointLight_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->phongblinn_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
 
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->pointLight_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->pointLight_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->pointLight_program, "DiffuseTexture"), 0);
-			glUniformBlockBinding(this->pointLight_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(this->phongblinn_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->phongblinn_program, "UniformBufferBlock");
+			glUniform1iARB(glGetUniformLocation(this->phongblinn_program, "DiffuseTexture"), 0);
+			glUniformBlockBinding(this->phongblinn_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
@@ -193,29 +206,30 @@ namespace glsample {
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
-			for (size_t i = 0; i < nrPointLights; i++) {
-				mvp.pointLights[i].range = 5.0f;
-				mvp.pointLights[i].position =
+			for (size_t i = 0; i < this->nrPointLights; i++) {
+				uniform.pointLights[i].range = 25.0f;
+				uniform.pointLights[i].position =
 					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(1.0f, 1.0f, 1.0f);
-				mvp.pointLights[i].color = colors[i];
-				mvp.pointLights[i].constant_attenuation = 1.0f;
-				mvp.pointLights[i].linear_attenuation = 0.1f;
-				mvp.pointLights[i].qudratic_attenuation = 0.05f;
-				mvp.pointLights[i].intensity = 1.0f;
+				uniform.pointLights[i].color = colors[i];
+				uniform.pointLights[i].constant_attenuation = 1.0f;
+				uniform.pointLights[i].linear_attenuation = 0.1f;
+				uniform.pointLights[i].qudratic_attenuation = 0.05f;
+				uniform.pointLights[i].intensity = 2.0f;
 			}
 		}
 
 		virtual void draw() override {
 
-			update();
+			this->update();
 			int width, height;
 			getSize(&width, &height);
 
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+							  (getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -223,7 +237,7 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
-				glUseProgram(this->pointLight_program);
+				glUseProgram(this->phongblinn_program);
 
 				glDisable(GL_CULL_FACE);
 
@@ -240,22 +254,24 @@ namespace glsample {
 
 		void update() {
 			/*	Update Camera.	*/
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = getTimer().getElapsed();
+			camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model = glm::rotate(this->mvp.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(45.95f));
-			this->mvp.view = this->camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
-			this->mvp.viewPos = this->camera.getPosition();
+			this->uniform.model = glm::mat4(1.0f);
+			this->uniform.model =
+				glm::rotate(this->uniform.model, glm::radians(45.0f * elapsedTime), glm::vec3(1.0f, 1.0f, 0.0f));
+			this->uniform.model = glm::scale(this->uniform.model, glm::vec3(45.95f));
+			this->uniform.view = this->camera.getViewMatrix();
+			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
+			this->uniform.viewPos = glm::vec4(this->camera.getPosition(), 1.0);
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
-				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformPointer, &this->uniform, sizeof(uniform));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

@@ -1,14 +1,32 @@
-#version 450
+#version 460
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(points) in;
 layout(triangle_strip) out;
 layout(max_vertices = 4) out;
 
+struct particle_t {
+	vec3 position;
+	float time;
+	vec4 velocity;
+};
+
 struct particle_setting {
 	float speed;
 	float lifetime;
 	float gravity;
+	float strength;
+	float density;
+	uvec3 particleBox;
+};
+
+/**
+ * Motion pointer.
+ */
+struct motion_t {
+	vec2 pos; /*  Position in pixel space.    */
+	vec2 velocity /*  direction and magnitude of mouse movement.  */;
+	float radius; /*  Radius of incluense, also the pressure of input.    */
 };
 
 layout(binding = 0) uniform UniformBufferBlock {
@@ -20,15 +38,14 @@ layout(binding = 0) uniform UniformBufferBlock {
 
 	/*	*/
 	float deltaTime;
-	float time;
-	float zoom;
-	vec4 ambientColor;
-	vec4 color;
 
 	particle_setting setting;
+	motion_t motion;
+
+	vec4 ambientColor;
+	vec4 color;
 }
 ubo;
-
 layout(location = 0) smooth out vec2 uv;
 layout(location = 1) smooth out vec4 gColor;
 layout(location = 0) in vec4 velocity[];
@@ -48,8 +65,7 @@ void main() {
 		for (j = 0; j < noffsets; j++) {
 
 			/*	Compute inverse zoom - expressed as a polynominal.	*/
-			const float invZoom = (1.0f / ubo.zoom + ubo.zoom * (1.0f / 150.0f)) * 0.5f;
-			const vec3 particlePos = gl_in[i].gl_Position.xyz + polyoffset[j] * invZoom;
+			const vec3 particlePos = gl_in[i].gl_Position.xyz + polyoffset[j] * 10.0;
 
 			/*	Velocity.	*/
 			// const vec2 velocity = gl_in[i].gl_Position.zw;
@@ -61,8 +77,8 @@ void main() {
 			const float reduce = (1.0 / 20.0);
 			const float green = (1.0 / 20.0);
 			const float blue = (1.0 / 50.0);
-			gColor =
-				vec4(velocity[0].x * 10 * reduce * length(velocity[0]), velocity[0].x * green, length(velocity[0]) * blue, 1.0);
+			gColor = vec4(velocity[0].x * 10 * reduce * length(velocity[0]), velocity[0].x * green,
+						  length(velocity[0]) * blue, 1.0);
 			uv = cUV[j];
 			EmitVertex();
 		}

@@ -57,20 +57,24 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			std::vector<uint32_t> vertex_source =
+			std::vector<uint32_t> texture_vertex_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
+			std::vector<uint32_t> texture_fragment_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
+			/*	*/
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
-			std::vector<char> fragment_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
+			/*	*/
+			std::vector<char> texture_vertex_source =
+				fragcore::ShaderCompiler::convertSPIRV(texture_vertex_binary, compilerOptions);
+			std::vector<char> texture_fragment_source =
+				fragcore::ShaderCompiler::convertSPIRV(texture_fragment_binary, compilerOptions);
+
 			/*	Load shader	*/
-			this->texture_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+			this->texture_program = ShaderLoader::loadGraphicProgram(&texture_vertex_source, &texture_fragment_source);
 
 			/*	*/
 			glUseProgram(this->texture_program);

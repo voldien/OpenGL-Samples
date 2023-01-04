@@ -91,8 +91,8 @@ namespace glsample {
 
 		std::string diffuseTexturePath = "asset/diffuse.png";
 
-		const std::string vertexShaderPath = "Shaders/pointlights/pointlights.vert";
-		const std::string fragmentShaderPath = "Shaders/pointlights/pointlights.frag";
+		const std::string vertexShaderPath = "Shaders/pointlights/pointlights.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/pointlights/pointlights.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -112,11 +112,21 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
+			std::vector<char> fragment_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
 
 			/*	Load shader	*/
-			this->pointLight_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->pointLight_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->pointLight_program);
@@ -203,7 +213,8 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->uniformBuffer.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniformBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
@@ -237,10 +248,12 @@ namespace glsample {
 
 			/*	*/
 			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model = glm::rotate(this->uniformBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniformBuffer.model =
+				glm::rotate(this->uniformBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(45.95f));
 			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection = this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+			this->uniformBuffer.modelViewProjection =
+				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);

@@ -1,4 +1,4 @@
-#version 450
+#version 460
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(location = 0) in vec3 Vertex;
@@ -33,7 +33,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	float fogItensity;
 }
 ubo;
-
 
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);

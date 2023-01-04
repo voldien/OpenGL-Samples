@@ -12,8 +12,8 @@ namespace glsample {
 	  public:
 		ParticleSystem() : GLSampleWindow() {
 			this->setTitle("Particle-System");
-			particleSystemSettingComponent = std::make_shared<ParticleSystemSettingComponent>(this->mvp);
-			this->addUIComponent(particleSystemSettingComponent);
+			this->particleSystemSettingComponent = std::make_shared<ParticleSystemSettingComponent>(this->mvp);
+			this->addUIComponent(this->particleSystemSettingComponent);
 		}
 
 		/*	*/
