@@ -106,8 +106,9 @@ namespace glsample {
 
 		std::string videoPath = "video.mp4";
 
-		const std::string vertexShaderPath = "Shaders/videoplayback/videoplayback.vert";
-		const std::string fragmentShaderPath = "Shaders/videoplayback/videoplayback.frag";
+		/*	*/
+		const std::string vertexShaderPath = "Shaders/videoplayback/videoplayback.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/videoplayback/videoplayback.frag.spv";
 
 		const std::vector<Vertex> vertices = {{-1.0f, -1.0f, 0.0f, 0.0f, 0.0f},
 											  {-1.0f, 1.0f, 0.0f, 0.0f, 1.0f},
@@ -294,11 +295,19 @@ namespace glsample {
 			loadVideo(this->videoPath.c_str());
 
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+
+			/*	*/
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*  */
-			this->videoplayback_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->videoplayback_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*	*/
 			glUseProgram(this->videoplayback_program);

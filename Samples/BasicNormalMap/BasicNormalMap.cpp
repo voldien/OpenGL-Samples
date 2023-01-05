@@ -95,21 +95,18 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-
-			std::vector<uint32_t> vertex_source =
+			const std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
+			const std::vector<uint32_t> fragment_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
-			std::vector<char> fragment_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
 			/*	Load shader	*/
-			this->normalMapping_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+			this->normalMapping_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normalMapping_program);

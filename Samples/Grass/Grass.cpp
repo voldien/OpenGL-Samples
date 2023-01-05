@@ -12,8 +12,8 @@ namespace glsample {
 	  public:
 		Grass() : GLSampleWindow() {
 			this->setTitle("Grass");
-			tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
-			this->addUIComponent(tessellationSettingComponent);
+			this->tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
+			this->addUIComponent(this->tessellationSettingComponent);
 		}
 
 		struct UniformBufferBlock {

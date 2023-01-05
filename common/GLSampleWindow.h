@@ -48,6 +48,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	unsigned int getShaderVersion() const;
 
+	bool supportSPIRV() const;
+
   protected:
 	virtual void displayMenuBar() override;
 	virtual void renderUI() override;

@@ -7,10 +7,10 @@
 
 namespace glsample {
 
-	class Refrection : public GLSampleWindow {
+	class HDR : public GLSampleWindow {
 	  public:
-		Refrection() : GLSampleWindow() {
-			this->setTitle("Refrection");
+		HDR() : GLSampleWindow() {
+			this->setTitle("HDR");
 			this->refrectionSettingComponent = std::make_shared<RefrectionSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->refrectionSettingComponent);
 		}
@@ -32,6 +32,13 @@ namespace glsample {
 			float IOR = 1.5;
 
 		} uniformBuffer;
+
+		/*	*/
+		unsigned int HDRFramebuffer;
+		unsigned int shadowTexture;
+		size_t shadowWidth;
+		size_t shadowHeight;
+		unsigned int depthTexture;
 
 		/*	*/
 		GeometryObject torus;
@@ -59,8 +66,8 @@ namespace glsample {
 				this->setName("Refrection Settings");
 			}
 			virtual void draw() override {
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("IOR", &this->uniform.IOR);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -76,11 +83,11 @@ namespace glsample {
 
 		std::string panoramicPath = "asset/panoramic.jpg";
 
-		const std::string vertexRefrectionShaderPath = "Shaders/refrection/refrection.vert.spv";
-		const std::string fragmentRefrectionShaderPath = "Shaders/refrection/refrection.frag.spv";
+		const std::string vertexRefrectionShaderPath = "Shaders/refrection/refrection.vert";
+		const std::string fragmentRefrectionShaderPath = "Shaders/refrection/refrection.frag";
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag";
 
 		virtual void Release() override {
 			/*	*/
@@ -100,24 +107,20 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_refrection_source =
-				IOUtil::readFileData<uint32_t>(this->vertexRefrectionShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_refrection_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentRefrectionShaderPath, this->getFileSystem());
+			std::vector<char> vertex_refrection_source =
+				IOUtil::readFileString(this->vertexRefrectionShaderPath, this->getFileSystem());
+			std::vector<char> fragment_refrection_source =
+				IOUtil::readFileString(this->fragmentRefrectionShaderPath, this->getFileSystem());
 
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<char> vertex_source =
+				IOUtil::readFileString(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<char> fragment_source =
+				IOUtil::readFileString(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
-			
 			/*	Load shader	*/
 			this->refrection_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_refrection_source, &fragment_refrection_source);
-			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				ShaderLoader::loadGraphicProgram(&vertex_refrection_source, &fragment_refrection_source);
+			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->refrection_program);
@@ -219,6 +222,57 @@ namespace glsample {
 									 reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
+
+			/*  */
+			glGenFramebuffers(1, &this->HDRFramebuffer);
+			glGenTextures(1, &this->shadowTexture);
+			onResize(this->width(), this->height());
+		}
+		virtual void onResize(int width, int height) override {
+
+			this->shadowWidth = width;
+			this->shadowHeight = height;
+			{
+				/*	Create HDR framebuffer.	*/
+				glBindFramebuffer(GL_FRAMEBUFFER, this->HDRFramebuffer);
+
+				/*	*/
+				glGenTextures(1, &this->shadowTexture);
+				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->shadowWidth, this->shadowHeight, 0, GL_RGBA,
+							 GL_UNSIGNED_BYTE, nullptr);
+				/*	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				/*	Border clamped to max value, it makes the outside area.	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->shadowTexture, 0);
+
+				/*	*/
+				glGenTextures(1, &this->depthTexture);
+				glBindTexture(GL_TEXTURE_2D, depthTexture);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->shadowWidth, this->shadowHeight, 0,
+							 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+				glBindTexture(GL_TEXTURE_2D, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
+
+				unsigned int deo = GL_COLOR_ATTACHMENT0;
+				glDrawBuffers(1, &deo);
+
+				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+				if (frstat != GL_FRAMEBUFFER_COMPLETE) {
+
+					/*  Delete  */
+					glDeleteFramebuffers(1, &HDRFramebuffer);
+					// TODO add error message.
+					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+				}
+
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
 		}
 
 		virtual void draw() override {
@@ -234,6 +288,8 @@ namespace glsample {
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
+
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->HDRFramebuffer);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -281,6 +337,13 @@ namespace glsample {
 				glDrawElements(GL_TRIANGLES, this->torus.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
+
+			/*	Blit HDR framebuffer to default framebuffer.	*/
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->HDRFramebuffer);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glBlitFramebuffer(0, 0, this->shadowWidth, this->shadowHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT,
+							  GL_NEAREST);
 		}
 
 		void update() {
@@ -312,9 +375,9 @@ namespace glsample {
 		}
 	}; // namespace glsample
 
-	class RefrectionGLSample : public GLSample<Refrection> {
+	class HDRGLSample : public GLSample<HDR> {
 	  public:
-		RefrectionGLSample(int argc, const char **argv) : GLSample<Refrection>(argc, argv) {}
+		HDRGLSample(int argc, const char **argv) : GLSample<HDR>(argc, argv) {}
 		virtual void commandline(cxxopts::Options &options) override {
 			options.add_options("Refrection-Sample")("T,texture", "Texture Path",
 													 cxxopts::value<std::string>()->default_value("texture.png"));
@@ -326,7 +389,7 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::RefrectionGLSample sample(argc, argv);
+		glsample::HDRGLSample sample(argc, argv);
 
 		sample.run();
 

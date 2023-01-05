@@ -54,22 +54,18 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			std::vector<uint32_t> vertex_source =
+			const std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
+			const std::vector<uint32_t> fragment_source =
 				IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> vertex_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
-			std::vector<char> fragment_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
-
 			/*	Load shader	*/
-			this->triangle_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+			this->triangle_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->vao);

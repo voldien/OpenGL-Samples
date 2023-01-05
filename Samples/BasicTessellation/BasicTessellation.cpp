@@ -82,18 +82,20 @@ namespace glsample {
 		const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
 		const std::string heightTexturePath = "asset/tessellation_heightmap.png";
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert";
-		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag";
-		const std::string ControlShaderPath = "Shaders/tessellation/tessellation.tesc";
-		const std::string EvoluationShaderPath = "Shaders/tessellation/tessellation.tese";
+		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag.spv";
+		const std::string ControlShaderPath = "Shaders/tessellation/tessellation.tesc.spv";
+		const std::string EvoluationShaderPath = "Shaders/tessellation/tessellation.tese.spv";
 
 		virtual void Release() override {
+			/*	*/
 			glDeleteProgram(this->tessellation_program);
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, (const GLuint *)&this->heightmap_texture);
 
+			/*	*/
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
 			glDeleteBuffers(1, &this->ibo);
@@ -103,14 +105,22 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
-			std::vector<char> control_source = IOUtil::readFileString(ControlShaderPath, this->getFileSystem());
-			std::vector<char> evolution_source = IOUtil::readFileString(EvoluationShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> control_source =
+				IOUtil::readFileData<uint32_t>(this->ControlShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> evolution_source =
+				IOUtil::readFileData<uint32_t>(this->EvoluationShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shader	*/
-			this->tessellation_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
-																		  &control_source, &evolution_source);
+			this->tessellation_program = ShaderLoader::loadGraphicProgram(
+				compilerOptions, &vertex_source, &fragment_source, nullptr, &control_source, &evolution_source);
 
 			/*	Setup Shader.	*/
 			glUseProgram(this->tessellation_program);

@@ -39,15 +39,27 @@ vec2 inverse_equirectangular(const in vec3 direction) {
 void main() {
 
 	const vec3 viewDir = normalize(ubo.cameraPosition.xyz - vertex);
+	const vec3 N = normalize(normal);
 
+	/*	*/
 	const vec3 halfwayDir = normalize(normalize(ubo.direction.xyz) + viewDir);
-	const float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), 16.0);
+	const float spec = pow(max(dot(N, halfwayDir), 0.0), 16.0);
 
-	const float contribution = max(0.0, dot(normalize(normal), normalize(ubo.direction.xyz)));
+	/*	*/
+	const float contribution = max(0.0, dot(N, normalize(ubo.direction.xyz)));
 
-	const vec3 refrectionDir = normalize(refract(ubo.lookDirection.xyz, normalize(normal), ubo.IOR));
+	/*	*/
+	const vec3 refrectionDir = normalize(refract(viewDir, N, ubo.IOR));
 
+	/*	*/
 	const vec2 reflection_uv = inverse_equirectangular(refrectionDir);
 
+	float fresnelBias = 0.1;
+	float fresnelScale = 0.1;
+	float fresnelPower = 2;
+
+	// const float refFactor = fresnelBias + fresnelScale * pow(viewDir + dot(viewDir, N), fresnelPower);
+
+	/*	*/
 	fragColor = texture(ReflectionTexture, reflection_uv) * (ubo.ambientColor + spec + contribution * ubo.lightColor);
 }

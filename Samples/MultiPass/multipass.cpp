@@ -36,6 +36,7 @@ namespace glsample {
 		std::vector<unsigned int> multipass_textures;
 		unsigned int depthTexture;
 
+		/*	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -53,7 +54,7 @@ namespace glsample {
 
 		virtual void Release() override {
 			glDeleteProgram(this->multipass_program);
-
+			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, &this->depthTexture);
 			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
@@ -69,21 +70,19 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			std::vector<uint32_t> vertex_source =
+			/*	*/
+			const std::vector<uint32_t> vertex_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
+			const std::vector<uint32_t> fragment_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
-			std::vector<char> fragment_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
-
 			/*	Load shader	*/
-			this->multipass_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+			this->multipass_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->multipass_program);
@@ -117,6 +116,7 @@ namespace glsample {
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
 
+			/*	*/
 			this->multipass_textures.resize(4);
 			glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
 			onResize(this->width(), this->height());
@@ -135,7 +135,7 @@ namespace glsample {
 
 				glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->multipass_texture_width,
-							 this->multipass_texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+							 this->multipass_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D,
@@ -143,6 +143,7 @@ namespace glsample {
 				drawAttach[i] = GL_COLOR_ATTACHMENT0 + i;
 			}
 
+			/*	*/
 			glGenTextures(1, &this->depthTexture);
 			glBindTexture(GL_TEXTURE_2D, depthTexture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
@@ -213,6 +214,7 @@ namespace glsample {
 
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glViewport(0, 0, width, height);
+
 			/*	*/
 			const float halfW = (width / 2.0f);
 			const float halfH = (height / 2.0f);
@@ -226,8 +228,8 @@ namespace glsample {
 		}
 
 		virtual void update() { /*	Update Camera.	*/
-			const float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed();
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
 			this->uniformBuffer.model = glm::mat4(1.0f);
@@ -238,11 +240,12 @@ namespace glsample {
 			this->uniformBuffer.modelViewProjection =
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
+			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
-								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};

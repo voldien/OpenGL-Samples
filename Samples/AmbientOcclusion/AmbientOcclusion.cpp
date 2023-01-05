@@ -139,22 +139,13 @@ namespace glsample {
 			std::vector<uint32_t> fragment_multi_pass_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
-			std::vector<char> vertex_ssao_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(vertex_ssao_source, compilerOptions);
-			std::vector<char> fragment_ssao_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_ssao_source, compilerOptions);
-
-			std::vector<char> vertex_multi_pass_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(vertex_multi_pass_source, compilerOptions);
-			std::vector<char> fragment_multi_pass_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_multi_pass_source, compilerOptions);
+			/*	Load shader	*/
+			this->ssao_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_source, &fragment_ssao_source);
 
 			/*	Load shader	*/
-			this->ssao_program = ShaderLoader::loadGraphicProgram(&vertex_ssao_source_T, &fragment_ssao_source_T);
-
-			/*	Load shader	*/
-			this->multipass_program =
-				ShaderLoader::loadGraphicProgram(&vertex_multi_pass_source_T, &fragment_multi_pass_source_T);
+			this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_multi_pass_source,
+																	   &fragment_multi_pass_source);
 
 			/*	Setup graphic ambient occlusion pipeline.	*/
 			glUseProgram(this->ssao_program);

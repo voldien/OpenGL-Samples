@@ -51,14 +51,15 @@ namespace glsample {
 		/*  Instance buffer model matrix.   */
 		unsigned int instance_model_buffer;
 
-		// TODO change to vector
+		/*	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_instance_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_instance_buffer_binding = 1;
 		unsigned int uniform_mvp_buffer;
 		unsigned int uniform_instance_buffer;
-		const size_t nrUniformBuffer = 3;
+		const size_t nrUniformBuffers = 3;
+
 		size_t uniformSize = sizeof(UniformBufferBlock);
 		size_t uniformInstanceSize = 0;
 
@@ -105,24 +106,22 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 			/*	Load shader source.	*/
-
-			std::vector<uint32_t> vertex_source =
+			std::vector<uint32_t> vertex_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
+			std::vector<uint32_t> fragment_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
-			std::vector<char> fragment_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
+			std::vector<char> vertex_source = fragcore::ShaderCompiler::convertSPIRV(vertex_binary, compilerOptions);
+			std::vector<char> fragment_source =
+				fragcore::ShaderCompiler::convertSPIRV(fragment_binary, compilerOptions);
 			/*	Load shader	*/
-			this->instance_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+			this->instance_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
 			/*	*/
 			glUseProgram(this->instance_program);
@@ -144,9 +143,10 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSize = fragcore::Math::align(this->uniformSize, (size_t)minMapBufferSize);
 
+			/*	*/
 			glGenBuffers(1, &this->uniform_mvp_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffers, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
@@ -160,7 +160,7 @@ namespace glsample {
 			this->instance_model_matrices.resize(this->instanceBatch);
 			glGenBuffers(1, &this->uniform_instance_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * this->nrUniformBuffer, nullptr,
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * this->nrUniformBuffers, nullptr,
 						 GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
@@ -208,7 +208,7 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			update();
+			this->update();
 
 			int width, height;
 			getSize(&width, &height);
@@ -226,16 +226,15 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_mvp_buffer,
-							  (getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
+							  (getFrameCount() % this->nrUniformBuffers) * this->uniformSize, this->uniformSize);
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_index, this->uniform_instance_buffer,
-							  (getFrameCount() % this->nrUniformBuffer) * this->uniformInstanceSize,
+							  (getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize,
 							  this->uniformInstanceSize);
 
 			// TODO add support for batching for limit amount of uniform buffers.
 
 			glUseProgram(this->instance_program);
-
 			glDisable(GL_CULL_FACE);
 
 			/*	*/
@@ -251,8 +250,8 @@ namespace glsample {
 
 		void update() {
 			/*	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = this->getTimer().getElapsed();
+			this->camera.update(this->getTimer().deltaTime());
 
 			for (size_t i = 0; i < rows; i++) {
 				for (size_t j = 0; j < cols; j++) {
@@ -267,6 +266,7 @@ namespace glsample {
 				}
 			}
 
+			/*	*/
 			this->uniformData.model = glm::mat4(1.0f);
 			this->uniformData.view = camera.getViewMatrix();
 			this->uniformData.modelViewProjection = this->uniformData.model * camera.getViewMatrix();
@@ -275,16 +275,16 @@ namespace glsample {
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
 			void *uniformMVP = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
-				this->uniformSize, GL_MAP_WRITE_BIT);
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformSize,
+				this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformMVP, &this->uniformData, sizeof(uniformData));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
 			void *uniformInstance = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformInstanceSize,
-				this->uniformInstanceSize, GL_MAP_WRITE_BIT);
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformInstanceSize,
+				this->uniformInstanceSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformInstance, this->instance_model_matrices.data(),
 				   sizeof(this->instance_model_matrices[0]) * this->instance_model_matrices.size());
 

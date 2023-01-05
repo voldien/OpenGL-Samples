@@ -11,9 +11,9 @@ namespace glsample {
 	class SimpleOcean : public GLSampleWindow {
 	  public:
 		SimpleOcean() : GLSampleWindow() {
-			this->setTitle("SimpleOcean");
-			simpleOceanSettingComponent = std::make_shared<SimpleOceanSettingComponent>(this->mvp);
-			this->addUIComponent(simpleOceanSettingComponent);
+			this->setTitle("Simple Ocean");
+			this->simpleOceanSettingComponent = std::make_shared<SimpleOceanSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->simpleOceanSettingComponent);
 		}
 
 		struct UniformBufferBlock {
@@ -31,10 +31,11 @@ namespace glsample {
 			glm::vec4 position;
 
 			float time;
+			float speed;
 			float freq = 2.0f;
 			float amplitude = 1.0f;
 
-		} mvp;
+		} uniformBuffer;
 
 		/*	*/
 		GeometryObject plan;
@@ -62,11 +63,15 @@ namespace glsample {
 				this->setName("Simple Ocean Settings");
 			}
 			virtual void draw() override {
+				ImGui::TextUnformatted("");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
-				// Speed
-				// amplitude.
-				// ImGui::Edit("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::TextUnformatted("");
+				ImGui::DragFloat("Speed", &this->uniform.speed);
+				ImGui::DragFloat("Freqency", &this->uniform.freq);
+				ImGui::DragFloat("Amplitude", &this->uniform.amplitude);
+				ImGui::TextUnformatted("");
+				/*	*/
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -85,8 +90,8 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/simpleocean/simpleocean.vert";
 		const std::string fragmentShaderPath = "Shaders/simpleocean/simpleocean.frag";
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/skybox.vert";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag";
 
 		virtual void Release() override {
 			/*	*/
@@ -116,7 +121,7 @@ namespace glsample {
 			std::vector<char> fragment_source =
 				IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
-			/*	Load shader	*/
+			/*	Load shader programs.	*/
 			this->simpleOcean_program =
 				ShaderLoader::loadGraphicProgram(&vertex_simple_ocean_source, &fragment_simple_ocean_source);
 			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
@@ -140,6 +145,8 @@ namespace glsample {
 			TextureImporter textureImporter(this->getFileSystem());
 			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
 			this->reflection_texture = textureImporter.loadImage2D(this->panoramicPath);
+
+			/*	Create Normal texture.	*/
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -229,7 +236,8 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniformBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -289,24 +297,27 @@ namespace glsample {
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model = glm::rotate(this->mvp.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10.95f));
-			this->mvp.view = this->camera.getViewMatrix();
-			this->mvp.lookDirection = glm::vec4(this->camera.getLookDirection().x, this->camera.getLookDirection().z,
-												this->camera.getLookDirection().y, 0);
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
-			this->mvp.position =
+			this->uniformBuffer.model = glm::mat4(1.0f);
+			this->uniformBuffer.model =
+				glm::rotate(this->uniformBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
+			this->uniformBuffer.view = this->camera.getViewMatrix();
+			this->uniformBuffer.lookDirection =
+				glm::vec4(this->camera.getLookDirection().x, this->camera.getLookDirection().z,
+						  this->camera.getLookDirection().y, 0);
+			this->uniformBuffer.modelViewProjection =
+				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+			this->uniformBuffer.position =
 				glm::vec4(this->camera.getPosition().x, this->camera.getPosition().z, this->camera.getPosition().y, 0);
-			std::cout << this->mvp.position.x << std::endl;
-			this->mvp.time = elapsedTime;
+			std::cout << this->uniformBuffer.position.x << std::endl;
+			this->uniformBuffer.time = elapsedTime;
 
 			/*  */
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
 				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	}; // namespace glsample

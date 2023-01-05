@@ -127,3 +127,9 @@ unsigned int GLSampleWindow::getShaderVersion() const {
 	const char *shaderVersion = interface->getShaderVersion(fragcore::ShaderLanguage::GLSL);
 	return std::stoi(shaderVersion);
 }
+
+bool GLSampleWindow::supportSPIRV() const {
+	const fragcore::GLRendererInterface *interface =
+		dynamic_cast<const fragcore::GLRendererInterface *>(this->getRenderInterface().get());
+	return (interface->getShaderLanguage() & fragcore::ShaderLanguage::SPIRV != 0);
+}

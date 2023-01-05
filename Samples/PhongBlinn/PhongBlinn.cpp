@@ -122,22 +122,18 @@ namespace glsample {
 
 			/*	Load shader source.	*/
 			/*	*/
-			std::vector<uint32_t> vertex_source_binary =
+			const std::vector<uint32_t> vertex_source_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source_binary =
+			const std::vector<uint32_t> fragment_source_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> vertex_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(vertex_source_binary, compilerOptions);
-			std::vector<char> fragment_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_source_binary, compilerOptions);
-
 			/*	Load shader	*/
-			this->phongblinn_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+			this->phongblinn_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source_binary, &fragment_source_binary);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->phongblinn_program);

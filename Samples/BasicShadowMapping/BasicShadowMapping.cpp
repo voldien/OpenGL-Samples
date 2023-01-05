@@ -37,6 +37,7 @@ namespace glsample {
 			float shadowStrength = 1.0f;
 		} uniform;
 
+		/*	*/
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
 		size_t shadowWidth = 4096;
@@ -66,6 +67,7 @@ namespace glsample {
 				: uniform(uniform), depth(depth) {
 				this->setName("Basic Shadow Mapping Settings");
 			}
+
 			virtual void draw() override {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
@@ -113,33 +115,25 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
-			std::vector<uint32_t> vertex_source =
+			const std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
+			const std::vector<uint32_t> fragment_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
 			/*	*/
-			std::vector<uint32_t> vertex_shadow_source =
+			const std::vector<uint32_t> vertex_shadow_source =
 				IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_shadow_source =
+			const std::vector<uint32_t> fragment_shadow_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
-			std::vector<char> fragment_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
-
-			std::vector<char> vertex_shadow_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(vertex_shadow_source, compilerOptions);
-			std::vector<char> fragment_shadow_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_shadow_source, compilerOptions);
-
 			/*	Load shaders	*/
-			this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
-			this->shadow_program = ShaderLoader::loadGraphicProgram(&vertex_shadow_source_T, &fragment_shadow_source_T);
+			this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			this->shadow_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_source, &fragment_shadow_source);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());

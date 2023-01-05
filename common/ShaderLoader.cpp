@@ -4,6 +4,52 @@
 #include <GLRendererInterface.h>
 
 using namespace glsample;
+int ShaderLoader::loadGraphicProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
+									 const std::vector<uint32_t> *vertex, const std::vector<uint32_t> *fragment,
+									 const std::vector<uint32_t> *geometry, const std::vector<uint32_t> *tesselationc,
+									 const std::vector<uint32_t> *tesselatione) {
+
+	std::vector<char> vertex_source;
+	if (vertex) {
+
+		const std::vector<char> vertex_source_code = fragcore::ShaderCompiler::convertSPIRV(*vertex, compilerOptions);
+		vertex_source.insert(vertex_source.end(), vertex_source_code.begin(), vertex_source_code.end());
+	}
+
+	std::vector<char> fragment_source;
+	if (fragment) {
+
+		const std::vector<char> fragment_source_code =
+			fragcore::ShaderCompiler::convertSPIRV(*fragment, compilerOptions);
+		fragment_source.insert(fragment_source.end(), fragment_source_code.begin(), fragment_source_code.end());
+	}
+
+	std::vector<char> geometry_source;
+	if (geometry) {
+
+		const std::vector<char> geometry_source_code =
+			fragcore::ShaderCompiler::convertSPIRV(*geometry, compilerOptions);
+		geometry_source.insert(geometry_source.end(), geometry_source_code.begin(), geometry_source_code.end());
+	}
+
+	std::vector<char> tesse_c_source;
+	if (tesselationc) {
+
+		const std::vector<char> geometry_source_code =
+			fragcore::ShaderCompiler::convertSPIRV(*tesselationc, compilerOptions);
+		tesse_c_source.insert(tesse_c_source.end(), geometry_source_code.begin(), geometry_source_code.end());
+	}
+
+	std::vector<char> tesse_e_source;
+	if (tesselatione) {
+
+		const std::vector<char> geometry_source_code =
+			fragcore::ShaderCompiler::convertSPIRV(*tesselatione, compilerOptions);
+		tesse_e_source.insert(tesse_e_source.end(), geometry_source_code.begin(), geometry_source_code.end());
+	}
+
+	return loadGraphicProgram(&vertex_source, &fragment_source, &geometry_source, &tesse_c_source, &tesse_e_source);
+}
 
 int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std::vector<char> *fragment,
 									 const std::vector<char> *geometry, const std::vector<char> *tesselationc,
@@ -22,30 +68,30 @@ int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std:
 	if (program < 0)
 		return 0;
 
-	if (vertex) {
+	if (vertex && vertex->size() > 0) {
 		shader_vertex = loadShader(*vertex, GL_VERTEX_SHADER_ARB);
 		glAttachShader(program, shader_vertex);
 		fragcore::checkError();
 	}
-	if (fragment) {
+	if (fragment && fragment->size() > 0) {
 		shader_fragment = loadShader(*fragment, GL_FRAGMENT_SHADER_ARB);
 		glAttachShader(program, shader_fragment);
 		fragcore::checkError();
 	}
 
-	if (geometry) {
+	if (geometry && geometry->size() > 0) {
 		shader_geometry = loadShader(*geometry, GL_GEOMETRY_SHADER_ARB);
 		glAttachShader(program, shader_geometry);
 		fragcore::checkError();
 	}
 
-	if (tesselationc) {
+	if (tesselationc && tesselationc->size() > 0) {
 		shader_tesc = loadShader(*tesselationc, GL_TESS_CONTROL_SHADER);
 		glAttachShader(program, shader_tesc);
 		fragcore::checkError();
 	}
 
-	if (tesselatione) {
+	if (tesselatione && tesselatione->size() > 0) {
 		shader_tese = loadShader(*tesselatione, GL_TESS_EVALUATION_SHADER);
 		glAttachShader(program, shader_tese);
 		fragcore::checkError();
@@ -154,6 +200,10 @@ int ShaderLoader::loadShader(const std::vector<char> &source, int type) {
 	int shader = glCreateShader(type);
 	fragcore::checkError();
 	glShaderSource(shader, 1, (const GLchar **)&source_data, nullptr);
+
+	// glShaderBinary(1, &sid, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, vs_buf, vs_buf_len);
+	// glSpecializeShader(sid, "main", 0, 0, 0);
+
 	fragcore::checkError();
 	glCompileShader(shader);
 	fragcore::checkError();

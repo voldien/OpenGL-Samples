@@ -1,6 +1,5 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_draw_instanced : enable
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
@@ -31,7 +30,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[512]; }
+layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[64]; }
 instance_ubo;
 
 void main() {
