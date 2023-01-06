@@ -87,11 +87,11 @@ namespace glsample {
 		std::string panoramicPath = "asset/panoramic.jpg";
 		std::string normalTexturePath = "asset/normalmap.png";
 
-		const std::string vertexShaderPath = "Shaders/simpleocean/simpleocean.vert";
-		const std::string fragmentShaderPath = "Shaders/simpleocean/simpleocean.frag";
+		const std::string vertexShaderPath = "Shaders/simpleocean/simpleocean.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/simpleocean/simpleocean.frag.spv";
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 		virtual void Release() override {
 			/*	*/

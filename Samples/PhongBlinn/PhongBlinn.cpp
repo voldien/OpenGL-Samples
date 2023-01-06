@@ -74,11 +74,12 @@ namespace glsample {
 
 				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
 					ImGui::PushID(1000 + i);
+					ImGui::TextUnformatted("Point Light Setting");
 					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightVisable[i],
 												ImGuiTreeNodeFlags_CollapsingHeader)) {
 
 						ImGui::ColorEdit4("Light Color", &this->uniform.pointLights[i].color[0],
-										  ImGuiColorEditFlags_Float);
+										  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 						ImGui::DragFloat3("Light Position", &this->uniform.pointLights[i].position[0]);
 						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
 						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
@@ -86,8 +87,12 @@ namespace glsample {
 					}
 					ImGui::PopID();
 				}
-				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Specular Color", &this->uniform.specularColor[0], ImGuiColorEditFlags_Float);
+				ImGui::TextUnformatted("Directional Light Setting");
+				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Specular Color", &this->uniform.specularColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::TextUnformatted("Material Setting");
 				ImGui::DragFloat("Shinnes", &this->uniform.shininess);
 				ImGui::Checkbox("Blinn", &this->uniform.useBlinn);
 			}

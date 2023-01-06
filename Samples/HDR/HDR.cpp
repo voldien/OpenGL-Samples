@@ -36,9 +36,15 @@ namespace glsample {
 		/*	*/
 		unsigned int HDRFramebuffer;
 		unsigned int shadowTexture;
-		size_t shadowWidth;
-		size_t shadowHeight;
+		size_t hdrWidth;
+		size_t hdrHeight;
 		unsigned int depthTexture;
+
+		/*	*/
+		unsigned int bloomFrameBuffer;
+		unsigned int bloomTexture;
+		size_t bloomWidth;
+		size_t bloomHeight;
 
 		/*	*/
 		GeometryObject torus;
@@ -66,8 +72,10 @@ namespace glsample {
 				this->setName("Refrection Settings");
 			}
 			virtual void draw() override {
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("IOR", &this->uniform.IOR);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -83,11 +91,11 @@ namespace glsample {
 
 		std::string panoramicPath = "asset/panoramic.jpg";
 
-		const std::string vertexRefrectionShaderPath = "Shaders/refrection/refrection.vert";
-		const std::string fragmentRefrectionShaderPath = "Shaders/refrection/refrection.frag";
+		const std::string vertexRefrectionShaderPath = "Shaders/refrection/refrection.vert.spv";
+		const std::string fragmentRefrectionShaderPath = "Shaders/refrection/refrection.frag.spv";
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -107,20 +115,24 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_refrection_source =
-				IOUtil::readFileString(this->vertexRefrectionShaderPath, this->getFileSystem());
-			std::vector<char> fragment_refrection_source =
-				IOUtil::readFileString(this->fragmentRefrectionShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> vertex_refrection_source =
+				IOUtil::readFileData<uint32_t>(this->vertexRefrectionShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_refrection_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentRefrectionShaderPath, this->getFileSystem());
 
-			std::vector<char> vertex_source =
-				IOUtil::readFileString(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
-				IOUtil::readFileString(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shader	*/
-			this->refrection_program =
-				ShaderLoader::loadGraphicProgram(&vertex_refrection_source, &fragment_refrection_source);
-			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->refrection_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_refrection_source,
+																		&fragment_refrection_source);
+			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->refrection_program);
@@ -225,21 +237,25 @@ namespace glsample {
 
 			/*  */
 			glGenFramebuffers(1, &this->HDRFramebuffer);
+			glGenFramebuffers(1, &this->bloomFrameBuffer);
 			glGenTextures(1, &this->shadowTexture);
+			glGenTextures(1, &this->bloomTexture);
+			glGenTextures(1, &this->depthTexture);
 			onResize(this->width(), this->height());
 		}
 		virtual void onResize(int width, int height) override {
 
-			this->shadowWidth = width;
-			this->shadowHeight = height;
+			this->hdrWidth = width;
+			this->hdrHeight = height;
+			this->bloomWidth = width;
+			this->bloomHeight = height;
 			{
 				/*	Create HDR framebuffer.	*/
 				glBindFramebuffer(GL_FRAMEBUFFER, this->HDRFramebuffer);
 
 				/*	*/
-				glGenTextures(1, &this->shadowTexture);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->shadowWidth, this->shadowHeight, 0, GL_RGBA,
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->hdrWidth, this->hdrHeight, 0, GL_RGBA,
 							 GL_UNSIGNED_BYTE, nullptr);
 				/*	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -252,9 +268,8 @@ namespace glsample {
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->shadowTexture, 0);
 
 				/*	*/
-				glGenTextures(1, &this->depthTexture);
 				glBindTexture(GL_TEXTURE_2D, depthTexture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->shadowWidth, this->shadowHeight, 0,
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->hdrWidth, this->hdrHeight, 0,
 							 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 				glBindTexture(GL_TEXTURE_2D, 0);
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
@@ -263,6 +278,44 @@ namespace glsample {
 				glDrawBuffers(1, &deo);
 
 				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+				if (frstat != GL_FRAMEBUFFER_COMPLETE) {
+
+					/*  Delete  */
+					glDeleteFramebuffers(1, &HDRFramebuffer);
+					// TODO add error message.
+					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+				}
+
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+				/*	Create HDR framebuffer.	*/
+				glBindFramebuffer(GL_FRAMEBUFFER, this->bloomFrameBuffer);
+
+				/*	*/
+				glGenTextures(1, &this->bloomTexture);
+				glBindTexture(GL_TEXTURE_2D, this->bloomTexture);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->bloomWidth, this->bloomHeight, 0, GL_RGBA,
+							 GL_UNSIGNED_BYTE, nullptr);
+				/*	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				/*	Border clamped to max value, it makes the outside area.	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 5));
+
+				FVALIDATE_GL_CALL(glGenerateMipmap(GL_TEXTURE_2D));
+
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->bloomTexture, 0);
+
+				deo = GL_COLOR_ATTACHMENT0;
+				glDrawBuffers(1, &deo);
+
+				frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 				if (frstat != GL_FRAMEBUFFER_COMPLETE) {
 
 					/*  Delete  */
@@ -342,7 +395,16 @@ namespace glsample {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->HDRFramebuffer);
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
-			glBlitFramebuffer(0, 0, this->shadowWidth, this->shadowHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT,
+
+			/*	Downscale.	*/
+			glBindTexture(GL_TEXTURE_2D, this->bloomTexture);
+			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, this->bloomWidth, this->bloomHeight);
+			glGenerateMipmap(GL_TEXTURE_2D);
+
+			/*	Bloom.	*/
+
+			/*	Blit the result to the default framebuffer.	*/
+			glBlitFramebuffer(0, 0, this->hdrWidth, this->hdrHeight, 0, 0, width, height, GL_COLOR_BUFFER_BIT,
 							  GL_NEAREST);
 		}
 
@@ -357,13 +419,11 @@ namespace glsample {
 				glm::rotate(this->uniformBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
 			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.lookDirection =
-				glm::vec4(this->camera.getLookDirection().x, this->camera.getLookDirection().z,
-						  this->camera.getLookDirection().y, 0);
+			this->uniformBuffer.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
+
 			this->uniformBuffer.modelViewProjection =
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.position =
-				glm::vec4(this->camera.getPosition().x, this->camera.getPosition().z, this->camera.getPosition().y, 0);
+			this->uniformBuffer.position = glm::vec4(this->camera.getPosition(), 0);
 
 			/*  */
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);

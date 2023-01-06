@@ -61,5 +61,5 @@ void main() {
 	// const float refFactor = fresnelBias + fresnelScale * pow(viewDir + dot(viewDir, N), fresnelPower);
 
 	/*	*/
-	fragColor = texture(ReflectionTexture, reflection_uv) * (ubo.ambientColor + spec + contribution * ubo.lightColor);
+	fragColor = texture(ReflectionTexture, reflection_uv) * (ubo.ambientColor + spec * contribution + contribution * ubo.lightColor);
 }

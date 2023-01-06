@@ -23,6 +23,8 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec2 screen;
 
 	vec3 kernel[64];
+
+	vec4 color;
 }
 ubo;
 //	float OccluderBias = 0.045;

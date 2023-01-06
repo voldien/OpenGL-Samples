@@ -56,9 +56,11 @@ namespace glsample {
 				this->setName("NormalMap Settings");
 			}
 			virtual void draw() override {
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 

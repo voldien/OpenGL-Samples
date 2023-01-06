@@ -1,6 +1,7 @@
 #include "GLSampleWindow.h"
 #include <GLRendererInterface.h>
 #include <ImageLoader.h>
+#include <iostream>
 // TODO add supprt for renderdoc
 unsigned int pboBuffer;
 
@@ -125,7 +126,8 @@ unsigned int GLSampleWindow::getShaderVersion() const {
 	const fragcore::GLRendererInterface *interface =
 		dynamic_cast<const fragcore::GLRendererInterface *>(this->getRenderInterface().get());
 	const char *shaderVersion = interface->getShaderVersion(fragcore::ShaderLanguage::GLSL);
-	return std::stoi(shaderVersion);
+	unsigned int version = std::stoi(shaderVersion);
+	return version;
 }
 
 bool GLSampleWindow::supportSPIRV() const {

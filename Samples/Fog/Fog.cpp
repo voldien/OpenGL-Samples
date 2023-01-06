@@ -89,8 +89,8 @@ namespace glsample {
 
 		const std::string modelPath = "asset/sponza/sponza.obj";
 		/*	*/
-		const std::string vertexGraphicShaderPath = "Shaders/fog/fog.vert";
-		const std::string fragmentGraphicShaderPath = "Shaders/fog/fog.frag";
+		const std::string vertexGraphicShaderPath = "Shaders/fog/fog.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/fog/fog.frag.spv";
 
 		virtual void Release() override {
 			glDeleteProgram(this->graphic_fog_program);
@@ -102,13 +102,18 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
-			std::vector<char> vertex_source =
-				IOUtil::readFileString(this->vertexGraphicShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
-				IOUtil::readFileString(this->fragmentGraphicShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shaders	*/
-			this->graphic_fog_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->graphic_fog_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());

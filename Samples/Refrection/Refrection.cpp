@@ -59,8 +59,10 @@ namespace glsample {
 				this->setName("Refrection Settings");
 			}
 			virtual void draw() override {
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("IOR", &this->uniform.IOR);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -113,10 +115,10 @@ namespace glsample {
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
-			
+
 			/*	Load shader	*/
-			this->refrection_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_refrection_source, &fragment_refrection_source);
+			this->refrection_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_refrection_source,
+																		&fragment_refrection_source);
 			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*	Setup graphic pipeline settings.    */

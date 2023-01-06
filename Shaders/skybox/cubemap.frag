@@ -8,6 +8,7 @@ layout(binding = 0) uniform samplerCube texture0;
 
 layout(binding = 0) uniform UniformBufferBlock {
 	mat4 MVP;
+	vec4 tintColor;
 	float exposure;
 }
 ubo;

@@ -56,12 +56,12 @@ vec3 uniformRadomDir(vec2 v, out vec2 r) {
 void main() {
 
 	vec3 pos = vec3(0);
-	float t = gl_VertexIndex * ubo.setting.rate;
+	float t = gl_VertexID * ubo.setting.rate;
 	float alpha = 1;
 
 	if (ubo.time > t) {
 		float dt = mod((ubo.time - t), ubo.setting.lifetime);
-		vec2 xy = vec2(gl_VertexIndex, t);
+		vec2 xy = vec2(gl_VertexID, t);
 		vec2 rdm = vec2(0);
 		pos = ((uniformRadomDir(xy, rdm) + 0.5 * a * dt) * dt);
 		alpha = 1.0 - (dt / ubo.setting.lifetime);

@@ -16,10 +16,10 @@ namespace glsample {
 		SkyBoxPanoramic() : GLSampleWindow() {
 			this->setTitle("SkyBoxPanoramic");
 
-			skyboxSettingComponent = std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
-			this->addUIComponent(skyboxSettingComponent);
+			this->skyboxSettingComponent = std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
+			this->addUIComponent(this->skyboxSettingComponent);
 
-			camera.enableNavigation(false);
+			this->camera.enableNavigation(false);
 		}
 
 		// TODO use.
@@ -29,6 +29,7 @@ namespace glsample {
 
 		struct UniformBufferBlock {
 			glm::mat4 modelViewProjection;
+			glm::vec4 tintColor;
 			float exposure = 1.0f;
 		} uniform_stage_buffer;
 
@@ -55,6 +56,8 @@ namespace glsample {
 				this->setName("SkyBox Settings");
 			}
 			virtual void draw() override {
+				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Exposure", &this->uniform.exposure);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}

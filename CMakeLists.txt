@@ -123,7 +123,7 @@ FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${SPIRV}
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
-		COMMAND glslc -x glsl -O -g -o ${SPIRV} ${GLSL}
+		COMMAND glslc -x glsl -O -Werror -g --target-env=opengl -o ${SPIRV} ${GLSL}
 		DEPENDS ${GLSL})
 	LIST(APPEND SPIRV_BINARY_FILES ${SPIRV})
 ENDFOREACH(GLSL)

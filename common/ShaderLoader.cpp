@@ -9,6 +9,10 @@ int ShaderLoader::loadGraphicProgram(const fragcore::ShaderCompiler::CompilerCon
 									 const std::vector<uint32_t> *geometry, const std::vector<uint32_t> *tesselationc,
 									 const std::vector<uint32_t> *tesselatione) {
 
+	if (glSpecializeShaderARB) {
+	} else {
+	}
+
 	std::vector<char> vertex_source;
 	if (vertex) {
 
@@ -202,7 +206,7 @@ int ShaderLoader::loadShader(const std::vector<char> &source, int type) {
 	glShaderSource(shader, 1, (const GLchar **)&source_data, nullptr);
 
 	// glShaderBinary(1, &sid, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, vs_buf, vs_buf_len);
-	// glSpecializeShader(sid, "main", 0, 0, 0);
+	// glSpecializeShaderARB(sid, "main", 0, 0, 0);
 
 	fragcore::checkError();
 	glCompileShader(shader);

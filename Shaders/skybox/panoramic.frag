@@ -8,6 +8,7 @@ layout(binding = 0) uniform sampler2D panorama;
 
 layout(binding = 0) uniform UniformBufferBlock {
 	mat4 MVP;
+	vec4 tintColor;
 	float exposure;
 }
 ubo;
@@ -29,6 +30,9 @@ vec2 inverse_equirectangular(vec3 direction) {
 }
 
 void main() {
+	
 	vec2 uv = inverse_equirectangular(normalize(vVertex));
-	fragColor = textureLod(panorama, uv, 0) * exp(ubo.exposure);
+
+	fragColor = textureLod(panorama, uv, 0) * ubo.tintColor;
+	fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
 }

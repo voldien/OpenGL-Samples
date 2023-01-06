@@ -6,6 +6,7 @@ layout(location = 0) out vec3 vVertex;
 
 layout(binding = 0) uniform UniformBufferBlock {
 	mat4 MVP;
+	vec4 tintColor;
 	float exposure;
 }
 ubo;

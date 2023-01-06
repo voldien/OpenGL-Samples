@@ -13,7 +13,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 
 	/*	Light source.	*/
-	vec3 lightPos;
+	vec4 lightPos;
 	vec4 ambientColor;
 }
 ubo;
@@ -37,7 +37,7 @@ void main() {
 	vec3 e6 = vertex[5] - vertex[0];
 
 	vec3 Normal = cross(e1, e2);
-	vec3 LightDir = ubo.lightPos - vertex[0];
+	vec3 LightDir = ubo.lightPos.xyz - vertex[0];
 
 	if (dot(Normal, LightDir) > 0.00001) {
 
@@ -48,14 +48,14 @@ void main() {
 		}
 
 		Normal = cross(e4, e5);
-		LightDir = ubo.lightPos - vertex[2];
+		LightDir = ubo.lightPos.xyz - vertex[2];
 
 		if (dot(Normal, LightDir) <= 0) {
 			EmitLine(2, 4);
 		}
 
 		Normal = cross(e2, e6);
-		LightDir = ubo.lightPos - vertex[4];
+		LightDir = ubo.lightPos.xyz - vertex[4];
 
 		if (dot(Normal, LightDir) <= 0) {
 			EmitLine(4, 0);

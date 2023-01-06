@@ -72,7 +72,7 @@ namespace glsample {
 												ImGuiTreeNodeFlags_CollapsingHeader)) {
 
 						ImGui::ColorEdit4("Light Color", &this->uniform.pointLights[i].color[0],
-										  ImGuiColorEditFlags_Float);
+										  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 						ImGui::DragFloat3("Light Position", &this->uniform.pointLights[i].position[0]);
 						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
 						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
@@ -121,12 +121,9 @@ namespace glsample {
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> vertex_source_T = fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
-			std::vector<char> fragment_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
-
 			/*	Load shader	*/
-			this->pointLight_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+			this->pointLight_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->pointLight_program);

@@ -13,7 +13,13 @@ namespace glsample {
 
 	class SkyBoxPanoramic : public GLSampleWindow {
 	  public:
-		SkyBoxPanoramic() : GLSampleWindow() { this->setTitle("Skybox Cubemap"); }
+		SkyBoxPanoramic() : GLSampleWindow() {
+			this->setTitle("Skybox Cubemap");
+			this->skyboxSettingComponent = std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
+			this->addUIComponent(this->skyboxSettingComponent);
+
+			this->camera.enableNavigation(false);
+		}
 
 		GeometryObject SkyboxCube;
 
@@ -22,6 +28,7 @@ namespace glsample {
 
 		struct UniformBufferBlock {
 			glm::mat4 modelViewProjection;
+			glm::vec4 tintColor;
 			float exposure = 1.0f;
 		} uniform_stage_buffer;
 
@@ -35,8 +42,29 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
+
+	  public:
+		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
+
+		  public:
+			SkyboxPanoramicSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("SkyBox Settings");
+			}
+			virtual void draw() override {
+				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::DragFloat("Exposure", &this->uniform.exposure);
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<SkyboxPanoramicSettingComponent> skyboxSettingComponent;
 
 		virtual void Release() override {
 			glDeleteProgram(this->skybox_program);

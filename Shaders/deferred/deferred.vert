@@ -9,5 +9,5 @@ void main() {
 	gl_Position = vec4(Vertex.x, Vertex.y, 0, 1.0);
 
 	uv = (vec2(Vertex.x, Vertex.y) + vec2(1, 1)) / 2.0;
-	InstanceID = gl_InstanceIndex;
+	InstanceID = int(gl_InstanceID);
 }

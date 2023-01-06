@@ -81,6 +81,7 @@ namespace glsample {
 
 		const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
 		const std::string heightTexturePath = "asset/tessellation_heightmap.png";
+		
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag.spv";

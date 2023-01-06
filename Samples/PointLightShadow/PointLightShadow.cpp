@@ -88,13 +88,13 @@ namespace glsample {
 		const std::string modelPath = "asset/sponza/sponza.obj";
 
 		/*	Graphic shader paths.	*/
-		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert";
-		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag";
+		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
 
 		/*	Shadow shader paths.	*/
-		const std::string vertexShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert";
-		const std::string geomtryShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.geom";
-		const std::string fragmentShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.frag";
+		const std::string vertexShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert.spv";
+		const std::string geomtryShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.geom.spv";
+		const std::string fragmentShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.frag.spv";
 
 		virtual void Release() override {
 			glDeleteProgram(this->graphic_program);
@@ -106,23 +106,27 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			std::vector<char> vertex_source =
-				IOUtil::readFileString(this->vertexGraphicShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
-				IOUtil::readFileString(this->fragmentGraphicShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
 			/*	*/
-			std::vector<char> vertex_shadow_source =
-				IOUtil::readFileString(this->vertexShadowShaderPath, this->getFileSystem());
-			std::vector<char> geometry_shadow_source =
-				IOUtil::readFileString(this->geomtryShadowShaderPath, this->getFileSystem());
-			std::vector<char> fragment_shadow_source =
-				IOUtil::readFileString(this->fragmentShadowShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> vertex_shadow_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> geometry_shadow_source =
+				IOUtil::readFileData<uint32_t>(this->geomtryShadowShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_shadow_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shaders	*/
-			this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
-			this->shadow_program = ShaderLoader::loadGraphicProgram(&vertex_shadow_source, &fragment_shadow_source,
-																	&geometry_shadow_source);
+			this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			this->shadow_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_source,
+																	&fragment_shadow_source, &geometry_shadow_source);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());

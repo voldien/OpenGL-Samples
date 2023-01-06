@@ -117,11 +117,9 @@ namespace glsample {
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> vertex_source = fragcore::ShaderCompiler::convertSPIRV(vertex_binary, compilerOptions);
-			std::vector<char> fragment_source =
-				fragcore::ShaderCompiler::convertSPIRV(fragment_binary, compilerOptions);
 			/*	Load shader	*/
-			this->instance_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->instance_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 
 			/*	*/
 			glUseProgram(this->instance_program);
