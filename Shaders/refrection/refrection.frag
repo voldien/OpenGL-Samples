@@ -7,6 +7,7 @@ layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec2 uv;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
+layout(location = 4) in vec3 refraction;
 
 layout(binding = 0) uniform sampler2D ReflectionTexture;
 
@@ -49,7 +50,7 @@ void main() {
 	const float contribution = max(0.0, dot(N, normalize(ubo.direction.xyz)));
 
 	/*	*/
-	const vec3 refrectionDir = normalize(refract(viewDir, N, ubo.IOR));
+	const vec3 refrectionDir = normalize(refraction);
 
 	/*	*/
 	const vec2 reflection_uv = inverse_equirectangular(refrectionDir);
@@ -58,8 +59,9 @@ void main() {
 	float fresnelScale = 0.1;
 	float fresnelPower = 2;
 
-	// const float refFactor = fresnelBias + fresnelScale * pow(viewDir + dot(viewDir, N), fresnelPower);
+//	const float refFactor = fresnelBias + fresnelScale * pow(viewDir + dot(viewDir, N), fresnelPower);
 
 	/*	*/
-	fragColor = texture(ReflectionTexture, reflection_uv) * (ubo.ambientColor + spec * contribution + contribution * ubo.lightColor);
+	fragColor = texture(ReflectionTexture, reflection_uv) *
+				(ubo.ambientColor + spec * contribution + contribution * ubo.lightColor);
 }

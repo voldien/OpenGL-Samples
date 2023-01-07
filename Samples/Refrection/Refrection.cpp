@@ -29,7 +29,7 @@ namespace glsample {
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 position;
 
-			float IOR = 1.5;
+			float IOR = 0.8f;
 
 		} uniformBuffer;
 
@@ -76,7 +76,7 @@ namespace glsample {
 
 		CameraController camera;
 
-		std::string panoramicPath = "asset/panoramic.jpg";
+		std::string panoramicPath = "asset/winter_lake_01_4k.exr";
 
 		const std::string vertexRefrectionShaderPath = "Shaders/refrection/refrection.vert.spv";
 		const std::string fragmentRefrectionShaderPath = "Shaders/refrection/refrection.frag.spv";

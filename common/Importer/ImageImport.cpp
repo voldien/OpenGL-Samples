@@ -34,14 +34,25 @@ int TextureImporter::loadImage2D(const std::string &path) {
 		internalformat = GL_RGBA8;
 		type = GL_UNSIGNED_BYTE;
 		break;
+	case TextureFormat::RGBAFloat:
+		format = GL_RGBA;
+		internalformat = GL_RGBA16F;
+		type = GL_FLOAT;
+		break;
+	case TextureFormat::RGBFloat:
+		format = GL_RGB;
+		type = GL_FLOAT;
+		internalformat = GL_RGBA16F;
+		break;
 	default:
-		throw RuntimeException("Invalid");
+		throw RuntimeException("Non Supported Format {}", image.getFormat());
 	}
 
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));
 
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));
 
+	/*	*/
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
@@ -50,6 +61,7 @@ int TextureImporter::loadImage2D(const std::string &path) {
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT));
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_REPEAT));
 
+	/*	*/
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 

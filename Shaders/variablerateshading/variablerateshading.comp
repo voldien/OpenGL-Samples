@@ -16,7 +16,7 @@ void main() {
 	// Get output fragcolor texture coordinate.
 	ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
-	ivec2 fragSize = imageSize(fragColor);
+	ivec2 fragSize = imageSize(variableRateLUT);
 	ivec2 TexSize = imageSize(texture0);
 	float distance = imageLoad(texture0, TexCoord).r;
 

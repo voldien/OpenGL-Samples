@@ -10,6 +10,7 @@ layout(location = 0) out vec3 vertex;
 layout(location = 1) out vec2 UV;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
+layout(location = 4) out vec3 refraction;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -36,4 +37,8 @@ void main() {
 	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
 	UV = TextureCoord;
+
+	const vec3 viewDir = normalize(ubo.cameraPosition.xyz - vertex);
+
+	refraction = refract(viewDir, normalize(normal), ubo.IOR);
 }

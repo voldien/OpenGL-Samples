@@ -14,10 +14,11 @@ layout(binding = 0) uniform UniformBufferBlock {
 ubo;
 
 vec3 equirectangular(vec2 xy) {
-	vec2 tc = xy / vec2(2.0) - 0.5;
-	vec2 thetaphi =
+	const vec2 tc = xy / vec2(2.0) - 0.5;
+	const vec2 thetaphi =
 		((tc * 2.0) - vec2(1.0)) * vec2(3.1415926535897932384626433832795, 1.5707963267948966192313216916398);
-	vec3 rayDirection = vec3(cos(thetaphi.y) * cos(thetaphi.x), sin(thetaphi.y), cos(thetaphi.y) * sin(thetaphi.x));
+	const vec3 rayDirection =
+		vec3(cos(thetaphi.y) * cos(thetaphi.x), sin(thetaphi.y), cos(thetaphi.y) * sin(thetaphi.x));
 	return rayDirection;
 }
 
@@ -30,9 +31,12 @@ vec2 inverse_equirectangular(vec3 direction) {
 }
 
 void main() {
-	
-	vec2 uv = inverse_equirectangular(normalize(vVertex));
+
+	const vec2 uv = inverse_equirectangular(normalize(vVertex));
 
 	fragColor = textureLod(panorama, uv, 0) * ubo.tintColor;
 	fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
+
+	const float gamma = 2.2;
+	fragColor = pow(fragColor, vec4(1.0 / gamma));
 }

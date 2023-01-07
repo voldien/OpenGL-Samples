@@ -10,13 +10,13 @@
 
 namespace glsample {
 
-	class SubSurfaceScattering : public GLSampleWindow {
+	class FrustumCulling : public GLSampleWindow {
 	  public:
-		SubSurfaceScattering() : GLSampleWindow() {
-			this->setTitle("SubSurfaceScattering");
-			this->subSurfaceScatteringSettingComponent =
+		FrustumCulling() : GLSampleWindow() {
+			this->setTitle("FrustumCulling");
+			this->shadowSettingComponent =
 				std::make_shared<BasicShadowMapSettingComponent>(this->uniform, this->shadowTexture);
-			this->addUIComponent(this->subSurfaceScatteringSettingComponent);
+			this->addUIComponent(this->shadowSettingComponent);
 		}
 
 		struct UniformBufferBlock {
@@ -29,15 +29,12 @@ namespace glsample {
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-			glm::vec4 lightColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.0, 0.0, 0.0, 1.0f);
-			glm::vec4 cameraPosition;
-			glm::vec4 subsurfaceColor = glm::vec4(1.0f);
+			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec3 cameraPosition;
 
-			/*	*/
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
-			float sigma = 1.0f;
 		} uniform;
 
 		/*	*/
@@ -52,8 +49,7 @@ namespace glsample {
 
 		std::vector<GeometryObject> refObj;
 
-		/*	*/
-		unsigned int graphic_subsurface_scattering_program;
+		unsigned int graphic_program;
 		unsigned int shadow_program;
 
 		/*	Uniform buffer.	*/
@@ -69,21 +65,16 @@ namespace glsample {
 		  public:
 			BasicShadowMapSettingComponent(struct UniformBufferBlock &uniform, unsigned int &depth)
 				: uniform(uniform), depth(depth) {
-				this->setName("SubSurface Scattering Settings");
+				this->setName("Basic Shadow Mapping Settings");
 			}
+
 			virtual void draw() override {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("SubSurface Color", &this->uniform.subsurfaceColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::DragFloat("Distance", &this->distance);
-				ImGui::DragFloat("Sigma", &this->uniform.sigma);
-
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
 				ImGui::Image((ImTextureID)this->depth, ImVec2(512, 512));
@@ -96,18 +87,18 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<BasicShadowMapSettingComponent> subSurfaceScatteringSettingComponent;
+		std::shared_ptr<BasicShadowMapSettingComponent> shadowSettingComponent;
 
-		const std::string modelPath = "asset/bunny.obj";
+		const std::string modelPath = "asset/sponza/sponza.obj";
 		/*	*/
-		const std::string vertexGraphicShaderPath = "Shaders/subsurfacescattering/subsurfacescattering.vert.spv";
-		const std::string fragmentGraphicShaderPath = "Shaders/subsurfacescattering/subsurfacescattering.frag.spv";
+		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
 
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
 
 		virtual void Release() override {
-			glDeleteProgram(this->graphic_subsurface_scattering_program);
+			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->shadow_program);
 
 			glDeleteFramebuffers(1, &this->shadowFramebuffer);
@@ -121,17 +112,18 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
-			std::vector<uint32_t> vertex_source =
+			const std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
+			const std::vector<uint32_t> fragment_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
 			/*	*/
-			std::vector<uint32_t> vertex_shadow_source =
+			const std::vector<uint32_t> vertex_shadow_source =
 				IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_shadow_source =
+			const std::vector<uint32_t> fragment_shadow_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -139,8 +131,7 @@ namespace glsample {
 			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shaders	*/
-			this->graphic_subsurface_scattering_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 			this->shadow_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_source, &fragment_shadow_source);
 
@@ -155,13 +146,11 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
-			glUseProgram(this->graphic_subsurface_scattering_program);
-			this->uniform_buffer_index =
-				glGetUniformBlockIndex(this->graphic_subsurface_scattering_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->graphic_subsurface_scattering_program, "DiffuseTexture"), 0);
-			glUniform1iARB(glGetUniformLocation(this->graphic_subsurface_scattering_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_subsurface_scattering_program, this->uniform_buffer_index,
-								  this->uniform_buffer_binding);
+			glUseProgram(this->graphic_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			glUniform1iARB(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
+			glUniform1iARB(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
+			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -177,8 +166,8 @@ namespace glsample {
 
 			{
 				/*	Create shadow map.	*/
-				glGenFramebuffers(1, &this->shadowFramebuffer);
-				glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
+				glGenFramebuffers(1, &shadowFramebuffer);
+				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
 
 				/*	*/
 				glGenTextures(1, &this->shadowTexture);
@@ -197,7 +186,7 @@ namespace glsample {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->shadowTexture, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTexture, 0);
 				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 				if (frstat != GL_FRAMEBUFFER_COMPLETE) {
 
@@ -227,34 +216,21 @@ namespace glsample {
 
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
+            /*  Perform frustum culling.    */
+
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
+							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
 
 			{
 
-				/*	Compute light matrices.	*/
-				float near_plane = -this->subSurfaceScatteringSettingComponent->distance / 2.0f,
-					  far_plane = this->subSurfaceScatteringSettingComponent->distance / 2.0f;
-				glm::mat4 lightProjection =
-					glm::ortho(near_plane, far_plane, near_plane, far_plane, near_plane, far_plane);
-				glm::mat4 lightView = glm::lookAt(
-					glm::vec3(-2.0f, 4.0f, -1.0f),
-					glm::vec3(this->uniform.direction.x, this->uniform.direction.y, this->uniform.direction.z),
-					glm::vec3(0.0f, 1.0f, 0.0f));
-				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-
-				glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
-				this->uniform.lightModelProject = lightSpaceMatrix;
-
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->shadowFramebuffer);
+				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
 
 				glClear(GL_DEPTH_BUFFER_BIT);
-				glViewport(0, 0, this->shadowWidth, this->shadowHeight);
+				glViewport(0, 0, shadowWidth, shadowHeight);
 				glUseProgram(this->shadow_program);
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-				glCullFace(GL_BACK);
+				glCullFace(GL_FRONT);
 				glEnable(GL_CULL_FACE);
 
 				/*	Setup the shadow.	*/
@@ -267,7 +243,7 @@ namespace glsample {
 				glBindVertexArray(0);
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
-			glClearColor(0.05f, 0.05, 0.05, 0.0f);
+
 			{
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				/*	*/
@@ -275,13 +251,12 @@ namespace glsample {
 
 				/*	*/
 				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-				glUseProgram(this->graphic_subsurface_scattering_program);
+				glUseProgram(this->graphic_program);
 
 				glCullFace(GL_BACK);
 				// glDisable(GL_CULL_FACE);
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK,
-							  this->subSurfaceScatteringSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -307,24 +282,24 @@ namespace glsample {
 
 			/*	*/
 			this->uniform.model = glm::mat4(1.0f);
-			this->uniform.model = glm::scale(this->uniform.model, glm::vec3(20));
+			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
 			this->uniform.view = this->camera.getViewMatrix();
 			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
-			this->uniform.cameraPosition = glm::vec4(this->camera.getPosition(), 0.0f);
+			this->uniform.cameraPosition = this->camera.getPosition();
 
 			/*	*/
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniform, sizeof(this->uniform));
+			memcpy(uniformPointer, &this->uniform, sizeof(uniform));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};
 
-	class SubSurfaceScatteringGLSample : public GLSample<SubSurfaceScattering> {
+	class FrustumCullingGLSample : public GLSample<FrustumCulling> {
 	  public:
-		SubSurfaceScatteringGLSample(int argc, const char **argv) : GLSample<SubSurfaceScattering>(argc, argv) {}
+		FrustumCullingGLSample(int argc, const char **argv) : GLSample<FrustumCulling>(argc, argv) {}
 		virtual void commandline(cxxopts::Options &options) override {
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
@@ -336,7 +311,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::SubSurfaceScatteringGLSample sample(argc, argv);
+		glsample::FrustumCullingGLSample sample(argc, argv);
 
 		sample.run();
 

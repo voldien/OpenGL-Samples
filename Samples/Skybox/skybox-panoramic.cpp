@@ -16,7 +16,8 @@ namespace glsample {
 		SkyBoxPanoramic() : GLSampleWindow() {
 			this->setTitle("SkyBoxPanoramic");
 
-			this->skyboxSettingComponent = std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
+			this->skyboxSettingComponent =
+				std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->skyboxSettingComponent);
 
 			this->camera.enableNavigation(false);
@@ -29,13 +30,13 @@ namespace glsample {
 
 		struct UniformBufferBlock {
 			glm::mat4 modelViewProjection;
-			glm::vec4 tintColor;
+			glm::vec4 tintColor = glm::vec4(1.0f);
 			float exposure = 1.0f;
 		} uniform_stage_buffer;
 
 		glm::mat4 proj;
 		int skybox_panoramic;
-		std::string panoramicPath = "asset/panoramic.jpg";
+		std::string panoramicPath = "asset/winter_lake_01_4k.exr";
 		CameraController camera;
 
 		// TODO change to vector
@@ -186,17 +187,17 @@ namespace glsample {
 
 		virtual void update() {
 			/*	*/
-			camera.update(getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime());
 
 			this->proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
-			this->uniform_stage_buffer.modelViewProjection = (this->proj * camera.getViewMatrix());
+			this->uniform_stage_buffer.modelViewProjection = (this->proj * this->camera.getViewMatrix());
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
-								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
+				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
+								 this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};
