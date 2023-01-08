@@ -13,7 +13,11 @@ namespace glsample {
 	// TODO add support for color random.
 	class Instance : public GLSampleWindow {
 	  public:
-		Instance() : GLSampleWindow() { this->setTitle("Instance"); }
+		Instance() : GLSampleWindow() {
+			this->setTitle("Instance");
+			this->instanceSettingComponent = std::make_shared<InstanceSettingComponent>(this->uniformData);
+			this->addUIComponent(this->instanceSettingComponent);
+		}
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -124,7 +128,7 @@ namespace glsample {
 			/*	*/
 			glUseProgram(this->instance_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->instance_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->instance_program, "DiffuseTexture"), 0);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->instance_program, uniform_buffer_index, this->uniform_buffer_binding);
 			this->uniform_instance_buffer_index =
@@ -143,9 +147,9 @@ namespace glsample {
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_mvp_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffers, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
 			GLint uniformMaxSize;
@@ -157,10 +161,10 @@ namespace glsample {
 				fragcore::Math::align(this->instanceBatch * sizeof(glm::mat4), (size_t)minMapBufferSize);
 			this->instance_model_matrices.resize(this->instanceBatch);
 			glGenBuffers(1, &this->uniform_instance_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * this->nrUniformBuffers, nullptr,
 						 GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
@@ -186,19 +190,19 @@ namespace glsample {
 			this->instanceGeometry.nrIndicesElements = modelRef.nrIndices;
 
 			/*	Vertices.	*/
-			glEnableVertexAttribArrayARB(0);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, nullptr);
 
 			/*	UVs	*/
-			glEnableVertexAttribArrayARB(1);
+			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(12));
 
 			/*	Normals.	*/
-			glEnableVertexAttribArrayARB(2);
+			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
+			glEnableVertexAttribArray(3);
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
@@ -219,7 +223,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	*/
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			/*	*/
@@ -251,6 +255,7 @@ namespace glsample {
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 
+			/*	Update instance model matrix.	*/
 			for (size_t i = 0; i < rows; i++) {
 				for (size_t j = 0; j < cols; j++) {
 					const size_t index = i * cols + j;
@@ -270,23 +275,23 @@ namespace glsample {
 			this->uniformData.modelViewProjection = this->uniformData.model * camera.getViewMatrix();
 			this->uniformData.viewPos = glm::vec4(this->camera.getPosition(), 0);
 
-			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
+			/*	Update uniform.	*/
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
 			void *uniformMVP = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformSize,
 				this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformMVP, &this->uniformData, sizeof(uniformData));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
+			/*	Update instance buffer.	*/
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
 			void *uniformInstance = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformInstanceSize,
 				this->uniformInstanceSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformInstance, this->instance_model_matrices.data(),
 				   sizeof(this->instance_model_matrices[0]) * this->instance_model_matrices.size());
 
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 

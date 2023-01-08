@@ -138,18 +138,18 @@ namespace glsample {
 			/*	Setup graphic ambient occlusion pipeline.	*/
 			glUseProgram(this->ssao_program);
 			this->uniform_ssao_buffer_index = glGetUniformBlockIndex(this->ssao_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->ssao_program, "WorldTexture"), 1);
-			glUniform1iARB(glGetUniformLocation(this->ssao_program, "NormalTexture"), 3);
-			glUniform1iARB(glGetUniformLocation(this->ssao_program, "DepthTexture"), 4);
-			glUniform1iARB(glGetUniformLocation(this->ssao_program, "NormalRandomize"), 5);
+			glUniform1i(glGetUniformLocation(this->ssao_program, "WorldTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->ssao_program, "NormalTexture"), 3);
+			glUniform1i(glGetUniformLocation(this->ssao_program, "DepthTexture"), 4);
+			glUniform1i(glGetUniformLocation(this->ssao_program, "NormalRandomize"), 5);
 			glUniformBlockBinding(this->ssao_program, this->uniform_ssao_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup graphic multipass pipeline.	*/
 			glUseProgram(this->multipass_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
-			glUniform1iARB(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->multipass_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -161,16 +161,16 @@ namespace glsample {
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_ssao_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSSAOBufferSize * this->nrUniformBuffer, nullptr,
 						 GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
@@ -200,22 +200,22 @@ namespace glsample {
 			this->plan.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			/*	UV.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(2);
+			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
@@ -458,21 +458,21 @@ namespace glsample {
 				this->uniformBlock.proj * this->uniformBlock.view * this->uniformBlock.model;
 
 			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformBlock, sizeof(uniformBlock));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
 			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
 			void *uniformSSAOPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
 				this->uniformSSAOBufferSize,
 				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformSSAOPointer, &this->uniformBlockSSAO, sizeof(uniformBlockSSAO));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 

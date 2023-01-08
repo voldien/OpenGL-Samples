@@ -41,7 +41,7 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			std::vector<uint32_t> gameoflife_source =
+			const std::vector<uint32_t> gameoflife_source =
 				IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -56,16 +56,14 @@ namespace glsample {
 
 			/*	Setup shader.	*/
 			glUseProgram(this->gameoflife_program);
-			glUniform1iARB(glGetUniformLocation(this->gameoflife_program, "previousCellsTexture"), 0);
-			glUniform1iARB(glGetUniformLocation(this->gameoflife_program, "currentCellsTexture"), 1);
-			glUniform1iARB(glGetUniformLocation(this->gameoflife_program, "renderTexture"), 2);
-			glGetProgramiv(this->gameoflife_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+			glUniform1i(glGetUniformLocation(this->gameoflife_program, "previousCellsTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->gameoflife_program, "currentCellsTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->gameoflife_program, "renderTexture"), 2);
+			glGetProgramiv(this->gameoflife_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			glUseProgram(0);
 
 			/*	*/
 			glGenFramebuffers(1, &this->gameoflife_framebuffer);
-
-			/*	*/
 			this->gameoflife_texture.resize(2);
 			glGenTextures(this->gameoflife_texture.size(), this->gameoflife_texture.data());
 			onResize(this->width(), this->height());
@@ -151,7 +149,7 @@ namespace glsample {
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 			}
 
-			/*	Blit mandelbrot framebuffer to default framebuffer.	*/
+			/*	Blit game of life render framebuffer to default framebuffer.	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->gameoflife_framebuffer);
 

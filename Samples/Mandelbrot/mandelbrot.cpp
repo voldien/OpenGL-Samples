@@ -86,7 +86,7 @@ namespace glsample {
 			glUseProgram(this->mandelbrot_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->mandelbrot_program, uniform_buffer_index, this->uniform_buffer_binding);
-			glUniform1iARB(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
+			glUniform1i(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
 			glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 			glUseProgram(0);
 
@@ -96,9 +96,9 @@ namespace glsample {
 			uniformBufferSize = Math::align<size_t>(uniformBufferSize, minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
 			glGenFramebuffers(1, &this->mandelbrot_framebuffer);
@@ -175,12 +175,12 @@ namespace glsample {
 
 		virtual void update() {
 
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount()) % nrUniformBuffer) * uniformBufferSize,
 								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &params, sizeof(params));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
 			/*	Update.	*/
 			int x, y;

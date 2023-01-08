@@ -13,8 +13,14 @@ class StartUpWindow : public GLSampleWindow {
 
 		int w, h;
 		getSize(&w, &h);
+
+		/*	Set clear color.	*/
 		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
+		/*	Setup viewport size of the default framebuffer.	*/
 		glViewport(0, 0, w, h);
+
+		/*	Clear the framebuffer color value.	*/
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
 };

@@ -129,14 +129,14 @@ namespace glsample {
 			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shader source.	*/
-			std::vector<uint32_t> vertex_ssao_source =
+			const std::vector<uint32_t> vertex_ssao_source =
 				IOUtil::readFileData<uint32_t>(this->vertexSSAOShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_ssao_source =
+			const std::vector<uint32_t> fragment_ssao_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
-			std::vector<uint32_t> vertex_multi_pass_source =
+			const std::vector<uint32_t> vertex_multi_pass_source =
 				IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_multi_pass_source =
+			const std::vector<uint32_t> fragment_multi_pass_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/

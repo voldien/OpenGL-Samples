@@ -42,8 +42,8 @@ class CameraController {
 			speed *= 2.5f;
 		}
 		if (!alt) {
-			flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], delta, speed, 0.5f * activated, fov, xDiff,
-									 yDiff, w, a, s, d, 0, 0, 0);
+			flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], delta, speed,
+									 0.5f * activated, fov, xDiff, yDiff, w, a, s, d, 0, 0, 0);
 		}
 	}
 	void enableNavigation(bool enable) { this->enable_Navigation = enable; }
@@ -52,6 +52,8 @@ class CameraController {
 
 	const glm::vec3 getPosition() const noexcept { return this->pos; }
 	void getPosition(const glm::vec3 &position) noexcept { this->pos = position; }
+
+	void lookAt(const glm::vec3 &position) noexcept { this->look = glm::normalize(position - this->getPosition()); }
 
 	const glm::vec3 getLookDirection() const noexcept { return this->look; }
 

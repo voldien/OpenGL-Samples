@@ -9,10 +9,12 @@ layout(location = 0) out vec3 vertex;
 layout(location = 1) out vec2 uv;
 layout(location = 2) out vec3 normal;
 
-struct point_light {
-	vec3 position;
-	float range;
+struct spot_light {
+	vec4 position;
 	vec4 color;
+	vec4 direction;
+	float range;
+	float angle;
 	float intensity;
 	float constant_attenuation;
 	float linear_attenuation;
@@ -27,13 +29,13 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 	/*	Light source.	*/
 	vec4 ambientColor;
-	point_light point_light[4];
+	spot_light spot_light[4];
 }
 ubo;
 
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
 	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
-	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
+	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	uv = TextureCoord;
 }

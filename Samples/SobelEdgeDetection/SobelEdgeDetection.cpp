@@ -128,15 +128,15 @@ namespace glsample {
 			glUseProgram(this->sobel_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->sobel_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->sobel_program, uniform_buffer_index, this->uniform_buffer_binding);
-			glUniform1iARB(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
-			glUniform1iARB(glGetUniformLocation(this->mandelbrot_program, "img_output"), 1);
+			glUniform1i(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
+			glUniform1i(glGetUniformLocation(this->mandelbrot_program, "img_output"), 1);
 			glUseProgram(0);
 
 			/*	Setup graphic Program.  */
 			glUseProgram(this->graphic_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-			glUniform1iARB(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -147,9 +147,9 @@ namespace glsample {
 
 			// Create uniform buffer.
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			{
 				/*	Create shadow map.	*/
@@ -235,22 +235,22 @@ namespace glsample {
 			this->sphere.indices_offset = planVertices.size() + cubeVertices.size();
 
 			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			/*	UV.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(2);
+			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
@@ -338,12 +338,12 @@ namespace glsample {
 			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
 
 			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
 				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniform, sizeof(uniform));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 

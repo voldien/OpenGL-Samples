@@ -1,5 +1,4 @@
 #include "GLSampleWindow.h"
-
 #include "Importer/ImageImport.h"
 #include "ShaderLoader.h"
 #include "Util/CameraController.h"
@@ -12,7 +11,11 @@ namespace glsample {
 
 	class Texture : public GLSampleWindow {
 	  public:
-		Texture() : GLSampleWindow() { this->setTitle("Texture"); }
+		Texture() : GLSampleWindow() {
+			this->setTitle("Texture");
+			this->camera.getPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
+		}
 
 		GeometryObject planGeometry;
 
@@ -23,7 +26,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 		} uniform_stage_buffer;
 
-		// TODO change to vector
+		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -71,27 +74,27 @@ namespace glsample {
 			this->texture_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
 
-			/*	*/
+			/*	Setup graphic program.	*/
 			glUseProgram(this->texture_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->texture_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->texture_program, this->uniform_buffer_index, 0);
-			glUniform1iARB(glGetUniformLocation(this->texture_program, "diffuse"), 0);
+			glUniform1i(glGetUniformLocation(this->texture_program, "diffuse"), 0);
 			glUseProgram(0);
 
 			/*	Load Texture	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(this->texturePath);
 
-			/*	*/
+			/*	Align the uniform buffer size to hardware specific.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
@@ -102,6 +105,7 @@ namespace glsample {
 			glGenVertexArrays(1, &this->planGeometry.vao);
 			glBindVertexArray(this->planGeometry.vao);
 
+			/*	Create indices buffer.	*/
 			glGenBuffers(1, &this->planGeometry.ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planGeometry.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
@@ -114,12 +118,12 @@ namespace glsample {
 						 GL_STATIC_DRAW);
 
 			/*	*/
-			glEnableVertexAttribArrayARB(0);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+								  reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 		}
@@ -128,8 +132,9 @@ namespace glsample {
 
 			this->update();
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
+			/*	Bind subset of the uniform buffer, that the graphic pipeline will use.	*/
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			int width, height;
 			getSize(&width, &height);
@@ -137,14 +142,17 @@ namespace glsample {
 			/*	*/
 			glViewport(0, 0, width, height);
 
-			/*	*/
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			/*	Clear default framebuffer.	*/
+			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	Activate texture graphic pipeline.	*/
 			glUseProgram(this->texture_program);
 
+			/*	Disable culling of faces, allows faces to be visable from both directions.	*/
 			glDisable(GL_CULL_FACE);
 
+			/*	active and bind texture to texture unit 0.	*/
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
@@ -152,6 +160,8 @@ namespace glsample {
 			glBindVertexArray(this->planGeometry.vao);
 			glDrawElements(GL_TRIANGLES, this->planGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
+
+			glUseProgram(0);
 		}
 
 		virtual void update() {
@@ -161,14 +171,15 @@ namespace glsample {
 
 			this->proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
-			this->uniform_stage_buffer.modelViewProjection = (this->proj * camera.getViewMatrix());
+			this->uniform_stage_buffer.modelViewProjection = (this->proj * this->camera.getViewMatrix());
 
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			/*	*/
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformMappedMemory = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize, uniformSize,
-				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformMappedMemory, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
+				this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformMappedMemory, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 

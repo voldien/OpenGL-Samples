@@ -87,7 +87,7 @@ namespace glsample {
 			glUseProgram(this->skybox_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
-			glUniform1iARB(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
 			/*	Load cubemap.	*/
@@ -102,9 +102,9 @@ namespace glsample {
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
@@ -128,11 +128,11 @@ namespace glsample {
 						 GL_STATIC_DRAW);
 
 			/*	*/
-			glEnableVertexAttribArrayARB(0);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
@@ -177,12 +177,12 @@ namespace glsample {
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 			this->uniform_stage_buffer.modelViewProjection = (this->proj * camera.getViewMatrix());
 
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
 								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 } // namespace glsample

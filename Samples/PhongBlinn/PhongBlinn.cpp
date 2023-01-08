@@ -1,4 +1,3 @@
-
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -12,8 +11,8 @@ namespace glsample {
 	  public:
 		PhongBlinn() : GLSampleWindow() {
 			this->setTitle("PhongBlinn");
-			pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->uniform);
-			this->addUIComponent(pointLightSettingComponent);
+			this->phongblinnSettingComponent = std::make_shared<PhongBlinnSettingComponent>(this->uniform);
+			this->addUIComponent(this->phongblinnSettingComponent);
 		}
 
 		typedef struct point_light_t {
@@ -55,7 +54,7 @@ namespace glsample {
 		/*	*/
 		unsigned int phongblinn_program;
 
-		// TODO change to vector
+		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -64,25 +63,25 @@ namespace glsample {
 
 		CameraController camera;
 
-		class PointLightSettingComponent : public nekomimi::UIComponent {
+		class PhongBlinnSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			PointLightSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Point Light Settings");
+			PhongBlinnSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Phong-Blinn Settings");
 			}
 			virtual void draw() override {
 
 				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
 					ImGui::PushID(1000 + i);
 					ImGui::TextUnformatted("Point Light Setting");
-					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightVisable[i],
+					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightVisible[i],
 												ImGuiTreeNodeFlags_CollapsingHeader)) {
 
-						ImGui::ColorEdit4("Light Color", &this->uniform.pointLights[i].color[0],
+						ImGui::ColorEdit4("Color", &this->uniform.pointLights[i].color[0],
 										  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-						ImGui::DragFloat3("Light Position", &this->uniform.pointLights[i].position[0]);
+						ImGui::DragFloat3("Position", &this->uniform.pointLights[i].position[0]);
 						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
-						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
+						ImGui::DragFloat(" Range", &this->uniform.pointLights[i].range);
 						ImGui::DragFloat("Intensity", &this->uniform.pointLights[i].intensity);
 					}
 					ImGui::PopID();
@@ -99,9 +98,9 @@ namespace glsample {
 
 		  private:
 			struct UniformBufferBlock &uniform;
-			bool lightVisable[4] = {true, true, true, true};
+			bool lightVisible[4] = {true, true, true, true};
 		};
-		std::shared_ptr<PointLightSettingComponent> pointLightSettingComponent;
+		std::shared_ptr<PhongBlinnSettingComponent> phongblinnSettingComponent;
 
 		std::string diffuseTexturePath = "asset/diffuse.png";
 
@@ -126,7 +125,6 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			/*	*/
 			const std::vector<uint32_t> vertex_source_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
 			const std::vector<uint32_t> fragment_source_binary =
@@ -143,7 +141,7 @@ namespace glsample {
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->phongblinn_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->phongblinn_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->phongblinn_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->phongblinn_program, "DiffuseTexture"), 0);
 			glUniformBlockBinding(this->phongblinn_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -158,9 +156,9 @@ namespace glsample {
 
 			/*	Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
@@ -184,23 +182,23 @@ namespace glsample {
 			this->plan.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			/*	UV.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+			glEnableVertexAttribArray(2);
+			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+								  reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 
@@ -223,13 +221,13 @@ namespace glsample {
 
 			this->update();
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
 			/*	*/
@@ -255,8 +253,8 @@ namespace glsample {
 
 		void update() {
 			/*	Update Camera.	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(this->getTimer().deltaTime());
+			float elapsedTime = this->getTimer().getElapsed();
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
 			this->uniform.model = glm::mat4(1.0f);
@@ -265,15 +263,15 @@ namespace glsample {
 			this->uniform.model = glm::scale(this->uniform.model, glm::vec3(45.95f));
 			this->uniform.view = this->camera.getViewMatrix();
 			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
-			this->uniform.viewPos = glm::vec4(this->camera.getPosition(), 1.0);
+			this->uniform.viewPos = glm::vec4(this->camera.getPosition(), 0.0);
 
 			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniform, sizeof(uniform));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			memcpy(uniformPointer, &this->uniform, sizeof(this->uniform));
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 	class PhongBlinnGLSample : public GLSample<PhongBlinn> {
@@ -287,7 +285,6 @@ namespace glsample {
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::PhongBlinnGLSample sample(argc, argv);

@@ -168,7 +168,7 @@ namespace glsample {
 			/*	Setup ocean shader.	*/
 			glUseProgram(this->ocean_graphic_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->ocean_graphic_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->ocean_graphic_program, "reflection"), 0);
+			glUniform1i(glGetUniformLocation(this->ocean_graphic_program, "reflection"), 0);
 			glUniformBlockBinding(this->ocean_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -187,7 +187,7 @@ namespace glsample {
 			/*	Setup skybox shader.	*/
 			glUseProgram(this->skybox_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -197,9 +197,9 @@ namespace glsample {
 			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
@@ -222,17 +222,17 @@ namespace glsample {
 			this->ocean.nrIndicesElements = indices.size();
 
 			/*	*/
-			glEnableVertexAttribArrayARB(0);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			glEnableVertexAttribArrayARB(1);
+			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 								  (void *)(sizeof(float) * 3));
 
-			glEnableVertexAttribArrayARB(2);
+			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
 
-			glEnableVertexAttribArrayARB(3);
+			glEnableVertexAttribArray(3);
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
 
 			glBindVertexArray(0);
@@ -255,12 +255,12 @@ namespace glsample {
 						 GL_STATIC_DRAW);
 
 			/*	*/
-			glEnableVertexAttribArrayARB(0);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			/*	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
@@ -350,11 +350,11 @@ namespace glsample {
 			this->mvp.modelViewProjection = this->mvp.proj * camera.getViewMatrix() * this->mvp.model;
 
 			/*	Updated uniform data.	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
 									   uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 } // namespace glsample

@@ -87,8 +87,8 @@ namespace glsample {
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->multipass_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
-			glUniform1iARB(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -103,9 +103,9 @@ namespace glsample {
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
@@ -241,12 +241,12 @@ namespace glsample {
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 

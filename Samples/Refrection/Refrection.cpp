@@ -125,7 +125,7 @@ namespace glsample {
 			glUseProgram(this->refrection_program);
 			this->uniform_refrection_buffer_index =
 				glGetUniformBlockIndex(this->refrection_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->refrection_program, "ReflectionTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->refrection_program, "ReflectionTexture"), 0);
 			glUniformBlockBinding(this->refrection_program, this->uniform_refrection_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -134,7 +134,7 @@ namespace glsample {
 			glUseProgram(this->skybox_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
-			glUniform1iARB(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
 			/*	load Textures	*/
@@ -148,9 +148,9 @@ namespace glsample {
 
 			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
@@ -174,22 +174,22 @@ namespace glsample {
 			this->torus.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			/*	UV.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(2);
+			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
@@ -212,12 +212,12 @@ namespace glsample {
 						 GL_STATIC_DRAW);
 
 			/*	*/
-			glEnableVertexAttribArrayARB(0);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			/*	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
@@ -305,12 +305,12 @@ namespace glsample {
 				glm::vec4(this->camera.getPosition().x, this->camera.getPosition().z, this->camera.getPosition().y, 0);
 
 			/*  */
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	}; // namespace glsample
 

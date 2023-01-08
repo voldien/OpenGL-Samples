@@ -12,9 +12,8 @@ namespace glsample {
 	  public:
 		VectorField() : GLSampleWindow() {
 			this->setTitle("VectorField");
-			this->particleSystemSettingComponent =
-				std::make_shared<ParticleSystemSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->particleSystemSettingComponent);
+			this->vectorFieldSettingComponent = std::make_shared<ParticleSystemSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->vectorFieldSettingComponent);
 		}
 
 		/*	*/
@@ -117,20 +116,20 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<ParticleSystemSettingComponent> particleSystemSettingComponent;
+		std::shared_ptr<ParticleSystemSettingComponent> vectorFieldSettingComponent;
 
 		/*	*/
-		const std::string particleVertexShaderPath = "Shaders/vectorfield/particle.vert";
-		const std::string particleGeometryShaderPath = "Shaders/vectorfield/particle.geom";
-		const std::string particleFragmentShaderPath = "Shaders/vectorfield/particle.frag";
+		const std::string particleVertexShaderPath = "Shaders/vectorfield/particle.vert.spv";
+		const std::string particleGeometryShaderPath = "Shaders/vectorfield/particle.geom.spv";
+		const std::string particleFragmentShaderPath = "Shaders/vectorfield/particle.frag.spv";
 
 		/*	*/
-		const std::string particleComputeShaderPath = "Shaders/vectorfield/particle.comp";
+		const std::string particleComputeShaderPath = "Shaders/vectorfield/particle.comp.spv";
 
 		/*	*/
-		const std::string vectorFieldVertexShaderPath = "Shaders/vectorfield/vectorField.vert";
-		const std::string vectorFieldGeometryShaderPath = "Shaders/vectorfield/vectorField.geom";
-		const std::string vectorFieldFragmentPath = "Shaders/vectorfield/vectorField.frag";
+		const std::string vectorFieldVertexShaderPath = "Shaders/vectorfield/vectorField.vert.spv";
+		const std::string vectorFieldGeometryShaderPath = "Shaders/vectorfield/vectorField.geom.spv";
+		const std::string vectorFieldFragmentPath = "Shaders/vectorfield/vectorField.frag.spv";
 
 		/*	*/
 		const std::string particleTexturePath = "asset/particle.png";
@@ -149,7 +148,10 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	*/
 			std::vector<char> vertex_source =
@@ -184,7 +186,7 @@ namespace glsample {
 
 			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->particle_graphic_program);
-			glUniform1iARB(glGetUniformLocation(this->particle_graphic_program, "spriteTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->particle_graphic_program, "spriteTexture"), 0);
 			this->uniform_buffer_particle_graphic_index =
 				glGetUniformBlockIndex(this->particle_graphic_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->particle_graphic_program, this->uniform_buffer_particle_graphic_index,
@@ -266,10 +268,10 @@ namespace glsample {
 
 			glBindBuffer(GL_ARRAY_BUFFER, vbo_particle);
 			/*	*/
-			glEnableVertexAttribArrayARB(0);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), nullptr);
 
-			glEnableVertexAttribArrayARB(1);
+			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle),
 								  reinterpret_cast<void *>(sizeof(float) * 4));
 
@@ -285,7 +287,7 @@ namespace glsample {
 			glBufferData(GL_SHADER_STORAGE_BUFFER, this->VectorFieldMemorySize, nullptr, GL_STATIC_DRAW);
 
 			/*	*/
-			glEnableVertexAttribArrayARB(0);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 
 			glBindVertexArray(0);
@@ -300,7 +302,7 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			/*	Compute particles.	*/
+			/*	Compute particles in vector field.	*/
 			{
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
@@ -339,7 +341,7 @@ namespace glsample {
 			/*	*/
 			glViewport(0, 0, width, height);
 
-			// Draw Vector field.
+			/*	Draw Vector field.	*/
 			{
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_vector_field_index, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
@@ -414,14 +416,14 @@ namespace glsample {
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformBufferSize,
-				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 } // namespace glsample

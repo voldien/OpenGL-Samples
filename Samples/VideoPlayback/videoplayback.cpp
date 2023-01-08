@@ -311,7 +311,7 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->videoplayback_program);
-			glUniform1iARB(glGetUniformLocation(this->videoplayback_program, "diffuse"), 0);
+			glUniform1i(glGetUniformLocation(this->videoplayback_program, "diffuse"), 0);
 			glUseProgram(0);
 
 			/*	Create array buffer, for rendering static geometry.	*/
@@ -324,12 +324,12 @@ namespace glsample {
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 			/*	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
 
 			/*	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<const void *>(12));
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<const void *>(12));
 
 			glBindVertexArray(0);
 

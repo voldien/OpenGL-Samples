@@ -39,5 +39,5 @@ void main() {
 	gl_Position = ubo.proj * ubo.view * instance_ubo.model[gl_InstanceID] * vec4(Vertex, 1.0);
 	uv = TextureCoord;
 	normal = normalize((instance_ubo.model[gl_InstanceID] * vec4(Normal, 0.0)).xyz);
-	instanceColor = vec4(rand(vec2(gl_InstanceID, 0)), 0, rand(vec2(gl_InstanceID, 10)), 1);
+	instanceColor = vec4(abs(rand(vec2(gl_InstanceID, 0))), 0, abs(rand(vec2(gl_InstanceID, 10))), 1);
 }

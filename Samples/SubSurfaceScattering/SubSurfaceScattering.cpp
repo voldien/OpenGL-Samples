@@ -158,8 +158,8 @@ namespace glsample {
 			glUseProgram(this->graphic_subsurface_scattering_program);
 			this->uniform_buffer_index =
 				glGetUniformBlockIndex(this->graphic_subsurface_scattering_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->graphic_subsurface_scattering_program, "DiffuseTexture"), 0);
-			glUniform1iARB(glGetUniformLocation(this->graphic_subsurface_scattering_program, "ShadowTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->graphic_subsurface_scattering_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->graphic_subsurface_scattering_program, "ShadowTexture"), 1);
 			glUniformBlockBinding(this->graphic_subsurface_scattering_program, this->uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -171,9 +171,9 @@ namespace glsample {
 
 			// Create uniform buffer.
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			{
 				/*	Create shadow map.	*/
@@ -313,12 +313,12 @@ namespace glsample {
 			this->uniform.cameraPosition = glm::vec4(this->camera.getPosition(), 0.0f);
 
 			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniform, sizeof(this->uniform));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 

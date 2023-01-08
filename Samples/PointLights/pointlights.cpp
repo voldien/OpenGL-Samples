@@ -1,4 +1,3 @@
-
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -14,6 +13,8 @@ namespace glsample {
 			this->setTitle("PointLights");
 			this->pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->pointLightSettingComponent);
+			this->camera.getPosition(glm::vec3(18.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		typedef struct point_light_t {
@@ -26,6 +27,7 @@ namespace glsample {
 			float qudratic_attenuation;
 		} PointLight;
 
+		static const size_t nrPointLights = 4;
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
@@ -33,15 +35,14 @@ namespace glsample {
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
 
-			/*light source.	*/
+			/*	light source.	*/
 			glm::vec4 ambientLight = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
 
-			PointLight pointLights[4];
+			PointLight pointLights[nrPointLights];
 		} uniformBuffer;
 
 		/*	*/
 		GeometryObject plan;
-		const size_t nrPointLights = 4;
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
@@ -49,7 +50,7 @@ namespace glsample {
 		/*	Program.	*/
 		unsigned int pointLight_program;
 
-		// TODO change to vector
+		/*	Uniforms.	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -68,7 +69,7 @@ namespace glsample {
 
 				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
 					ImGui::PushID(1000 + i);
-					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightVisable[i],
+					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightvisible[i],
 												ImGuiTreeNodeFlags_CollapsingHeader)) {
 
 						ImGui::ColorEdit4("Light Color", &this->uniform.pointLights[i].color[0],
@@ -80,12 +81,13 @@ namespace glsample {
 					}
 					ImGui::PopID();
 				}
-				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 			}
 
 		  private:
 			struct UniformBufferBlock &uniform;
-			bool lightVisable[4] = {true, true, true, true};
+			bool lightvisible[4] = {true, true, true, true};
 		};
 		std::shared_ptr<PointLightSettingComponent> pointLightSettingComponent;
 
@@ -121,14 +123,14 @@ namespace glsample {
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
+			/*	Load graphic pipeline.	*/
 			this->pointLight_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->pointLight_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->pointLight_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->pointLight_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->pointLight_program, "DiffuseTexture"), 0);
 			glUniformBlockBinding(this->pointLight_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -143,9 +145,9 @@ namespace glsample {
 
 			/*	Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
@@ -169,22 +171,22 @@ namespace glsample {
 			this->plan.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			/*	UV.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(2);
+			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
@@ -193,9 +195,9 @@ namespace glsample {
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
 			for (size_t i = 0; i < this->nrPointLights; i++) {
-				uniformBuffer.pointLights[i].range = 35.0f;
+				uniformBuffer.pointLights[i].range = 45.0f;
 				uniformBuffer.pointLights[i].position =
-					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 8.0f + glm::vec3(1.0f, 1.0f, 1.0f);
+					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(2.0f);
 				uniformBuffer.pointLights[i].color = colors[i];
 				uniformBuffer.pointLights[i].constant_attenuation = 1.0f;
 				uniformBuffer.pointLights[i].linear_attenuation = 0.1f;
@@ -208,7 +210,7 @@ namespace glsample {
 
 			this->update();
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
@@ -223,6 +225,7 @@ namespace glsample {
 			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	Render.	*/
 			{
 				glUseProgram(this->pointLight_program);
 
@@ -253,12 +256,12 @@ namespace glsample {
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 	class PointLightsGLSample : public GLSample<PointLights> {
@@ -266,18 +269,15 @@ namespace glsample {
 		PointLightsGLSample(int argc, const char **argv) : GLSample<PointLights>(argc, argv) {}
 		virtual void commandline(cxxopts::Options &options) override {
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+												  cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::PointLightsGLSample sample(argc, argv);
-
 		sample.run();
 
 	} catch (const std::exception &ex) {

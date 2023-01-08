@@ -63,7 +63,7 @@ namespace glsample {
 
 			glUseProgram(this->triangle_program);
 			this->triangle_program = glGetUniformLocation(this->triangle_program, "MVP");
-			glUniform1iARB(glGetUniformLocation(this->triangle_program, "fontatlast"), 0);
+			glUniform1i(glGetUniformLocation(this->triangle_program, "fontatlast"), 0);
 			glUseProgram(0);
 
 			/*	Create array buffer, for rendering static geometry.	*/
@@ -76,12 +76,12 @@ namespace glsample {
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
 
 			/*	UV coordinate.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
 
 			glBindVertexArray(0);
 		}

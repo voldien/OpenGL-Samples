@@ -1,32 +1,13 @@
 #include "GLSampleWindow.h"
-
 #include "ShaderLoader.h"
 #include <GL/glew.h>
-
 #include <iostream>
+
 namespace glsample {
-
-	class SampleComponent : public nekomimi::UIComponent {
-	  private:
-	  public:
-		SampleComponent() { this->setName("Sample Window"); }
-		virtual void draw() override {
-
-			ImGui::ColorEdit4("color 1", color);
-			if (ImGui::Button("Press me")) {
-			}
-		}
-		float color[4];
-	};
 
 	class Triangle : public GLSampleWindow {
 	  public:
-		std::shared_ptr<SampleComponent> com;
-		Triangle() : GLSampleWindow() {
-			this->setTitle("Triangle");
-			com = std::make_shared<SampleComponent>();
-			this->addUIComponent(com);
-		}
+		Triangle() : GLSampleWindow() { this->setTitle("Triangle"); }
 		typedef struct _vertex_t {
 			float pos[2];
 			float color[3];
@@ -71,18 +52,18 @@ namespace glsample {
 			glGenVertexArrays(1, &this->vao);
 			glBindVertexArray(this->vao);
 
-			/*	*/
+			/*	Create vertex buffer for the triangle vertices.	*/
 			glGenBuffers(1, &this->vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-			/*	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
+			/*	Setup vertex stream.	*/
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
 
-			/*	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<const void *>(8));
+			/*	Setup vertex color stream.	*/
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<const void *>(8));
 
 			glBindVertexArray(0);
 		}
@@ -90,7 +71,7 @@ namespace glsample {
 		virtual void draw() override {
 
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	Set render viewport size in pixels.	*/
 			glViewport(0, 0, width, height);
@@ -99,8 +80,10 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	Disable depth and culling of faces.	*/
 			glDisable(GL_DEPTH_TEST);
 			glDisable(GL_CULL_FACE);
+
 			/*	Bind shader pipeline.	*/
 			glUseProgram(this->triangle_program);
 

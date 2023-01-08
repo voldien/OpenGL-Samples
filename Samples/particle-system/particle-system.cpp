@@ -135,7 +135,7 @@ namespace glsample {
 
 			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->particle_graphic_program);
-			glUniform1iARB(glGetUniformLocation(this->particle_graphic_program, "spriteTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->particle_graphic_program, "spriteTexture"), 0);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->particle_graphic_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->particle_graphic_program, this->uniform_buffer_index,
 								  this->uniform_buffer_binding);
@@ -198,10 +198,10 @@ namespace glsample {
 
 			glBindBuffer(GL_ARRAY_BUFFER, vbo_particle);
 			/*	*/
-			glEnableVertexAttribArrayARB(0);
+			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), nullptr);
 
-			glEnableVertexAttribArrayARB(1);
+			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle),
 								  reinterpret_cast<void *>(sizeof(float) * 4));
 
@@ -297,14 +297,14 @@ namespace glsample {
 			this->mvp.view = camera.getViewMatrix();
 			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
 
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
 								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 
 			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 } // namespace glsample
