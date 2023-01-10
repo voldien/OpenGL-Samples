@@ -82,6 +82,8 @@ void GLSampleWindow::captureScreenShot() {
 	int screen_grab_width_size = this->width();
 	int screen_grab_height_size = this->height();
 
+	// Sync and fence.
+
 	/*	Make sure the frame is completed before extracing pixel data.	*/
 	glFinish();
 

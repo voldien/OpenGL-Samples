@@ -13,18 +13,32 @@ namespace glsample {
 	  public:
 		PointLightShadow() : GLSampleWindow() {
 			this->setTitle("PointLightShadow");
-			shadowSettingComponent = std::make_shared<PointLightShadowSettingComponent>(this->uniform);
-			this->addUIComponent(shadowSettingComponent);
+			this->shadowSettingComponent =
+				std::make_shared<PointLightShadowSettingComponent>(this->uniform, this->shadowTexture);
+			this->addUIComponent(this->shadowSettingComponent);
 		}
 
+		typedef struct point_light_t {
+			glm::vec3 position;
+			float range;
+			glm::vec4 color;
+			float intensity;
+			float constant_attenuation;
+			float linear_attenuation;
+			float qudratic_attenuation;
+
+			float bias = 0.01f;
+			float shadowStrength = 1.0f;
+		} PointLight;
+
+		static const size_t nrPointLights = 4;
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 ViewProjection[6];
-			alignas(16) glm::mat4 modelViewProjection;
-			alignas(16) glm::mat4 lightModelProject;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 ViewProjection[6];
+			glm::mat4 modelViewProjection;
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
@@ -32,8 +46,7 @@ namespace glsample {
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 lightPosition;
 
-			float bias = 0.01f;
-			float shadowStrength = 1.0f;
+			PointLight pointLights[nrPointLights];
 		} uniform;
 
 		glm::mat4 PointView[6];
@@ -66,30 +79,51 @@ namespace glsample {
 
 		class PointLightShadowSettingComponent : public nekomimi::UIComponent {
 		  public:
-			PointLightShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			PointLightShadowSettingComponent(struct UniformBufferBlock &uniform, unsigned int &depth)
+				: uniform(uniform), depth(depth) {
 				this->setName("Point Light Shadow Settings");
 			}
 			virtual void draw() override {
-				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
-				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
+
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::TextUnformatted("Depth Texture");
+
+				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
+					ImGui::PushID(1000 + i);
+					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightvisible[i],
+												ImGuiTreeNodeFlags_CollapsingHeader)) {
+
+						ImGui::ColorEdit4("Light Color", &this->uniform.pointLights[i].color[0],
+										  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+						ImGui::DragFloat3("Light Position", &this->uniform.pointLights[i].position[0]);
+						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
+						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
+						ImGui::DragFloat("Intensity", &this->uniform.pointLights[i].intensity);
+						ImGui::DragFloat("Shadow Strength", &this->uniform.pointLights[i].shadowStrength, 1, 0.0f,
+										 1.0f);
+						ImGui::DragFloat("Shadow Bias", &this->uniform.pointLights[i].bias, 1, 0.0f, 1.0f);
+					}
+					ImGui::PopID();
+				}
 			}
 
 			bool showWireFrame = false;
+			unsigned int &depth;
+			bool lightvisible[4] = {true, true, true, true};
 
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
 		std::shared_ptr<PointLightShadowSettingComponent> shadowSettingComponent;
 
-		const std::string modelPath = "asset/sponza/sponza.obj";
+		std::string modelPath = "asset/sponza/sponza.obj";
 
 		/*	Graphic shader paths.	*/
-		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";
-		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
+		const std::string vertexGraphicShaderPath = "Shaders/pointlightshadow/pointlightlight.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/pointlightshadow/pointlightlight.frag.spv";
 
 		/*	Shadow shader paths.	*/
 		const std::string vertexShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert.spv";
@@ -140,10 +174,11 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->graphic_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			this->uniform_buffer_shadow_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_shadow_index,
+								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -168,27 +203,34 @@ namespace glsample {
 
 				/*	*/
 				for (size_t i = 0; i < 6; i++) {
-					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT32, this->shadowWidth,
+					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, this->shadowWidth,
 								 this->shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 				}
 
 				/*	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
 				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+				glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LOD, 0);
+				glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, 0.0f);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+
+				glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
 				/*	*/
 				for (size_t i = 0; i < 6; i++) {
-					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-										   this->shadowTexture, 0);
+					glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, this->shadowTexture, 0);
 				}
+
+				glDrawBuffer(GL_NONE);
+				glReadBuffer(GL_NONE);
 
 				/*	*/
 				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -199,8 +241,6 @@ namespace glsample {
 					// TODO add error message.
 					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
 				}
-				glDrawBuffer(GL_NONE);
-				glReadBuffer(GL_NONE);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
@@ -211,46 +251,72 @@ namespace glsample {
 
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 
-			/*	*/
-			glm::mat4 model = glm::mat4(1.0f);
-			PointView[0] = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			PointView[1] = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			PointView[2] = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			PointView[3] = glm::rotate(model, glm::radians(270.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			PointView[4] = glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			PointView[5] = glm::rotate(model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			/*  Init lights.    */
+			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
+										glm::vec4(1, 0, 1, 1)};
+			for (size_t i = 0; i < this->nrPointLights; i++) {
+				this->uniform.pointLights[i].range = 45.0f;
+				this->uniform.pointLights[i].position =
+					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(2.0f);
+				this->uniform.pointLights[i].color = colors[i];
+				this->uniform.pointLights[i].constant_attenuation = 1.0f;
+				this->uniform.pointLights[i].linear_attenuation = 0.1f;
+				this->uniform.pointLights[i].qudratic_attenuation = 0.05f;
+				this->uniform.pointLights[i].intensity = 1.0f;
+			}
 		}
 
 		virtual void draw() override {
 
-			update();
+			this->update();
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
-			{
+			/*	*/
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_shadow_index, this->uniform_buffer,
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
+			glm::mat4 model = glm::mat4(1.0f);
+			glm::mat4 translation = glm::translate(model, this->uniform.pointLights[0].position);
+
+			this->PointView[0] = glm::lookAt(this->uniform.pointLights[0].position, this->uniform.pointLights[0].position + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+			this->PointView[1] = glm::lookAt(this->uniform.pointLights[0].position, this->uniform.pointLights[0].position + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+			this->PointView[2] = glm::lookAt(this->uniform.pointLights[0].position, this->uniform.pointLights[0].position + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
+			this->PointView[3] = glm::lookAt(this->uniform.pointLights[0].position, this->uniform.pointLights[0].position + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
+			this->PointView[4] = glm::lookAt(this->uniform.pointLights[0].position, this->uniform.pointLights[0].position + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0));
+			this->PointView[5] = glm::lookAt(this->uniform.pointLights[0].position, this->uniform.pointLights[0].position + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0));
+
+			this->PointView[0] = translation * glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->PointView[1] =
+				translation * glm::rotate(model, glm::radians(270.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * translation;
+
+			this->PointView[2] =
+				translation * glm::rotate(model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * translation;
+			this->PointView[3] =
+				translation * glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * translation;
+
+			this->PointView[4] = translation * glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->PointView[5] = translation * glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+			{
 				/*	Compute light matrices.	*/
+				glm::mat4 pointPer =
+					glm::perspective(glm::radians(90.0f), (float)this->shadowWidth / (float)this->shadowHeight, 0.15f,
+									 this->uniform.pointLights[0].range);
 				for (size_t i = 0; i < 6; i++) {
 					glm::mat4 model = glm::mat4(1.0f);
-					model = model, PointView[i];
-					model = PointView[i] * glm::perspective(glm::radians(45.0f),
-															(float)this->shadowWidth / (float)this->shadowHeight, 0.15f,
-															1000.0f);
-				}
 
-				float near_plane = -40.0f, far_plane = 40.5f;
-				glm::mat4 lightProjection = glm::ortho(-40.0f, 40.0f, -40.0f, 40.0f, near_plane, far_plane);
-				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-												  glm::vec3(0.0f, 1.0f, 0.0f));
-				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-				this->uniform.lightModelProject = lightSpaceMatrix;
+					model = pointPer * this->PointView[i];
+					this->uniform.ViewProjection[i] = model;
+				}
 
 				glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
 
@@ -285,7 +351,7 @@ namespace glsample {
 				glDisable(GL_CULL_FACE);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -307,21 +373,21 @@ namespace glsample {
 
 		virtual void update() {
 			/*	Update Camera.	*/
-			camera.update(getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
 			this->uniform.model = glm::mat4(1.0f);
 			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
 			this->uniform.view = this->camera.getViewMatrix();
 			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
-			this->uniform.lightPosition = glm::vec4(this->camera.getPosition(), 0);
+			this->uniform.lightPosition = glm::vec4(this->camera.getPosition(), 0.0f);
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniform, sizeof(uniform));
+				this->uniformBufferSize, GL_MAP_WRITE_BIT);
+			memcpy(uniformPointer, &this->uniform, sizeof(this->uniform));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

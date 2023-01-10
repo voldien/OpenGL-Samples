@@ -27,6 +27,8 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 color;
 }
 ubo;
+
+
 //	float OccluderBias = 0.045;
 
 float SamplePixels(in vec3 srcPosition, in vec3 srcNormal, in vec2 uv) {

@@ -3,9 +3,15 @@
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
 
-layout(triangles) in;
-layout(triangle_strip, max_vertices = 18) out;
+layout(location = 0) in vec3 Vertex;
+layout(location = 1) in vec2 TextureCoord;
+layout(location = 2) in vec3 Normal;
+layout(location = 3) in vec3 Tangent;
 
+layout(location = 0) out vec3 vertex;
+layout(location = 1) out vec2 UV;
+layout(location = 2) out vec3 normal;
+layout(location = 3) out vec3 tangent;
 
 struct point_light {
 	vec3 position;
@@ -36,18 +42,11 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	point_light point_light[4];
 }
 ubo;
-layout(location = 0) out vec4 FragPos; // FragPos from GS (output per emitvertex)
 
 void main() {
-
-	for (int face = 0; face < 6; ++face) {
-		gl_Layer = face;			// built-in variable that specifies to which face we render.
-		for (int i = 0; i < 3; ++i) // for each triangle vertex
-		{
-			FragPos = gl_in[i].gl_Position;
-			gl_Position = (ubo.ViewProjection[gl_Layer]) * gl_in[i].gl_Position;
-			EmitVertex();
-		}
-		EndPrimitive();
-	}
+	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
+	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
+	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
+	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
+	UV = TextureCoord;
 }

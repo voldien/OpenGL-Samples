@@ -29,7 +29,7 @@ namespace glsample {
 			glm::vec4 ambientLight = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
 
 			/*	Tessellation settings.	*/
-			glm::vec3 eyePos = glm::vec3(1.0f);
+			glm::vec4 eyePos = glm::vec4(1.0f);
 			float gDisplace = 1.0f;
 			float tessLevel = 1.0f;
 
@@ -65,10 +65,8 @@ namespace glsample {
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
 		/*	*/
-		unsigned int vbo;
-		unsigned int ibo;
-		unsigned int vao;
-		unsigned int nrElements;
+		GeometryObject plan;
+
 		/*	*/
 		unsigned int tessellation_program;
 		unsigned int wireframe_program;
@@ -79,9 +77,9 @@ namespace glsample {
 		unsigned int diffuse_texture;
 		unsigned int heightmap_texture;
 
-		const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
-		const std::string heightTexturePath = "asset/tessellation_heightmap.png";
-		
+		std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
+		std::string heightTexturePath = "asset/tessellation_heightmap.png";
+
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag.spv";
@@ -97,9 +95,10 @@ namespace glsample {
 			glDeleteTextures(1, (const GLuint *)&this->heightmap_texture);
 
 			/*	*/
-			glDeleteVertexArrays(1, &this->vao);
-			glDeleteBuffers(1, &this->vbo);
-			glDeleteBuffers(1, &this->ibo);
+			glDeleteVertexArrays(1, &this->plan.vao);
+			glDeleteBuffers(1, &this->plan.vbo);
+			glDeleteBuffers(1, &this->plan.ibo);
+
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
@@ -137,36 +136,36 @@ namespace glsample {
 			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 			this->heightmap_texture = textureImporter.loadImage2D(this->heightTexturePath);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateCube(1, vertices, indices);
-
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
+			this->uniformSize = Math::align(this->uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			/*	Load geometry.	*/
+			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<unsigned int> indices;
+			ProceduralGeometry::generatePlan(1, vertices, indices);
 
-			/*	*/
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenVertexArrays(1, &this->plan.vao);
+			glBindVertexArray(this->plan.vao);
+
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenBuffers(1, &this->plan.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
-			glGenBuffers(1, &this->ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
-						 GL_STATIC_DRAW);
-			this->nrElements = indices.size();
+			/*	*/
+			glGenBuffers(1, &this->plan.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+			this->plan.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
 			glEnableVertexAttribArray(0);
@@ -175,17 +174,17 @@ namespace glsample {
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+								  reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArray(3);
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
+								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 		}
@@ -205,7 +204,7 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			glUseProgram(this->tessellation_program);
 
@@ -221,12 +220,12 @@ namespace glsample {
 			glEnable(GL_DEPTH_TEST);
 
 			/*	Draw triangle*/
-			glBindVertexArray(this->vao);
+			glBindVertexArray(this->plan.vao);
 			/*	Optional - to display wireframe.	*/
-			glPolygonMode(GL_FRONT_AND_BACK, tessellationSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+			glPolygonMode(GL_FRONT_AND_BACK, this->tessellationSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 			glPatchParameteri(GL_PATCH_VERTICES, 3);
-			glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
+			glDrawElements(GL_PATCHES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
 			/*	Draw wireframe outline.	*/
 			// if (this->tessellationSettingComponent->showWireFrame) {
@@ -247,16 +246,16 @@ namespace glsample {
 				glm::rotate(this->uniformBuffer.model, (float)Math::PI_half, glm::vec3(1, 0, 0));
 			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10, 10, 10));
 
-			this->uniformBuffer.view = camera.getViewMatrix();
+			this->uniformBuffer.view = this->camera.getViewMatrix();
 			this->uniformBuffer.modelViewProjection =
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.eyePos = camera.getPosition();
+			this->uniformBuffer.eyePos = glm::vec4(this->camera.getPosition(), 0);
 
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
-								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
+								 this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

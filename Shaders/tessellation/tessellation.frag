@@ -21,7 +21,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 
-	vec3 gEyeWorldPos;
+	vec4 gEyeWorldPos;
 	float gDispFactor;
 	float tessLevel;
 }

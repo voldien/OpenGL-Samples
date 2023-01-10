@@ -97,6 +97,7 @@ namespace glsample {
 		/*  */
 		size_t videoStageBufferMemorySize = 0;
 		std::array<unsigned int, nrVideoFrames> videoFrameTextures;
+		std::array<void *, nrVideoFrames> videoMapBuffer;
 		unsigned int videoStagingTextureBuffer; // PBO buffers
 
 		fragcore::AudioClip *clip;
@@ -105,6 +106,27 @@ namespace glsample {
 		std::shared_ptr<fragcore::OpenALAudioInterface> audioInterface;
 
 		std::string videoPath = "video.mp4";
+
+		// class VideoPlaybackSettingComponent : public nekomimi::UIComponent {
+		//
+		//  public:
+		//	VideoPlaybackSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+		//		this->setName("VideoPlayback Settings");
+		//	}
+		//	virtual void draw() override {
+		//		ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+		//						  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+		//		ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+		//		ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+		//						  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+		//		ImGui::Checkbox("WireFrame", &this->showWireFrame);
+		//	}
+		//
+		//	bool showWireFrame = false;
+		//
+		//  private:
+		//	struct UniformBufferBlock &uniform;
+		//};
 
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/videoplayback/videoplayback.vert.spv";
@@ -123,6 +145,9 @@ namespace glsample {
 			glDeleteProgram(this->videoplayback_program);
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
+
+			/*	*/
+			glDeleteFramebuffers(1, &this->videoFramebuffer);
 
 			/*	*/
 			glDeleteBuffers(1, &videoStagingTextureBuffer);
@@ -309,7 +334,7 @@ namespace glsample {
 			this->videoplayback_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
-			/*	*/
+			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->videoplayback_program);
 			glUniform1i(glGetUniformLocation(this->videoplayback_program, "diffuse"), 0);
 			glUseProgram(0);
@@ -334,11 +359,11 @@ namespace glsample {
 			glBindVertexArray(0);
 
 			/*	Allocate buffers.	*/
-			videoStageBufferMemorySize = video_width * video_height * 4;
+			this->videoStageBufferMemorySize = this->video_width * this->video_height * 4;
 			glGenBuffers(1,
-						 &videoStagingTextureBuffer); // TODO ffix t oa single buffer.
-			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, videoStagingTextureBuffer);
-			glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, videoStageBufferMemorySize * nrVideoFrames, nullptr,
+						 &videoStagingTextureBuffer);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStagingTextureBuffer);
+			glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStageBufferMemorySize * this->nrVideoFrames, nullptr,
 						 GL_DYNAMIC_COPY);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 

@@ -25,7 +25,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 
-	vec3 gEyeWorldPos;
+	vec4 gEyeWorldPos;
 	float gDispFactor;
 	float tessLevel;
 }
@@ -55,9 +55,9 @@ void main() {
 	Tangent_ES_in[gl_InvocationID] = Tangent_CS_in[gl_InvocationID];
 
 	/*	Calculate the distance from the camera to the three control points	*/
-	float EyeToVertexDistance0 = distance(ubo.gEyeWorldPos, WorldPos_ES_in[0]);
-	float EyeToVertexDistance1 = distance(ubo.gEyeWorldPos, WorldPos_ES_in[1]);
-	float EyeToVertexDistance2 = distance(ubo.gEyeWorldPos, WorldPos_ES_in[2]);
+	float EyeToVertexDistance0 = distance(ubo.gEyeWorldPos.xyz, WorldPos_ES_in[0]);
+	float EyeToVertexDistance1 = distance(ubo.gEyeWorldPos.xyz, WorldPos_ES_in[1]);
+	float EyeToVertexDistance2 = distance(ubo.gEyeWorldPos.xyz, WorldPos_ES_in[2]);
 
 	/*	Calculate the tessellation levels	*/
 	gl_TessLevelOuter[0] = GetTessLevel(EyeToVertexDistance1, EyeToVertexDistance2) * ubo.tessLevel;
@@ -65,5 +65,5 @@ void main() {
 	gl_TessLevelOuter[2] = GetTessLevel(EyeToVertexDistance0, EyeToVertexDistance1) * ubo.tessLevel;
 	gl_TessLevelInner[0] = gl_TessLevelOuter[2];
 
-	//gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	// gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 }

@@ -25,6 +25,7 @@ namespace glsample {
 		/*	*/
 		std::vector<GeometryObject> refObj;
 
+		/*	*/
 		unsigned int diffuse_texture;
 		unsigned int normal_texture;
 
@@ -192,10 +193,6 @@ namespace glsample {
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
-
-				/*	*/
-				// glActiveTexture(GL_TEXTURE0 + 1);
-				// glBindTexture(GL_TEXTURE_2D, this->normal_texture);
 
 				glBindVertexArray(this->refObj[0].vao);
 				for (size_t i = 0; i < this->refObj.size(); i++) {

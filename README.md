@@ -75,6 +75,14 @@ A collection of OpenGL Samples.
 
 - **Bloom**
 
+## Build Instruction
+
+```bash
+git submodule update --init --recursive
+mkdir build && cd build
+cmake ..
+make
+```
 
 ## License
 

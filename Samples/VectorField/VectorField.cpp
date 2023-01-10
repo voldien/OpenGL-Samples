@@ -229,6 +229,8 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			uniformBufferSize = Math::align<size_t>(uniformBufferSize, minMapBufferSize);
 
+			// GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT
+
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
