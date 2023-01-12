@@ -21,7 +21,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 modelViewProjection;
 	mat4 lightSpaceMatrix;
-	
+
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;

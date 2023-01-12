@@ -200,7 +200,7 @@ namespace glsample {
 
 			/*	*/
 			glViewport(0, 0, width, height);
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,

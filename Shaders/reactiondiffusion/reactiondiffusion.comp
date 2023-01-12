@@ -67,16 +67,20 @@ float lapacianB(ivec2 pixelCord, ivec2 imageSize, mat4 convolutionKernel) {
 
 void main() {
 
+	/*	*/
 	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 	const uint memory_index = gl_LocalInvocationIndex;
 	const ivec2 cellCellImageSize = imageSize(img_output);
-	vec2 uv = vec2(pixel_coords) / vec2(cellCellImageSize);
+	const vec2 uv = vec2(pixel_coords) / vec2(cellCellImageSize);
 
+	/*	*/
 	vec2 AB = PreviousAB.AB[memory_index];
 
+	/*	*/
 	float diverageA = lapacianA(pixel_coords, cellCellImageSize, ubo.kernelA);
 	float diverageB = lapacianB(pixel_coords, cellCellImageSize, ubo.kernelB);
 
+	/*	*/
 	float pA = computeDiffuseRateA(AB.x, AB.y, diverageA, ubo.killRate, ubo.feedRate, ubo.diffuseRateA, ubo.delta);
 	float pB = computeDiffuseRateB(AB.x, AB.y, diverageB, ubo.killRate, ubo.feedRate, ubo.diffuseRateB, ubo.delta);
 

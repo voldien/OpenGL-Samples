@@ -38,11 +38,10 @@ ubo;
 void main() {
 
 	/*	*/
-	float lightDistance = length(FragPos.xyz - ubo.point_light[0].position);
+	float lightDistance = length(ubo.point_light[0].position - FragPos.xyz);
 
-	// map to [0;1] range by dividing by far_plane
+	/*	map to [0;1].	*/
 	lightDistance = lightDistance / ubo.point_light[0].range;
 
-	// write this as modified depth
 	gl_FragDepth = lightDistance;
 }

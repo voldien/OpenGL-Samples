@@ -3,7 +3,7 @@
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
 
-//layout(early_fragment_tests) in;
+// layout(early_fragment_tests) in;
 
 layout(location = 0) out vec4 fragColor;
 

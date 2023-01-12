@@ -3,19 +3,11 @@
 
 layout(location = 0) out vec4 fragColor;
 
+layout(location = 0) smooth in vec3 vVertex;
 /*	*/
 layout(binding = 1) uniform sampler2D tex1;
 
-// uniform mat4 view;
-// uniform float zoom = 1.0;
-// uniform float thick = 10.0205;
-// uniform vec2 screen = vec2(1.0f);
-
-struct particle_setting {
-	float speed;
-	float lifetime;
-	float gravity;
-};
+#include "base.glsl"
 
 layout(binding = 0) uniform UniformBufferBlock {
 	mat4 model;
@@ -37,8 +29,6 @@ layout(binding = 0) uniform UniformBufferBlock {
 	particle_setting setting;
 }
 ubo;
-
-layout(location = 0) smooth in vec3 vVertex;
 
 /*	Compute horizontal and vertical grid lines.	*/
 float resultHorVer(const in vec3 pos, float scale) {

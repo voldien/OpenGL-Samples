@@ -4,11 +4,8 @@
 layout(location = 0) out vec4 fragColor;
 layout(location = 0) smooth in vec4 vColor;
 
-struct particle_setting {
-	float speed;
-	float lifetime;
-	float gravity;
-};
+#include"base.glsl"
+
 
 layout(binding = 0) uniform UniformBufferBlock {
 	mat4 model;
@@ -19,15 +16,13 @@ layout(binding = 0) uniform UniformBufferBlock {
 
 	/*	*/
 	float deltaTime;
-	float time;
-	float zoom;
-	vec4 ambientColor;
-	vec4 color;
 
 	particle_setting setting;
+	motion_t motion;
+	
+	vec4 color;
 }
 ubo;
-
-vec4 computeColor() { return (ubo.color + vColor) + ubo.ambientColor; }
+vec4 computeColor() { return (ubo.color + vColor); }
 
 void main() { fragColor = computeColor(); }

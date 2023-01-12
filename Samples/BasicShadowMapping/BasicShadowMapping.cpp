@@ -14,9 +14,9 @@ namespace glsample {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
 			this->setTitle("ShadowMapping");
-			shadowSettingComponent =
+			this->shadowSettingComponent =
 				std::make_shared<BasicShadowMapSettingComponent>(this->uniform, this->shadowTexture);
-			this->addUIComponent(shadowSettingComponent);
+			this->addUIComponent(this->shadowSettingComponent);
 		}
 
 		struct UniformBufferBlock {
@@ -37,7 +37,6 @@ namespace glsample {
 			float shadowStrength = 1.0f;
 		} uniform;
 
-		/*	*/
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
 		size_t shadowWidth = 4096;
@@ -54,6 +53,7 @@ namespace glsample {
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
+		unsigned int uniform_buffer_shadow_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -71,8 +71,10 @@ namespace glsample {
 			virtual void draw() override {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -140,8 +142,9 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->shadow_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			this->uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_shadow_index,
+								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
@@ -214,14 +217,14 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			update();
+			this->update();
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_shadow_index, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
@@ -265,6 +268,11 @@ namespace glsample {
 			}
 
 			{
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				/*	*/
 				glViewport(0, 0, width, height);

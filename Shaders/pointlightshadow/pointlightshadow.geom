@@ -6,6 +6,7 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 
+layout(location = 0) out vec4 FragPos;
 
 struct point_light {
 	vec3 position;
@@ -36,7 +37,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	point_light point_light[4];
 }
 ubo;
-layout(location = 0) out vec4 FragPos; // FragPos from GS (output per emitvertex)
 
 void main() {
 

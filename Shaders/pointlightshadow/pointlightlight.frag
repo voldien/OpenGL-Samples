@@ -13,7 +13,7 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 
 layout(binding = 1) uniform sampler2D DiffuseTexture;
-layout(binding = 1) uniform samplerCube ShadowTexture;
+layout(binding = 2) uniform samplerCube ShadowTexture;
 
 struct point_light {
 	vec3 position;
@@ -47,14 +47,22 @@ ubo;
 
 float ShadowCalculation(const in vec3 fragPosLightSpace) {
 
-	vec3 frag2Light = (fragPosLightSpace - ubo.point_light[0].position);
+	const vec3 frag2Light = (fragPosLightSpace - ubo.point_light[0].position);
 
 	float closestDepth = texture(ShadowTexture, normalize(frag2Light)).r;
 	closestDepth *= ubo.point_light[0].range;
 
-	float bias = 0.05;
+	// float bias = ubo.point_light[0].bias;
+	float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(frag2Light).xyz)), ubo.point_light[0].bias);
+
 	float currentDepth = length(frag2Light);
-	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+
+	float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
+	
+	/*	*/
+	if (currentDepth > ubo.point_light[0].range) {
+		shadow = 1.0;
+	}
 
 	return shadow;
 }
@@ -62,17 +70,25 @@ float ShadowCalculation(const in vec3 fragPosLightSpace) {
 void main() {
 	vec4 pointLightColors = vec4(0);
 	for (int i = 0; i < 1; i++) {
+		/*	*/
 		vec3 diffVertex = (ubo.point_light[i].position - vertex);
+
+		/*	*/
 		float dist = length(diffVertex);
 
+		/*	*/
 		float attenuation =
 			1.0 / (ubo.point_light[i].constant_attenuation + ubo.point_light[i].linear_attenuation * dist +
 				   ubo.point_light[i].qudratic_attenuation * (dist * dist));
 
 		float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
 
-		pointLightColors += attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range *
-							ubo.point_light[i].intensity * ShadowCalculation(vertex);
+		float shadow = ShadowCalculation(vertex);
+
+		/*	*/
+		pointLightColors += (attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range *
+							 ubo.point_light[i].intensity) *
+							shadow;
 	}
 
 	fragColor = texture(DiffuseTexture, UV) * (ubo.ambientColor + pointLightColors);
