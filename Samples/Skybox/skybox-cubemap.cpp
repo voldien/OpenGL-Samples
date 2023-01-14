@@ -1,6 +1,4 @@
-
 #include "GLSampleWindow.h"
-
 #include "ImageImport.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
@@ -15,7 +13,8 @@ namespace glsample {
 	  public:
 		SkyBoxPanoramic() : GLSampleWindow() {
 			this->setTitle("Skybox Cubemap");
-			this->skyboxSettingComponent = std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
+			this->skyboxSettingComponent =
+				std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->skyboxSettingComponent);
 
 			this->camera.enableNavigation(false);
@@ -133,7 +132,7 @@ namespace glsample {
 
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 		}

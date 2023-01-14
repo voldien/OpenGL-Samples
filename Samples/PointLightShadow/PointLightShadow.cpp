@@ -332,7 +332,6 @@ namespace glsample {
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 				/*	Setup the shadow.	*/
-
 				glBindVertexArray(this->refObj[0].vao);
 				for (size_t i = 0; i < this->refObj.size(); i++) {
 					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,

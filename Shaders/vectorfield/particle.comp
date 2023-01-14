@@ -31,7 +31,7 @@ layout(std430, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]
 writeBuffer;
 
 /*	*/
-layout(std430, binding = 3) readonly buffer VectorField { vec3 field[]; }
+layout(std430, binding = 3) readonly buffer VectorField { vector_field_t field[]; }
 vectorfield;
 
 /**
@@ -53,9 +53,6 @@ vec3 computeInfluence(const vec3 position) {
 	vec3 force = vec3(0, 0, 0);
 	for (uint y = 0; y < infl; y++) {
 
-		/*	Prefech vector field vector forces.	*/
-		// const int memOffset = (ij.y * vectorBox.x);
-		// prefetch(&vector[memOffset], infl);
 		for (uint x = 0; x < infl; x++) {
 
 			/*	Compute position and memory location.	*/
@@ -64,7 +61,7 @@ vec3 computeInfluence(const vec3 position) {
 
 			/*	Fetch vector force.	*/
 			const uint index = (vpos.y * vectorBox.x) + vpos.x;
-			const vec3 vecforce = vectorfield.field[index];
+			const vec3 vecforce = vectorfield.field[index].force;
 
 			/*	Compute influence force.	*/
 			const float dist = distance(fvpos, position);
@@ -95,11 +92,11 @@ vec2 computeMotionInfluence(vec4 particle) {
 void main() {
 
 	/*	Bounding Box of the simluation.	*/
-	const vec3 max = vec3(ubo.setting.particleBox.x, ubo.setting.particleBox.y, ubo.setting.particleBox.z);
+	const vec3 max = ubo.setting.particleBox;
 	const vec3 min = vec3(0, 0, 0);
 
 	/*	Iterator.	*/
-	uvec3 index = gl_GlobalInvocationID.xyz;
+	const uvec3 index = gl_GlobalInvocationID.xyz;
 
 	const uint pindex = index.x * index.y + index.z;
 
@@ -108,8 +105,7 @@ void main() {
 	vec3 velocity = readBuffer.particle[pindex].velocity.xyz;
 	const float invMass = readBuffer.particle[pindex].velocity.w;
 
-	//
-	///*  Get vector of incluense. - Bilinear   */
+	/*  Get vector of incluense. - Bilinear   */
 	const vec3 forceInf = computeInfluence(position);
 	const vec3 motionInf = vec3(0); // computeMotionInfluence(position, &motion);
 
@@ -120,8 +116,8 @@ void main() {
 	velocity = force * invMass;
 	/*	Update the position.	*/
 	position = position + velocity * ubo.deltaTime;
-	//
-	///*	Final position update.	*/
+
+	/*	Final position update.	*/
 	position.xyz = clamp(position.xyz, min, max);
 
 	writeBuffer.particle[pindex].position = position;

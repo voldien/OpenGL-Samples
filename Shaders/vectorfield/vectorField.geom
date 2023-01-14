@@ -30,7 +30,7 @@ layout(location = 0) smooth in vec3 outForce[];
 layout(location = 0) smooth out vec3 amplitude;
 
 /*	Compute arrow color.	*/
-vec3 computeColor(const in vec3 dir) { return vec3((dir.x + 1.0) / 2.0, (dir.y + 1.0) / 2.0, (dir.x - 1.0) / 2.0); }
+vec3 computeForceColor(const in vec3 dir) { return vec3((dir.x + 1.0) / 2.0, (dir.y + 1.0) / 2.0, (dir.x - 1.0) / 2.0); }
 
 void main() {
 
@@ -51,18 +51,18 @@ void main() {
 
 		/*	Start position.	*/
 		gl_Position = ubo.modelViewProjection * vec4(pos, 1.0);
-		amplitude = computeColor(dir);
+		amplitude = computeForceColor(dir);
 		EmitVertex();
 
 		/*	End position.	*/
 		gl_Position = ubo.modelViewProjection * vec4(endPos, 1.0);
-		amplitude = computeColor(dir);
+		amplitude = computeForceColor(dir);
 		EmitVertex();
 		EndPrimitive();
 
 		/*	Start left arrow position.	*/
 		gl_Position = ubo.modelViewProjection * vec4(endPos, 1.0);
-		amplitude = computeColor(dir);
+		amplitude = computeForceColor(dir);
 		EmitVertex();
 
 		/*	Precompute variables.	*/
@@ -77,7 +77,7 @@ void main() {
 
 		/*	Start right arrow position.	*/
 		gl_Position = ubo.modelViewProjection * vec4(endPos, 1.0);
-		amplitude = computeColor(dir);
+		amplitude = computeForceColor(dir);
 		EmitVertex();
 
 		vec3 rvec = vec3(cos(hPI - arrowAngle + pang), sin(hPI - arrowAngle + pang), 0) * length(dir) * arrowLength;

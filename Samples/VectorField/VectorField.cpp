@@ -310,10 +310,11 @@ namespace glsample {
 
 			glBindBuffer(GL_ARRAY_BUFFER, this->vectorField.vbo);
 
-			/*	*/
+			/*	Position.	*/
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 
+			/*	Velocity.	*/
 			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
 								  reinterpret_cast<void *>(sizeof(glm::vec3)));
 

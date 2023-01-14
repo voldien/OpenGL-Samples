@@ -11,7 +11,7 @@ layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec4 lightSpace;
 
 layout(binding = 1) uniform sampler2D DiffuseTexture;
-layout(binding = 1) uniform sampler2DShadow ShadowTexture;
+layout(binding = 1) uniform sampler2D ShadowTexture;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -20,6 +20,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 modelViewProjection;
 	mat4 lightSpaceMatrix;
+
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
@@ -30,11 +31,12 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	float bias;
 	float shadowStrength;
 	float sigma;
+	float range;
 }
 ubo;
 
 float getExpToLinear(const in float nearZ, const in float farZ, const in float ndc_depth) {
-	return ndc_depth; // (ndc_depth * (farZ - nearZ) + nearZ) / ( farZ - nearZ);
+	return (ndc_depth * (farZ - ndc_depth) + nearZ);
 }
 
 float trace() {
@@ -43,44 +45,37 @@ float trace() {
 	// transform to [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
 
-	float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(ubo.direction).xyz)), ubo.bias);
+	/*	*/
+	const float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(ubo.direction).xyz)), ubo.bias);
 	projCoords.z *= (1 - bias);
 
-	float d_i = textureProj(ShadowTexture, projCoords, 0).r;
-	vec4 Plight = lightSpace / lightSpace.w;
+	/*	*/
+	const float d_i = texture(ShadowTexture, projCoords.xy).r;
+	const float d_o = (lightSpace / lightSpace.w).z - bias;
 
-	const float d_o = length(Plight.xyz);
-	float s = (getExpToLinear(-30, 30, d_i) - getExpToLinear(-30, 30, d_o));
-	// return tex1D(scatterTex, si);
+	/*	*/
+	const float range = ubo.range / 2;
+	const float s = (getExpToLinear(-range, range, d_o) - getExpToLinear(-range, range, d_i));
 
-	// if (projCoords.z > 1.0) {
-	//	s = 0.0;
-	//}
-	// if (projCoords.w > 1) {
-	//	s = 0;
-	//}
-
+	/*	*/
 	return exp(-s * ubo.sigma);
 }
 
 void main() {
 
-	float contribution = max(dot(normalize(normal), -normalize(ubo.direction).xyz), 0.0);
+	/*	*/
+	const float contribution = max(dot(normalize(normal), -normalize(ubo.direction).xyz), 0.0);
 
-	vec4 sub = (trace() * ubo.subsurfaceColor + contribution * ubo.lightColor + ubo.ambientColor);
+	/*	*/
+	const vec4 subsurface = trace() * ubo.subsurfaceColor;
+
+	/*	*/
+	const vec3 viewDir = normalize(ubo.cameraPosition.xyz - vertex);
+	const vec3 halfwayDir = normalize(-normalize(ubo.direction).xyz + viewDir);
+	const float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), 16);
+	const vec4 pointLightSpecular = vec4(spec);
+
+	const vec4 sub = (subsurface + contribution * ubo.lightColor + ubo.ambientColor + pointLightSpecular);
 
 	fragColor = texture(DiffuseTexture, UV) * sub;
 }
-
-// float si = trace(IN.objCoord, lightTexMatrix, lightMatrix,                  lightDepthTex); return tex1D(scatterTex,
-// si);
-
-// Given a point in object space, lookup into depth textures
-// returns depth
-//   float trace(float3 P,             uniform float4x4  lightTexMatrix, // to light texture space     uniform float4x4
-//   lightMatrix,    // to light space     uniform sampler2D lightDepthTex,             ) {   // transform point into
-//   light texture space     float4 texCoord = mul(lightTexMatrix, float4(P, 1.0));
-// get distance from light at entry point     float d_i = tex2Dproj(lightDepthTex, texCoord.xyw);
-// transform position to light space     float4 Plight = mul(lightMatrix, float4(P, 1.0));
-// distance of this pixel from light (exit)     float d_o = length(Plight);
-// calculate depth     float s = d_o - d_i;   return s; }

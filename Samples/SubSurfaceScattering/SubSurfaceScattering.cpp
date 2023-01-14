@@ -38,6 +38,7 @@ namespace glsample {
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
 			float sigma = 1.0f;
+			float range = 60.0f;
 		} uniform;
 
 		/*	*/
@@ -81,7 +82,7 @@ namespace glsample {
 				ImGui::ColorEdit4("SubSurface Color", &this->uniform.subsurfaceColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
-				ImGui::DragFloat("Distance", &this->distance);
+				ImGui::DragFloat("Distance", &this->uniform.range);
 				ImGui::DragFloat("Sigma", &this->uniform.sigma);
 
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -89,7 +90,6 @@ namespace glsample {
 				ImGui::Image((ImTextureID)this->depth, ImVec2(512, 512));
 			}
 
-			float distance = 50.0;
 			unsigned int &depth;
 			bool showWireFrame = false;
 
@@ -194,8 +194,6 @@ namespace glsample {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->shadowTexture, 0);
 				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -220,32 +218,30 @@ namespace glsample {
 		}
 
 		virtual void draw() override {
-
-			update();
 			int width, height;
 			getSize(&width, &height);
-
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+
+			/*	Compute light matrices.	*/
+			float near_plane = -this->uniform.range / 2.0f, far_plane = this->uniform.range / 2.0f;
+			glm::mat4 lightProjection = glm::ortho(near_plane, far_plane, near_plane, far_plane, near_plane, far_plane);
+			glm::mat4 lightView =
+				glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+							glm::vec3(this->uniform.direction.x, this->uniform.direction.y, this->uniform.direction.z),
+							glm::vec3(0.0f, 1.0f, 0.0f));
+			glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+			glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
+			this->uniform.lightModelProject = lightSpaceMatrix;
+
+			update();
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
 			{
-
-				/*	Compute light matrices.	*/
-				float near_plane = -this->subSurfaceScatteringSettingComponent->distance / 2.0f,
-					  far_plane = this->subSurfaceScatteringSettingComponent->distance / 2.0f;
-				glm::mat4 lightProjection =
-					glm::ortho(near_plane, far_plane, near_plane, far_plane, near_plane, far_plane);
-				glm::mat4 lightView = glm::lookAt(
-					glm::vec3(-2.0f, 4.0f, -1.0f),
-					glm::vec3(this->uniform.direction.x, this->uniform.direction.y, this->uniform.direction.z),
-					glm::vec3(0.0f, 1.0f, 0.0f));
-				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-
-				glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
-				this->uniform.lightModelProject = lightSpaceMatrix;
 
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->shadowFramebuffer);
 

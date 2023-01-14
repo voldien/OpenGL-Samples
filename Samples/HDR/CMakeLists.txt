@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(HDR glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(HDR glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(HDR PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS HDR DESTINATION bin)

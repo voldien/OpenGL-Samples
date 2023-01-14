@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(PhongBlinn glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(PhongBlinn glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(PhongBlinn PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS PhongBlinn DESTINATION bin)

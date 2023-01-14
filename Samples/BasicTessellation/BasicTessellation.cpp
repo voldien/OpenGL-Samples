@@ -191,7 +191,7 @@ namespace glsample {
 
 		virtual void draw() override {
 			this->uniformBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
+				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
 			this->update();
 
@@ -227,11 +227,6 @@ namespace glsample {
 			glPatchParameteri(GL_PATCH_VERTICES, 3);
 			glDrawElements(GL_PATCHES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
-			/*	Draw wireframe outline.	*/
-			// if (this->tessellationSettingComponent->showWireFrame) {
-			//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			//	glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
-			//}
 			glBindVertexArray(0);
 		}
 

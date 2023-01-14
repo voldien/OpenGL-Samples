@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Fog glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(Fog glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(Fog PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS Fog DESTINATION bin)

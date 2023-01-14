@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(AmbientOcclusion glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(AmbientOcclusion glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(AmbientOcclusion PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS AmbientOcclusion DESTINATION bin)

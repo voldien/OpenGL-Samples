@@ -7,8 +7,7 @@ layout(location = 1) in vec4 Velocity;
 layout(location = 0) out vec4 velocity;
 layout(location = 2) out float ageTime;
 
-#include"base.glsl"
-
+#include "base.glsl"
 
 layout(binding = 0) uniform UniformBufferBlock {
 	mat4 model;
@@ -22,7 +21,7 @@ layout(binding = 0) uniform UniformBufferBlock {
 
 	particle_setting setting;
 	motion_t motion;
-	
+
 	vec4 color;
 }
 ubo;

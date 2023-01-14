@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Cloth glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(Cloth glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(Cloth PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS Cloth DESTINATION bin)

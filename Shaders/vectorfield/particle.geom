@@ -23,6 +23,7 @@ layout(binding = 0) uniform UniformBufferBlock {
 	vec4 color;
 }
 ubo;
+
 layout(location = 0) smooth out vec2 uv;
 layout(location = 1) smooth out vec4 gColor;
 layout(location = 0) in vec4 velocity[];
@@ -41,8 +42,12 @@ void main() {
 	for (i = 0; i < gl_in.length(); i++) {
 		for (j = 0; j < noffsets; j++) {
 
+			// TODO face projection.
+
+			float size = 2.0;
+
 			/*	Compute inverse zoom - expressed as a polynominal.	*/
-			const vec3 particlePos = gl_in[i].gl_Position.xyz + polyoffset[j] * 10.0;
+			const vec3 particlePos = gl_in[i].gl_Position.xyz + polyoffset[j] * size;
 
 			/*	Velocity.	*/
 			// const vec2 velocity = gl_in[i].gl_Position.zw;

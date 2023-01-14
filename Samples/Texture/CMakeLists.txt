@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Texture glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(Texture glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(Texture PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS Texture DESTINATION bin)

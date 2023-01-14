@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(BasicShadowMapping glCommon gl-sample-common-asset-importe
 ADD_DEPENDENCIES(BasicShadowMapping glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(BasicShadowMapping PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS BasicShadowMapping DESTINATION bin)

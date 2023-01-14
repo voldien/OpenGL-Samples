@@ -77,7 +77,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Clear default framebuffer color attachment.	*/
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			/*	Disable depth and culling of faces.	*/

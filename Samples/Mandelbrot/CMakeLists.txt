@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(MandelBrot glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(MandelBrot glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(MandelBrot PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} )
+
+INSTALL(TARGETS MandelBrot DESTINATION bin)

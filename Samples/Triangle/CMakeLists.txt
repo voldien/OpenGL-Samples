@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Triangle glCommon)
 
 # OpenGL dependies headers.
 ADD_DEPENDENCIES(Triangle glCommon)
+
+INSTALL(TARGETS Triangle DESTINATION bin)

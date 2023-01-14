@@ -1,7 +1,12 @@
 struct particle_t {
 	vec3 position;
 	float time;
-	vec4 velocity;
+	vec4 velocity; /*	velocity, mass*/
+};
+
+struct vector_field_t {
+	vec3 position;
+	vec3 force;
 };
 
 struct particle_setting {

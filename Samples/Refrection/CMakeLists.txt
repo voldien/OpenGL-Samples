@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Refrection glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(Refrection glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(Refrection PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS Refrection DESTINATION bin)

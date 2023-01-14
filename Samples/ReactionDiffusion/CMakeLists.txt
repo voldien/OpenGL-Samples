@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(ReactionDiffusion glCommon gl-sample-common-asset-importer
 ADD_DEPENDENCIES(ReactionDiffusion glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(ReactionDiffusion PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS ReactionDiffusion DESTINATION bin)

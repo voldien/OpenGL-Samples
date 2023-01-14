@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(SubSurfaceScattering glCommon gl-sample-common-asset-impor
 ADD_DEPENDENCIES(SubSurfaceScattering glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(SubSurfaceScattering PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS SubSurfaceScattering DESTINATION bin)

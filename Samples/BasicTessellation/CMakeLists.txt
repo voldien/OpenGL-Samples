@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(BasicTessellation glCommon gl-sample-common-asset-importer
 ADD_DEPENDENCIES(BasicTessellation glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(BasicTessellation PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS BasicTessellation DESTINATION bin)

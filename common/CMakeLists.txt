@@ -9,3 +9,5 @@ TARGET_INCLUDE_DIRECTORIES(glCommon PRIVATE ${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE
 ADD_DEPENDENCIES(glCommon fragcore nekomimi-window fragcore-rgl fragcore-shader-compiler fragcore-geometry-util fragcore-window-sdl cxxopts fragcore-imageloader)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Importer)
+
+INSTALL(TARGETS glCommon DESTINATION lib)

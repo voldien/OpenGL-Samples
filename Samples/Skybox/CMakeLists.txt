@@ -13,3 +13,5 @@ TARGET_LINK_LIBRARIES(SkyboxPanoramic glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(SkyboxPanoramic glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(SkyboxPanoramic PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS SkyboxCubeMap SkyboxPanoramic DESTINATION bin)

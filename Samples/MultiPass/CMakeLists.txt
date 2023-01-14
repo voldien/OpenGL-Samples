@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(MultiPass glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(MultiPass glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(MultiPass PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS MultiPass DESTINATION bin)

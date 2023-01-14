@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(PointLightShadow glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(PointLightShadow glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(PointLightShadow PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS PointLightShadow DESTINATION bin)

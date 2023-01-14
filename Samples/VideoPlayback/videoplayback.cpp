@@ -19,6 +19,7 @@ extern "C" {
 #include <libavutil/imgutils.h>
 #include <libavutil/samplefmt.h>
 #include <libavutil/time.h>
+#include <libswresample/swresample.h>
 #include <libswscale/swscale.h>
 #ifdef __cplusplus
 }
@@ -29,14 +30,14 @@ extern "C" {
 #define av_frame_free avcodec_free_frame
 #endif
 
-// TODO add support for framebuffer blit or quad texture.
-
 namespace glsample {
 
 	class VideoPlayback : public GLSampleWindow {
 	  public:
 		VideoPlayback() : GLSampleWindow() {
 			this->setTitle(fmt::format("VideoPlayback: {}", this->videoPath).c_str());
+			this->videoplaybackSettingComponent = std::make_shared<VideoPlaybackSettingComponent>();
+			this->addUIComponent(this->videoplaybackSettingComponent);
 		}
 		virtual ~VideoPlayback() {
 			if (this->frame) {
@@ -76,8 +77,13 @@ namespace glsample {
 		/*  */
 		struct AVFrame *frame = nullptr;
 		struct AVFrame *frameoutput = nullptr;
+		struct AVStream *video_st = nullptr;
+		struct AVStream *audio_st = nullptr;
 		struct SwsContext *sws_ctx = nullptr;
+		struct SwrContext *swrContext = nullptr;
+		uint8_t **destBuffer = nullptr;
 
+		int destBufferLinesize;
 		unsigned int flag;
 		double video_clock;
 		double frame_timer;
@@ -90,6 +96,7 @@ namespace glsample {
 		unsigned vao;
 
 		unsigned int mSource;
+		std::vector<unsigned int> mAudioBuffers;
 
 		/*  */
 		unsigned int videoplayback_program;
@@ -107,26 +114,22 @@ namespace glsample {
 
 		std::string videoPath = "video.mp4";
 
-		// class VideoPlaybackSettingComponent : public nekomimi::UIComponent {
-		//
-		//  public:
-		//	VideoPlaybackSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-		//		this->setName("VideoPlayback Settings");
-		//	}
-		//	virtual void draw() override {
-		//		ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
-		//						  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-		//		ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
-		//		ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
-		//						  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-		//		ImGui::Checkbox("WireFrame", &this->showWireFrame);
-		//	}
-		//
-		//	bool showWireFrame = false;
-		//
-		//  private:
-		//	struct UniformBufferBlock &uniform;
-		//};
+		class VideoPlaybackSettingComponent : public nekomimi::UIComponent {
+
+		  public:
+			VideoPlaybackSettingComponent() { this->setName("VideoPlayback Settings"); }
+			virtual void draw() override {
+				ImGui::DragFloat("Speed", &this->speed);
+				ImGui::DragFloat("Volume", &this->volume);
+				ImGui::Checkbox("Use Blit", &this->useBlit);
+			}
+
+			bool showWireFrame = false;
+			float speed = 1.0f;
+			float volume = 1.0f;
+			bool useBlit = true;
+		};
+		std::shared_ptr<VideoPlaybackSettingComponent> videoplaybackSettingComponent;
 
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/videoplayback/videoplayback.vert.spv";
@@ -179,9 +182,6 @@ namespace glsample {
 				av_strerror(result, buf, sizeof(buf));
 				throw cxxexcept::RuntimeException("Failed to retrieve info from stream info : {}", buf);
 			}
-
-			struct AVStream *video_st = nullptr;
-			struct AVStream *audio_st = nullptr;
 
 			/*	Get video codecs.	*/
 			for (unsigned int x = 0; x < this->pformatCtx->nb_streams; x++) {
@@ -287,13 +287,30 @@ namespace glsample {
 			this->sws_ctx = sws_getContext(this->pVideoCtx->width, this->pVideoCtx->height, this->pVideoCtx->pix_fmt,
 										   this->pVideoCtx->width, this->pVideoCtx->height, AV_PIX_FMT_RGBA,
 										   SWS_BICUBIC, nullptr, nullptr, nullptr);
+			if (this->sws_ctx == nullptr) {
+			}
+			// Initialize SWR context
+			this->swrContext = swr_alloc_set_opts(nullptr, pAudioCtx->channel_layout, AV_SAMPLE_FMT_FLT,
+												  pAudioCtx->sample_rate, pAudioCtx->channel_layout,
+												  pAudioCtx->sample_fmt, pAudioCtx->sample_rate, 0, nullptr);
 
+			if ((result = swr_init(swrContext)) != 0) {
+				char buf[AV_ERROR_MAX_STRING_SIZE];
+				av_strerror(result, buf, sizeof(buf));
+				throw cxxexcept::RuntimeException("Failed to init SWR : {}", buf);
+			}
+
+			if ((result = av_samples_alloc_array_and_samples(&destBuffer, &destBufferLinesize, 2, 4096,
+															 AV_SAMPLE_FMT_FLT, 0)) < 0) {
+				char buf[AV_ERROR_MAX_STRING_SIZE];
+				av_strerror(result, buf, sizeof(buf));
+				throw cxxexcept::RuntimeException("Failed to allocate ({}) : {}", result, buf);
+			}
 			/*	*/
 			this->frame_timer = av_gettime() / 1000000.0;
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			this->audioInterface = std::make_shared<fragcore::OpenALAudioInterface>(nullptr);
 
@@ -302,20 +319,18 @@ namespace glsample {
 			list_desc.position = fragcore::Vector3::Zero();
 			listener = audioInterface->createAudioListener(&list_desc);
 			listener->setVolume(1.0f);
+
 			fragcore::AudioSourceDesc source_desc = {};
 			source_desc.position = fragcore::Vector3::Zero();
-			audioSource = audioInterface->createAudioSource(&source_desc);
 
-			mSource = this->audioSource->getNativePtr();
-			// fragcore::AudioClipDesc clip_desc = {};
-			// clip_desc.decoder = nullptr;
-			// clip_desc.samples = audio_sample_rate;
-			// clip_desc.sampleRate = audio_bit_rate;
-			// clip_desc.format = fragcore::AudioFormat::eStero;
-			// clip_desc.datamode = fragcore::AudioDataMode::Streaming;
-			//
-			// this->clip = audioInterface->createAudioClip(&clip_desc);
-			// this->audioSource->setClip(this->clip);
+			this->audioSource = audioInterface->createAudioSource(&source_desc);
+			this->audioSource->loop(false);
+			this->audioSource->setVolume(1.0f);
+
+			this->mSource = this->audioSource->getNativePtr();
+
+			this->mAudioBuffers.resize(5);
+			FAOPAL_VALIDATE(alGenBuffers(5, this->mAudioBuffers.data()));
 
 			loadVideo(this->videoPath.c_str());
 
@@ -360,8 +375,7 @@ namespace glsample {
 
 			/*	Allocate buffers.	*/
 			this->videoStageBufferMemorySize = this->video_width * this->video_height * 4;
-			glGenBuffers(1,
-						 &videoStagingTextureBuffer);
+			glGenBuffers(1, &videoStagingTextureBuffer);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStagingTextureBuffer);
 			glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStageBufferMemorySize * this->nrVideoFrames, nullptr,
 						 GL_DYNAMIC_COPY);
@@ -371,8 +385,8 @@ namespace glsample {
 			glGenTextures(this->videoFrameTextures.size(), this->videoFrameTextures.data());
 			for (size_t i = 0; i < this->videoFrameTextures.size(); i++) {
 				glBindTexture(GL_TEXTURE_2D, this->videoFrameTextures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, video_width, video_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-							 nullptr);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->video_width, this->video_height, 0, GL_RGBA,
+							 GL_UNSIGNED_BYTE, nullptr);
 				/*	wrap and filter	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 
@@ -396,9 +410,6 @@ namespace glsample {
 									   this->videoFrameTextures[i], 0);
 			}
 
-			// const GLenum drawAttach = GL_COLOR_ATTACHMENT0;
-			// glDrawBuffers(1, &drawAttach);
-
 			/*  Validate if created properly.*/
 			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
@@ -408,7 +419,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 			/*	*/
-			alSourcePlay(this->audioSource->getNativePtr());
+			// alSourcePlay(this->mSource);
 			// this->audioSource->play();
 		}
 
@@ -416,16 +427,15 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			update();
+			this->update();
 
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
 			glViewport(0, 0, width, height);
 
-			bool blit = false;
-			if (blit) {
+			if (!this->videoplaybackSettingComponent->useBlit) {
 				/*	*/
 				glDisable(GL_CULL_FACE);
 				glDisable(GL_DEPTH_TEST);
@@ -440,11 +450,12 @@ namespace glsample {
 				glBindVertexArray(this->vao);
 				glDrawArrays(GL_TRIANGLE_STRIP, 0, this->vertices.size());
 				glBindVertexArray(0);
+
 			} else {
 				/*	Blit mandelbrot framebuffer to default framebuffer.	*/
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->videoFramebuffer);
-				glReadBuffer(GL_COLOR_ATTACHMENT0 + nthVideoFrame);
+				glReadBuffer(GL_COLOR_ATTACHMENT0 + this->nthVideoFrame);
 
 				glBlitFramebuffer(0, 0, this->video_width, this->video_height, 0, 0, width, height, GL_COLOR_BUFFER_BIT,
 								  GL_LINEAR);
@@ -460,13 +471,11 @@ namespace glsample {
 			}
 
 			int res, result;
-			// FIXME: add support for sync.
-
-			// res = av_seek_frame(this->pformatCtx, this->videoStream, (int64_t)(getTimer().getElapsed() * 1000000.0f),
-			// 					AVSEEK_FLAG_ANY);
 
 			res = av_read_frame(this->pformatCtx, packet);
+
 			if (res == 0) {
+				/*	*/
 				if (packet->stream_index == this->videoStream) {
 					result = avcodec_send_packet(this->pVideoCtx, packet);
 					if (result < 0) {
@@ -487,6 +496,7 @@ namespace glsample {
 
 						if (this->frame->format == AV_PIX_FMT_YUV420P) {
 
+							/*	*/
 							this->frame->data[0] =
 								this->frame->data[0] + this->frame->linesize[0] * (this->pVideoCtx->height - 1);
 							this->frame->data[1] =
@@ -494,6 +504,7 @@ namespace glsample {
 							this->frame->data[2] =
 								this->frame->data[2] + this->frame->linesize[0] * this->pVideoCtx->height / 4 - 1;
 
+							/*	*/
 							this->frame->linesize[0] *= -1;
 							this->frame->linesize[1] *= -1;
 							this->frame->linesize[2] *= -1;
@@ -501,24 +512,25 @@ namespace glsample {
 									  this->frameoutput->data, this->frameoutput->linesize);
 
 							glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStagingTextureBuffer);
-							void *uniformPointer =
-								glMapBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, nthVideoFrame * videoStageBufferMemorySize,
-												 videoStageBufferMemorySize,
-												 GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT); // TODO fix access bit
+							void *uniformPointer = glMapBufferRange(
+								GL_PIXEL_UNPACK_BUFFER_ARB, this->nthVideoFrame * this->videoStageBufferMemorySize,
+								this->videoStageBufferMemorySize,
+								GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT); // TODO fix access bit
 
 							/*	Upload the image to staging.	*/
-							memcpy(uniformPointer, this->frameoutput->data[0], videoStageBufferMemorySize);
-							glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, 0, videoStageBufferMemorySize);
+							memcpy(uniformPointer, this->frameoutput->data[0], this->videoStageBufferMemorySize);
+							glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, 0, this->videoStageBufferMemorySize);
 							glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 
 							glBindTexture(GL_TEXTURE_2D, this->videoFrameTextures[this->nthVideoFrame]);
-							glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, video_width, video_height, GL_RGBA,
-											GL_UNSIGNED_BYTE,
-											reinterpret_cast<const void *>(videoStageBufferMemorySize * nthVideoFrame));
+							glTexSubImage2D(
+								GL_TEXTURE_2D, 0, 0, 0, this->video_width, this->video_height, GL_RGBA,
+								GL_UNSIGNED_BYTE,
+								reinterpret_cast<const void *>(this->videoStageBufferMemorySize * this->nthVideoFrame));
 							glBindTexture(GL_TEXTURE_2D, 0);
 							glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
-							nthVideoFrame = (nthVideoFrame + 1) % nrVideoFrames;
+							this->nthVideoFrame = (this->nthVideoFrame + 1) % this->nrVideoFrames;
 						}
 					}
 				} else if (packet->stream_index == this->audioStream) {
@@ -539,57 +551,66 @@ namespace glsample {
 							av_strerror(result, buf, sizeof(buf));
 							throw cxxexcept::RuntimeException(" : {}", buf);
 						}
-						/*	*/
-						int data_size = av_get_bytes_per_sample(pAudioCtx->sample_fmt);
 
 						/*	*/
-						this->frame->linesize[0];
-						av_get_channel_layout_nb_channels(this->frame->channel_layout);
-						this->frame->format != AV_SAMPLE_FMT_S16P;
-						this->frame->channel_layout;
+						ALenum alFormat = 0;
+						if (this->frame->format == AV_SAMPLE_FMT_U8) {
+							alFormat = AL_FORMAT_STEREO8;
+						} else if (this->frame->format == AV_SAMPLE_FMT_S16) {
+							alFormat = AL_FORMAT_STEREO16;
+						} else if (this->frame->format == AV_SAMPLE_FMT_FLT) {
+							alFormat = AL_FORMAT_STEREO_FLOAT32;
+						}
 
-						// TODO queue info
-						// this->clip->
-						printf("%d %d\n", this->frame->linesize[0], this->frame->nb_samples);
+						int outputSamples = swr_convert(this->swrContext, this->destBuffer, destBufferLinesize,
+														(const uint8_t **)frame->extended_data, frame->nb_samples);
 
-						/*	Assign new audio data.	*/
-						for (int i = 0; i < frame->nb_samples; i++) {
-							for (int ch = 0; ch < pAudioCtx->channels; ch++) {
+						int bufferSize = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT) * 2 * outputSamples;
+						alFormat = AL_FORMAT_STEREO_FLOAT32;
 
-								ALint processed, queued;
-								alGetSourcei((ALuint)this->audioSource->getNativePtr(), AL_BUFFERS_PROCESSED,
-											 &processed);
-								// clip->setData(this->frame->data[0], data_size, 0);
+						ALint processed, queued, currentBuffer;
+						FAOPAL_VALIDATE(alGetSourcei((ALuint)this->mSource, AL_BUFFERS_PROCESSED, &processed));
+						FAOPAL_VALIDATE(alGetSourcei((ALuint)this->mSource, AL_BUFFERS_QUEUED, &queued));
 
-								// alBufferData(bufid, mFormat, samples.get(), buffer_len, mCodecCtx->sample_rate);
-								// alSourceQueueBuffers(mSource, 1, &bufid);
-								continue;
+						if (processed > 0 || queued <= 0) {
+
+							if (queued > 0) {
+								FAOPAL_VALIDATE(alSourceUnqueueBuffers(
+									this->mSource, 1,
+									&this->mAudioBuffers[this->nthVideoFrame % this->mAudioBuffers.size()]));
+							}
+
+							std::cout << bufferSize << " " << frame->sample_rate << " " << alFormat << std::endl;
+
+							FAOPAL_VALIDATE(
+								alBufferData(this->mAudioBuffers[this->nthVideoFrame % this->mAudioBuffers.size()],
+											 alFormat, this->destBuffer[0], bufferSize, frame->sample_rate));
+
+							FAOPAL_VALIDATE(alSourceQueueBuffers(
+								this->mSource, 1,
+								&this->mAudioBuffers[this->nthVideoFrame % this->mAudioBuffers.size()]));
+
+							/* Check that the source is playing. */
+							int state;
+							FAOPAL_VALIDATE(alGetSourcei(this->mSource, AL_SOURCE_STATE, &state));
+							if (state == AL_STOPPED) {
+								alSourceRewind(this->mSource);
+
+								FAOPAL_VALIDATE(alSourcePlay(this->mSource));
 							}
 						}
-						/* Check that the source is playing. */
-						int state;
-						alGetSourcei(mSource, AL_SOURCE_STATE, &state);
-						if (state == AL_STOPPED) {
-							alSourceRewind(mSource);
-							alSourcei(mSource, AL_BUFFER, 0);
-							// if (alcGetInteger64vSOFT) {
-							//	/* Also update the device start time with the current
-							//	 * device clock, so the decoder knows we're running behind.
-							//	 */
-							//	int64_t devtime{};
-							//	alcGetInteger64vSOFT(alcGetContextsDevice(alcGetCurrentContext()),
-							//						 ALC_DEVICE_CLOCK_SOFT, 1, &devtime);
-							//	mDeviceStartTime = nanoseconds{devtime} - mCurrentPts;
-							//}
+						ALint playStatus;
+						FAOPAL_VALIDATE(alGetSourcei(this->mSource, AL_SOURCE_STATE, &playStatus));
+						if (playStatus != AL_PLAYING) {
+							FAOPAL_VALIDATE(alSourcePlay(this->mSource));
 						}
-						// this->audioSource->play();
 					}
 				}
 			}
 			av_packet_unref(packet);
 			av_packet_free(&packet);
 		}
-	};
+	}; // namespace glsample
 
 	class VideoPlaybackGLSample : public GLSample<VideoPlayback> {
 	  public:
