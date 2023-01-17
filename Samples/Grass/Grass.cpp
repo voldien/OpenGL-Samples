@@ -100,7 +100,10 @@ namespace glsample {
 		const std::string EvoluationShaderPath = "Shaders/tessellation/tessellation.tese";
 
 		virtual void Release() override {
-			glDeleteProgram(this->tessellation_program);
+			glDeleteProgram(this->terrain_program);
+			glDeleteProgram(this->grass_program);
+			glDeleteProgram(this->water_program);
+			glDeleteProgram(this->skybox_program);
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
@@ -108,9 +111,9 @@ namespace glsample {
 			glDeleteTextures(1, (const GLuint *)&this->reflection_texture);
 
 			/*	*/
-			glDeleteVertexArrays(1, &this->vao);
-			glDeleteBuffers(1, &this->vbo);
-			glDeleteBuffers(1, &this->ibo);
+			glDeleteVertexArrays(1, &this->skybox.vao);
+			glDeleteBuffers(1, &this->skybox.vbo);
+			glDeleteBuffers(1, &this->skybox.ibo);
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
@@ -123,15 +126,15 @@ namespace glsample {
 			std::vector<char> evolution_source = IOUtil::readFileString(EvoluationShaderPath, this->getFileSystem());
 
 			/*	Load shader	*/
-			this->tessellation_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
-																		  &control_source, &evolution_source);
+			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
+																	&control_source, &evolution_source);
 
 			/*	Setup Shader.	*/
-			glUseProgram(this->tessellation_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->tessellation_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->tessellation_program, "diffuse"), 0);
-			glUniform1i(glGetUniformLocation(this->tessellation_program, "gDisplacementMap"), 1);
-			glUniformBlockBinding(this->tessellation_program, this->uniform_buffer_index, 0);
+			glUseProgram(this->skybox_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->skybox_program, "diffuse"), 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "gDisplacementMap"), 1);
+			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
 			glUseProgram(0);
 
 			/*	Load Diffuse and Height Map Texture.	*/
@@ -155,20 +158,20 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao);
-			glBindVertexArray(this->vao);
+			glGenVertexArrays(1, &this->skybox.vao);
+			glBindVertexArray(this->skybox.vao);
 
 			/*	*/
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+			glGenBuffers(1, &this->skybox.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
-			glGenBuffers(1, &this->ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+			glGenBuffers(1, &this->skybox.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
 						 GL_STATIC_DRAW);
-			this->nrElements = indices.size();
+			this->skybox.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
 			glEnableVertexAttribArray(0);
@@ -177,17 +180,17 @@ namespace glsample {
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+								  reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArray(3);
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
+								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 		}
@@ -223,19 +226,19 @@ namespace glsample {
 				glEnable(GL_DEPTH_TEST);
 
 				/*	Draw triangle*/
-				glBindVertexArray(this->vao);
+				glBindVertexArray(this->skybox.vao);
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, tessellationSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
-				glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
+				glDrawElements(GL_PATCHES, skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 			}
 			/*	*/
 			{ glUseProgram(this->water_program); }
 			/*	*/
 			{ glUseProgram(this->grass_program); }
 			/*	*/
-			{ glUseProgram(this->skybox); }
+			{ glUseProgram(this->skybox_program); }
 			/*	Draw wireframe outline.	*/
 			// if (this->tessellationSettingComponent->showWireFrame) {
 			//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

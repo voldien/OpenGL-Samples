@@ -16,24 +16,26 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 ViewProj;
 	mat4 modelViewProjection;
-	
+
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
+
+	float normalStrength;
 }
 ubo;
 
 layout(binding = 1) uniform sampler2D DiffuseTexture;
 layout(binding = 2) uniform sampler2D NormalTexture;
 
-float computeLightContributionFactor(in vec3 direction, in vec3 normalInput) {
-	return max(0.0, dot(-normalInput, direction));
+float computeLightContributionFactor(in const vec3 direction, in const vec3 normalInput) {
+	return max(0.0, dot(normalInput, -direction));
 }
 
 void main() {
 
-	// Create new normal per pixel based on the normal map.
+	/*	Create Surface point matrix bias, needed to map the normal map vector to the world space.	*/
 	vec3 Mnormal = normalize(normal);
 	vec3 Ttangent = normalize(tangent);
 	Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
@@ -42,10 +44,13 @@ void main() {
 	/*	Convert normal map texture to a vector.	*/
 	vec3 NormalMapBump = 2.0 * texture(NormalTexture, uv).xyz - vec3(1.0, 1.0, 1.0);
 
+	/*	Scale non forward axis.	*/
+	NormalMapBump.xy *= ubo.normalStrength;
+
 	/*	Compute the new normal vector on the specific surface normal.	*/
 	vec3 alteredNormal = normalize(mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump);
 
-	// Compute directional light
+	/*	Compute directional light	*/
 	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
 
 	fragColor = texture(DiffuseTexture, uv) * (ubo.ambientColor + lightColor);

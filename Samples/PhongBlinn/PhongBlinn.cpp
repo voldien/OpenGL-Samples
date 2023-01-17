@@ -35,7 +35,7 @@ namespace glsample {
 			/*	*/
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 viewPos;
+			glm::vec4 viewPos = glm::vec4(0);
 
 			/*	light source.	*/
 			PointLight pointLights[4];

@@ -24,6 +24,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
+	float normalStrength;
 }
 ubo;
 

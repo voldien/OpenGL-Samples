@@ -102,10 +102,10 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			uniformBufferSize = fragcore::Math::align(uniformBufferSize, (size_t)minMapBufferSize);
 
-			/*	*/
+			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
@@ -176,7 +176,8 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
 			{
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);

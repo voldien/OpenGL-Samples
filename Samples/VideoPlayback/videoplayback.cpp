@@ -622,8 +622,6 @@ namespace glsample {
 	};
 } // namespace glsample
 
-// TODO add custom options
-
 int main(int argc, const char **argv) {
 	try {
 		GLSample<glsample::VideoPlayback> sample(argc, argv);

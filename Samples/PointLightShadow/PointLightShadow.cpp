@@ -51,7 +51,7 @@ namespace glsample {
 
 		glm::mat4 PointView[6];
 
-		/*	*/
+		/*	Point light shadow maps.	*/
 		std::vector<unsigned int> pointShadowFrameBuffers;
 		std::vector<unsigned int> pointShadowTextures;
 
@@ -179,16 +179,16 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->shadow_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			this->uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_shadow_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
 			glUseProgram(this->graphic_program);
-			this->uniform_buffer_shadow_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_shadow_index,
+			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
 

@@ -31,6 +31,7 @@ namespace glsample {
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
+			/*	Fog.	*/
 			glm::vec4 fogColor = glm::vec4(1, 0, 0, 1);
 			float cameraNear = 0.15f;
 			float cameraFar = 1000.0f;
@@ -95,10 +96,11 @@ namespace glsample {
 			glDeleteProgram(this->graphic_fog_program);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
+
+			/*	TODO delete geometry.	*/
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
 			const std::vector<uint32_t> vertex_source =
@@ -145,29 +147,32 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			update();
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height,
 												  this->uniform.cameraNear, this->uniform.cameraFar);
 
+			this->update();
+
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+							  (getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
 			{
 				/*	*/
 				glViewport(0, 0, width, height);
 
 				/*	*/
+				glClearColor(0.09f, 0.09f, 0.09f, 1.0f);
 				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 				glUseProgram(this->graphic_fog_program);
 
 				glCullFace(GL_BACK);
 				glDisable(GL_CULL_FACE);
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, fogSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->fogSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);

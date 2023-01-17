@@ -1,4 +1,3 @@
-
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -28,6 +27,7 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			float normalStrength = 1.0f;
 
 		} uniformBuffer;
 
@@ -57,11 +57,15 @@ namespace glsample {
 				this->setName("NormalMap Settings");
 			}
 			virtual void draw() override {
+				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::TextUnformatted("Normal Setting");
+				ImGui::DragFloat("Strength", &this->uniform.normalStrength);
+				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -129,7 +133,7 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
-			/*	*/
+			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
@@ -138,7 +142,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateCube(1, vertices, indices);
+			ProceduralGeometry::generateTorus(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->plan.vao);
@@ -191,7 +195,8 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -260,7 +265,7 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::BasicNormalMap> sample(argc, argv);
+		glsample::NormalMapGLSample sample(argc, argv);
 
 		sample.run();
 

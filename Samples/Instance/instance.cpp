@@ -10,7 +10,6 @@
 namespace glsample {
 
 	// TODO add support for batching.
-	// TODO add support for color random.
 	class Instance : public GLSampleWindow {
 	  public:
 		Instance() : GLSampleWindow() {
@@ -76,9 +75,11 @@ namespace glsample {
 				this->setName("Instance Settings");
 			}
 			virtual void draw() override {
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::TextUnformatted("Light Setting");
+				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -235,6 +236,9 @@ namespace glsample {
 							  this->uniformInstanceSize);
 
 			// TODO add support for batching for limit amount of uniform buffers.
+
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, this->instanceSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 			glUseProgram(this->instance_program);
 			glDisable(GL_CULL_FACE);
