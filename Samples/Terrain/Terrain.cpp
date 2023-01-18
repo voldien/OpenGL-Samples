@@ -32,7 +32,7 @@ namespace glsample {
 		unsigned int skybox_program;
 		unsigned int terrain_program;
 
-		// TODO change to vector
+		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -59,6 +59,30 @@ namespace glsample {
 			// glDeleteBuffers(1, &this->skybox_vbo);
 			// glDeleteTextures(1, &this->skybox_panoramic);
 		}
+
+		class SimpleOceanSettingComponent : public nekomimi::UIComponent {
+
+		  public:
+			SimpleOceanSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Simple Ocean Settings");
+			}
+			virtual void draw() override {
+				ImGui::TextUnformatted("Light Setting");
+				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::TextUnformatted("Debug");
+				/*	*/
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<SimpleOceanSettingComponent> simpleOceanSettingComponent;
 
 		virtual void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -127,17 +151,17 @@ namespace glsample {
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+								  reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArray(3);
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
+								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 

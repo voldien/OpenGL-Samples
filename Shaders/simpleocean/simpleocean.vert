@@ -25,10 +25,21 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 position;
 
 	float time;
+	float speed;
 	float freq;
 	float amplitude;
 }
 ubo;
+
+vec2 computeDirection(vec3 vertex, vec3 center) {
+	vec2 direction = vertex.xz - center.xz;
+	return direction / length(direction);
+}
+
+float computeHeight(float x, float y, float time) {
+	vec2 dir = computeDirection(vec3(x, 0, y), vec3(0));
+	return ubo.amplitude * sin(dir.x * (1 / ubo.freq) + ubo.time * ubo.speed);
+}
 
 void main() {
 
@@ -37,8 +48,7 @@ void main() {
 	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
 	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
 
-
-	float height = cos(ubo.time + vertex.x * ubo.freq) + sin(ubo.time + vertex.z * ubo.freq);
+	float height = computeHeight(vertex.x, vertex.y, ubo.time);
 
 	vertex = vertex + (normalize(normal) * height);
 	gl_Position = ubo.modelViewProjection * vec4(vertex, 1.0);

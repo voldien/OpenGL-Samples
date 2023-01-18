@@ -13,8 +13,7 @@ namespace glsample {
 	  public:
 		PointLightShadow() : GLSampleWindow() {
 			this->setTitle("PointLightShadow");
-			this->shadowSettingComponent =
-				std::make_shared<PointLightShadowSettingComponent>(this->uniform, this->shadowTexture);
+			this->shadowSettingComponent = std::make_shared<PointLightShadowSettingComponent>(this->uniform);
 			this->addUIComponent(this->shadowSettingComponent);
 		}
 
@@ -56,8 +55,6 @@ namespace glsample {
 		std::vector<unsigned int> pointShadowTextures;
 
 		/*	*/
-		unsigned int shadowFramebuffer;
-		unsigned int shadowTexture;
 		unsigned int shadowWidth = 1024;
 		unsigned int shadowHeight = 1024;
 
@@ -83,8 +80,7 @@ namespace glsample {
 
 		class PointLightShadowSettingComponent : public nekomimi::UIComponent {
 		  public:
-			PointLightShadowSettingComponent(struct UniformBufferBlock &uniform, unsigned int &depth)
-				: uniform(uniform), depth(depth) {
+			PointLightShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Point Light Shadow Settings");
 			}
 			virtual void draw() override {
@@ -115,7 +111,8 @@ namespace glsample {
 			}
 
 			bool showWireFrame = false;
-			unsigned int &depth;
+			bool animate = false;
+
 			bool lightvisible[4] = {true, true, true, true};
 
 		  private:
@@ -138,8 +135,8 @@ namespace glsample {
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->shadow_program);
 
-			glDeleteFramebuffers(1, &this->shadowFramebuffer);
-			glDeleteTextures(1, &this->shadowTexture);
+			glDeleteFramebuffers(this->pointShadowFrameBuffers.size(), this->pointShadowFrameBuffers.data());
+			glDeleteTextures(this->pointShadowTextures.size(), this->pointShadowTextures.data());
 
 			glDeleteBuffers(1, &this->uniform_buffer);
 
@@ -180,7 +177,8 @@ namespace glsample {
 			/*	*/
 			glUseProgram(this->shadow_program);
 			this->uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_shadow_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_shadow_index,
+								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
@@ -188,8 +186,7 @@ namespace glsample {
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_index,
-								  this->uniform_buffer_binding);
+			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -205,53 +202,57 @@ namespace glsample {
 
 			{
 				/*	Create shadow map.	*/
-				glGenFramebuffers(1, &this->shadowFramebuffer);
-				glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
+				this->pointShadowFrameBuffers.resize(this->nrPointLights);
+				glGenFramebuffers(this->pointShadowFrameBuffers.size(), this->pointShadowFrameBuffers.data());
 
-				/*	*/
-				glGenTextures(1, &this->shadowTexture);
-				glBindTexture(GL_TEXTURE_CUBE_MAP, this->shadowTexture);
+				this->pointShadowTextures.resize(this->nrPointLights);
+				glGenTextures(this->pointShadowTextures.size(), this->pointShadowTextures.data());
 
-				/*	*/
-				for (size_t i = 0; i < 6; i++) {
-					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, this->shadowWidth,
-								 this->shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-				}
+				for (size_t x = 0; x < pointShadowFrameBuffers.size(); x++) {
+					glBindFramebuffer(GL_FRAMEBUFFER, this->pointShadowFrameBuffers[x]);
 
-				/*	*/
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+					/*	*/
 
-				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
-				/*	*/
-				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-				glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, borderColor);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, this->pointShadowTextures[x]);
 
-				/*	*/
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LOD, 0);
-				glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, 0.0f);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+					/*	*/
+					for (size_t i = 0; i < 6; i++) {
+						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, this->shadowWidth,
+									 this->shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+					}
 
-				glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+					/*	*/
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-				/*	*/
+					/*	Border clamped to max value, it makes the outside area.	*/
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+					/*	*/
+					float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+					glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-				glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, this->shadowTexture, 0);
+					/*	*/
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LOD, 0);
+					glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_LOD_BIAS, 0.0f);
+					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
 
-				glDrawBuffer(GL_NONE);
-				glReadBuffer(GL_NONE);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-				/*	*/
-				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-				if (frstat != GL_FRAMEBUFFER_COMPLETE) {
+					/*	*/
 
-					/*  Delete  */
-					glDeleteFramebuffers(1, &shadowFramebuffer);
-					// TODO add error message.
-					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+					glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, this->pointShadowTextures[x], 0);
+
+					glDrawBuffer(GL_NONE);
+					glReadBuffer(GL_NONE);
+
+					/*	*/
+					int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+					if (frstat != GL_FRAMEBUFFER_COMPLETE) {
+						/*  Delete  */
+						throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+					}
 				}
 
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -283,37 +284,6 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 1.0f, 1000.0f);
-
-			glm::mat4 model = glm::mat4(1.0f);
-			glm::mat4 translation = glm::translate(model, this->uniform.pointLights[0].position);
-
-			const glm::vec3 lightPosition = this->uniform.pointLights[0].position;
-			for (size_t i = 0; i < this->nrPointLights; i++) {
-			}
-			this->PointView[0] =
-				glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
-			this->PointView[1] =
-				glm::lookAt(lightPosition, lightPosition + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
-			this->PointView[2] =
-				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
-			this->PointView[3] =
-				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
-			this->PointView[4] =
-				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0));
-			this->PointView[5] =
-				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0));
-			/*	Compute light matrices.	*/
-			glm::mat4 pointPer =
-				glm::perspective(glm::radians(90.0f), (float)this->shadowWidth / (float)this->shadowHeight, 0.15f,
-								 this->uniform.pointLights[0].range);
-			for (size_t i = 0; i < 6; i++) {
-				glm::mat4 model = glm::mat4(1.0f);
-
-				model = pointPer * this->PointView[i];
-				this->uniform.ViewProjection[i] = model;
-			}
-
 			this->update();
 			{
 
@@ -322,7 +292,7 @@ namespace glsample {
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
-				glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->pointShadowFrameBuffers[0]);
 
 				glClear(GL_DEPTH_BUFFER_BIT);
 				glViewport(0, 0, this->shadowWidth, this->shadowHeight);
@@ -367,7 +337,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + 1);
-				glBindTexture(GL_TEXTURE_CUBE_MAP, this->shadowTexture);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, this->pointShadowTextures[0]);
 
 				glBindVertexArray(this->refObj[0].vao);
 				for (size_t i = 0; i < this->refObj.size(); i++) {
@@ -382,6 +352,37 @@ namespace glsample {
 		virtual void update() {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime());
+
+			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 1.0f, 1000.0f);
+
+			glm::mat4 model = glm::mat4(1.0f);
+			glm::mat4 translation = glm::translate(model, this->uniform.pointLights[0].position);
+
+			const glm::vec3 lightPosition = this->uniform.pointLights[0].position;
+			for (size_t i = 0; i < this->nrPointLights; i++) {
+			}
+			this->PointView[0] =
+				glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+			this->PointView[1] =
+				glm::lookAt(lightPosition, lightPosition + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+			this->PointView[2] =
+				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
+			this->PointView[3] =
+				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
+			this->PointView[4] =
+				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0));
+			this->PointView[5] =
+				glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0));
+			/*	Compute light matrices.	*/
+			glm::mat4 pointPer =
+				glm::perspective(glm::radians(90.0f), (float)this->shadowWidth / (float)this->shadowHeight, 0.15f,
+								 this->uniform.pointLights[0].range);
+			for (size_t i = 0; i < 6; i++) {
+				glm::mat4 model = glm::mat4(1.0f);
+
+				model = pointPer * this->PointView[i];
+				this->uniform.ViewProjection[i] = model;
+			}
 
 			/*	*/
 			this->uniform.model = glm::mat4(1.0f);

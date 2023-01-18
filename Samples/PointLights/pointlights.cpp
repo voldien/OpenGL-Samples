@@ -72,11 +72,11 @@ namespace glsample {
 					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightvisible[i],
 												ImGuiTreeNodeFlags_CollapsingHeader)) {
 
-						ImGui::ColorEdit4("Light Color", &this->uniform.pointLights[i].color[0],
+						ImGui::ColorEdit4("Color", &this->uniform.pointLights[i].color[0],
 										  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-						ImGui::DragFloat3("Light Position", &this->uniform.pointLights[i].position[0]);
+						ImGui::DragFloat3("Position", &this->uniform.pointLights[i].position[0]);
 						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
-						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
+						ImGui::DragFloat("Range", &this->uniform.pointLights[i].range);
 						ImGui::DragFloat("Intensity", &this->uniform.pointLights[i].intensity);
 					}
 					ImGui::PopID();

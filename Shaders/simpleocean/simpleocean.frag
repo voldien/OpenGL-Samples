@@ -23,6 +23,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 position;
 
 	float time;
+	float speed;
 	float freq;
 	float amplitude;
 }
@@ -63,9 +64,10 @@ void main() {
 
 	vec3 alteredNormal = normalize(mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump);
 
-	// Compute directional light
+	/*	Compute directional light	*/
 	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
 
+	/*	*/
 	vec3 I = normalize(ubo.position.xyz - vertex);
 	vec3 reflection = reflect(I, alteredNormal);
 	vec2 reflection_uv = inverse_equirectangular(reflection);

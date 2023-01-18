@@ -71,11 +71,18 @@ void GLSampleWindow::renderUI() {
 	if (state[SDL_SCANCODE_F12]) {
 		this->captureScreenShot();
 	}
+	// TODO add fullscreen;
 }
 
 void GLSampleWindow::setTitle(const std::string &title) {
 
 	nekomimi::MIMIWindow::setTitle(title + " - OpenGL version " + getRenderInterface()->getAPIVersion());
+}
+
+void GLSampleWindow::debug(bool enable) {
+	fragcore::GLRendererInterface *interface =
+		dynamic_cast<fragcore::GLRendererInterface *>(this->getRenderInterface().get());
+	interface->setDebug(enable);
 }
 
 void GLSampleWindow::captureScreenShot() {

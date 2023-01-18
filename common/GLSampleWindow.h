@@ -40,6 +40,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	vkscommon::Time &getTimer() noexcept { return this->time; }
 	size_t getFrameCount() noexcept { return this->frameCount; }
 
+	void debug(bool enable);
+
 	void captureScreenShot();
 
 	fragcore::IFileSystem *getFileSystem() const noexcept { return filesystem; }
@@ -49,6 +51,10 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	unsigned int getShaderVersion() const;
 
 	bool supportSPIRV() const;
+
+	// const fragcore::GLRendererInterface *getRenderInterface();
+
+	// TODO add options.
 
   protected:
 	virtual void displayMenuBar() override;

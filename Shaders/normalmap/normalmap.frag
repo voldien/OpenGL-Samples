@@ -17,6 +17,8 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
+	vec4 tintColor;
+
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
@@ -30,7 +32,7 @@ layout(binding = 1) uniform sampler2D DiffuseTexture;
 layout(binding = 2) uniform sampler2D NormalTexture;
 
 float computeLightContributionFactor(in const vec3 direction, in const vec3 normalInput) {
-	return max(0.0, dot(normalInput, -direction));
+	return max(0.0, dot(normalInput, -normalize(direction)));
 }
 
 void main() {
@@ -53,5 +55,5 @@ void main() {
 	/*	Compute directional light	*/
 	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
 
-	fragColor = texture(DiffuseTexture, uv) * (ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, uv) * ubo.tintColor * (ubo.ambientColor + lightColor);
 }

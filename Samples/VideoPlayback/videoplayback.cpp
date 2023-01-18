@@ -326,8 +326,8 @@ namespace glsample {
 			this->audioSource = audioInterface->createAudioSource(&source_desc);
 			this->audioSource->loop(false);
 			this->audioSource->setVolume(1.0f);
-
 			this->mSource = this->audioSource->getNativePtr();
+			// alSourcef(this->mSource, AL_PITCH, 144.0f / 23.97f);
 
 			this->mAudioBuffers.resize(5);
 			FAOPAL_VALIDATE(alGenBuffers(5, this->mAudioBuffers.data()));

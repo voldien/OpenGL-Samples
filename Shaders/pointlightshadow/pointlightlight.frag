@@ -45,6 +45,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
+// TODO PCF
 float ShadowCalculation(const in vec3 fragPosLightSpace) {
 
 	const vec3 frag2Light = (fragPosLightSpace - ubo.point_light[0].position);
@@ -58,7 +59,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace) {
 	float currentDepth = length(frag2Light);
 
 	float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
-	
+
 	/*	*/
 	if (currentDepth > ubo.point_light[0].range) {
 		shadow = 1.0;

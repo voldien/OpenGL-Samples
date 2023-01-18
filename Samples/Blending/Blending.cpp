@@ -7,10 +7,10 @@
 
 namespace glsample {
 
-	class BasicNormalMap : public GLSampleWindow {
+	class Blending : public GLSampleWindow {
 	  public:
-		BasicNormalMap() : GLSampleWindow() {
-			this->setTitle("NormalMap");
+		Blending() : GLSampleWindow() {
+			this->setTitle("Blending");
 			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->normalMapSettingComponent);
 		}
@@ -23,8 +23,8 @@ namespace glsample {
 			alignas(16) glm::mat4 ViewProj;
 			alignas(16) glm::mat4 modelViewProjection;
 
-			glm::vec4 tintColor;
-			/*light source.	*/
+			glm::vec4 tintColor = glm::vec4(1, 1, 1, 0.8f);
+			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
@@ -40,7 +40,7 @@ namespace glsample {
 		unsigned int normal_texture;
 
 		/*	*/
-		unsigned int normalMapping_program;
+		unsigned int blending_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
@@ -58,6 +58,8 @@ namespace glsample {
 			}
 
 			virtual void draw() override {
+				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
@@ -85,7 +87,7 @@ namespace glsample {
 
 		virtual void Release() override {
 			/*	*/
-			glDeleteProgram(this->normalMapping_program);
+			glDeleteProgram(this->blending_program);
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
@@ -113,15 +115,15 @@ namespace glsample {
 			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shader	*/
-			this->normalMapping_program =
+			this->blending_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->normalMapping_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->normalMapping_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->normalMapping_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->normalMapping_program, "NormalTexture"), 1);
-			glUniformBlockBinding(this->normalMapping_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(this->blending_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->blending_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->blending_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->blending_program, "NormalTexture"), 1);
+			glUniformBlockBinding(this->blending_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
@@ -205,9 +207,16 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
-				glUseProgram(this->normalMapping_program);
+				glUseProgram(this->blending_program);
 
 				glDisable(GL_CULL_FACE);
+				glEnable(GL_DEPTH_TEST);
+				glDepthMask(GL_FALSE);
+
+				/*	Blending.	*/
+				glEnable(GL_BLEND);
+				glBlendEquation(GL_FUNC_ADD);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -251,9 +260,9 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
-	class NormalMapGLSample : public GLSample<BasicNormalMap> {
+	class BlendingGLSample : public GLSample<Blending> {
 	  public:
-		NormalMapGLSample(int argc, const char **argv) : GLSample<BasicNormalMap>(argc, argv) {}
+		BlendingGLSample(int argc, const char **argv) : GLSample<Blending>(argc, argv) {}
 		virtual void commandline(cxxopts::Options &options) override {
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
@@ -266,7 +275,7 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::NormalMapGLSample sample(argc, argv);
+		glsample::BlendingGLSample sample(argc, argv);
 
 		sample.run();
 

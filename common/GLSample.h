@@ -41,14 +41,9 @@ template <class T> class GLSample : public GLSampleSession {
 		}
 
 		/*	*/
-		bool debug = result["debug"].as<bool>();
-		bool fullscreen = result["fullscreen"].as<bool>();
-		bool vsync = result["vsync"].as<bool>();
-
-		/*	Enable debugging.	*/
-		if (debug) {
-			/*	*/
-		}
+		const bool debug = result["debug"].as<bool>();
+		const bool fullscreen = result["fullscreen"].as<bool>();
+		const bool vsync = result["vsync"].as<bool>();
 
 		if (result.count("time") > 0) {
 		}
@@ -56,38 +51,42 @@ template <class T> class GLSample : public GLSampleSession {
 		int width = -1;
 		int height = -1;
 
-		/*	*/
-		if (fullscreen) {
-			// Compute window size
-			SDLDisplay display(0);
-			width = display.width();
-			height = display.height();
-		}
-
 		/*	Create filesystem that the asset will be read from.	*/
-		activeFileSystem = FileSystem::createFileSystem();
+		this->activeFileSystem = FileSystem::createFileSystem();
 		std::string filesystemPath = result["filesystem"].as<std::string>();
-		if (!activeFileSystem->isDirectory(filesystemPath.c_str())) {
+		if (!this->activeFileSystem->isDirectory(filesystemPath.c_str())) {
 
-			std::string extension = activeFileSystem->getFileExtension(filesystemPath.c_str());
+			const std::string extension = this->activeFileSystem->getFileExtension(filesystemPath.c_str());
 			if (extension == ".zip") {
 				std::cout << "Found Zip File System: " << filesystemPath << std::endl;
-				activeFileSystem = ZipFileSystem::createZipFileObject(filesystemPath.c_str());
+				this->activeFileSystem = ZipFileSystem::createZipFileObject(filesystemPath.c_str());
 			}
 		}
 
 		this->sampleRef = new T();
+
 		/*	Prevent residual errors to cause crash.	*/
 		fragcore::resetErrorFlag();
 
 		/*	Internal initialize.	*/
 		this->sampleRef->setFileSystem(activeFileSystem);
 
-		// this->sampleRef->vsync(vsync);
-		this->sampleRef->setFullScreen(fullscreen);
-
 		/*	Init the sample.	*/
 		this->sampleRef->Initialize();
+
+		/*	Set debugging state.	*/
+		this->sampleRef->debug(debug);
+
+		/*	*/
+		if (fullscreen) {
+			// Compute window size
+			SDLDisplay display = SDLDisplay::getPrimaryDisplay();
+			width = display.width();
+			height = display.height();
+		}
+		this->sampleRef->setSize(width, height);
+		// this->sampleRef->vsync(vsync);
+		this->sampleRef->setFullScreen(fullscreen);
 	}
 
 	~GLSample() { this->sampleRef->Release(); }

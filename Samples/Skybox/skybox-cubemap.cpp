@@ -34,15 +34,17 @@ namespace glsample {
 		glm::mat4 proj;
 		CameraController camera;
 
-		/*	*/
+		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
+		std::vector<std::string> cubemapPaths = {"asset/X+.png", "asset/X-.png", "asset/Y+.png",
+												 "asset/Y-.png", "asset/Z+.png", "asset/Z-.png"};
 
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/cubemap.frag.spv";
 
 	  public:
 		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
@@ -74,13 +76,16 @@ namespace glsample {
 
 		virtual void Initialize() override {
 			/*	Load shader	*/
-			std::vector<char> vertex_source =
-				IOUtil::readFileString(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
-				IOUtil::readFileString(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
 			/*  */
-			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 			/*  */
 			glUseProgram(this->skybox_program);
@@ -91,8 +96,7 @@ namespace glsample {
 
 			/*	Load cubemap.	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->skybox_cubemap =
-				textureImporter.loadCubeMap({"X+.png", "X-.png", "Y+.png", "Y-.png", "Z+.png", "Z-.png"});
+			this->skybox_cubemap = textureImporter.loadCubeMap(this->cubemapPaths);
 
 			/*  */
 			GLint minMapBufferSize;
@@ -129,7 +133,7 @@ namespace glsample {
 			/*	*/
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
+			/*	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 								  reinterpret_cast<void *>(12));
@@ -141,11 +145,11 @@ namespace glsample {
 
 			this->update();
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
-
 			int width, height;
 			getSize(&width, &height);
+
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			/*	*/
 			glViewport(0, 0, width, height);

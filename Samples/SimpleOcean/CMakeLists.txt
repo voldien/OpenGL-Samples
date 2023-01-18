@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(SimpleOcean glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(SimpleOcean glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(SimpleOcean PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS SimpleOcean DESTINATION bin)
