@@ -113,9 +113,9 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<uint32_t> vertex_binary =
+			std::vector<uint32_t> instance_vertex_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_binary =
+			std::vector<uint32_t> instance_fragment_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -124,9 +124,9 @@ namespace glsample {
 
 			/*	Load shader	*/
 			this->instance_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+				ShaderLoader::loadGraphicProgram(compilerOptions, &instance_vertex_binary, &instance_fragment_binary);
 
-			/*	*/
+			/*	Setup instance graphic pipeline.	*/
 			glUseProgram(this->instance_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->instance_program, "DiffuseTexture"), 0);
@@ -134,7 +134,6 @@ namespace glsample {
 			glUniformBlockBinding(this->instance_program, uniform_buffer_index, this->uniform_buffer_binding);
 			this->uniform_instance_buffer_index =
 				glGetUniformBlockIndex(this->instance_program, "UniformInstanceBlock");
-
 			glUseProgram(0);
 
 			/*	load Textures	*/
@@ -211,7 +210,7 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			this->update();
+			
 
 			int width, height;
 			getSize(&width, &height);

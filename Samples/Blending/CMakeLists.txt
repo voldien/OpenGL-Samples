@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Blending glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(Blending glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(Blending PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS Blending DESTINATION bin)

@@ -153,7 +153,7 @@ namespace glsample {
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height,
 												  this->uniform.cameraNear, this->uniform.cameraFar);
 
-			this->update();
+			
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,

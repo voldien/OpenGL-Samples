@@ -95,6 +95,12 @@ namespace glsample {
 		unsigned int vbo;
 		unsigned vao;
 
+		/*	Audio.	*/
+		fragcore::AudioClip *clip;
+		fragcore::AudioListener *listener;
+		fragcore::AudioSource *audioSource;
+		std::shared_ptr<fragcore::OpenALAudioInterface> audioInterface;
+
 		unsigned int mSource;
 		std::vector<unsigned int> mAudioBuffers;
 
@@ -106,11 +112,6 @@ namespace glsample {
 		std::array<unsigned int, nrVideoFrames> videoFrameTextures;
 		std::array<void *, nrVideoFrames> videoMapBuffer;
 		unsigned int videoStagingTextureBuffer; // PBO buffers
-
-		fragcore::AudioClip *clip;
-		fragcore::AudioListener *listener;
-		fragcore::AudioSource *audioSource;
-		std::shared_ptr<fragcore::OpenALAudioInterface> audioInterface;
 
 		std::string videoPath = "video.mp4";
 
@@ -427,7 +428,7 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			this->update();
+			
 
 			int width, height;
 			this->getSize(&width, &height);

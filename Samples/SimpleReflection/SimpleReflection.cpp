@@ -34,6 +34,7 @@ namespace glsample {
 
 		/*	*/
 		GeometryObject plan;
+		GeometryObject obj;
 		GeometryObject skybox;
 
 		/*	G-Buffer	*/
@@ -141,11 +142,11 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
-			glUseProgram(this->skybox_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
-			glUseProgram(0);
+			// glUseProgram(this->skybox_program);
+			// this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			// glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
+			// glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			// glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -162,7 +163,7 @@ namespace glsample {
 			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
@@ -248,9 +249,9 @@ namespace glsample {
 			this->multipass_texture_width = width;
 			this->multipass_texture_height = height;
 
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);
-			/*	Resize the image.	*/
+			glBindFramebuffer(GL_FRAMEBUFFER, this->multipass_framebuffer);
 
+			/*	Resize the image.	*/
 			glBindTexture(GL_TEXTURE_2D, this->multipass_textures);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->multipass_texture_width, this->multipass_texture_height, 0,
 						 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -268,7 +269,6 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->multipass_textures, 0);
-			glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
 			unsigned int rbo;
 			glGenRenderbuffers(1, &rbo);
@@ -277,18 +277,21 @@ namespace glsample {
 								  this->multipass_texture_height);
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
 
+			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+
 			/*  Validate if created properly.*/
 			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		virtual void draw() override {
 
-			this->update();
+			
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -300,31 +303,27 @@ namespace glsample {
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
-			/*	*/
-			glViewport(0, 0, width, height);
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);
 
 			glViewport(0, 0, width, height);
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
+			glStencilMask(0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-			glEnable(GL_DEPTH_TEST);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-			/*	Create Stencils mask of the ocean.	*/
+			/*	Create Stencils mask of the plan.	*/
 			{
 				glUseProgram(this->graphic_program);
 
+				glEnable(GL_STENCIL_TEST);
+				glEnable(GL_DEPTH_TEST);
 				glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-				glStencilFunc(GL_ALWAYS, 1, 0xFF);
+				glDepthMask(GL_FALSE);
 				glStencilMask(0xFF);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
 				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
-
-				glStencilMask(0);
 
 				glUseProgram(0);
 			}
@@ -336,7 +335,9 @@ namespace glsample {
 				glDisable(GL_CULL_FACE);
 				glEnable(GL_DEPTH_TEST);
 				glEnable(GL_STENCIL_TEST);
-				glStencilMask(0xff);
+				glDepthMask(GL_TRUE);
+				glStencilFunc(GL_EQUAL, 1, 0xFF);
+				glStencilMask(0);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
@@ -349,60 +350,65 @@ namespace glsample {
 			}
 
 			/*	Plan.	*/
+			//{
+			//	glUseProgram(this->graphic_program);
+			//
+			//	glDisable(GL_CULL_FACE);
+			//	glEnable(GL_DEPTH_TEST);
+			//
+			//	glEnable(GL_BLEND);
+			//	glBlendEquation(GL_FUNC_ADD);
+			//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			//
+			//	/*	Optional - to display wireframe.	*/
+			//	glPolygonMode(GL_FRONT_AND_BACK, this->simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+			//
+			//	/*	*/
+			//	glActiveTexture(GL_TEXTURE0);
+			//	glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
+			//
+			//	/*	*/
+			//	glActiveTexture(GL_TEXTURE0 + 1);
+			//	glBindTexture(GL_TEXTURE_2D, this->normal_texture);
+			//
+			//	/*	Draw triangle.	*/
+			//	glBindVertexArray(this->plan.vao);
+			//	glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+			//	glBindVertexArray(0);
+			//
+			//	glUseProgram(0);
+			//}
+
+			/*	Skybox	*/
 			{
-				glUseProgram(this->graphic_program);
+				glUseProgram(this->skybox_program);
 
 				glDisable(GL_CULL_FACE);
-				glEnable(GL_DEPTH_TEST);
-
-				glEnable(GL_BLEND);
-				glBlendEquation(GL_FUNC_ADD);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glDisable(GL_BLEND);
+				glDisable(GL_DEPTH_TEST);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0 + 1);
-				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
-
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
+				glBindVertexArray(this->skybox.vao);
 				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
-
-				glUseProgram(0);
 			}
 
-			/*	Skybox	*/
-			//{
-			//	glUseProgram(this->skybox_program);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			/*	*/
+			glViewport(0, 0, width, height);
 
-			//	glDisable(GL_CULL_FACE);
-			//	glDisable(GL_BLEND);
-			//	glDisable(GL_DEPTH_TEST);
-
-			//	/*	Optional - to display wireframe.	*/
-			//	glPolygonMode(GL_FRONT_AND_BACK, simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
-
-			//	/*	*/
-			//	glActiveTexture(GL_TEXTURE0);
-			//	glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
-
-			//	/*	Draw triangle.	*/
-			//	glBindVertexArray(this->skybox.vao);
-			//	glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-			//	glBindVertexArray(0);
-			//}
-
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glBlitFramebuffer(0, 0, this->multipass_texture_height, this->multipass_texture_height, 0, 0, width, height,
-							  GL_COLOR_ATTACHMENT0, GL_NEAREST);
+							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		void update() {

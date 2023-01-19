@@ -6,7 +6,7 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 
-layout(location = 0) out vec4 FragPos;
+layout(location = 0) out vec4 FragVertex;
 
 struct point_light {
 	vec3 position;
@@ -44,7 +44,7 @@ void main() {
 		gl_Layer = face;			// built-in variable that specifies to which face we render.
 		for (int i = 0; i < 3; ++i) // for each triangle vertex
 		{
-			FragPos = gl_in[i].gl_Position;
+			FragVertex = gl_in[i].gl_Position;
 			gl_Position = (ubo.ViewProjection[gl_Layer]) * gl_in[i].gl_Position;
 			EmitVertex();
 		}

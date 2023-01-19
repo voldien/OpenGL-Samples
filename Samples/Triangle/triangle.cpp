@@ -17,6 +17,7 @@ namespace glsample {
 		unsigned int vao;
 
 		unsigned int triangle_program;
+
 		const std::string vertexShaderPath = "Shaders/triangle/triangle.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/triangle/triangle.frag.spv";
 
@@ -35,9 +36,9 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			const std::vector<uint32_t> vertex_source =
+			const std::vector<uint32_t> triangle_vertex_binary =
 				IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
+			const std::vector<uint32_t> triangle_fragment_binary =
 				IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -46,7 +47,7 @@ namespace glsample {
 
 			/*	Load shader	*/
 			this->triangle_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				ShaderLoader::loadGraphicProgram(compilerOptions, &triangle_vertex_binary, &triangle_fragment_binary);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->vao);
@@ -80,20 +81,23 @@ namespace glsample {
 			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			/*	Disable depth and culling of faces.	*/
-			glDisable(GL_DEPTH_TEST);
-			glDisable(GL_CULL_FACE);
+			{
+				/*	Disable depth and culling of faces.	*/
+				glDisable(GL_DEPTH_TEST);
+				glDisable(GL_CULL_FACE);
 
-			/*	Bind shader pipeline.	*/
-			glUseProgram(this->triangle_program);
+				/*	Bind shader pipeline.	*/
+				glUseProgram(this->triangle_program);
 
-			/*	Draw triangle.	*/
-			glBindVertexArray(this->vao);
-			glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
-			glBindVertexArray(0);
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->vao);
+				glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
+				glBindVertexArray(0);
+
+				glUseProgram(0);
+			}
 		}
-
-		virtual void update() {}
+		virtual void update() override {}
 	};
 
 } // namespace glsample

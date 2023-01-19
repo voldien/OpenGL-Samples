@@ -50,10 +50,10 @@ namespace glsample {
 			std::vector<char> gameoflife_source_T =
 				fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, compilerOptions);
 
-			/*	Load shader	*/
+			/*	Create compute pipeline.	*/
 			this->gameoflife_program = ShaderLoader::loadComputeProgram({&gameoflife_source_T});
 
-			/*	Setup shader.	*/
+			/*	Setup compute pipeline.	*/
 			glUseProgram(this->gameoflife_program);
 			glUniform1i(glGetUniformLocation(this->gameoflife_program, "previousCellsTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->gameoflife_program, "currentCellsTexture"), 1);
@@ -65,7 +65,9 @@ namespace glsample {
 			glGenFramebuffers(1, &this->gameoflife_framebuffer);
 			this->gameoflife_texture.resize(2);
 			glGenTextures(this->gameoflife_texture.size(), this->gameoflife_texture.data());
-			onResize(this->width(), this->height());
+
+			/*	Create init framebuffers.	*/
+			this->onResize(this->width(), this->height());
 		}
 
 		virtual void onResize(int width, int height) override {
@@ -81,6 +83,7 @@ namespace glsample {
 			Random random;
 			for (size_t j = 0; j < this->gameoflife_texture_height; j++) {
 				for (size_t i = 0; i < this->gameoflife_texture_width; i++) {
+					/*	Random value between dead and alive cells.	*/
 					textureData[this->gameoflife_texture_width * j + i] = Random::range(0, 2);
 				}
 			}
@@ -159,6 +162,7 @@ namespace glsample {
 			/*	*/
 			this->nthTexture = (this->nthTexture + 1) % this->gameoflife_texture.size();
 		}
+		virtual void update() override {}
 	};
 
 } // namespace glsample

@@ -66,7 +66,9 @@ namespace glsample {
 			glGenFramebuffers(1, &this->reactiondiffusion_framebuffer);
 			this->reactiondiffusion_texture.resize(2);
 			glGenTextures(this->reactiondiffusion_texture.size(), this->reactiondiffusion_texture.data());
-			onResize(this->width(), this->height());
+
+			/*	Create init framebuffers.	*/
+			this->onResize(this->width(), this->height());
 		}
 
 		virtual void onResize(int width, int height) override {
@@ -152,7 +154,7 @@ namespace glsample {
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 			}
 
-			/*	Blit game of life render framebuffer to default framebuffer.	*/
+			/*	Blit reaction diffusion render framebuffer to default framebuffer.	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->reactiondiffusion_framebuffer);
 
@@ -163,6 +165,7 @@ namespace glsample {
 			/*	*/
 			this->nthTexture = (this->nthTexture + 1) % this->reactiondiffusion_texture.size();
 		}
+		virtual void update() override {}
 	};
 
 } // namespace glsample

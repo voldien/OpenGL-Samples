@@ -187,7 +187,7 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			this->update();
+			
 
 			int width, height;
 			this->getSize(&width, &height);
@@ -260,6 +260,7 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+
 	class BlendingGLSample : public GLSample<Blending> {
 	  public:
 		BlendingGLSample(int argc, const char **argv) : GLSample<Blending>(argc, argv) {}

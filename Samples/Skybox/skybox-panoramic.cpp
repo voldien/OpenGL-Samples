@@ -22,20 +22,18 @@ namespace glsample {
 			this->camera.enableNavigation(false);
 		}
 
-		// TODO use.
-		GeometryObject SkyboxCube;
-
-		unsigned int skybox_program;
-
 		struct UniformBufferBlock {
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f);
 			float exposure = 1.0f;
 		} uniform_stage_buffer;
 
+		GeometryObject SkyboxCube;
+		unsigned int skybox_program;
+
 		glm::mat4 proj;
-		int skybox_panoramic;
-		std::string panoramicPath = "asset/winter_lake_01_4k.exr";
+		int skybox_texture_panoramic;
+
 		CameraController camera;
 
 		/*	Uniform buffer.	*/
@@ -44,6 +42,8 @@ namespace glsample {
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
+
+		std::string panoramicPath = "asset/winter_lake_01_4k.exr";
 
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
@@ -74,15 +74,15 @@ namespace glsample {
 			glDeleteVertexArrays(1, &this->SkyboxCube.vao);
 			glDeleteBuffers(1, &this->SkyboxCube.vbo);
 			glDeleteBuffers(1, &this->SkyboxCube.ibo);
-			glDeleteTextures(1, (const GLuint *)&this->skybox_panoramic);
+			glDeleteTextures(1, (const GLuint *)&this->skybox_texture_panoramic);
 		}
 
 		virtual void Initialize() override {
 			/*	Load shader	*/
 
-			std::vector<uint32_t> vertex_source =
+			std::vector<uint32_t> vertex_skybox_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
+			std::vector<uint32_t> fragment_skybox_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -90,7 +90,7 @@ namespace glsample {
 			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	*/
-			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 
 			/*	*/
 			glUseProgram(this->skybox_program);
@@ -101,7 +101,7 @@ namespace glsample {
 
 			/*	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->skybox_panoramic = textureImporter.loadImage2D(this->panoramicPath);
+			this->skybox_texture_panoramic = textureImporter.loadImage2D(this->panoramicPath);
 
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -147,7 +147,7 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			this->update();
+			
 
 			int width, height;
 			getSize(&width, &height);
@@ -172,7 +172,7 @@ namespace glsample {
 			/*	*/
 			glUseProgram(this->skybox_program);
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic);
+			glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
 
 			/*	Draw triangle.	*/
 			glBindVertexArray(this->SkyboxCube.vao);

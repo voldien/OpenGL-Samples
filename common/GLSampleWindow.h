@@ -28,6 +28,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	 */
 	virtual void draw() = 0;
 
+	virtual void update() = 0;
+
 	virtual void onResize(int width, int height) {}
 
 	virtual void setTitle(const std::string &title) override;

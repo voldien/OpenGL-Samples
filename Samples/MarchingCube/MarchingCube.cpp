@@ -193,7 +193,7 @@ namespace glsample {
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
-			this->update();
+			
 
 			int width, height;
 			getSize(&width, &height);

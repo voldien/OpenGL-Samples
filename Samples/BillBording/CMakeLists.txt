@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(BillBoarding glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(BillBoarding glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(BillBoarding PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS BillBoarding DESTINATION bin)

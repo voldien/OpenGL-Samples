@@ -3,7 +3,7 @@
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
 
-layout(location = 0) in vec4 FragPos;
+layout(location = 0) in vec4 FragVertex;
 
 struct point_light {
 	vec3 position;
@@ -38,7 +38,7 @@ ubo;
 void main() {
 
 	/*	*/
-	float lightDistance = length(ubo.point_light[0].position - FragPos.xyz);
+	float lightDistance = length(ubo.point_light[0].position - FragVertex.xyz);
 
 	/*	map to [0;1].	*/
 	lightDistance = lightDistance / ubo.point_light[0].range;

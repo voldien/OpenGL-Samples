@@ -17,7 +17,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct point_light_t {
+		typedef struct spot_light_t {
 			glm::vec4 position;
 			glm::vec4 direction;
 			glm::vec4 color;
@@ -27,9 +27,9 @@ namespace glsample {
 			float constant_attenuation;
 			float linear_attenuation;
 			float qudratic_attenuation;
-		} PointLight;
+		} SpotLightU;
 
-		static const size_t nrPointLights = 4;
+		static const size_t nrSpotLights = 4;
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
@@ -40,7 +40,7 @@ namespace glsample {
 			/*	light source.	*/
 			glm::vec4 ambientLight = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
 
-			PointLight pointLights[nrPointLights];
+			SpotLightU spotLights[nrSpotLights];
 		} uniformBuffer;
 
 		/*	*/
@@ -69,19 +69,19 @@ namespace glsample {
 			}
 			virtual void draw() override {
 
-				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
+				for (size_t i = 0; i < sizeof(uniform.spotLights) / sizeof(uniform.spotLights[0]); i++) {
 					ImGui::PushID(1000 + i);
 					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str(), &lightvisible[i],
 												ImGuiTreeNodeFlags_CollapsingHeader)) {
 
-						ImGui::ColorEdit4("Light Color", &this->uniform.pointLights[i].color[0],
+						ImGui::ColorEdit4("Color", &this->uniform.spotLights[i].color[0],
 										  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-						ImGui::DragFloat3("Light Position", &this->uniform.pointLights[i].position[0]);
-						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
-						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
-						ImGui::DragFloat("Light Angle", &this->uniform.pointLights[i].angle);
-						ImGui::DragFloat3("Light Direction", &this->uniform.pointLights[i].direction[0]);
-						ImGui::DragFloat("Intensity", &this->uniform.pointLights[i].intensity);
+						ImGui::DragFloat3("Position", &this->uniform.spotLights[i].position[0]);
+						ImGui::DragFloat3("Attenuation", &this->uniform.spotLights[i].constant_attenuation);
+						ImGui::DragFloat("Range", &this->uniform.spotLights[i].range);
+						ImGui::DragFloat("Angle", &this->uniform.spotLights[i].angle);
+						ImGui::DragFloat3("Direction", &this->uniform.spotLights[i].direction[0]);
+						ImGui::DragFloat("Intensity", &this->uniform.spotLights[i].intensity);
 					}
 					ImGui::PopID();
 				}
@@ -181,42 +181,42 @@ namespace glsample {
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+								  reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArray(3);
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
+								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
-			for (size_t i = 0; i < this->nrPointLights; i++) {
-				this->uniformBuffer.pointLights[i].range = 45.0f;
-				this->uniformBuffer.pointLights[i].position =
+			for (size_t i = 0; i < this->nrSpotLights; i++) {
+				this->uniformBuffer.spotLights[i].range = 45.0f;
+				this->uniformBuffer.spotLights[i].position =
 					glm::vec4(i * -1.0f, i * 1.0f, i * -1.5f, 0) * 12.0f + glm::vec4(2.0f);
-				this->uniformBuffer.pointLights[i].direction = glm::normalize(
+				this->uniformBuffer.spotLights[i].direction = glm::normalize(
 					glm::vec4(fragcore::Math::degToRad(-20.0f * (i + 1)), fragcore::Math::degToRad(-20.0f * (i + 1)),
 							  fragcore::Math::degToRad(20.0f * (i + 1)), 0));
-				this->uniformBuffer.pointLights[i].angle = std::sin(fragcore::Math::degToRad(20.0f * i));
-				this->uniformBuffer.pointLights[i].color = colors[i];
-				this->uniformBuffer.pointLights[i].constant_attenuation = 1.0f;
-				this->uniformBuffer.pointLights[i].linear_attenuation = 0.1f;
-				this->uniformBuffer.pointLights[i].qudratic_attenuation = 0.05f;
-				this->uniformBuffer.pointLights[i].intensity = 1.0f;
+				this->uniformBuffer.spotLights[i].angle = std::sin(fragcore::Math::degToRad(20.0f * i));
+				this->uniformBuffer.spotLights[i].color = colors[i];
+				this->uniformBuffer.spotLights[i].constant_attenuation = 1.0f;
+				this->uniformBuffer.spotLights[i].linear_attenuation = 0.1f;
+				this->uniformBuffer.spotLights[i].qudratic_attenuation = 0.05f;
+				this->uniformBuffer.spotLights[i].intensity = 1.0f;
 			}
 		}
 
 		virtual void draw() override {
 
-			this->update();
+			
 			int width, height;
 			this->getSize(&width, &height);
 

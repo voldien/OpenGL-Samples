@@ -165,7 +165,7 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			this->update();
+			
 			/*	*/
 			int width, height;
 			getSize(&width, &height);

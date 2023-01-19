@@ -130,7 +130,7 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			this->update();
+			
 
 			/*	Bind subset of the uniform buffer, that the graphic pipeline will use.	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
@@ -145,23 +145,24 @@ namespace glsample {
 			/*	Clear default framebuffer.	*/
 			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			{
+				/*	Activate texture graphic pipeline.	*/
+				glUseProgram(this->texture_program);
 
-			/*	Activate texture graphic pipeline.	*/
-			glUseProgram(this->texture_program);
+				/*	Disable culling of faces, allows faces to be visable from both directions.	*/
+				glDisable(GL_CULL_FACE);
 
-			/*	Disable culling of faces, allows faces to be visable from both directions.	*/
-			glDisable(GL_CULL_FACE);
+				/*	active and bind texture to texture unit 0.	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-			/*	active and bind texture to texture unit 0.	*/
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
+				/*	Draw triangle*/
+				glBindVertexArray(this->planGeometry.vao);
+				glDrawElements(GL_TRIANGLES, this->planGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
 
-			/*	Draw triangle*/
-			glBindVertexArray(this->planGeometry.vao);
-			glDrawElements(GL_TRIANGLES, this->planGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-			glBindVertexArray(0);
-
-			glUseProgram(0);
+				glUseProgram(0);
+			}
 		}
 
 		virtual void update() {

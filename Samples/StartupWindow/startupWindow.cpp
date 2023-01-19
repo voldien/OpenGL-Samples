@@ -23,6 +23,8 @@ class StartUpWindow : public GLSampleWindow {
 		/*	Clear the framebuffer color value.	*/
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
+
+	virtual void update() override {}
 };
 
 int main(int argc, const char **argv) {

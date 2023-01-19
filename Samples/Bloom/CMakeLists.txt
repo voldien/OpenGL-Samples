@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Bloom glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(Bloom glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(Bloom PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS Bloom DESTINATION bin)

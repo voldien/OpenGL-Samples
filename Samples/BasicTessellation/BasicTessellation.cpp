@@ -42,11 +42,14 @@ namespace glsample {
 				this->setName("Tessellation Settings");
 			}
 			virtual void draw() override {
+				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
-				ImGui::DragFloat("Tessellation Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::DragFloat("Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
+				ImGui::TextUnformatted("Light");
+				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -57,7 +60,7 @@ namespace glsample {
 		};
 		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
 
-		// TODO change to vector
+		/*	Uniform buffers.	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -190,13 +193,13 @@ namespace glsample {
 		}
 
 		virtual void draw() override {
+			int width, height;
+			getSize(&width, &height);
+
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
-			this->update();
-
-			int width, height;
-			getSize(&width, &height);
+			
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -232,8 +235,8 @@ namespace glsample {
 
 		virtual void update() {
 			/*	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = this->getTimer().getElapsed();
+			this->camera.update(this->getTimer().deltaTime());
 
 			this->uniformBuffer.model = glm::mat4(1.0f);
 			this->uniformBuffer.model = glm::translate(this->uniformBuffer.model, glm::vec3(0, 0, 10));
@@ -248,7 +251,7 @@ namespace glsample {
 
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
+				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
 								 this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);

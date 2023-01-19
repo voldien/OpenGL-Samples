@@ -240,7 +240,7 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			this->update();
+			
 			int width, height;
 			this->getSize(&width, &height);
 

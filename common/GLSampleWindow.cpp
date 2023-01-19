@@ -40,6 +40,8 @@ void GLSampleWindow::renderUI() {
 	this->preWidth = this->width();
 	this->preHeight = this->height();
 
+	this->update();
+
 	/*	*/
 	glBeginQuery(GL_TIME_ELAPSED, this->queries[0]);
 	glBeginQuery(GL_SAMPLES_PASSED, this->queries[1]);

@@ -284,7 +284,7 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			this->update();
+			
 			{
 
 				/*	*/
