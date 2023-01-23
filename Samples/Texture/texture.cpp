@@ -23,6 +23,11 @@ namespace glsample {
 		int diffuse_texture;
 
 		struct UniformBufferBlock {
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 ViewProj;
 			glm::mat4 modelViewProjection;
 		} uniform_stage_buffer;
 
@@ -129,8 +134,6 @@ namespace glsample {
 		}
 
 		virtual void draw() override {
-
-			
 
 			/*	Bind subset of the uniform buffer, that the graphic pipeline will use.	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,

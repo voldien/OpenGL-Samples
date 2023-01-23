@@ -24,11 +24,13 @@ namespace glsample {
 			alignas(16) glm::mat4 modelViewProjection;
 
 			/*light source.	*/
-			glm::vec4 lookDirection;
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec4 position;
+			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
+			glm::vec4 lightColor = glm::vec4(1.0f);
+			glm::vec4 ambientLight = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
+			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			glm::vec4 viewPos;
+
+			float shininess = 16.0f;
 
 		} uniformBuffer;
 
@@ -43,7 +45,6 @@ namespace glsample {
 		unsigned int multipass_texture_width;
 		unsigned int multipass_texture_height;
 		unsigned int multipass_textures;
-		unsigned int depthTexture;
 
 		/*	*/
 		unsigned int normal_texture;
@@ -64,7 +65,7 @@ namespace glsample {
 
 		  public:
 			SimpleOceanSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Simple Ocean Settings");
+				this->setName("Simple Reflection Settings");
 			}
 			virtual void draw() override {
 				ImGui::TextUnformatted("Light Setting");
@@ -110,11 +111,15 @@ namespace glsample {
 			glDeleteVertexArrays(1, &this->plan.vao);
 			glDeleteBuffers(1, &this->plan.vbo);
 			glDeleteBuffers(1, &this->plan.ibo);
+
+			glDeleteVertexArrays(1, &this->skybox.vao);
+			glDeleteBuffers(1, &this->skybox.vbo);
+			glDeleteBuffers(1, &this->skybox.ibo);
 		}
 
 		virtual void Initialize() override {
 
-			/*	Load shader source.	*/
+			/*	Load shader source data.	*/
 			const std::vector<uint32_t> vertex_simple_ocean_source =
 				IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
 			const std::vector<uint32_t> fragment_simple_ocean_source =
@@ -142,11 +147,11 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
-			// glUseProgram(this->skybox_program);
-			// this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			// glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
-			// glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
-			// glUseProgram(0);
+			glUseProgram(this->skybox_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -158,7 +163,7 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = Math::align(uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
@@ -291,7 +296,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -340,8 +344,8 @@ namespace glsample {
 				glStencilMask(0);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(this->skybox.vao);
+				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 
 				glDisable(GL_STENCIL_TEST);
@@ -396,7 +400,7 @@ namespace glsample {
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->skybox.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
 
@@ -422,11 +426,10 @@ namespace glsample {
 				glm::rotate(this->uniformBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
 			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
+			// this->uniformBuffer. = glm::vec4(this->camera.getLookDirection(), 0);
 			this->uniformBuffer.modelViewProjection =
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.position = glm::vec4(this->camera.getPosition(), 0);
-			std::cout << this->uniformBuffer.position.x << std::endl;
+			this->uniformBuffer.viewPos = glm::vec4(this->camera.getPosition(), 0);
 
 			/*  */
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

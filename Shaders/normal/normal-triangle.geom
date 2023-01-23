@@ -36,8 +36,8 @@ void main() {
 
 	/*	Compute the center - barycentric coordinate.	*/
 	const vec3 triangle_center = gl_in[0].gl_Position.xyz +
-								 0.5 * (gl_in[1].gl_Position.xyz - gl_in[0].gl_Position.xyz) +
-								 0.5 * (gl_in[2].gl_Position.xyz - gl_in[0].gl_Position.xyz);
+								 0.5 * (gl_in[0].gl_Position.xyz - gl_in[1].gl_Position.xyz) +
+								 0.5 * (gl_in[0].gl_Position.xyz - gl_in[2].gl_Position.xyz);
 
 	for (int i = 0; i < 3; i++) {
 		gl_Position = ubo.ViewProj * vec4(triangle_center, 1.0);

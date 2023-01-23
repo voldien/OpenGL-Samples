@@ -6,10 +6,17 @@ layout(location = 1) in vec3 UV;
 
 layout(location = 0) out vec2 uv;
 
-layout(binding = 0, std140) uniform UniformBufferBlock { mat4 MVP; }
+layout(binding = 0, std140) uniform UniformBufferBlock {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+	mat4 modelView;
+	mat4 ViewProj;
+	mat4 modelViewProjection;
+}
 ubo;
 
 void main() {
-	gl_Position = ubo.MVP * vec4(Vertex, 1.0);
+	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
 	uv = UV.xy;
 }
