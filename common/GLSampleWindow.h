@@ -7,6 +7,7 @@
 #include <Core/IO/IFileSystem.h>
 #include <MIMIWindow.h>
 #include <ProceduralGeometry.h>
+#include <cxxopts.hpp>
 
 class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
   public:
@@ -46,7 +47,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	void captureScreenShot();
 
-	fragcore::IFileSystem *getFileSystem() const noexcept { return filesystem; }
+	fragcore::IFileSystem *getFileSystem() const noexcept { return this->filesystem; }
 
 	void setFileSystem(fragcore::IFileSystem *filesystem) { this->filesystem = filesystem; }
 
@@ -54,15 +55,17 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	bool supportSPIRV() const;
 
-	// const fragcore::GLRendererInterface *getRenderInterface();
+	cxxopts::ParseResult &getResult() { return this->parseResult; }
+	void setCommandResult(cxxopts::ParseResult &result) { this->parseResult = result; }
 
-	// TODO add options.
+	// const fragcore::GLRendererInterface *getRenderInterface();
 
   protected:
 	virtual void displayMenuBar() override;
 	virtual void renderUI() override;
 
   private:
+	cxxopts::ParseResult parseResult;
 	FPSCounter<float> fpsCounter;
 	vkscommon::Time time;
 	size_t frameCount = 0;

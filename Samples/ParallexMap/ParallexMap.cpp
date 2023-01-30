@@ -184,7 +184,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -250,10 +249,9 @@ namespace glsample {
 
 	class ParallexMapGLSample : public GLSample<ParallexMap> {
 	  public:
-		ParallexMapGLSample(int argc, const char **argv) : GLSample<ParallexMap>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+		ParallexMapGLSample() : GLSample<ParallexMap>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
@@ -263,9 +261,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::ParallexMapGLSample sample(argc, argv);
+		glsample::ParallexMapGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

@@ -443,9 +443,9 @@ namespace glsample {
 
 	class SimpleReflectionGLSample : public GLSample<SimpleReflection> {
 	  public:
-		SimpleReflectionGLSample(int argc, const char **argv) : GLSample<SimpleReflection>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+		SimpleReflectionGLSample() : GLSample<SimpleReflection>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
@@ -456,9 +456,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::SimpleReflectionGLSample sample(argc, argv);
+		glsample::SimpleReflectionGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

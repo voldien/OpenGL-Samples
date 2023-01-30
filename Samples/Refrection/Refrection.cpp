@@ -225,7 +225,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
 			int width, height;
 			getSize(&width, &height);
 
@@ -317,10 +316,9 @@ namespace glsample {
 
 	class RefrectionGLSample : public GLSample<Refrection> {
 	  public:
-		RefrectionGLSample(int argc, const char **argv) : GLSample<Refrection>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Refrection-Sample")("T,texture", "Texture Path",
-													 cxxopts::value<std::string>()->default_value("texture.png"));
+		RefrectionGLSample() : GLSample<Refrection>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 
@@ -329,9 +327,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::RefrectionGLSample sample(argc, argv);
+		glsample::RefrectionGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

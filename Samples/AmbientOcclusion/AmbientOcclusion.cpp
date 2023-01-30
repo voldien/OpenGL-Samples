@@ -491,10 +491,9 @@ namespace glsample {
 	/*	*/
 	class AmbientOcclusionGLSample : public GLSample<AmbientOcclusion> {
 	  public:
-		AmbientOcclusionGLSample(int argc, const char **argv) : GLSample<AmbientOcclusion>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+		AmbientOcclusionGLSample() : GLSample<AmbientOcclusion>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
@@ -504,9 +503,8 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::AmbientOcclusionGLSample sample(argc, argv);
-
-		sample.run();
+		glsample::AmbientOcclusionGLSample sample;
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

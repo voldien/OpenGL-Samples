@@ -6,12 +6,13 @@
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
 namespace glsample {
 
-	class PointLightShadow : public GLSampleWindow {
+	class ZPrePass : public GLSampleWindow {
 	  public:
-		PointLightShadow() : GLSampleWindow() {
-			this->setTitle("PointLightShadow");
+		ZPrePass() : GLSampleWindow() {
+			this->setTitle("ZPrePass");
 			this->shadowSettingComponent = std::make_shared<PointLightShadowSettingComponent>(this->uniform);
 			this->addUIComponent(this->shadowSettingComponent);
 		}
@@ -283,7 +284,6 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			
 			{
 
 				/*	*/
@@ -400,11 +400,11 @@ namespace glsample {
 		}
 	};
 
-	class PointLightShadowGLSample : public GLSample<PointLightShadow> {
+	class ZPrePassGLSample : public GLSample<ZPrePass> {
 	  public:
-		PointLightShadowGLSample() : GLSample<PointLightShadow>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
+		ZPrePassGLSample(int argc, const char **argv) : GLSample<ZPrePass>(argc, argv) {}
+		virtual void commandline(cxxopts::OptionAdder &options) override {
+			options.add_options("Texture-Sample")("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
@@ -414,9 +414,9 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::PointLightShadowGLSample sample;
+		glsample::ZPrePassGLSample sample(argc, argv);
 
-		sample.run(argc, argv);
+		sample.run();
 
 	} catch (const std::exception &ex) {
 

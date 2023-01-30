@@ -321,7 +321,7 @@ namespace glsample {
 	class VarianceShadowGLSample : public GLSample<VarianceShadow> {
 	  public:
 		VarianceShadowGLSample(int argc, const char **argv) : GLSample<VarianceShadow>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
+		virtual void commandline(cxxopts::OptionAdder &options) override {
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));

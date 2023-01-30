@@ -500,10 +500,9 @@ namespace glsample {
 	/*	*/
 	class MineCraftGLSample : public GLSample<MineCraft> {
 	  public:
-		MineCraftGLSample(int argc, const char **argv) : GLSample<MineCraft>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+		MineCraftGLSample() : GLSample<MineCraft>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
@@ -513,9 +512,8 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::MineCraftGLSample sample(argc, argv);
-
-		sample.run();
+		glsample::MineCraftGLSample sample;
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

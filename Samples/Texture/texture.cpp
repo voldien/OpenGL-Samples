@@ -41,7 +41,7 @@ namespace glsample {
 		glm::mat4 proj;
 		CameraController camera;
 
-		std::string texturePath = "asset/texture.png";
+		std::string texturePath;
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag.spv";
@@ -63,6 +63,9 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			/*	*/
+			this->texturePath = getResult()["texture"].as<std::string>();
 
 			/*	*/
 			const std::vector<uint32_t> texture_vertex_binary =
@@ -189,19 +192,18 @@ namespace glsample {
 
 	class TextureGLSample : public GLSample<Texture> {
 	  public:
-		TextureGLSample(int argc, const char **argv) : GLSample<Texture>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
+		TextureGLSample() : GLSample<Texture>() {}
 
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"));
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));
 		}
 	};
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::TextureGLSample sample(argc, argv);
-		sample.run();
+		glsample::TextureGLSample sample;
+		sample.run(argc, argv);
 	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;

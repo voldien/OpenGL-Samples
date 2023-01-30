@@ -303,9 +303,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Instance> sample(argc, argv);
+		GLSample<glsample::Instance> sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

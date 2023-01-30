@@ -169,8 +169,8 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::GameOfLife> sample(argc, argv);
-		sample.run();
+		GLSample<glsample::GameOfLife> sample;
+		sample.run(argc, argv);
 	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;

@@ -192,9 +192,9 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::SkyBoxPanoramic> sample(argc, argv);
+		GLSample<glsample::SkyBoxPanoramic> sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;

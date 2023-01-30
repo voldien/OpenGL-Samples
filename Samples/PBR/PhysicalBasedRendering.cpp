@@ -212,9 +212,9 @@ namespace glsample {
 	};
 	class PhysicalBasedRenderingGLSample : public GLSample<PhysicalBasedRendering> {
 	  public:
-		PhysicalBasedRenderingGLSample(int argc, const char **argv) : GLSample<PhysicalBasedRendering>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+		PhysicalBasedRenderingGLSample() : GLSample<PhysicalBasedRendering>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
@@ -222,9 +222,9 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::PhysicalBasedRenderingGLSample sample(argc, argv);
+		glsample::PhysicalBasedRenderingGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

@@ -89,24 +89,22 @@ namespace glsample {
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+								  reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArray(3);
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
+								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 		}
 
 		virtual void draw() override {
-
-			
 
 			int width, height;
 			getSize(&width, &height);
@@ -161,18 +159,18 @@ namespace glsample {
 
 	class SilhouetteDetectionGLSample : public GLSample<SilhouetteDetection> {
 	  public:
-		SilhouetteDetectionGLSample(int argc, const char **argv) : GLSample<SilhouetteDetection>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"));
+		SilhouetteDetectionGLSample() : GLSample<SilhouetteDetection>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::SilhouetteDetectionGLSample sample(argc, argv);
-		sample.run();
+		glsample::SilhouetteDetectionGLSample sample;
+		sample.run(argc, argv);
+		
 	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;

@@ -240,7 +240,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -340,10 +339,9 @@ namespace glsample {
 
 	class SimpleOceanGLSample : public GLSample<SimpleOcean> {
 	  public:
-		SimpleOceanGLSample(int argc, const char **argv) : GLSample<SimpleOcean>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+		SimpleOceanGLSample() : GLSample<SimpleOcean>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
@@ -353,9 +351,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::SimpleOceanGLSample sample(argc, argv);
+		glsample::SimpleOceanGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

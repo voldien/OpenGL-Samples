@@ -252,7 +252,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + 1);
-				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
+				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
@@ -298,10 +298,8 @@ namespace glsample {
 				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
 			this->uniformBuffer.view = this->camera.getViewMatrix();
-			/*	*/
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-
 			this->uniformBuffer.modelViewProjection =
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
@@ -317,10 +315,9 @@ namespace glsample {
 	};
 	class NormalGLSample : public GLSample<Normal> {
 	  public:
-		NormalGLSample(int argc, const char **argv) : GLSample<Normal>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+		NormalGLSample() : GLSample<Normal>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
@@ -330,9 +327,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::NormalGLSample sample(argc, argv);
+		glsample::NormalGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

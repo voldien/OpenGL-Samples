@@ -437,9 +437,9 @@ namespace glsample {
 
 	class HDRGLSample : public GLSample<HDR> {
 	  public:
-		HDRGLSample(int argc, const char **argv) : GLSample<HDR>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Refrection-Sample")("T,texture", "Texture Path",
+		HDRGLSample() : GLSample<HDR>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path",
 													 cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
@@ -449,9 +449,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::HDRGLSample sample(argc, argv);
+		glsample::HDRGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

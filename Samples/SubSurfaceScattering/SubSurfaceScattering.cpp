@@ -320,10 +320,9 @@ namespace glsample {
 
 	class SubSurfaceScatteringGLSample : public GLSample<SubSurfaceScattering> {
 	  public:
-		SubSurfaceScatteringGLSample(int argc, const char **argv) : GLSample<SubSurfaceScattering>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+		SubSurfaceScatteringGLSample() : GLSample<SubSurfaceScattering>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
@@ -332,9 +331,9 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::SubSurfaceScatteringGLSample sample(argc, argv);
+		glsample::SubSurfaceScatteringGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

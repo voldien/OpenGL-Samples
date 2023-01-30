@@ -216,7 +216,7 @@ namespace glsample {
 
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
-            /*  Perform frustum culling.    */
+			/*  Perform frustum culling.    */
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -299,10 +299,9 @@ namespace glsample {
 
 	class FrustumCullingGLSample : public GLSample<FrustumCulling> {
 	  public:
-		FrustumCullingGLSample(int argc, const char **argv) : GLSample<FrustumCulling>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+		FrustumCullingGLSample() : GLSample<FrustumCulling>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
@@ -311,9 +310,8 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::FrustumCullingGLSample sample(argc, argv);
-
-		sample.run();
+		glsample::FrustumCullingGLSample sample;
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

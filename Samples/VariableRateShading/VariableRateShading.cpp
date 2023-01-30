@@ -207,7 +207,7 @@ namespace glsample {
 	class VariableRateShadingGLSample : public GLSample<VariableRateShading> {
 	  public:
 		VariableRateShadingGLSample(int argc, const char **argv) : GLSample<VariableRateShading>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
+		virtual void commandline(cxxopts::OptionAdder &options) override {
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));

@@ -212,8 +212,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
-
 			int width, height;
 			getSize(&width, &height);
 
@@ -311,9 +309,9 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::ParticleSystem> sample(argc, argv);
+		GLSample<glsample::ParticleSystem> sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

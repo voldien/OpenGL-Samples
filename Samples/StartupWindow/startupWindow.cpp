@@ -29,8 +29,8 @@ class StartUpWindow : public GLSampleWindow {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<StartUpWindow> sample(argc, argv);
-		sample.run();
+		GLSample<StartUpWindow> sample;
+		sample.run(argc, argv);
 	} catch (const std::exception &ex) {
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;

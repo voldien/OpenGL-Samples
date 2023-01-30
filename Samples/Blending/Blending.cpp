@@ -16,19 +16,18 @@ namespace glsample {
 		}
 
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 ViewProj;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 ViewProj;
+			glm::mat4 modelViewProjection;
 
 			glm::vec4 tintColor = glm::vec4(1, 1, 1, 0.8f);
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			float normalStrength = 1.0f;
 
 		} uniformBuffer;
 
@@ -66,8 +65,6 @@ namespace glsample {
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::TextUnformatted("Normal Setting");
-				ImGui::DragFloat("Strength", &this->uniform.normalStrength);
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -187,8 +184,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
-
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -263,9 +258,9 @@ namespace glsample {
 
 	class BlendingGLSample : public GLSample<Blending> {
 	  public:
-		BlendingGLSample(int argc, const char **argv) : GLSample<Blending>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+		BlendingGLSample() : GLSample<Blending>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
@@ -276,9 +271,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::BlendingGLSample sample(argc, argv);
+		glsample::BlendingGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

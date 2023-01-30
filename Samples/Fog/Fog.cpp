@@ -210,9 +210,9 @@ namespace glsample {
 
 	class FogGLSample : public GLSample<Fog> {
 	  public:
-		FogGLSample(int argc, const char **argv) : GLSample<Fog>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+		FogGLSample() : GLSample<Fog>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
@@ -222,8 +222,8 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::FogGLSample sample(argc, argv);
-		sample.run();
+		glsample::FogGLSample sample;
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

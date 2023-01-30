@@ -338,8 +338,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
-
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -485,9 +483,9 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::VectorField> sample(argc, argv);
+		GLSample<glsample::VectorField> sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

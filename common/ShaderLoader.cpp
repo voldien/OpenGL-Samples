@@ -198,15 +198,20 @@ static void checkShaderError(int shader) {
 
 int ShaderLoader::loadShader(const std::vector<char> &source, int type) {
 
+	const unsigned int spirv_magic_number = 0x07230203;
+	const unsigned int magic_number = (source[3] << 24) | (source[2] << 16) | (source[1] << 8) | source[0];
+
 	const char *source_data = source.data();
 	std::vector<const GLchar **> source_refs;
 
-	int shader = glCreateShader(type);
+	unsigned int shader = glCreateShader(type);
 	fragcore::checkError();
-	glShaderSource(shader, 1, (const GLchar **)&source_data, nullptr);
-
-	// glShaderBinary(1, &sid, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, vs_buf, vs_buf_len);
-	// glSpecializeShaderARB(sid, "main", 0, 0, 0);
+	if (spirv_magic_number == magic_number && glSpecializeShaderARB) {
+		glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, source.data(), source.size());
+		glSpecializeShaderARB(shader, "main", 0, 0, 0);
+	} else {
+		glShaderSource(shader, 1, (const GLchar **)&source_data, nullptr);
+	}
 
 	fragcore::checkError();
 	glCompileShader(shader);

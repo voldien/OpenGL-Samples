@@ -480,7 +480,7 @@ namespace glsample {
 	class BlurGLSample : public GLSample<Blur> {
 	  public:
 		BlurGLSample(int argc, const char **argv) : GLSample<Blur>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
+		virtual void commandline(cxxopts::OptionAdder &options) override {
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));

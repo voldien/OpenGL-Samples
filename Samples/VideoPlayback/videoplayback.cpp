@@ -113,7 +113,7 @@ namespace glsample {
 		std::array<void *, nrVideoFrames> videoMapBuffer;
 		unsigned int videoStagingTextureBuffer; // PBO buffers
 
-		std::string videoPath = "video.mp4";
+		std::string videoPath;
 
 		class VideoPlaybackSettingComponent : public nekomimi::UIComponent {
 
@@ -313,25 +313,31 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			this->audioInterface = std::make_shared<fragcore::OpenALAudioInterface>(nullptr);
+			/*	*/
+			this->videoPath = this->getResult()["video"].as<std::string>();
 
-			fragcore::AudioListenerDesc list_desc = {.position = fragcore::Vector3(0, 0, 0),
-													 .rotation = fragcore::Quaternion::Identity()};
-			list_desc.position = fragcore::Vector3::Zero();
-			listener = audioInterface->createAudioListener(&list_desc);
-			listener->setVolume(1.0f);
+			/*	*/
+			{
+				this->audioInterface = std::make_shared<fragcore::OpenALAudioInterface>(nullptr);
 
-			fragcore::AudioSourceDesc source_desc = {};
-			source_desc.position = fragcore::Vector3::Zero();
+				fragcore::AudioListenerDesc list_desc = {.position = fragcore::Vector3(0, 0, 0),
+														 .rotation = fragcore::Quaternion::Identity()};
+				list_desc.position = fragcore::Vector3::Zero();
+				listener = audioInterface->createAudioListener(&list_desc);
+				listener->setVolume(1.0f);
 
-			this->audioSource = audioInterface->createAudioSource(&source_desc);
-			this->audioSource->loop(false);
-			this->audioSource->setVolume(1.0f);
-			this->mSource = this->audioSource->getNativePtr();
-			// alSourcef(this->mSource, AL_PITCH, 144.0f / 23.97f);
+				fragcore::AudioSourceDesc source_desc = {};
+				source_desc.position = fragcore::Vector3::Zero();
 
-			this->mAudioBuffers.resize(5);
-			FAOPAL_VALIDATE(alGenBuffers(5, this->mAudioBuffers.data()));
+				this->audioSource = audioInterface->createAudioSource(&source_desc);
+				this->audioSource->loop(false);
+				this->audioSource->setVolume(1.0f);
+				this->mSource = this->audioSource->getNativePtr();
+				// alSourcef(this->mSource, AL_PITCH, 144.0f / 23.97f);
+
+				this->mAudioBuffers.resize(5);
+				FAOPAL_VALIDATE(alGenBuffers(5, this->mAudioBuffers.data()));
+			}
 
 			loadVideo(this->videoPath.c_str());
 
@@ -427,8 +433,6 @@ namespace glsample {
 		virtual void onResize(int width, int height) override {}
 
 		virtual void draw() override {
-
-			
 
 			int width, height;
 			this->getSize(&width, &height);
@@ -615,19 +619,17 @@ namespace glsample {
 
 	class VideoPlaybackGLSample : public GLSample<VideoPlayback> {
 	  public:
-		VideoPlaybackGLSample(int argc, const char **argv) : GLSample<VideoPlayback>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("VideoPlayback-Sample")("v,video", "Video Path",
-														cxxopts::value<std::string>()->default_value("video.mp4"));
+		VideoPlaybackGLSample() : GLSample<VideoPlayback>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("V,video", "Video Path", cxxopts::value<std::string>()->default_value("assets/video.mp4"));
 		}
 	};
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::VideoPlayback> sample(argc, argv);
-
-		sample.run();
+		glsample::VideoPlaybackGLSample sample;
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

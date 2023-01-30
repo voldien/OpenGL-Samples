@@ -22,9 +22,9 @@ namespace glsample {
 		const std::string fragmentShaderPath = "Shaders/triangle/triangle.frag.spv";
 
 		const std::vector<Vertex> vertices = {
-			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, /*	Vertex (2), Color(3)	*/
-			{0.5f, 0.5f, 0.0f, 1.0f, 0.0f},	 /*	Vertex (2), Color(3)	*/
-			{-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}	 /*	Vertex (2), Color(3)	*/
+			{0.5f, -0.5f, 0.0f, 1.0f, 0.0f}, /*	Vertex (2), Color(3)	*/
+			{0.0f, 0.5f, 1.0f, 1.0f, 1.0f},	 /*	Vertex (2), Color(3)	*/
+			{-0.5f, -0.5f, 0.0f, 0.0f, 1.0f} /*	Vertex (2), Color(3)	*/
 
 		};
 
@@ -79,7 +79,7 @@ namespace glsample {
 
 			/*	Clear default framebuffer color attachment.	*/
 			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glClear(GL_COLOR_BUFFER_BIT);
 
 			{
 				/*	Disable depth and culling of faces.	*/
@@ -104,9 +104,8 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Triangle> sample(argc, argv);
-
-		sample.run();
+		GLSample<glsample::Triangle> sample;
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

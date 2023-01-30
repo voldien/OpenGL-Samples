@@ -14,6 +14,7 @@ namespace glsample {
 			this->tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->tessellationSettingComponent);
 		}
+		
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
@@ -321,7 +322,7 @@ namespace glsample {
 	// class NormalMapGLSample : public GLSample<BasicNormalMap> {
 	//  public:
 	//	NormalMapGLSample(int argc, const char **argv) : GLSample<BasicNormalMap>(argc, argv) {}
-	//	virtual void commandline(cxxopts::Options &options) override {
+	//	virtual void commandline(cxxopts::OptionAdder &options) override {
 	//		options.add_options("Texture-Sample")("T,texture", "Texture Path",
 	//											  cxxopts::value<std::string>()->default_value("texture.png"))(
 	//			"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));

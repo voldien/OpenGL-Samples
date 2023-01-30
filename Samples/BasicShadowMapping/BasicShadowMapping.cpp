@@ -327,9 +327,9 @@ namespace glsample {
 
 	class ShadowMappingGLSample : public GLSample<BasicShadowMapping> {
 	  public:
-		ShadowMappingGLSample(int argc, const char **argv) : GLSample<BasicShadowMapping>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+		ShadowMappingGLSample() : GLSample<BasicShadowMapping>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
@@ -339,9 +339,9 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::ShadowMappingGLSample sample(argc, argv);
+		glsample::ShadowMappingGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

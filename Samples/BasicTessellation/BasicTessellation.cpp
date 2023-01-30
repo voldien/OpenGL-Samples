@@ -264,9 +264,9 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::BasicTessellation> sample(argc, argv);
+		GLSample<glsample::BasicTessellation> sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

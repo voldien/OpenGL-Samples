@@ -233,8 +233,6 @@ namespace glsample {
 			/*	*/
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
-			
-
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
@@ -319,18 +317,17 @@ namespace glsample {
 
 	class VolumeShadowGLSample : public GLSample<VolumeShadow> {
 	  public:
-		VolumeShadowGLSample(int argc, const char **argv) : GLSample<VolumeShadow>(argc, argv) {}
-		virtual void commandline(cxxopts::Options &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"));
+		VolumeShadowGLSample() : GLSample<VolumeShadow>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::VolumeShadowGLSample sample(argc, argv);
-		sample.run();
+		glsample::VolumeShadowGLSample sample;
+		sample.run(argc, argv);
 	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;

@@ -1,5 +1,4 @@
-#ifndef _GL_SAMPLE_H_
-#define _GL_SAMPLE_H_ 1
+#pragma once
 #include "GLSampleSession.h"
 #include "IOUtil.h"
 #include "Util/CameraController.h"
@@ -9,9 +8,13 @@
 #include <SDLDisplay.h>
 #include <cxxopts.hpp>
 
-template <class T> class GLSample : public GLSampleSession {
+template <class T> class GLSample : public glsample::GLSampleSession {
   public:
-	GLSample(int argc, const char **argv) {
+	GLSample() {}
+
+	~GLSample() { this->sampleRef->Release(); }
+
+	virtual void run(int argc, const char **argv) override {
 
 		/*	Parse argument.	*/
 		const std::string helperInfo = "OpenGL Sample\n"
@@ -20,23 +23,23 @@ template <class T> class GLSample : public GLSampleSession {
 
 		/*	Default common options between all samples.	*/
 		cxxopts::Options options("OpenGL Sample", helperInfo);
-		options.add_options("OpenGL-Samples")("h,help", "helper information.")(
+		cxxopts::OptionAdder &addr = options.add_options("OpenGL-Samples")("h,help", "helper information.")(
 			"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value("true"))(
 			"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
 			"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
 			"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
-			"g,opengl-version", "OpenGL Version", cxxopts::value<bool>()->default_value("false"))(
+			"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
 			"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."));
 
 		/*	Append command option for the specific sample.	*/
-		this->commandline(options);
+		this->customOptions(addr);
 
 		/*	Parse the command line input.	*/
 		auto result = options.parse(argc, (char **&)argv);
 
 		/*	If mention help, Display help and exit!	*/
 		if (result.count("help") > 0) {
-			std::cout << options.help(options.groups());
+			std::cout << options.help(options.groups()) << std::endl;
 			exit(EXIT_SUCCESS);
 		}
 
@@ -46,8 +49,18 @@ template <class T> class GLSample : public GLSampleSession {
 		const bool vsync = result["vsync"].as<bool>();
 
 		if (result.count("time") > 0) {
+			/*	*/
+			if (result["time"].as<float>() > 0) {
+				int64_t timeout_mili = (int64_t)(result["time"].as<float>() * 1000.0f);
+				std::thread timeout_thread = std::thread([&]() {
+					std::this_thread::sleep_for(std::chrono::milliseconds(timeout_mili));
+					exit(EXIT_SUCCESS);
+				});
+				timeout_thread.detach();
+			}
 		}
 
+		/*	Default window size.	*/
 		int width = -1;
 		int height = -1;
 
@@ -64,6 +77,7 @@ template <class T> class GLSample : public GLSampleSession {
 		}
 
 		this->sampleRef = new T();
+		this->sampleRef->setCommandResult(result);
 
 		/*	Prevent residual errors to cause crash.	*/
 		fragcore::resetErrorFlag();
@@ -87,19 +101,11 @@ template <class T> class GLSample : public GLSampleSession {
 		this->sampleRef->setSize(width, height);
 		// this->sampleRef->vsync(vsync);
 		this->sampleRef->setFullScreen(fullscreen);
-	}
 
-	~GLSample() { this->sampleRef->Release(); }
-
-	void run() {
 		this->sampleRef->show();
 		this->sampleRef->run();
 	}
 
-	void screenshot(float scale) {}
-
   private:
 	T *sampleRef;
 };
-
-#endif

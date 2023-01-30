@@ -1,5 +1,4 @@
-#ifndef _GL_SAMPLE_SESSION_H_
-#define _GL_SAMPLE_SESSION_H_ 1
+#pragma once
 #include "IOUtil.h"
 #include <cxxopts.hpp>
 
@@ -15,15 +14,16 @@ typedef struct geometry_object_t {
 	size_t indices_offset;
 } GeometryObject;
 
-class FVDECLSPEC GLSampleSession {
-  public:
-	virtual void run() {}
-	virtual void commandline(cxxopts::Options &options) {}
+namespace glsample {
 
-	fragcore::IFileSystem *getFileSystem() noexcept { return this->activeFileSystem; }
+	class FVDECLSPEC GLSampleSession {
+	  public:
+		virtual void run(int argc, const char **argv) = 0;
+		virtual void customOptions(cxxopts::OptionAdder &options) {}
 
-  protected:
-	fragcore::IFileSystem *activeFileSystem;
-};
+		fragcore::IFileSystem *getFileSystem() noexcept { return this->activeFileSystem; }
 
-#endif
+	  protected:
+		fragcore::IFileSystem *activeFileSystem;
+	};
+} // namespace glsample

@@ -159,20 +159,18 @@ namespace glsample {
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+								  reinterpret_cast<void *>(20));
 
 			glBindVertexArray(0);
 		}
 
 		virtual void draw() override {
 			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
-
-			
 
 			int width, height;
 			getSize(&width, &height);
@@ -239,9 +237,9 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::PNTessellation> sample(argc, argv);
+		GLSample<glsample::PNTessellation> sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

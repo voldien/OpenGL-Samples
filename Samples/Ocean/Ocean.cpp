@@ -261,7 +261,7 @@ namespace glsample {
 			/*	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 
@@ -271,7 +271,6 @@ namespace glsample {
 		}
 
 		virtual void draw() override {
-			
 
 			int width, height;
 			getSize(&width, &height);
@@ -351,8 +350,9 @@ namespace glsample {
 
 			/*	Updated uniform data.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
-									   uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			void *uniformPointer =
+				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
+								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
@@ -363,9 +363,8 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Ocean> sample(argc, argv);
-
-		sample.run();
+		GLSample<glsample::Ocean> sample;
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 
