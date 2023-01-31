@@ -1,5 +1,5 @@
-#include "GLSampleWindow.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
 #include <iostream>
 
 class StartUpWindow : public GLSampleWindow {
@@ -11,14 +11,14 @@ class StartUpWindow : public GLSampleWindow {
 
 	virtual void draw() override {
 
-		int w, h;
-		getSize(&w, &h);
+		int width, height;
+		this->getSize(&width, &height);
 
 		/*	Set clear color.	*/
 		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 		/*	Setup viewport size of the default framebuffer.	*/
-		glViewport(0, 0, w, h);
+		glViewport(0, 0, width, height);
 
 		/*	Clear the framebuffer color value.	*/
 		glClear(GL_COLOR_BUFFER_BIT);

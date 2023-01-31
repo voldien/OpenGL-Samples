@@ -36,16 +36,18 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			/*	Load shader binaries.	*/
 			const std::vector<uint32_t> triangle_vertex_binary =
 				IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
 			const std::vector<uint32_t> triangle_fragment_binary =
 				IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
 
+			/*	Setup compiler convert options.	*/
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
+			/*	Load graphic pipeline program.	*/
 			this->triangle_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &triangle_vertex_binary, &triangle_fragment_binary);
 

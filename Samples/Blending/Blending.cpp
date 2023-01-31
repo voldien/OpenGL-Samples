@@ -111,7 +111,7 @@ namespace glsample {
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
+			/*	Create graphic pipeline program.	*/
 			this->blending_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
@@ -260,15 +260,12 @@ namespace glsample {
 	  public:
 		BlendingGLSample() : GLSample<Blending>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::BlendingGLSample sample;

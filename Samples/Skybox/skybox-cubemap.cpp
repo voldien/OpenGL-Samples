@@ -1,7 +1,7 @@
-#include "GLSampleWindow.h"
-#include "ImageImport.h"
-#include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
+#include <ImageImport.h>
+#include <ShaderLoader.h>
 #include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -26,12 +26,12 @@ namespace glsample {
 		unsigned int skybox_cubemap;
 
 		struct UniformBufferBlock {
+			glm::mat4 proj;
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor;
 			float exposure = 1.0f;
 		} uniform_stage_buffer;
 
-		glm::mat4 proj;
 		CameraController camera;
 
 		/*	Uniform buffer.	*/
@@ -40,8 +40,6 @@ namespace glsample {
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
-		std::vector<std::string> cubemapPaths = {"asset/X+.png", "asset/X-.png", "asset/Y+.png",
-												 "asset/Y-.png", "asset/Z+.png", "asset/Z-.png"};
 
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/cubemap.frag.spv";
@@ -75,28 +73,33 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			/*	Load shader	*/
+
+			std::vector<std::string> cubemapPaths = {"asset/X+.png", "asset/X-.png", "asset/Y+.png",
+													 "asset/Y-.png", "asset/Z+.png", "asset/Z-.png"};
+
+			/*	Load shader binaries.	*/
 			std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
 			std::vector<uint32_t> fragment_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
-
+			/*	*/
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
-			/*  */
+
+			/*	Create skybox graphic pipeline program.	*/
 			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
-			/*  */
+			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "textureCubeMap"), 0);
 			glUseProgram(0);
 
 			/*	Load cubemap.	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->skybox_cubemap = textureImporter.loadCubeMap(this->cubemapPaths);
+			this->skybox_cubemap = textureImporter.loadCubeMap(cubemapPaths);
 
 			/*  */
 			GLint minMapBufferSize;
@@ -133,17 +136,11 @@ namespace glsample {
 			/*	*/
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-			/*	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 		}
 
 		virtual void draw() override {
-
-			
 
 			int width, height;
 			getSize(&width, &height);
@@ -176,15 +173,17 @@ namespace glsample {
 			/*	*/
 			camera.update(getTimer().deltaTime());
 
-			this->proj =
+			/*	*/
+			this->uniform_stage_buffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
-			this->uniform_stage_buffer.modelViewProjection = (this->proj * camera.getViewMatrix());
+			this->uniform_stage_buffer.modelViewProjection = (this->uniform_stage_buffer.proj * camera.getViewMatrix());
 
+			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
-								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
+				this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

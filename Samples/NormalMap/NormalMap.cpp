@@ -16,18 +16,22 @@ namespace glsample {
 		}
 
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 ViewProj;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 ViewProj;
+			glm::mat4 modelViewProjection;
 
-			glm::vec4 tintColor;
-			/*light source.	*/
+			/*	*/
+			glm::vec4 tintColor = glm::vec4(1, 1, 1, 1);
+
+			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+
+			/*	Normal attirbutes.	*/
 			float normalStrength = 1.0f;
 
 		} uniformBuffer;
@@ -58,6 +62,8 @@ namespace glsample {
 			}
 
 			virtual void draw() override {
+				ImGui::ColorEdit4("Tint Color", &this->uniform.tintColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
@@ -76,9 +82,6 @@ namespace glsample {
 			struct UniformBufferBlock &uniform;
 		};
 		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
-
-		std::string diffuseTexturePath = "asset/diffuse.png";
-		std::string normalTexturePath = "asset/normalmap.png";
 
 		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag.spv";
@@ -102,12 +105,16 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string normalTexturePath = this->getResult()["normal-texture"].as<std::string>();
+
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
 			const std::vector<uint32_t> fragment_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
+			/*	*/
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
@@ -126,8 +133,8 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
-			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
+			this->normal_texture = textureImporter.loadImage2D(normalTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -226,6 +233,7 @@ namespace glsample {
 		}
 
 		void update() {
+
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
@@ -249,18 +257,20 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+
 	class NormalMapGLSample : public GLSample<BasicNormalMap> {
 	  public:
 		NormalMapGLSample() : GLSample<BasicNormalMap>() {}
+
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
+				"N,normal-texture", "NormalMap Path",
+				cxxopts::value<std::string>()->default_value("asset/normalmap.png"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::NormalMapGLSample sample;

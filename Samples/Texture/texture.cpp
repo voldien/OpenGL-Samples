@@ -1,8 +1,8 @@
-#include "GLSampleWindow.h"
-#include "Importer/ImageImport.h"
-#include "ShaderLoader.h"
-#include "Util/CameraController.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
+#include <Importer/ImageImport.h>
+#include <ShaderLoader.h>
+#include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -13,14 +13,10 @@ namespace glsample {
 	  public:
 		Texture() : GLSampleWindow() {
 			this->setTitle("Texture");
-			this->camera.getPosition(glm::vec3(-2.5f));
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
-
-		GeometryObject planGeometry;
-
-		int texture_program;
-		int diffuse_texture;
 
 		struct UniformBufferBlock {
 			glm::mat4 model;
@@ -38,16 +34,17 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
 
-		glm::mat4 proj;
+		GeometryObject planGeometry;
+
+		/*	*/
+		int texture_program;
+		int diffuse_texture;
+
 		CameraController camera;
 
-		std::string texturePath;
-		/*	*/
+		/*	Texture shaders paths.	*/
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag.spv";
-
-		std::vector<ProceduralGeometry::Vertex> vertices;
-		std::vector<unsigned int> indices;
 
 		virtual void Release() override {
 			/*	*/
@@ -65,7 +62,7 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			this->texturePath = getResult()["texture"].as<std::string>();
+			std::string texturePath = getResult()["texture"].as<std::string>();
 
 			/*	*/
 			const std::vector<uint32_t> texture_vertex_binary =
@@ -91,17 +88,17 @@ namespace glsample {
 
 			/*	Load Texture	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->texturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(texturePath);
 
 			/*	Align the uniform buffer size to hardware specific.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
+			this->uniformSize = Math::align(this->uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
@@ -127,7 +124,8 @@ namespace glsample {
 
 			/*	*/
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+								  reinterpret_cast<void *>(0));
 
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
@@ -143,7 +141,7 @@ namespace glsample {
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -151,6 +149,7 @@ namespace glsample {
 			/*	Clear default framebuffer.	*/
 			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 			{
 				/*	Activate texture graphic pipeline.	*/
 				glUseProgram(this->texture_program);
@@ -176,11 +175,13 @@ namespace glsample {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime());
 
-			this->proj =
-				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
-			this->uniform_stage_buffer.modelViewProjection = (this->proj * this->camera.getViewMatrix());
-
 			/*	*/
+			this->uniform_stage_buffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+			this->uniform_stage_buffer.modelViewProjection =
+				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix());
+
+			/*	Update uniform buffer.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformMappedMemory = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,

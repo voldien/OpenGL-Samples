@@ -13,7 +13,7 @@ namespace glsample {
 			this->setTitle("SpotLight");
 			this->pointLightSettingComponent = std::make_shared<SpotLightSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->pointLightSettingComponent);
-			this->camera.getPosition(glm::vec3(18.5f));
+			this->camera.setPosition(glm::vec3(18.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 

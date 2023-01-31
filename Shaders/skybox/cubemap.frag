@@ -4,13 +4,14 @@
 layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec3 vVertex;
 
-layout(binding = 0) uniform samplerCube texture0;
+layout(binding = 0) uniform samplerCube textureCubeMap;
 
 layout(binding = 0) uniform UniformBufferBlock {
+	mat4 proj;
 	mat4 modelViewProjection;
 	vec4 tintColor;
 	float exposure;
 }
 ubo;
 
-void main() { fragColor = texture(texture0, vVertex); }
+void main() { fragColor = texture(textureCubeMap, vVertex); }

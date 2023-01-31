@@ -5,9 +5,9 @@
 
 layout(location = 0) out vec4 fragColor;
 
-layout(location = 0) in vec2 uv;
-layout(location = 1) in vec3 normal;
-layout(location = 2) in vec3 tangent;
+layout(location = 0) in vec2 FragIN_uv;
+layout(location = 1) in vec3 FragIN_normal;
+layout(location = 2) in vec3 FragIN_tangent;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -17,6 +17,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
+	/*	*/
 	vec4 tintColor;
 
 	/*	Light source.	*/
@@ -24,6 +25,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 
+	/*	*/
 	float normalStrength;
 }
 ubo;
@@ -38,13 +40,13 @@ float computeLightContributionFactor(in const vec3 direction, in const vec3 norm
 void main() {
 
 	/*	Create Surface point matrix bias, needed to map the normal map vector to the world space.	*/
-	vec3 Mnormal = normalize(normal);
-	vec3 Ttangent = normalize(tangent);
+	vec3 Mnormal = normalize(FragIN_normal);
+	vec3 Ttangent = normalize(FragIN_tangent);
 	Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
 	vec3 bittagnet = cross(Ttangent, Mnormal);
 
 	/*	Convert normal map texture to a vector.	*/
-	vec3 NormalMapBump = 2.0 * texture(NormalTexture, uv).xyz - vec3(1.0, 1.0, 1.0);
+	vec3 NormalMapBump = 2.0 * texture(NormalTexture, FragIN_uv).xyz - vec3(1.0, 1.0, 1.0);
 
 	/*	Scale non forward axis.	*/
 	NormalMapBump.xy *= ubo.normalStrength;
@@ -55,5 +57,5 @@ void main() {
 	/*	Compute directional light	*/
 	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
 
-	fragColor = texture(DiffuseTexture, uv) * ubo.tintColor * (ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor);
 }

@@ -1,7 +1,7 @@
-#include "GLSampleWindow.h"
-#include "ImageImport.h"
-#include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
+#include <ImageImport.h>
+#include <ShaderLoader.h>
 #include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -19,19 +19,22 @@ namespace glsample {
 				std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->skyboxSettingComponent);
 
+			this->camera.setPosition(glm::vec3(0.0f));
+			this->camera.lookAt(glm::vec3(1.f));
+
 			this->camera.enableNavigation(false);
 		}
 
 		struct UniformBufferBlock {
+			glm::mat4 proj;
 			glm::mat4 modelViewProjection;
-			glm::vec4 tintColor = glm::vec4(1.0f);
+			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			float exposure = 1.0f;
 		} uniform_stage_buffer;
 
 		GeometryObject SkyboxCube;
 		unsigned int skybox_program;
 
-		glm::mat4 proj;
 		int skybox_texture_panoramic;
 
 		CameraController camera;
@@ -42,8 +45,6 @@ namespace glsample {
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(UniformBufferBlock);
-
-		std::string panoramicPath = "asset/winter_lake_01_4k.exr";
 
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
@@ -78,39 +79,43 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			/*	Load shader	*/
+			const std::string panoramicPath = this->getResult()["texture"].as<std::string>();
 
+			/*	Load shader binaries.	*/
 			std::vector<uint32_t> vertex_skybox_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
 			std::vector<uint32_t> fragment_skybox_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
+			/*	*/
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	*/
-			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+			/*	Create skybox graphic pipeline program.	*/
+			this->skybox_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 
-			/*	*/
+			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
 			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
-			/*	*/
+			/*	Load panoramic texture.	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->skybox_texture_panoramic = textureImporter.loadImage2D(this->panoramicPath);
+			this->skybox_texture_panoramic = textureImporter.loadImage2D(panoramicPath);
 
+			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
+			this->uniformSize = Math::align(this->uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
@@ -137,17 +142,11 @@ namespace glsample {
 			/*	*/
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-			/*	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
 		}
 
 		virtual void draw() override {
-
-			
 
 			int width, height;
 			getSize(&width, &height);
@@ -171,6 +170,8 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->skybox_program);
+
+			/*	*/
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
 
@@ -184,10 +185,13 @@ namespace glsample {
 			/*	*/
 			this->camera.update(this->getTimer().deltaTime());
 
-			this->proj =
-				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
-			this->uniform_stage_buffer.modelViewProjection = (this->proj * this->camera.getViewMatrix());
+			/*	*/
+			this->uniform_stage_buffer.proj =
+				glm::perspective(glm::radians(55.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+			this->uniform_stage_buffer.modelViewProjection =
+				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix());
 
+			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
@@ -196,12 +200,21 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+
+	class SkyBoxPanoramicGLSample : public GLSample<SkyBoxPanoramic> {
+	  public:
+		SkyBoxPanoramicGLSample() : GLSample<SkyBoxPanoramic>() {}
+
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path",
+					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+		}
+	};
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::SkyBoxPanoramic> sample;
-
+		glsample::SkyBoxPanoramicGLSample sample;
 		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {

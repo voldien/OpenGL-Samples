@@ -210,8 +210,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
-
 			int width, height;
 			getSize(&width, &height);
 
