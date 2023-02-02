@@ -87,7 +87,7 @@ namespace glsample {
 
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
-				ImGui::Image((ImTextureID)this->depth, ImVec2(512, 512));
+				ImGui::Image(reinterpret_cast<ImTextureID>(this->depth), ImVec2(512, 512));
 			}
 
 			unsigned int &depth;

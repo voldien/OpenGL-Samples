@@ -37,6 +37,7 @@ namespace glsample {
 			float shadowStrength = 1.0f;
 		} uniform;
 
+		/*	*/
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
 		size_t shadowWidth = 4096;
@@ -48,6 +49,7 @@ namespace glsample {
 
 		std::vector<GeometryObject> refObj;
 
+		/*	*/
 		unsigned int graphic_program;
 		unsigned int shadow_program;
 
@@ -79,7 +81,7 @@ namespace glsample {
 				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
-				ImGui::Image((ImTextureID)this->depth, ImVec2(512, 512));
+				ImGui::Image(reinterpret_cast<ImTextureID>(this->depth), ImVec2(512, 512));
 			}
 
 			float distance = 50.0;
@@ -217,7 +219,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -329,8 +330,7 @@ namespace glsample {
 	  public:
 		ShadowMappingGLSample() : GLSample<BasicShadowMapping>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};

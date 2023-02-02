@@ -77,7 +77,7 @@ namespace glsample {
 				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
-				ImGui::Image((ImTextureID)this->depth, ImVec2(512, 512));
+				ImGui::Image(reinterpret_cast<ImTextureID>(this->depth), ImVec2(512, 512));
 			}
 
 			float distance = 50.0;

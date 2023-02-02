@@ -36,7 +36,6 @@ namespace glsample {
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
-		unsigned int normal_texture;
 
 		/*	*/
 		unsigned int blending_program;
@@ -76,11 +75,9 @@ namespace glsample {
 		};
 		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
-		std::string normalTexturePath = "asset/normalmap.png";
-
-		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag.spv";
+		/*	*/
+		const std::string vertexShaderPath = "Shaders/blending/blending.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/blending/blending.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -88,7 +85,6 @@ namespace glsample {
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
-			glDeleteTextures(1, (const GLuint *)&this->normal_texture);
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -100,6 +96,8 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			const std::string diffuseTexturePath = getResult()["texture"].as<std::string>();
 
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_source =
@@ -119,14 +117,12 @@ namespace glsample {
 			glUseProgram(this->blending_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->blending_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->blending_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->blending_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->blending_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
-			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -217,10 +213,6 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0 + 1);
-				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
-
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
@@ -260,7 +252,7 @@ namespace glsample {
 	  public:
 		BlendingGLSample() : GLSample<Blending>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));
 		}
 	};
 

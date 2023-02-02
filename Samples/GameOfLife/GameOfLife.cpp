@@ -1,9 +1,9 @@
-#include "GLSampleWindow.h"
-#include "Importer/ImageImport.h"
-#include "ShaderLoader.h"
-#include "Util/CameraController.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
+#include <Importer/ImageImport.h>
 #include <ShaderCompiler.h>
+#include <ShaderLoader.h>
+#include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <iostream>
 
@@ -13,14 +13,14 @@ namespace glsample {
 	  public:
 		GameOfLife() : GLSampleWindow() { this->setTitle("GameOfLife - Compute"); }
 
-		/*	*/
+		/*	Framebuffers.	*/
 		unsigned int gameoflife_framebuffer;
-		unsigned int gameoflife_program;
 		std::vector<unsigned int> gameoflife_texture;
 		unsigned int gameoflife_render_texture;
 		size_t gameoflife_texture_width;
 		size_t gameoflife_texture_height;
 
+		unsigned int gameoflife_program;
 		int localWorkGroupSize[3];
 
 		unsigned int nthTexture = 0;
@@ -39,10 +39,11 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			/*	*/
+			/*	Load shader binaries.	*/
 			const std::vector<uint32_t> gameoflife_source =
 				IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
+			/*	*/
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
@@ -61,7 +62,7 @@ namespace glsample {
 			glGetProgramiv(this->gameoflife_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			glUseProgram(0);
 
-			/*	*/
+			/*	Create framebuffer and its textures.	*/
 			glGenFramebuffers(1, &this->gameoflife_framebuffer);
 			this->gameoflife_texture.resize(2);
 			glGenTextures(this->gameoflife_texture.size(), this->gameoflife_texture.data());
@@ -78,7 +79,6 @@ namespace glsample {
 
 			std::vector<uint8_t> textureData(this->gameoflife_texture_width * this->gameoflife_texture_width *
 											 sizeof(uint8_t));
-
 			/*	Generate random game state.	*/
 			Random random;
 			for (size_t j = 0; j < this->gameoflife_texture_height; j++) {
@@ -130,20 +130,23 @@ namespace glsample {
 		virtual void draw() override {
 
 			int width, height;
-			getSize(&width, &height);
-
-			/*	*/
-			glViewport(0, 0, width, height);
+			this->getSize(&width, &height);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			/*	Bind and Compute Game of Life Compute Program.	*/
 			{
 				glUseProgram(this->gameoflife_program);
 
+				/*	Previous game of life state.	*/
 				glBindImageTexture(0, this->gameoflife_texture[this->nthTexture % this->gameoflife_texture.size()], 0,
 								   GL_FALSE, 0, GL_READ_ONLY, GL_R8UI);
+				/*	The resulting game of life state.	*/
 				glBindImageTexture(1,
 								   this->gameoflife_texture[(this->nthTexture + 1) % this->gameoflife_texture.size()],
 								   0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8UI);
+
+				/*	The image where the graphic version will be stored as.	*/
 				glBindImageTexture(2, this->gameoflife_render_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
 				glDispatchCompute(std::ceil(this->gameoflife_texture_width / (float)this->localWorkGroupSize[0]),
@@ -151,15 +154,19 @@ namespace glsample {
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 			}
 
+			/*	*/
+			glViewport(0, 0, width, height);
+
 			/*	Blit game of life render framebuffer to default framebuffer.	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->gameoflife_framebuffer);
-
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
+
+			/*	Blit with nearset to retain the details of each of the cells states.	*/
 			glBlitFramebuffer(0, 0, this->gameoflife_texture_width, this->gameoflife_texture_height, 0, 0, width,
 							  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-			/*	*/
+			/*	Update the next frame in round robin.	*/
 			this->nthTexture = (this->nthTexture + 1) % this->gameoflife_texture.size();
 		}
 		virtual void update() override {}

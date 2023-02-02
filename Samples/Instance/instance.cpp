@@ -1,9 +1,8 @@
-#include "GLSampleWindow.h"
-
-#include "ImageImport.h"
-#include "ModelImporter.h"
-#include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
+#include <ImageImport.h>
+#include <ModelImporter.h>
+#include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
@@ -16,6 +15,9 @@ namespace glsample {
 			this->setTitle("Instance");
 			this->instanceSettingComponent = std::make_shared<InstanceSettingComponent>(this->uniformData);
 			this->addUIComponent(this->instanceSettingComponent);
+
+			this->camera.setPosition(glm::vec3(0));
+			this->camera.lookAt(glm::vec3(1));
 		}
 
 		struct UniformBufferBlock {
@@ -78,6 +80,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Specular", &this->uniform.specularColor[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -89,9 +92,6 @@ namespace glsample {
 			struct UniformBufferBlock &uniform;
 		};
 		std::shared_ptr<InstanceSettingComponent> instanceSettingComponent;
-
-		const std::string diffuseTexturePath = "diffuse.png";
-		const std::string modelPath = "asset/bunny.obj";
 
 		const std::string vertexShaderPath = "Shaders/instance/instance.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/instance/instance.frag.spv";
@@ -111,6 +111,9 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			const std::string diffuseTexturePath = getResult()["texture"].as<std::string>();
+			const std::string modelPath = getResult()["model"].as<std::string>();
 
 			/*	Load shader source.	*/
 			std::vector<uint32_t> instance_vertex_binary =
@@ -135,10 +138,6 @@ namespace glsample {
 			this->uniform_instance_buffer_index =
 				glGetUniformBlockIndex(this->instance_program, "UniformInstanceBlock");
 			glUseProgram(0);
-
-			/*	load Textures	*/
-			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 
 			/*	*/
 			GLint minMapBufferSize;
@@ -171,6 +170,10 @@ namespace glsample {
 			modelLoader.loadContent(modelPath, 0);
 
 			const ModelSystemObject &modelRef = modelLoader.getModels()[0];
+
+			/*	load Textures	*/
+			TextureImporter textureImporter(this->getFileSystem());
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->instanceGeometry.vao);
@@ -281,7 +284,7 @@ namespace glsample {
 			void *uniformMVP = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformSize,
 				this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformMVP, &this->uniformData, sizeof(uniformData));
+			memcpy(uniformMVP, &this->uniformData, sizeof(this->uniformData));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
 			/*	Update instance buffer.	*/
@@ -296,12 +299,22 @@ namespace glsample {
 		}
 	};
 
+	class InstanceGLSample : public GLSample<Instance> {
+	  public:
+		InstanceGLSample() : GLSample<Instance>() {}
+
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"))(
+				"B,batch", "Bath Size", cxxopts::value<int>()->default_value("64"));
+		}
+	};
+
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Instance> sample;
+		glsample::InstanceGLSample sample;
 
 		sample.run(argc, argv);
 

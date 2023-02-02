@@ -4,6 +4,7 @@
 #include <GLRendererInterface.h>
 
 using namespace glsample;
+
 int ShaderLoader::loadGraphicProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
 									 const std::vector<uint32_t> *vertex, const std::vector<uint32_t> *fragment,
 									 const std::vector<uint32_t> *geometry, const std::vector<uint32_t> *tesselationc,

@@ -6,6 +6,7 @@
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
 namespace glsample {
 
 	class PointLightShadow : public GLSampleWindow {
@@ -14,6 +15,10 @@ namespace glsample {
 			this->setTitle("PointLightShadow");
 			this->shadowSettingComponent = std::make_shared<PointLightShadowSettingComponent>(this->uniform);
 			this->addUIComponent(this->shadowSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		typedef struct point_light_t {
@@ -283,7 +288,6 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			
 			{
 
 				/*	*/
@@ -404,8 +408,7 @@ namespace glsample {
 	  public:
 		PointLightShadowGLSample() : GLSample<PointLightShadow>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};

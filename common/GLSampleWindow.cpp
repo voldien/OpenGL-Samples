@@ -2,6 +2,7 @@
 #include <GLRendererInterface.h>
 #include <ImageLoader.h>
 #include <iostream>
+
 // TODO add supprt for renderdoc
 unsigned int pboBuffer;
 
@@ -73,7 +74,10 @@ void GLSampleWindow::renderUI() {
 	if (state[SDL_SCANCODE_F12]) {
 		this->captureScreenShot();
 	}
-	// TODO add fullscreen;
+	/*	*/
+	if (state[SDL_SCANCODE_RETURN] && state[SDL_SCANCODE_LCTRL]) {
+		this->setFullScreen(!this->isFullScreen());
+	}
 }
 
 void GLSampleWindow::setTitle(const std::string &title) {

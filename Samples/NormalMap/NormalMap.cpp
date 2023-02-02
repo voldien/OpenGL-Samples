@@ -232,7 +232,7 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();

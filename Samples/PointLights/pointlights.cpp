@@ -13,6 +13,7 @@ namespace glsample {
 			this->setTitle("PointLights");
 			this->pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->pointLightSettingComponent);
+			/*	*/
 			this->camera.setPosition(glm::vec3(18.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -36,7 +37,7 @@ namespace glsample {
 			alignas(16) glm::mat4 modelViewProjection;
 
 			/*	light source.	*/
-			glm::vec4 ambientLight = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
+			glm::vec4 ambientLight = glm::vec4(0.075f, 0.075f, 0.075f, 1.0f);
 
 			PointLight pointLights[nrPointLights];
 		} uniformBuffer;
@@ -83,15 +84,18 @@ namespace glsample {
 				}
 				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
+				ImGui::Checkbox("Animate Lights", &this->animate);
 			}
+
+			bool animate = true;
 
 		  private:
 			struct UniformBufferBlock &uniform;
+
 			bool lightvisible[4] = {true, true, true, true};
 		};
 		std::shared_ptr<PointLightSettingComponent> pointLightSettingComponent;
-
-		std::string diffuseTexturePath = "asset/diffuse.png";
 
 		const std::string vertexShaderPath = "Shaders/pointlights/pointlights.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/pointlights/pointlights.frag.spv";
@@ -112,6 +116,8 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 
 			/*	Load shader source.	*/
 			std::vector<uint32_t> vertex_source =
@@ -136,7 +142,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -246,6 +252,15 @@ namespace glsample {
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
+			if (this->pointLightSettingComponent->animate) {
+				for (size_t i = 0; i < sizeof(uniformBuffer.pointLights) / sizeof(uniformBuffer.pointLights[0]); i++) {
+					this->uniformBuffer.pointLights[i].position =
+						glm::vec3(10.0f * std::cos(getTimer().getElapsed() * 3.1415 + 1.3 * i), 10,
+								  10.0f * std::sin(getTimer().getElapsed() * 3.1415 + 1.3 * i));
+				}
+			}
+
+			/*	*/
 			this->uniformBuffer.model = glm::mat4(1.0f);
 			this->uniformBuffer.model =
 				glm::rotate(this->uniformBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -267,7 +282,7 @@ namespace glsample {
 	  public:
 		PointLightsGLSample() : GLSample<PointLights>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"));
 		}
 	};
 

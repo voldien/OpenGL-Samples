@@ -89,8 +89,6 @@ namespace glsample {
 
 		CameraController camera;
 
-		std::string panoramicPath = "asset/panoramic.jpg";
-
 		const std::string vertexRefrectionShaderPath = "Shaders/refrection/refrection.vert.spv";
 		const std::string fragmentRefrectionShaderPath = "Shaders/refrection/refrection.frag.spv";
 
@@ -113,6 +111,8 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			const std::string panoramicPath = this->getResult()["texture"].as<std::string>();
 
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_refrection_source =
@@ -152,7 +152,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->reflection_texture = textureImporter.loadImage2D(this->panoramicPath);
+			this->reflection_texture = textureImporter.loadImage2D(panoramicPath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -330,7 +330,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
 			int width, height;
 			getSize(&width, &height);
 
@@ -439,14 +438,12 @@ namespace glsample {
 	  public:
 		HDRGLSample() : GLSample<HDR>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
-													 cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/panoramic.jpg"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::HDRGLSample sample;

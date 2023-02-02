@@ -23,7 +23,7 @@ namespace glsample {
 			glm::mat4 ViewProj;
 			glm::mat4 modelViewProjection;
 
-			/*light source.	*/
+			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
