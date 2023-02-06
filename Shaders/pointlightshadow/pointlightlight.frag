@@ -13,7 +13,7 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 
 layout(binding = 1) uniform sampler2D DiffuseTexture;
-layout(binding = 2) uniform samplerCube ShadowTexture;
+layout(binding = 2) uniform samplerCube ShadowTexture[4];
 
 struct point_light {
 	vec3 position;
@@ -23,8 +23,11 @@ struct point_light {
 	float constant_attenuation;
 	float linear_attenuation;
 	float qudratic_attenuation;
+
 	float bias;
 	float shadowStrength;
+	float padding0;
+	float padding1;
 };
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
@@ -46,22 +49,22 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 // TODO PCF
-float ShadowCalculation(const in vec3 fragPosLightSpace) {
+float ShadowCalculation(const in vec3 fragPosLightSpace, samplerCube ShadowTexture, int index) {
 
-	const vec3 frag2Light = (fragPosLightSpace - ubo.point_light[0].position);
+	const vec3 frag2Light = (fragPosLightSpace - ubo.point_light[index].position);
 
 	float closestDepth = texture(ShadowTexture, normalize(frag2Light)).r;
-	closestDepth *= ubo.point_light[0].range;
+	closestDepth *= ubo.point_light[index].range;
 
 	// float bias = ubo.point_light[0].bias;
-	float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(frag2Light).xyz)), ubo.point_light[0].bias);
+	float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(frag2Light).xyz)), ubo.point_light[index].bias);
 
 	float currentDepth = length(frag2Light);
 
 	float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
 
 	/*	*/
-	if (currentDepth > ubo.point_light[0].range) {
+	if (currentDepth > ubo.point_light[index].range) {
 		shadow = 1.0;
 	}
 
@@ -70,7 +73,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace) {
 
 void main() {
 	vec4 pointLightColors = vec4(0);
-	for (int i = 0; i < 1; i++) {
+	for (int i = 0; i < 4; i++) {
 		/*	*/
 		vec3 diffVertex = (ubo.point_light[i].position - vertex);
 
@@ -84,7 +87,7 @@ void main() {
 
 		float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
 
-		float shadow = ShadowCalculation(vertex);
+		float shadow = ShadowCalculation(vertex, ShadowTexture[i], i);
 
 		/*	*/
 		pointLightColors += (attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range *

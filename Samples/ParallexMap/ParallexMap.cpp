@@ -1,4 +1,3 @@
-
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -76,9 +75,6 @@ namespace glsample {
 		};
 		std::shared_ptr<ParallexMapSettingComponent> parallexMapSettingComponent;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
-		std::string normalTexturePath = "asset/normalmap.png";
-
 		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert";
 		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag";
 
@@ -101,6 +97,9 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string parallexTexturePath = this->getResult()["parallex-texture"].as<std::string>();
+
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
@@ -119,14 +118,14 @@ namespace glsample {
 			glUseProgram(this->parallexMapping_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->parallexMapping_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "NormalTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "ParallexTexture"), 1);
 			glUniformBlockBinding(this->parallexMapping_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
-			this->parallex_texture = textureImporter.loadImage2D(this->normalTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
+			this->parallex_texture = textureImporter.loadImage2D(parallexTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -224,9 +223,9 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
-			camera.update(getTimer().deltaTime());
+			this->camera.update(getTimer().deltaTime());
 
 			/*	*/
 			this->uniformBuffer.model = glm::mat4(1.0f);
@@ -238,6 +237,7 @@ namespace glsample {
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
 
+			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
@@ -251,14 +251,14 @@ namespace glsample {
 	  public:
 		ParallexMapGLSample() : GLSample<ParallexMap>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
+				"P,parallex-texture", "Parallex Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/texture.png"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::ParallexMapGLSample sample;

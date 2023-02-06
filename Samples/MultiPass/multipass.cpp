@@ -46,12 +46,9 @@ namespace glsample {
 
 		CameraController camera;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
 		/*	*/
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
-
-		const std::string modelPath = "asset/sponza/sponza.obj";
 
 		virtual void Release() override {
 			glDeleteProgram(this->multipass_program);
@@ -70,6 +67,9 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			std::string diffuseTexturePath = "asset/diffuse.png";
+			const std::string modelPath = "asset/sponza/sponza.obj";
 
 			/*	*/
 			const std::vector<uint32_t> vertex_binary =
@@ -95,7 +95,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -244,6 +244,14 @@ namespace glsample {
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
+		}
+	};
+
+	class MultiPassGLSample : public GLSample<MultiPass> {
+	  public:
+		MultiPassGLSample() : GLSample<MultiPass>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 

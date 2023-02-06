@@ -43,8 +43,6 @@ namespace glsample {
 		size_t shadowWidth = 4096;
 		size_t shadowHeight = 4096;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
-
 		unsigned int diffuse_texture;
 
 		std::vector<GeometryObject> refObj;
@@ -116,7 +114,7 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-
+			std::string diffuseTexturePath = "asset/diffuse.png";
 			/*	*/
 			const std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
@@ -140,7 +138,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	*/
 			glUseProgram(this->shadow_program);
@@ -302,6 +300,7 @@ namespace glsample {
 											 this->refObj[i].vertex_offset);
 				}
 				glBindVertexArray(0);
+				glUseProgram(0);
 			}
 		}
 
@@ -330,8 +329,7 @@ namespace glsample {
 	  public:
 		ShadowMappingGLSample() : GLSample<BasicShadowMapping>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 

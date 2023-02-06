@@ -181,7 +181,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	*/
 			this->camera.update(this->getTimer().deltaTime());
 

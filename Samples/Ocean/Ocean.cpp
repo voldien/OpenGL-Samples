@@ -273,7 +273,7 @@ namespace glsample {
 		virtual void draw() override {
 
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -337,7 +337,7 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 			/*	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());

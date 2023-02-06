@@ -9,10 +9,14 @@
 
 namespace glsample {
 
-	class Texture : public GLSampleWindow {
+	class AlphaClipping : public GLSampleWindow {
 	  public:
-		Texture() : GLSampleWindow() {
-			this->setTitle("Texture");
+		AlphaClipping() : GLSampleWindow() {
+			this->setTitle("Alpha Clipping");
+
+			this->alphaClippingSettingComponent = std::make_shared<AlphaClippingSettingComponent>(this->uniform_stage_buffer);
+			this->addUIComponent(this->alphaClippingSettingComponent);
+
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
@@ -25,6 +29,8 @@ namespace glsample {
 			glm::mat4 modelView;
 			glm::mat4 ViewProj;
 			glm::mat4 modelViewProjection;
+
+			float clipping = 0.5f;
 		} uniform_stage_buffer;
 
 		/*	Uniform buffer.	*/
@@ -42,9 +48,30 @@ namespace glsample {
 
 		CameraController camera;
 
+		class AlphaClippingSettingComponent : public nekomimi::UIComponent {
+		  public:
+			AlphaClippingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("NormalMap Settings");
+			}
+
+			virtual void draw() override {
+
+				ImGui::TextUnformatted("BillBoarding Setting");
+				ImGui::DragFloat("Clipping", &this->uniform.clipping, 0.035f, 0.0f, 1.0f);
+				ImGui::TextUnformatted("Debug Setting");
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<AlphaClippingSettingComponent> alphaClippingSettingComponent;
+
 		/*	Texture shaders paths.	*/
-		const std::string vertexShaderPath = "Shaders/texture/texture.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/texture/texture.frag.spv";
+		const std::string vertexShaderPath = "Shaders/alphaclipping/alphaclipping.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/alphaclipping/alphaclipping.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -157,6 +184,9 @@ namespace glsample {
 				/*	Disable culling of faces, allows faces to be visable from both directions.	*/
 				glDisable(GL_CULL_FACE);
 
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, alphaClippingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
 				/*	active and bind texture to texture unit 0.	*/
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
@@ -170,7 +200,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		virtual void update() {
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime());
@@ -191,19 +221,20 @@ namespace glsample {
 		}
 	};
 
-	class TextureGLSample : public GLSample<Texture> {
+	class AlphaClippingGLSample : public GLSample<AlphaClipping> {
 	  public:
-		TextureGLSample() : GLSample<Texture>() {}
+		AlphaClippingGLSample() : GLSample<AlphaClipping>() {}
 
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
+				"C,clipping", "Clipping Value", cxxopts::value<float>()->default_value("0.5"));
 		}
 	};
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::TextureGLSample sample;
+		glsample::AlphaClippingGLSample sample;
 		sample.run(argc, argv);
 	} catch (const std::exception &ex) {
 

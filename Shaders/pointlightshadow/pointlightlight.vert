@@ -23,6 +23,9 @@ struct point_light {
 	float qudratic_attenuation;
 	float bias;
 	float shadowStrength;
+
+	float padding0;
+	float padding1;
 };
 
 layout(binding = 0, std140) uniform UniformBufferBlock {

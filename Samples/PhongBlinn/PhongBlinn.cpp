@@ -26,11 +26,11 @@ namespace glsample {
 		} PointLight;
 
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 			/*	*/
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
@@ -219,7 +219,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -251,7 +250,7 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
@@ -278,8 +277,7 @@ namespace glsample {
 	  public:
 		PhongBlinnGLSample() : GLSample<PhongBlinn>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 

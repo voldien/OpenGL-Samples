@@ -1,8 +1,8 @@
-#include "ImageImport.h"
-#include "ModelImporter.h"
-#include "ShaderLoader.h"
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
+#include <ImageImport.h>
+#include <ModelImporter.h>
+#include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
@@ -38,18 +38,21 @@ namespace glsample {
 		std::vector<PointLight> pointLights;
 
 		/*	*/
-		GeometryObject plan;
-		GeometryObject sphere;
+		GeometryObject plan;   /*	Directional light.	*/
+		GeometryObject sphere; /*	Point Light.*/
+
 		std::vector<GeometryObject> refObj;
 
+		/*	*/
 		unsigned int diffuse_texture;
 		unsigned int normal_texture;
 
+		/*	*/
 		unsigned int deferred_framebuffer;
 		unsigned int deferred_program;
 		unsigned int deferred_texture_width;
 		unsigned int deferred_texture_height;
-		std::vector<unsigned int> deferred_textures;
+		std::vector<unsigned int> deferred_textures; /*	Albedo, WorldSpace, Normal, */
 		unsigned int depthTexture;
 
 		/*	*/
@@ -80,10 +83,8 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		const std::string modelPath = "asset/bunny.obj";
-
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			const std::string modelPath = "asset/bunny.obj";
 
 			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
 			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
@@ -145,17 +146,17 @@ namespace glsample {
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+								  reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArray(3);
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
+								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 
@@ -207,7 +208,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
 			/*	*/
 			int width, height;
 			getSize(&width, &height);
@@ -279,10 +279,18 @@ namespace glsample {
 
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
-								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
+				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+								 this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
+		}
+	};
+
+	class DeferredGLSample : public GLSample<Deferred> {
+	  public:
+		DeferredGLSample() : GLSample<Deferred>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 

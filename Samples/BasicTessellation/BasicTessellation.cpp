@@ -80,9 +80,6 @@ namespace glsample {
 		unsigned int diffuse_texture;
 		unsigned int heightmap_texture;
 
-		std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
-		std::string heightTexturePath = "asset/tessellation_heightmap.png";
-
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag.spv";
@@ -106,6 +103,9 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string heightTexturePath = this->getResult()["heightmap"].as<std::string>();
 
 			/*	*/
 			const std::vector<uint32_t> vertex_source =
@@ -136,8 +136,8 @@ namespace glsample {
 
 			/*	Load Diffuse and Height Map Texture.	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
-			this->heightmap_texture = textureImporter.loadImage2D(this->heightTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
+			this->heightmap_texture = textureImporter.loadImage2D(heightTexturePath);
 
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -199,8 +199,6 @@ namespace glsample {
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
-			
-
 			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
@@ -231,6 +229,7 @@ namespace glsample {
 			glDrawElements(GL_PATCHES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
 			glBindVertexArray(0);
+			glUseProgram(0);
 		}
 
 		virtual void update() {
@@ -250,21 +249,30 @@ namespace glsample {
 			this->uniformBuffer.eyePos = glm::vec4(this->camera.getPosition(), 0);
 
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
-								 this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
+				this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
+		}
+	};
+	class BasicTessellationGLSample : public GLSample<BasicTessellation> {
+	  public:
+		BasicTessellationGLSample() : GLSample<BasicTessellation>() {}
+
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path",
+					cxxopts::value<std::string>()->default_value("asset/tessellation_diffusemap.png"))(
+				"H,heightmap", "Height Map Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/tessellation_heightmap.png"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom image support.
-
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::BasicTessellation> sample;
+		glsample::BasicTessellationGLSample sample;
 
 		sample.run(argc, argv);
 

@@ -11,8 +11,8 @@ namespace glsample {
 	  public:
 		BillBoarding() : GLSampleWindow() {
 			this->setTitle("BillBoarding");
-			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->normalMapSettingComponent);
+			this->billboardSettingComponent = std::make_shared<BillBoardSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->billboardSettingComponent);
 		}
 
 		struct UniformBufferBlock {
@@ -24,10 +24,15 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 
 			glm::vec4 tintColor = glm::vec4(1, 1, 1, 0.8f);
+
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+
+			/*	*/
+			glm::vec4 cameraPosition;
+			glm::vec2 scale = glm::vec2(1);
 
 		} uniformBuffer;
 
@@ -36,10 +41,9 @@ namespace glsample {
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
-		unsigned int normal_texture;
 
 		/*	*/
-		unsigned int blending_program;
+		unsigned int billboarding_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_index;
@@ -50,9 +54,9 @@ namespace glsample {
 
 		CameraController camera;
 
-		class NormalMapSettingComponent : public nekomimi::UIComponent {
+		class BillBoardSettingComponent : public nekomimi::UIComponent {
 		  public:
-			NormalMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			BillBoardSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("NormalMap Settings");
 			}
 
@@ -65,6 +69,9 @@ namespace glsample {
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
+				ImGui::TextUnformatted("BillBoarding Setting");
+				ImGui::DragFloat2("Scale", &this->uniform.scale[0]);
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -74,21 +81,18 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
+		std::shared_ptr<BillBoardSettingComponent> billboardSettingComponent;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
-		std::string normalTexturePath = "asset/normalmap.png";
-
-		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag.spv";
+		const std::string vertexShaderPath = "Shaders/billboarding/billboarding.vert.spv";
+		const std::string geomtryShaderPath = "Shaders/billboarding/billboarding.geom.spv";
+		const std::string fragmentShaderPath = "Shaders/billboarding/billboarding.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
-			glDeleteProgram(this->blending_program);
+			glDeleteProgram(this->billboarding_program);
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
-			glDeleteTextures(1, (const GLuint *)&this->normal_texture);
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -101,9 +105,13 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> geomtry_source =
+				IOUtil::readFileData<uint32_t>(this->geomtryShaderPath, this->getFileSystem());
 			const std::vector<uint32_t> fragment_source =
 				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
@@ -112,21 +120,20 @@ namespace glsample {
 			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shader	*/
-			this->blending_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			this->billboarding_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source, &geomtry_source);
 
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->blending_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->blending_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->blending_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->blending_program, "NormalTexture"), 1);
-			glUniformBlockBinding(this->blending_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(this->billboarding_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->billboarding_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->billboarding_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->billboarding_program, "NormalTexture"), 1);
+			glUniformBlockBinding(this->billboarding_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
-			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -202,7 +209,7 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
-				glUseProgram(this->blending_program);
+				glUseProgram(this->billboarding_program);
 
 				glDisable(GL_CULL_FACE);
 				glEnable(GL_DEPTH_TEST);
@@ -217,16 +224,12 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0 + 1);
-				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
-
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, billboardSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glDrawElements(GL_POINTS, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
 		}
@@ -245,6 +248,7 @@ namespace glsample {
 			this->uniformBuffer.modelViewProjection =
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
+			this->uniformBuffer.cameraPosition = glm::vec4(this->camera.getPosition(), 0);
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -258,11 +262,9 @@ namespace glsample {
 
 	class BillBoardingGLSample : public GLSample<BillBoarding> {
 	  public:
-		BillBoardingGLSample(int argc, const char **argv) : GLSample<BillBoarding>(argc, argv) {}
-		virtual void commandline(cxxopts::OptionAdder &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+		BillBoardingGLSample() : GLSample<BillBoarding>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"));
 		}
 	};
 
@@ -271,9 +273,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::BillBoardingGLSample sample(argc, argv);
+		glsample::BillBoardingGLSample sample;
 
-		sample.run();
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

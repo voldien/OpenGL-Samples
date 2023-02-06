@@ -1,6 +1,6 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
 
-void main(){
-    
-}
+layout(location = 0) in vec3 Vertex;
+
+void main() { gl_Position = vec4(Vertex, 0); }

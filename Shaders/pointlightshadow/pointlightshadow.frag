@@ -5,6 +5,8 @@
 
 layout(location = 0) in vec4 FragVertex;
 
+layout(location = 1) in flat int FIndex;
+
 struct point_light {
 	vec3 position;
 	float range;
@@ -15,6 +17,8 @@ struct point_light {
 	float qudratic_attenuation;
 	float bias;
 	float shadowStrength;
+	float padding0;
+	float padding1;
 };
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
@@ -38,10 +42,10 @@ ubo;
 void main() {
 
 	/*	*/
-	float lightDistance = length(ubo.point_light[0].position - FragVertex.xyz);
+	float lightDistance = length(ubo.point_light[FIndex].position - FragVertex.xyz);
 
 	/*	map to [0;1].	*/
-	lightDistance = lightDistance / ubo.point_light[0].range;
+	lightDistance = lightDistance / ubo.point_light[FIndex].range;
 
 	gl_FragDepth = lightDistance;
 }

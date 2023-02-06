@@ -6,7 +6,10 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 
+layout(location = 0) in flat int GIndex[];
+
 layout(location = 0) out vec4 FragVertex;
+layout(location = 1) out flat int FIndex;
 
 struct point_light {
 	vec3 position;
@@ -18,6 +21,8 @@ struct point_light {
 	float qudratic_attenuation;
 	float bias;
 	float shadowStrength;
+	float padding0;
+	float padding1;
 };
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
@@ -45,6 +50,7 @@ void main() {
 		for (int i = 0; i < 3; ++i) // for each triangle vertex
 		{
 			FragVertex = gl_in[i].gl_Position;
+			FIndex = GIndex[i];
 			gl_Position = (ubo.ViewProjection[gl_Layer]) * gl_in[i].gl_Position;
 			EmitVertex();
 		}

@@ -4,6 +4,9 @@
 #extension GL_ARB_uniform_buffer_object : enable
 
 layout(location = 0) in vec3 vertex;
+layout(location = 4) in int index;
+
+layout(location = 0) out flat int GIndex;
 
 struct point_light {
 	vec3 position;
@@ -15,6 +18,8 @@ struct point_light {
 	float qudratic_attenuation;
 	float bias;
 	float shadowStrength;
+	float padding0;
+	float padding1;
 };
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
@@ -35,4 +40,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-void main() { gl_Position = ubo.model * vec4(vertex, 1.0); }
+void main() {
+	gl_Position = ubo.model * vec4(vertex, 1.0);
+	GIndex = index;
+}

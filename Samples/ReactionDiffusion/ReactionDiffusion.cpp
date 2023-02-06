@@ -26,6 +26,7 @@ namespace glsample {
 			float diffuseRateA = 1.0f;
 			float diffuseRateB = .5f;
 			float delta = 10.1f;
+			float speed = 1.0f;
 
 		} uniformBuffer;
 
@@ -236,6 +237,7 @@ namespace glsample {
 			float elapsedTime = this->getTimer().getElapsed();
 
 			/*	*/
+			this->uniformBuffer.delta = this->getTimer().deltaTime();
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
