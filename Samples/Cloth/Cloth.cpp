@@ -8,10 +8,10 @@
 
 namespace glsample {
 
-	class ClothSimulation : public GLSampleWindow {
+	class CascadingShadow : public GLSampleWindow {
 	  public:
-		ClothSimulation() : GLSampleWindow() {
-			this->setTitle("ClothSimulation");
+		CascadingShadow() : GLSampleWindow() {
+			this->setTitle("CascadingShadow");
 			this->vectorFieldSettingComponent = std::make_shared<ParticleSystemSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->vectorFieldSettingComponent);
 		}
@@ -299,8 +299,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
-
 			int width, height;
 			getSize(&width, &height);
 
@@ -402,7 +400,7 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 			/*	*/
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
@@ -432,7 +430,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::ClothSimulation> sample;
+		GLSample<glsample::CascadingShadow> sample;
 
 		sample.run(argc, argv);
 

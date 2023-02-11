@@ -1,4 +1,3 @@
-
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -16,9 +15,13 @@ namespace glsample {
 		AmbientOcclusion() : GLSampleWindow() {
 			this->setTitle("AmbientOcclusion");
 
+			/*	*/
 			this->ambientOcclusionSettingComponent =
 				std::make_shared<AmbientOcclusionSettingComponent>(this->uniformBlockSSAO);
 			this->addUIComponent(this->ambientOcclusionSettingComponent);
+
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct UniformBufferBlock {
@@ -99,9 +102,10 @@ namespace glsample {
 		};
 		std::shared_ptr<AmbientOcclusionSettingComponent> ambientOcclusionSettingComponent;
 
+		/*	*/
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
-
+		/*	*/
 		const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
 
@@ -454,7 +458,7 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 
 			/*	Update Camera.	*/
 			float elapsedTime = getTimer().getElapsed();

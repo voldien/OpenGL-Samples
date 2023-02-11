@@ -1,4 +1,3 @@
-
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -176,7 +175,8 @@ namespace glsample {
 					/*  Delete  */
 					glDeleteFramebuffers(1, &colorFramebuffer);
 					// TODO add error message.
-					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+					throw RuntimeException("Failed to create framebuffer, {}",
+										   (const char *)glewGetErrorString(frstat));
 				}
 				glDrawBuffer(GL_NONE);
 				glReadBuffer(GL_NONE);
@@ -241,17 +241,17 @@ namespace glsample {
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+								  reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArray(3);
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
+								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 		}
@@ -327,7 +327,7 @@ namespace glsample {
 							  GL_NEAREST);
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
 			camera.update(getTimer().deltaTime());
 

@@ -13,6 +13,9 @@ namespace glsample {
 			this->setTitle("PhongBlinn");
 			this->phongblinnSettingComponent = std::make_shared<PhongBlinnSettingComponent>(this->uniform);
 			this->addUIComponent(this->phongblinnSettingComponent);
+
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		typedef struct point_light_t {
@@ -102,8 +105,6 @@ namespace glsample {
 		};
 		std::shared_ptr<PhongBlinnSettingComponent> phongblinnSettingComponent;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
-
 		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/phongblinn/phongblinn.frag.spv";
 
@@ -123,6 +124,8 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			const std::string diffuseTexturePath = "asset/diffuse.png";
 
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_source_binary =
@@ -147,7 +150,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;

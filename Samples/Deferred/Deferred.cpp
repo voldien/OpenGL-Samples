@@ -10,7 +10,12 @@ namespace glsample {
 
 	class Deferred : public GLSampleWindow {
 	  public:
-		Deferred() : GLSampleWindow() { this->setTitle("Deferred Rendering"); }
+		Deferred() : GLSampleWindow() {
+			this->setTitle("Deferred Rendering");
+
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
+		}
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -264,9 +269,11 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() { /*	Update Camera.	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+		virtual void update() override {
+
+			/*	Update Camera.	*/
+			float elapsedTime = this->getTimer().getElapsed();
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
 			this->uniformBuffer.model = glm::mat4(1.0f);
@@ -278,9 +285,9 @@ namespace glsample {
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-								 this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}

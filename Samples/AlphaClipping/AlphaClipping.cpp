@@ -200,7 +200,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() {
+		virtual void update() override {
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime());

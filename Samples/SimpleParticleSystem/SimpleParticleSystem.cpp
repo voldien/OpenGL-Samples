@@ -12,7 +12,8 @@ namespace glsample {
 	  public:
 		SimpleParticleSystem() : GLSampleWindow() {
 			this->setTitle("Simple ParticleSystem");
-			this->simpleParticleSettingComponent = std::make_shared<SimpleParticleSystemSettingComponent>(this->uniformBuffer);
+			this->simpleParticleSettingComponent =
+				std::make_shared<SimpleParticleSystemSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->simpleParticleSettingComponent);
 		}
 
@@ -180,8 +181,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
-
 			int width, height;
 			getSize(&width, &height);
 
@@ -220,7 +219,7 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 			/*	*/
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
@@ -232,13 +231,14 @@ namespace glsample {
 
 			this->uniformBuffer.model = glm::mat4(1.0f);
 			this->uniformBuffer.view = camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection = this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+			this->uniformBuffer.modelViewProjection =
+				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(uniformBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);

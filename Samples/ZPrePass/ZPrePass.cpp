@@ -251,7 +251,8 @@ namespace glsample {
 					int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 					if (frstat != GL_FRAMEBUFFER_COMPLETE) {
 						/*  Delete  */
-						throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+						throw RuntimeException("Failed to create framebuffer, {}",
+											   (const char *)glewGetErrorString(frstat));
 					}
 				}
 
@@ -348,7 +349,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime());
 

@@ -11,16 +11,16 @@ namespace glsample {
 	  public:
 		HDR() : GLSampleWindow() {
 			this->setTitle("HDR");
-			this->refrectionSettingComponent = std::make_shared<RefrectionSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->refrectionSettingComponent);
+			this->hdrSettingComponent = std::make_shared<HDRSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->hdrSettingComponent);
 		}
 
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 			/*light source.	*/
 			glm::vec4 lookDirection;
@@ -65,12 +65,13 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
-		class RefrectionSettingComponent : public nekomimi::UIComponent {
+		class HDRSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			RefrectionSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			HDRSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Refrection Settings");
 			}
+
 			virtual void draw() override {
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
@@ -85,7 +86,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<RefrectionSettingComponent> refrectionSettingComponent;
+		std::shared_ptr<HDRSettingComponent> hdrSettingComponent;
 
 		CameraController camera;
 
@@ -283,7 +284,8 @@ namespace glsample {
 					/*  Delete  */
 					glDeleteFramebuffers(1, &HDRFramebuffer);
 					// TODO add error message.
-					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+					throw RuntimeException("Failed to create framebuffer, {}",
+										   (const char *)glewGetErrorString(frstat));
 				}
 
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -321,7 +323,8 @@ namespace glsample {
 					/*  Delete  */
 					glDeleteFramebuffers(1, &HDRFramebuffer);
 					// TODO add error message.
-					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+					throw RuntimeException("Failed to create framebuffer, {}",
+										   (const char *)glewGetErrorString(frstat));
 				}
 
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -356,7 +359,7 @@ namespace glsample {
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_TRUE);
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->refrectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->hdrSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -378,7 +381,7 @@ namespace glsample {
 				// glDepthMask(GL_FALSE);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, refrectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->hdrSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -407,7 +410,7 @@ namespace glsample {
 							  GL_NEAREST);
 		}
 
-		void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

@@ -198,8 +198,6 @@ namespace glsample {
 		virtual void draw() override {
 			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
 
-			
-
 			int width, height;
 			getSize(&width, &height);
 
@@ -247,7 +245,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());

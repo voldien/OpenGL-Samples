@@ -2,7 +2,7 @@
 #define _GL_SAMPLE_COMMON_TIME_H_ 1
 #include <SDL2/SDL_timer.h>
 
-namespace vkscommon {
+namespace glsample {
 
 	class Time {
 	  public:
@@ -43,6 +43,6 @@ namespace vkscommon {
 		unsigned long _private_level_startup;
 	};
 
-} // namespace vkscommon
+} // namespace glsample
 
 #endif

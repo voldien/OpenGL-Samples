@@ -36,7 +36,6 @@ namespace glsample {
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
-		unsigned int normal_texture;
 
 		/*	*/
 		unsigned int graphic_program;
@@ -80,13 +79,11 @@ namespace glsample {
 		};
 		std::shared_ptr<NormalSettingComponent> normalSettingComponent;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
-		std::string normalTexturePath = "asset/normalmap.png";
-
+		/*	Graphic shader paths.	*/
 		const std::string vertexGraphicShaderPath = "Shaders/texture/texture.vert.spv";
 		const std::string fragmentGraphicShaderPath = "Shaders/texture/texture.frag.spv";
 
-		/*	Shadow shader paths.	*/
+		/*	Normal shader paths.	*/
 		const std::string vertexNormalShaderPath = "Shaders/normal/normal.vert.spv";
 		const std::string geomtryNormalVertexShaderPath = "Shaders/normal/normal.geom.spv";
 		const std::string geomtryNormalTriangleShaderPath = "Shaders/normal/normal-triangle.geom.spv";
@@ -100,7 +97,6 @@ namespace glsample {
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
-			glDeleteTextures(1, (const GLuint *)&this->normal_texture);
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -112,6 +108,8 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_normal_binary =
@@ -144,7 +142,8 @@ namespace glsample {
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normal_vertex_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->normal_vertex_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->normal_vertex_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->normal_vertex_program, this->uniform_buffer_index,
+								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup graphic pipeline.	*/
@@ -158,14 +157,12 @@ namespace glsample {
 			glUseProgram(this->graphic_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->graphic_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
-			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -283,7 +280,7 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 
 			int width, height;
 			this->getSize(&width, &height);
@@ -317,14 +314,13 @@ namespace glsample {
 	  public:
 		NormalGLSample() : GLSample<Normal>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::NormalGLSample sample;

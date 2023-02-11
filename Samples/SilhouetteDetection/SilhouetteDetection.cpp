@@ -1,10 +1,8 @@
-#include "GLSampleWindow.h"
-
-#include "Importer/ImageImport.h"
-#include "ShaderLoader.h"
-#include "Util/CameraController.h"
 #include <GL/glew.h>
-
+#include <GLSampleWindow.h>
+#include <Importer/ImageImport.h>
+#include <ShaderLoader.h>
+#include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <iostream>
 
@@ -13,10 +11,7 @@ namespace glsample {
 	class SilhouetteDetection : public GLSampleWindow {
 	  public:
 		SilhouetteDetection() : GLSampleWindow() { this->setTitle("SilhouetteDetection"); }
-		typedef struct _vertex_t {
-			float pos[2];
-			float color[3];
-		} Vertex;
+
 		/*	*/
 		GeometryObject plan;
 
@@ -154,7 +149,7 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
-		virtual void update() { camera.update(getTimer().deltaTime()); }
+		virtual void update() override { camera.update(getTimer().deltaTime()); }
 	};
 
 	class SilhouetteDetectionGLSample : public GLSample<SilhouetteDetection> {
@@ -170,7 +165,7 @@ int main(int argc, const char **argv) {
 	try {
 		glsample::SilhouetteDetectionGLSample sample;
 		sample.run(argc, argv);
-		
+
 	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;

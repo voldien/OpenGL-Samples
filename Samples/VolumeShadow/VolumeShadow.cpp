@@ -294,7 +294,7 @@ namespace glsample {
 			/*	Draw shadow.	*/
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			this->camera.update(getTimer().deltaTime());
 
 			/*	*/

@@ -9,11 +9,27 @@
 
 namespace glsample {
 
+	// TODO rename to simple terrain.
 	class Terrain : public GLSampleWindow {
 	  public:
-		Terrain() : GLSampleWindow() { this->setTitle("Terrain"); }
+		Terrain() : GLSampleWindow() {
+			this->setTitle("Terrain");
 
-		struct UniformBufferBlock {
+			this->simpleOceanSettingComponent =
+				std::make_shared<SimpleOceanSettingComponent>(this->uniform_stage_buffer);
+			this->addUIComponent(this->simpleOceanSettingComponent);
+
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
+		}
+
+		struct UniformSkyBoxBufferBlock {
+			glm::mat4 proj;
+			glm::mat4 modelViewProjection;
+			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			float exposure = 1.0f;
+		};
+		struct UniformTerrainBufferBlock {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -24,7 +40,13 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-		} mvp;
+		};
+
+		/*	Pack all uniform in single buffer.	*/
+		struct UniformBufferBlock {
+			UniformTerrainBufferBlock terrain;
+			UniformSkyBoxBufferBlock skybox;
+		} uniform_stage_buffer;
 
 		GeometryObject skybox;
 		GeometryObject terrain;
@@ -37,15 +59,19 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
+		/*	Uniform align buffer sizes.	*/
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t skyboxUniformSize = 0;
+		size_t oceanUniformSize = 0;
 
 		int terrain_diffuse_texture;
 		int terrain_heightMap;
-		std::string panoramicPath = "panoramic.jpg";
+		std::string panoramicPath = "asset/panoramic.jpg";
 
 		glm::mat4 proj;
 		CameraController camera;
 
+		/*	*/
 		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert";
 		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag";
 
@@ -68,10 +94,15 @@ namespace glsample {
 			}
 			virtual void draw() override {
 				ImGui::TextUnformatted("Light Setting");
-				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0],
+				ImGui::ColorEdit4("Color", &this->uniform.terrain.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.terrain.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				/*	*/
+				ImGui::TextUnformatted("Skybox");
+				ImGui::ColorEdit4("Tint", &this->uniform.skybox.tintColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::DragFloat("Exposure", &this->uniform.skybox.exposure);
 				ImGui::TextUnformatted("Debug");
 				/*	*/
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -120,9 +151,9 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(20, vertices, indices, 1024, 1024);
+			ProceduralGeometry::generatePlan(1, vertices, indices, 2048, 2048);
 
-			/*	Create offset.	*/
+			/*	Create height offset.	*/
 			for (size_t i = 0; i < vertices.size(); i++) {
 				float height = Math::PerlinNoise(vertices[i].vertex[0] * 1.5f, vertices[i].vertex[1] * 1.5f);
 				vertices[i].vertex[2] = height;
@@ -174,7 +205,8 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniform_stage_buffer.terrain.proj =
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -182,6 +214,7 @@ namespace glsample {
 
 			/*	*/
 			glViewport(0, 0, width, height);
+			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			{
 
@@ -199,7 +232,32 @@ namespace glsample {
 				glDrawElements(GL_TRIANGLES, terrain.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
-			{}
+			{
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize + 0,
+								  this->skyboxUniformSize);
+
+				glUseProgram(this->skybox_program);
+
+				glDisable(GL_CULL_FACE);
+				glDisable(GL_BLEND);
+				glEnable(GL_DEPTH_TEST);
+				glStencilMask(GL_FALSE);
+				glDepthFunc(GL_LEQUAL);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->terrain_diffuse_texture);
+
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->skybox.vao);
+				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+
+				glStencilMask(GL_TRUE);
+
+				glUseProgram(0);
+			}
 			// glEnable(GL_DEPTH_TEST);
 			// TODO disable depth write.
 			// glDisable(GL_BLEND);
@@ -216,24 +274,28 @@ namespace glsample {
 			// glBindVertexArray(0);
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model = glm::rotate(this->mvp.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(500.95f));
-			this->mvp.view = this->camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
+			this->uniform_stage_buffer.terrain.model = glm::mat4(1.0f);
+			this->uniform_stage_buffer.terrain.model =
+				glm::rotate(this->uniform_stage_buffer.terrain.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniform_stage_buffer.terrain.model =
+				glm::scale(this->uniform_stage_buffer.terrain.model, glm::vec3(100.95f));
+			this->uniform_stage_buffer.terrain.view = this->camera.getViewMatrix();
+			this->uniform_stage_buffer.terrain.modelViewProjection = this->uniform_stage_buffer.terrain.proj *
+																	 this->uniform_stage_buffer.terrain.view *
+																	 this->uniform_stage_buffer.terrain.model;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
-				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

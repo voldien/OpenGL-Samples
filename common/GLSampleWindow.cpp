@@ -148,5 +148,5 @@ unsigned int GLSampleWindow::getShaderVersion() const {
 bool GLSampleWindow::supportSPIRV() const {
 	const fragcore::GLRendererInterface *interface =
 		dynamic_cast<const fragcore::GLRendererInterface *>(this->getRenderInterface().get());
-	return (interface->getShaderLanguage() & fragcore::ShaderLanguage::SPIRV != 0);
+	return (interface->getShaderLanguage() & (fragcore::ShaderLanguage::SPIRV != 0));
 }

@@ -232,7 +232,7 @@ namespace glsample {
 			glUseProgram(0);
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

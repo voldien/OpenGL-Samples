@@ -415,7 +415,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
@@ -445,8 +445,7 @@ namespace glsample {
 	  public:
 		SimpleReflectionGLSample() : GLSample<SimpleReflection>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};

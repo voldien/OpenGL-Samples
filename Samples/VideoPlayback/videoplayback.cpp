@@ -467,7 +467,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() {
+		virtual void update() override {
 
 			/*  */
 			AVPacket *packet = av_packet_alloc();

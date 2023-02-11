@@ -30,44 +30,40 @@ ubo;
 layout(location = 0) out vec2 FUV;
 
 void main() {
-	vec3 up = vec3(0.0, 1.0f, 0.0);
+	const vec3 VPosition = gl_in[0].gl_Position.xyz;
 
-	const vec3 CameraN = normalize(ubo.cameraPosition.xyz - gl_in[0].gl_Position.xyz);
-
-	/*  */
-	vec3 right = cross(CameraN, up);
+	const vec3 CameraN = normalize(ubo.cameraPosition.xyz - VPosition);
 
 	/*  */
-	up = cross(right, CameraN);
+	vec3 right = normalize(cross(CameraN, vec3(0.0, 1.0, 0.0)));
+	vec3 up = cross(CameraN, right);
 
 	up *= ubo.scale.y;
 	right *= ubo.scale.x;
 
 	/*  */
-	vec3 vertexPosition = gl_in[0].gl_Position.xyz;
-	vertexPosition -= (right * 0.5f);
-	gl_Position = ubo.modelViewProjection * vec4(vertexPosition, 1.0);
+	vec3 vertexPosition = VPosition - (right * 0.5) - (up * 0.5);
+	gl_Position = ubo.ViewProj * vec4(vertexPosition, 1.0);
 	FUV = vec2(0.0f, 0.0f);
 	EmitVertex();
 
 	/*  */
-	vertexPosition = gl_in[0].gl_Position.xyz;
-	vertexPosition += (right * 0.5f);
-	gl_Position = ubo.modelViewProjection * vec4(vertexPosition, 1.0);
+	vertexPosition = VPosition + (right * 0.5) - (up * 0.5);
+	gl_Position = ubo.ViewProj * vec4(vertexPosition, 1.0);
 	FUV = vec2(0.0f, 1.0f);
 	EmitVertex();
 
 	/*  */
-	vertexPosition.y -= 1.0f;
-	vertexPosition += right;
-	gl_Position = ubo.modelViewProjection * vec4(vertexPosition, 1.0);
+	vertexPosition = VPosition - (right * 0.5) + (up * 0.5);
+	gl_Position = ubo.ViewProj * vec4(vertexPosition, 1.0);
 	FUV = vec2(1.0f, 0.0f);
 	EmitVertex();
 
 	/*  */
-	vertexPosition.y += 1.0f;
-	gl_Position = ubo.modelViewProjection * vec4(vertexPosition, 1.0);
+	vertexPosition = VPosition + (right * 0.5) + (up * 0.5);
+	gl_Position = ubo.ViewProj * vec4(vertexPosition, 1.0);
 	FUV = vec2(1.0f, 1.0f);
 	EmitVertex();
+
 	EndPrimitive();
 }

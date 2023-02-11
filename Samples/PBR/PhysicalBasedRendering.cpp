@@ -194,7 +194,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	*/
 			camera.update(getTimer().deltaTime());
 
@@ -214,8 +214,7 @@ namespace glsample {
 	  public:
 		PhysicalBasedRenderingGLSample() : GLSample<PhysicalBasedRendering>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 } // namespace glsample

@@ -49,7 +49,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 // TODO PCF
-float ShadowCalculation(const in vec3 fragPosLightSpace, samplerCube ShadowTexture, int index) {
+float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube ShadowTexture, int index) {
 
 	const vec3 frag2Light = (fragPosLightSpace - ubo.point_light[index].position);
 
@@ -73,6 +73,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, samplerCube ShadowTextu
 
 void main() {
 	vec4 pointLightColors = vec4(0);
+
 	for (int i = 0; i < 4; i++) {
 		/*	*/
 		vec3 diffVertex = (ubo.point_light[i].position - vertex);

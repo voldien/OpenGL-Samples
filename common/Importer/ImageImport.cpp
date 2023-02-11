@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 #include <GLHelper.h>
 #include <ImageLoader.h>
+#include <magic_enum.hpp>
 #include <stdexcept>
 
 using namespace fragcore;
@@ -45,7 +46,7 @@ int TextureImporter::loadImage2D(const std::string &path) {
 		internalformat = GL_RGBA16F;
 		break;
 	default:
-		throw RuntimeException("Non Supported Format {}", image.getFormat());
+		throw RuntimeException("Non Supported Format {}", magic_enum::enum_name(image.getFormat()));
 	}
 
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));

@@ -13,6 +13,9 @@ namespace glsample {
 			this->setTitle("BillBoarding");
 			this->billboardSettingComponent = std::make_shared<BillBoardSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->billboardSettingComponent);
+
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct UniformBufferBlock {
@@ -83,6 +86,7 @@ namespace glsample {
 		};
 		std::shared_ptr<BillBoardSettingComponent> billboardSettingComponent;
 
+		/*	*/
 		const std::string vertexShaderPath = "Shaders/billboarding/billboarding.vert.spv";
 		const std::string geomtryShaderPath = "Shaders/billboarding/billboarding.geom.spv";
 		const std::string fragmentShaderPath = "Shaders/billboarding/billboarding.frag.spv";
@@ -127,7 +131,6 @@ namespace glsample {
 			glUseProgram(this->billboarding_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->billboarding_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->billboarding_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->billboarding_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->billboarding_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -195,25 +198,24 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	*/
-			this->uniformBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
-
-			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
 				glUseProgram(this->billboarding_program);
 
-				glDisable(GL_CULL_FACE);
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+				glFrontFace(GL_CCW);
+
 				glEnable(GL_DEPTH_TEST);
-				glDepthMask(GL_FALSE);
+				glDepthMask(GL_TRUE);
 
 				/*	Blending.	*/
 				glEnable(GL_BLEND);
@@ -234,12 +236,17 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 
+			int width, height;
+			this->getSize(&width, &height);
+
 			/*	*/
+			this->uniformBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 			this->uniformBuffer.model = glm::mat4(1.0f);
 			this->uniformBuffer.model =
 				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));

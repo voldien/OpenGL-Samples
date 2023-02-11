@@ -224,7 +224,8 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		virtual void update() { /*	Update Camera.	*/
+		virtual void update() override {
+			/*	Update Camera.	*/
 			const float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 

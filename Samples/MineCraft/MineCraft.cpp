@@ -463,7 +463,7 @@ namespace glsample {
 			}
 		}
 
-		void update() {
+		virtual void update() override {
 
 			/*	Update Camera.	*/
 			float elapsedTime = getTimer().getElapsed();
@@ -509,7 +509,6 @@ namespace glsample {
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::MineCraftGLSample sample;

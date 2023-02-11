@@ -1,19 +1,18 @@
-#include "GLSampleWindow.h"
-
-#include "Importer/ImageImport.h"
-#include "ShaderLoader.h"
-#include "Util/CameraController.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
+#include <Importer/ImageImport.h>
 #include <ShaderCompiler.h>
-
+#include <ShaderLoader.h>
+#include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <iostream>
+
 namespace glsample {
 
 	class MandelBrot : public GLSampleWindow {
 	  public:
 		MandelBrot() : GLSampleWindow() {
-			this->setTitle("MandelBrot-Compute");
+			this->setTitle("MandelBrot Compute");
 			mandelbrotSettingComponent = std::make_shared<MandelBrotSettingComponent>(this->params);
 			this->addUIComponent(mandelbrotSettingComponent);
 		}
@@ -137,8 +136,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			
-
 			int width, height;
 			getSize(&width, &height);
 
@@ -173,7 +170,7 @@ namespace glsample {
 							  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		}
 
-		virtual void update() {
+		virtual void update() override {
 
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =

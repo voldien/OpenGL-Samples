@@ -42,7 +42,7 @@ namespace glsample {
 			float fogIntensity = 1.0f;
 		} uniform;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
+		std::string diffuseTexturePath = "asset/diffuse.png"; // TODO remove.
 
 		unsigned int diffuse_texture;
 
@@ -64,6 +64,7 @@ namespace glsample {
 			FogSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Fog Settings");
 			}
+
 			virtual void draw() override {
 				ImGui::TextUnformatted("Light Settings");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
@@ -87,8 +88,7 @@ namespace glsample {
 		};
 		std::shared_ptr<FogSettingComponent> fogSettingComponent;
 
-		const std::string modelPath = "asset/sponza/sponza.obj";
-		/*	*/
+		/*	Shader Paths.	*/
 		const std::string vertexGraphicShaderPath = "Shaders/fog/fog.vert.spv";
 		const std::string fragmentGraphicShaderPath = "Shaders/fog/fog.frag.spv";
 
@@ -101,6 +101,7 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			/*	*/
 			const std::vector<uint32_t> vertex_source =
@@ -153,26 +154,27 @@ namespace glsample {
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height,
 												  this->uniform.cameraNear, this->uniform.cameraFar);
 
-			
+			/*	*/
+			glViewport(0, 0, width, height);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
+			glClearColor(0.09f, 0.09f, 0.09f, 1.0f);
+			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, this->fogSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 			{
-				/*	*/
-				glViewport(0, 0, width, height);
 
 				/*	*/
-				glClearColor(0.09f, 0.09f, 0.09f, 1.0f);
-				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+								  (getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
 				glUseProgram(this->graphic_fog_program);
 
 				glCullFace(GL_BACK);
 				glDisable(GL_CULL_FACE);
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->fogSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -188,7 +190,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
 			this->camera.update(getTimer().deltaTime());
 
@@ -212,9 +214,7 @@ namespace glsample {
 	  public:
 		FogGLSample() : GLSample<Fog>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};
 

@@ -199,7 +199,8 @@ namespace glsample {
 					/*  Delete  */
 					glDeleteFramebuffers(1, &shadowFramebuffer);
 					// TODO add error message.
-					throw RuntimeException("Failed to create framebuffer, {}", glewGetErrorString(frstat));
+					throw RuntimeException("Failed to create framebuffer, {}",
+										   (const char *)glewGetErrorString(frstat));
 				}
 				glDrawBuffer(GL_NONE);
 				glReadBuffer(GL_NONE);
@@ -297,7 +298,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	Update Camera.	*/
 			camera.update(getTimer().deltaTime());
 

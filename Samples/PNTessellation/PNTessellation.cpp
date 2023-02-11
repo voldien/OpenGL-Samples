@@ -208,7 +208,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());

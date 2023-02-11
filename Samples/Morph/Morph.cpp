@@ -167,20 +167,18 @@ namespace glsample {
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
 			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+								  reinterpret_cast<void *>(20));
 
 			glBindVertexArray(0);
 		}
 
 		virtual void draw() override {
 			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
-
-			
 
 			int width, height;
 			getSize(&width, &height);
@@ -206,7 +204,7 @@ namespace glsample {
 			glDisable(GL_CULL_FACE);
 			glEnable(GL_DEPTH_TEST);
 
-			/*	Draw triangle*/
+			/*	Draw triangle	*/
 			glBindVertexArray(this->vao);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glPatchParameteri(GL_PATCH_VERTICES, 3);
@@ -220,11 +218,12 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void update() {
+		virtual void update() override {
 			/*	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());
 
+			/*	*/
 			this->mvp.model = glm::mat4(1.0f);
 			this->mvp.model = glm::translate(this->mvp.model, glm::vec3(0, 0, 10));
 			this->mvp.model = glm::rotate(this->mvp.model, (float)Math::PI_half, glm::vec3(1, 0, 0));

@@ -11,7 +11,12 @@ namespace glsample {
 
 	class MultiPass : public GLSampleWindow {
 	  public:
-		MultiPass() : GLSampleWindow() { this->setTitle("MultiPass"); }
+		MultiPass() : GLSampleWindow() {
+			this->setTitle("MultiPass");
+
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
+		}
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -224,7 +229,9 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		virtual void update() { /*	Update Camera.	*/
+		virtual void update() override {
+
+			/*	Update Camera.	*/
 			const float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 

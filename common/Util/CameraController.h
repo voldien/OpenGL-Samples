@@ -55,7 +55,10 @@ class CameraController {
 
 	void lookAt(const glm::vec3 &position) noexcept { this->look = glm::normalize(position - this->getPosition()); }
 
-	const glm::vec3 getLookDirection() const noexcept { return this->look; }
+	const glm::vec3 &getUp() const { return this->up; }
+	float getFOV() const { return this->fov; }
+
+	const glm::vec3 &getLookDirection() const noexcept { return this->look; }
 
   private:
 	float fov = 80.0f;

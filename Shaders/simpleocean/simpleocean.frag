@@ -14,6 +14,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
 	mat4 modelView;
 	mat4 modelViewProjection;
+	
 	/*	Light source.	*/
 	vec4 lookDirection;
 
@@ -36,7 +37,7 @@ float computeLightContributionFactor(in vec3 direction, in vec3 normalInput) {
 	return max(0.0, dot(-normalInput, direction));
 }
 
-vec3 equirectangular(vec2 xy) {
+vec3 equirectangular(const in vec2 xy) {
 	vec2 tc = xy / vec2(2.0) - 0.5;
 	vec2 thetaphi =
 		((tc * 2.0) - vec2(1.0)) * vec2(3.1415926535897932384626433832795, 1.5707963267948966192313216916398);
@@ -44,7 +45,7 @@ vec3 equirectangular(vec2 xy) {
 	return rayDirection;
 }
 
-vec2 inverse_equirectangular(vec3 direction) {
+vec2 inverse_equirectangular(const in vec3 direction) {
 	const vec2 invAtan = vec2(0.1591, 0.3183);
 	vec2 uv = vec2(atan(direction.z, direction.x), asin(direction.y));
 	uv *= invAtan;
@@ -68,11 +69,9 @@ void main() {
 	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
 
 	/*	*/
-	vec3 I = normalize(ubo.position.xyz - vertex);
-	vec3 reflection = reflect(I, alteredNormal);
+	vec3 viewDir = normalize(ubo.position.xyz - vertex);
+	vec3 reflection = normalize(reflect(viewDir, normalize(normal)));
 	vec2 reflection_uv = inverse_equirectangular(reflection);
 
-	// TODO light improvemetns
-
-	fragColor = texture(ReflectionTexture, reflection_uv) * (ubo.ambientColor + lightColor);
+	fragColor = texture(ReflectionTexture, reflection_uv); // * (ubo.ambientColor + lightColor);
 }
