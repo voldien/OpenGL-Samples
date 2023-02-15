@@ -1,4 +1,3 @@
-
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -17,6 +16,10 @@ namespace glsample {
 			this->shadowSettingComponent =
 				std::make_shared<BasicShadowMapSettingComponent>(this->uniform, this->shadowTexture);
 			this->addUIComponent(this->shadowSettingComponent);
+			
+			/*	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct UniformBufferBlock {
@@ -256,7 +259,6 @@ namespace glsample {
 				glEnable(GL_CULL_FACE);
 
 				/*	Setup the shadow.	*/
-
 				glBindVertexArray(this->refObj[0].vao);
 				for (size_t i = 0; i < this->refObj.size(); i++) {
 					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,

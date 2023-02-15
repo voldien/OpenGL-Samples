@@ -43,6 +43,9 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	glsample::Time &getTimer() noexcept { return this->time; }
 	size_t getFrameCount() noexcept { return this->frameCount; }
 
+	size_t getFrameBufferIndex() noexcept { return this->frameCount; }
+	size_t getFrameBufferCount() noexcept { return this->getNumberFrameBuffers(); }
+
 	void debug(bool enable);
 
 	void captureScreenShot();
@@ -69,6 +72,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	FPSCounter<float> fpsCounter;
 	glsample::Time time;
 	size_t frameCount = 0;
+	size_t frameBufferIndex = 0;
+	size_t frameBufferCount = 0;
 	unsigned int queries[10];
 	fragcore::IFileSystem *filesystem;
 

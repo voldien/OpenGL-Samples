@@ -12,7 +12,7 @@ class CameraController {
 
 	void update(float delta) {
 
-		const Uint8 *state = SDL_GetKeyboardState(NULL);
+		const Uint8 *state = SDL_GetKeyboardState(nullptr);
 
 		bool w = state[SDL_SCANCODE_W];
 		bool a = state[SDL_SCANCODE_A];

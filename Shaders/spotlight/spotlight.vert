@@ -19,6 +19,8 @@ struct spot_light {
 	float constant_attenuation;
 	float linear_attenuation;
 	float qudratic_attenuation;
+	float padd0;
+	float padd1;
 };
 
 layout(binding = 0, std140) uniform UniformBufferBlock {

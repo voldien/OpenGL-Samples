@@ -7,15 +7,27 @@
 
 namespace glsample {
 
-	class Bloom : public GLSampleWindow {
+	class Glow : public GLSampleWindow {
 	  public:
-		Bloom() : GLSampleWindow() {
-			this->setTitle("Bloom");
-			this->bloomSettingComponent = std::make_shared<BloomSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->bloomSettingComponent);
+		Glow() : GLSampleWindow() {
+			this->setTitle("Glow");
+			this->glowSettingComponent = std::make_shared<GlowSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->glowSettingComponent);
 		}
 
-		struct UniformBufferBlock {
+		struct UniformSkyBoxBufferBlock {
+			glm::mat4 proj;
+			glm::mat4 modelViewProjection;
+			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			float exposure = 1.0f;
+		};
+
+		struct UniformGlowBufferBlock {
+			float intensity = 1.0f;
+			float threshold = 1.0f;
+		};
+
+		struct UniformObjectBufferBlock {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -30,6 +42,12 @@ namespace glsample {
 			glm::vec4 position;
 
 			float IOR = 1.5;
+		};
+
+		struct UniformBufferBlock {
+			UniformSkyBoxBufferBlock skybox;
+			UniformGlowBufferBlock glow;
+			UniformObjectBufferBlock ocean;
 
 		} uniformBuffer;
 
@@ -42,12 +60,13 @@ namespace glsample {
 
 		/*	*/
 		unsigned int bloomFrameBuffer;
-		unsigned int bloomTexture;
+		unsigned int glowTexture;
 		size_t bloomWidth;
 		size_t bloomHeight;
 
 		/*	*/
 		GeometryObject torus;
+		GeometryObject plan;
 		GeometryObject skybox;
 
 		/*	*/
@@ -65,19 +84,19 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
-		class BloomSettingComponent : public nekomimi::UIComponent {
+		class GlowSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			BloomSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			GlowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Bloom Settings");
 			}
 
 			virtual void draw() override {
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+				ImGui::ColorEdit4("Light", &this->uniform.ocean.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.ocean.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat("IOR", &this->uniform.IOR);
+				ImGui::DragFloat("IOR", &this->uniform.ocean.IOR);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -86,7 +105,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<BloomSettingComponent> bloomSettingComponent;
+		std::shared_ptr<GlowSettingComponent> glowSettingComponent;
 
 		CameraController camera;
 
@@ -241,7 +260,7 @@ namespace glsample {
 
 			/*  */
 			glGenFramebuffers(1, &this->bloomFrameBuffer);
-			glGenTextures(1, &this->bloomTexture);
+			glGenTextures(1, &this->glowTexture);
 			onResize(this->width(), this->height());
 		}
 
@@ -295,8 +314,8 @@ namespace glsample {
 				glBindFramebuffer(GL_FRAMEBUFFER, this->bloomFrameBuffer);
 
 				/*	*/
-				glGenTextures(1, &this->bloomTexture);
-				glBindTexture(GL_TEXTURE_2D, this->bloomTexture);
+				glGenTextures(1, &this->glowTexture);
+				glBindTexture(GL_TEXTURE_2D, this->glowTexture);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->bloomWidth, this->bloomHeight, 0, GL_RGBA,
 							 GL_UNSIGNED_BYTE, nullptr);
 				/*	*/
@@ -313,7 +332,7 @@ namespace glsample {
 
 				FVALIDATE_GL_CALL(glGenerateMipmap(GL_TEXTURE_2D));
 
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->bloomTexture, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->glowTexture, 0);
 
 				deo = GL_COLOR_ATTACHMENT0;
 				glDrawBuffers(1, &deo);
@@ -337,7 +356,7 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->uniformBuffer.proj =
+			this->uniformBuffer.ocean.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
@@ -361,7 +380,7 @@ namespace glsample {
 				glDepthMask(GL_TRUE);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->bloomSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->glowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -383,7 +402,7 @@ namespace glsample {
 				// glDepthMask(GL_FALSE);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->bloomSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->glowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -395,13 +414,13 @@ namespace glsample {
 				glBindVertexArray(0);
 			}
 
-			/*	Blit Bloom framebuffer to default framebuffer.	*/
+			/*	Blit glow framebuffer to default framebuffer.	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->HDRFramebuffer);
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 
 			/*	Downscale.	*/
-			glBindTexture(GL_TEXTURE_2D, this->bloomTexture);
+			glBindTexture(GL_TEXTURE_2D, this->glowTexture);
 			glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, this->bloomWidth, this->bloomHeight);
 			glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -414,16 +433,16 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
+			this->uniformBuffer.ocean.model = glm::mat4(1.0f);
+			this->uniformBuffer.ocean.model =
+				glm::rotate(this->uniformBuffer.ocean.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniformBuffer.ocean.model = glm::scale(this->uniformBuffer.ocean.model, glm::vec3(10.95f));
+			this->uniformBuffer.ocean.view = this->camera.getViewMatrix();
+			this->uniformBuffer.ocean.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
 
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.position = glm::vec4(this->camera.getPosition(), 0);
+			this->uniformBuffer.ocean.modelViewProjection =
+				this->uniformBuffer.ocean.proj * this->uniformBuffer.ocean.view * this->uniformBuffer.ocean.model;
+			this->uniformBuffer.ocean.position = glm::vec4(this->camera.getPosition(), 0);
 
 			/*  */
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -435,9 +454,9 @@ namespace glsample {
 		}
 	};
 
-	class BloomGLSample : public GLSample<Bloom> {
+	class GlowGLSample : public GLSample<Glow> {
 	  public:
-		BloomGLSample() : GLSample<Bloom>() {}
+		GlowGLSample() : GLSample<Glow>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/panoramic.jpg"));
 		}
@@ -447,7 +466,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::BloomGLSample sample;
+		glsample::GlowGLSample sample;
 
 		sample.run(argc, argv);
 

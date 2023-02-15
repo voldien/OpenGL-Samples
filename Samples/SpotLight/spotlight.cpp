@@ -11,8 +11,9 @@ namespace glsample {
 	  public:
 		SpotLight() : GLSampleWindow() {
 			this->setTitle("SpotLight");
-			this->pointLightSettingComponent = std::make_shared<SpotLightSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->pointLightSettingComponent);
+			this->spotLightSettingComponent = std::make_shared<SpotLightSettingComponent>(this->uniformStageBuffer);
+			this->addUIComponent(this->spotLightSettingComponent);
+
 			this->camera.setPosition(glm::vec3(18.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -27,21 +28,23 @@ namespace glsample {
 			float constant_attenuation;
 			float linear_attenuation;
 			float qudratic_attenuation;
+			float padd0;
+			float padd1;
 		} SpotLightU;
 
 		static const size_t nrSpotLights = 4;
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 			/*	light source.	*/
 			glm::vec4 ambientLight = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
 
 			SpotLightU spotLights[nrSpotLights];
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		/*	*/
 		GeometryObject plan;
@@ -79,7 +82,7 @@ namespace glsample {
 						ImGui::DragFloat3("Position", &this->uniform.spotLights[i].position[0]);
 						ImGui::DragFloat3("Attenuation", &this->uniform.spotLights[i].constant_attenuation);
 						ImGui::DragFloat("Range", &this->uniform.spotLights[i].range);
-						ImGui::DragFloat("Angle", &this->uniform.spotLights[i].angle);
+						ImGui::DragFloat("Angle", &this->uniform.spotLights[i].angle, 0.01f, 0.0f, 1.0f);
 						ImGui::DragFloat3("Direction", &this->uniform.spotLights[i].direction[0]);
 						ImGui::DragFloat("Intensity", &this->uniform.spotLights[i].intensity);
 					}
@@ -93,9 +96,7 @@ namespace glsample {
 			struct UniformBufferBlock &uniform;
 			bool lightvisible[4] = {true, true, true, true};
 		};
-		std::shared_ptr<SpotLightSettingComponent> pointLightSettingComponent;
-
-		std::string diffuseTexturePath = "asset/diffuse.png";
+		std::shared_ptr<SpotLightSettingComponent> spotLightSettingComponent;
 
 		const std::string vertexShaderPath = "Shaders/spotlight/spotlight.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/spotlight/spotlight.frag.spv";
@@ -116,6 +117,8 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
+
+			const std::string diffuseTexturePath = "asset/diffuse.png";
 
 			/*	Load shader source.	*/
 			std::vector<uint32_t> vertex_source =
@@ -140,7 +143,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -199,18 +202,18 @@ namespace glsample {
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
 			for (size_t i = 0; i < this->nrSpotLights; i++) {
-				this->uniformBuffer.spotLights[i].range = 45.0f;
-				this->uniformBuffer.spotLights[i].position =
+				this->uniformStageBuffer.spotLights[i].range = 45.0f;
+				this->uniformStageBuffer.spotLights[i].position =
 					glm::vec4(i * -1.0f, i * 1.0f, i * -1.5f, 0) * 12.0f + glm::vec4(2.0f);
-				this->uniformBuffer.spotLights[i].direction = glm::normalize(
+				this->uniformStageBuffer.spotLights[i].direction = glm::normalize(
 					glm::vec4(fragcore::Math::degToRad(-20.0f * (i + 1)), fragcore::Math::degToRad(-20.0f * (i + 1)),
 							  fragcore::Math::degToRad(20.0f * (i + 1)), 0));
-				this->uniformBuffer.spotLights[i].angle = std::sin(fragcore::Math::degToRad(20.0f * i));
-				this->uniformBuffer.spotLights[i].color = colors[i];
-				this->uniformBuffer.spotLights[i].constant_attenuation = 1.0f;
-				this->uniformBuffer.spotLights[i].linear_attenuation = 0.1f;
-				this->uniformBuffer.spotLights[i].qudratic_attenuation = 0.05f;
-				this->uniformBuffer.spotLights[i].intensity = 1.0f;
+				this->uniformStageBuffer.spotLights[i].angle = std::sin(fragcore::Math::degToRad(20.0f * i + 30.0f));
+				this->uniformStageBuffer.spotLights[i].color = colors[i];
+				this->uniformStageBuffer.spotLights[i].constant_attenuation = 1.0f;
+				this->uniformStageBuffer.spotLights[i].linear_attenuation = 0.1f;
+				this->uniformStageBuffer.spotLights[i].qudratic_attenuation = 0.05f;
+				this->uniformStageBuffer.spotLights[i].intensity = 1.0f;
 			}
 		}
 
@@ -219,7 +222,7 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			this->uniformBuffer.proj =
+			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
@@ -254,20 +257,20 @@ namespace glsample {
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(45.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model =
+				glm::rotate(this->uniformStageBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(45.95f));
+			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
@@ -275,7 +278,7 @@ namespace glsample {
 	  public:
 		SpotLightGLSample() : GLSample<SpotLight>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"));
 		}
 	};
 

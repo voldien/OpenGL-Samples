@@ -29,6 +29,8 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 
 	/*	*/
 	// glEnable(GL_FRAMEBUFFER_SRGB);
+
+	// glGetIntegerv( FRAMEBUFFER ,  &frameBufferCount);
 }
 
 void GLSampleWindow::displayMenuBar() {}
@@ -63,10 +65,13 @@ void GLSampleWindow::renderUI() {
 	// glGetQueryObjectiv(this->queries[0], GL_QUERY_RESULT, &nrSamples);
 	// glGetQueryObjectiv(this->queries[1], GL_QUERY_RESULT, &nrPrimitives);
 
+	/*	*/
 	this->frameCount++;
+	this->frameBufferIndex = (this->frameBufferIndex + 1) % this->getFrameBufferCount();
 	this->getTimer().update();
 	this->fpsCounter.incrementFPS(SDL_GetPerformanceCounter());
 
+	/*	*/
 	std::cout << "FPS " << this->getFPSCounter().getFPS() << " Elapsed Time: " << getTimer().getElapsed() << std::endl;
 
 	/*	*/
@@ -74,8 +79,9 @@ void GLSampleWindow::renderUI() {
 	if (state[SDL_SCANCODE_F12]) {
 		this->captureScreenShot();
 	}
-	/*	*/
-	if (state[SDL_SCANCODE_RETURN] && state[SDL_SCANCODE_LCTRL]) {
+
+	/*	Enter fullscreen via short command.	*/
+	if (state[SDL_SCANCODE_RETURN] && (state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL])) {
 		this->setFullScreen(!this->isFullScreen());
 	}
 }

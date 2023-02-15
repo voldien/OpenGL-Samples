@@ -17,6 +17,8 @@ struct spot_light {
 	float constant_attenuation;
 	float linear_attenuation;
 	float qudratic_attenuation;
+	float padd0;
+	float padd1;
 };
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
@@ -41,7 +43,7 @@ void main() {
 
 		vec3 deltaSpace = (ubo.spot_light[i].position.xyz - vertex); // TODO resolve this later in the!
 
-		float SpotFactor = dot(normalize(deltaSpace), -normalize(ubo.spot_light[i].direction.xyz));
+		float SpotFactor = dot(normalize(deltaSpace), normalize(ubo.spot_light[i].direction.xyz));
 		float SpotEffect;
 
 		if (SpotFactor > ubo.spot_light[i].angle) {
@@ -51,10 +53,10 @@ void main() {
 				1.0 / (ubo.spot_light[i].constant_attenuation + ubo.spot_light[i].linear_attenuation * dist +
 					   ubo.spot_light[i].qudratic_attenuation * (dist * dist));
 
-			float contribution = max(0.0, dot(normalize(normal), normalize(deltaSpace))) * SpotFactor;
+			float contribution = max(0.0, dot(normalize(normal), -normalize(deltaSpace))) * SpotFactor;
 			SpotEffect = 1.0; // smoothstep(0.1 , 0.0f, 1.0f - SpotFactor);
 			pointLightColors += contribution * max(0.0, SpotFactor) * attenuation * ubo.spot_light[i].intensity *
-								ubo.spot_light[i].color;
+								ubo.spot_light[i].range * ubo.spot_light[i].color;
 		}
 	}
 

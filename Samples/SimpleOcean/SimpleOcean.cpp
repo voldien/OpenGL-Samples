@@ -62,7 +62,6 @@ namespace glsample {
 		unsigned int reflection_texture;
 
 		/*	*/
-		unsigned int graphic_program;
 		unsigned int simpleOcean_program;
 		unsigned int skybox_program;
 

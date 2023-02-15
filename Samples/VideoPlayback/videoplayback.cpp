@@ -35,10 +35,11 @@ namespace glsample {
 	class VideoPlayback : public GLSampleWindow {
 	  public:
 		VideoPlayback() : GLSampleWindow() {
-			this->setTitle(fmt::format("VideoPlayback: {}", this->videoPath).c_str());
+
 			this->videoplaybackSettingComponent = std::make_shared<VideoPlaybackSettingComponent>();
 			this->addUIComponent(this->videoplaybackSettingComponent);
 		}
+
 		virtual ~VideoPlayback() {
 			if (this->frame) {
 				av_frame_free(&this->frame);
@@ -112,8 +113,6 @@ namespace glsample {
 		std::array<unsigned int, nrVideoFrames> videoFrameTextures;
 		std::array<void *, nrVideoFrames> videoMapBuffer;
 		unsigned int videoStagingTextureBuffer; // PBO buffers
-
-		std::string videoPath;
 
 		class VideoPlaybackSettingComponent : public nekomimi::UIComponent {
 
@@ -314,7 +313,8 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			this->videoPath = this->getResult()["video"].as<std::string>();
+			const std::string videoPath = this->getResult()["video"].as<std::string>();
+			this->setTitle(fmt::format("VideoPlayback: {}", videoPath));
 
 			/*	*/
 			{
@@ -339,7 +339,7 @@ namespace glsample {
 				FAOPAL_VALIDATE(alGenBuffers(5, this->mAudioBuffers.data()));
 			}
 
-			loadVideo(this->videoPath.c_str());
+			loadVideo(videoPath.c_str());
 
 			/*	Load shader	*/
 			const std::vector<uint32_t> vertex_source =

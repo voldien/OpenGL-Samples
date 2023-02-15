@@ -3,6 +3,7 @@
 #include <ImageImport.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <iostream>
 
 namespace glsample {
@@ -11,11 +12,22 @@ namespace glsample {
 	  public:
 		Refrection() : GLSampleWindow() {
 			this->setTitle("Refrection");
-			this->refrectionSettingComponent = std::make_shared<RefrectionSettingComponent>(this->uniformBuffer);
+			this->refrectionSettingComponent = std::make_shared<RefrectionSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->refrectionSettingComponent);
+
+			/*	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct UniformSkyBoxBufferBlock {
+			glm::mat4 proj;
+			glm::mat4 modelViewProjection;
+			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			float exposure = 1.0f;
+		};
+
+		struct UniformRefrectionBufferBlock {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -30,8 +42,13 @@ namespace glsample {
 			glm::vec4 position;
 
 			float IOR = 0.8f;
+		};
 
-		} uniformBuffer;
+		struct UniformBufferBlock {
+			UniformSkyBoxBufferBlock skybox;
+			UniformRefrectionBufferBlock refractionObject;
+
+		} uniform_stage_buffer;
 
 		/*	*/
 		GeometryObject torus;
@@ -51,6 +68,8 @@ namespace glsample {
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t skyboxUniformSize = 0;
+		size_t oceanUniformSize = 0;
 
 		class RefrectionSettingComponent : public nekomimi::UIComponent {
 
@@ -59,11 +78,11 @@ namespace glsample {
 				this->setName("Refrection Settings");
 			}
 			virtual void draw() override {
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+				ImGui::ColorEdit4("Light", &this->uniform.refractionObject.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.refractionObject.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat("IOR", &this->uniform.IOR);
+				ImGui::DragFloat("IOR", &this->uniform.refractionObject.IOR);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -144,7 +163,11 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
+
+			this->oceanUniformSize = Math::align(sizeof(UniformRefrectionBufferBlock), (size_t)minMapBufferSize);
+			this->skyboxUniformSize = Math::align(sizeof(UniformSkyBoxBufferBlock), (size_t)minMapBufferSize);
+			this->uniformBufferSize =
+				Math::align(this->skyboxUniformSize + this->oceanUniformSize, (size_t)minMapBufferSize);
 
 			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
@@ -194,7 +217,9 @@ namespace glsample {
 
 			glBindVertexArray(0);
 
-			ProceduralGeometry::generateCube(1, vertices, indices);
+			std::vector<ProceduralGeometry::Vertex> verticesCube;
+			std::vector<unsigned int> indicesCube;
+			ProceduralGeometry::generateCube(1, verticesCube, indicesCube);
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->skybox.vao);
 			glBindVertexArray(this->skybox.vao);
@@ -202,13 +227,14 @@ namespace glsample {
 			/*	*/
 			glGenBuffers(1, &this->skybox.ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->skybox.nrIndicesElements = indices.size();
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indicesCube[0]), indicesCube.data(),
+						 GL_STATIC_DRAW);
+			this->skybox.nrIndicesElements = indicesCube.size();
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->skybox.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+			glBufferData(GL_ARRAY_BUFFER, verticesCube.size() * sizeof(ProceduralGeometry::Vertex), verticesCube.data(),
 						 GL_STATIC_DRAW);
 
 			/*	*/
@@ -228,28 +254,29 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->uniformBuffer.proj =
+			this->uniform_stage_buffer.refractionObject.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
 
 			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, this->refrectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
 			/*  Refrection. */
 			{
+
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
+									  this->oceanUniformSize,
+								  this->oceanUniformSize);
 				glUseProgram(this->refrection_program);
 
 				glDisable(GL_CULL_FACE);
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_TRUE);
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->refrectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -263,15 +290,17 @@ namespace glsample {
 
 			/*	Skybox. */
 			{
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize + 0,
+								  this->skyboxUniformSize);
+
 				glUseProgram(this->skybox_program);
 
 				glDisable(GL_CULL_FACE);
 				glDisable(GL_BLEND);
 				glEnable(GL_DEPTH_TEST);
-				// glDepthMask(GL_FALSE);
-
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, refrectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glStencilMask(GL_FALSE);
+				glDepthFunc(GL_LEQUAL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -279,8 +308,12 @@ namespace glsample {
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->skybox.vao);
-				glDrawElements(GL_TRIANGLES, this->torus.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
+
+				glStencilMask(GL_TRUE);
+
+				glUseProgram(0);
 			}
 		}
 
@@ -291,25 +324,40 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.lookDirection =
+			this->uniform_stage_buffer.refractionObject.model = glm::mat4(1.0f);
+			this->uniform_stage_buffer.refractionObject.model = glm::rotate(
+				this->uniform_stage_buffer.refractionObject.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniform_stage_buffer.refractionObject.model =
+				glm::scale(this->uniform_stage_buffer.refractionObject.model, glm::vec3(10.95f));
+			this->uniform_stage_buffer.refractionObject.view = this->camera.getViewMatrix();
+			this->uniform_stage_buffer.refractionObject.lookDirection =
 				glm::vec4(this->camera.getLookDirection().x, this->camera.getLookDirection().z,
 						  this->camera.getLookDirection().y, 0);
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.position =
+			this->uniform_stage_buffer.refractionObject.modelViewProjection =
+				this->uniform_stage_buffer.refractionObject.proj * this->uniform_stage_buffer.refractionObject.view *
+				this->uniform_stage_buffer.refractionObject.model;
+			this->uniform_stage_buffer.refractionObject.position =
 				glm::vec4(this->camera.getPosition().x, this->camera.getPosition().z, this->camera.getPosition().y, 0);
 
-			/*  */
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
+			/*	*/
+			{
+				glm::quat rotation = glm::quatLookAt(glm::normalize(this->camera.getLookDirection()),
+													 glm::normalize(this->camera.getUp()));
+				this->uniform_stage_buffer.skybox.proj = this->uniform_stage_buffer.refractionObject.proj;
+				this->uniform_stage_buffer.skybox.modelViewProjection =
+					(this->uniform_stage_buffer.skybox.proj * glm::mat4_cast(rotation));
+			}
+
+			/*  */ glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			uint8_t *uniformPointer = static_cast<uint8_t *>(glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT));
+
+			/*	*/
+			memcpy(uniformPointer + 0, &this->uniform_stage_buffer.skybox, sizeof(this->uniform_stage_buffer.skybox));
+			/*	*/
+			memcpy(uniformPointer + this->oceanUniformSize, &this->uniform_stage_buffer.refractionObject,
+				   sizeof(this->uniform_stage_buffer.refractionObject));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	}; // namespace glsample
@@ -318,13 +366,13 @@ namespace glsample {
 	  public:
 		RefrectionGLSample() : GLSample<Refrection>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path",
+					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::RefrectionGLSample sample;

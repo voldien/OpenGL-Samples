@@ -47,6 +47,8 @@ namespace glsample {
 
 		} uniformBlockSSAO;
 
+		// TODO combine uniform buffer stage.
+
 		/*	*/
 		GeometryObject plan;
 		std::vector<GeometryObject> refObj;
