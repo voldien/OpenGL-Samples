@@ -256,7 +256,8 @@ namespace glsample {
 					int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 					if (frstat != GL_FRAMEBUFFER_COMPLETE) {
 						/*  Delete  */
-						throw RuntimeException("Failed to create framebuffer, {}", (const char*)glewGetErrorString(frstat));
+						throw RuntimeException("Failed to create framebuffer, {}",
+											   (const char *)glewGetErrorString(frstat));
 					}
 				}
 
@@ -296,7 +297,7 @@ namespace glsample {
 				for (size_t i = 0; i < this->nrPointLights; i++) {
 
 					/*	*/
-					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_shadow_index, this->uniform_buffer,
+					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 									  ((this->getFrameCount() % this->nrUniformBuffer) * this->nrPointLights + i) *
 										  this->uniformBufferSize,
 									  this->uniformBufferSize);

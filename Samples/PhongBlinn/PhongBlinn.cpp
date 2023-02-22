@@ -228,16 +228,16 @@ namespace glsample {
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
-
-			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
+
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
 				glUseProgram(this->phongblinn_program);
 
 				glDisable(GL_CULL_FACE);

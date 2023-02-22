@@ -57,8 +57,8 @@ namespace glsample {
 		unsigned int instance_model_buffer;
 
 		/*	*/
-		unsigned int uniform_buffer_index;
-		unsigned int uniform_instance_buffer_index;
+		unsigned int uniform_buffer_index = 0;
+		unsigned int uniform_instance_buffer_index = 0;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_instance_buffer_binding = 1;
 		unsigned int uniform_mvp_buffer;
@@ -131,12 +131,15 @@ namespace glsample {
 
 			/*	Setup instance graphic pipeline.	*/
 			glUseProgram(this->instance_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->instance_program, "DiffuseTexture"), 0);
+			/*	*/
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->instance_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->instance_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			/*	*/
 			this->uniform_instance_buffer_index =
 				glGetUniformBlockIndex(this->instance_program, "UniformInstanceBlock");
+			glUniformBlockBinding(this->instance_program, this->uniform_instance_buffer_index,
+								  this->uniform_instance_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
@@ -153,7 +156,7 @@ namespace glsample {
 			/*	*/
 			GLint uniformMaxSize;
 			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
-			this->instanceBatch = uniformMaxSize / sizeof(glm::mat4);
+			this->instanceBatch = 64; ////:; uniformMaxSize / sizeof(glm::mat4);
 
 			/*	*/
 			this->uniformInstanceSize =
@@ -227,12 +230,13 @@ namespace glsample {
 			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_mvp_buffer,
-							  (getFrameCount() % this->nrUniformBuffers) * this->uniformSize, this->uniformSize);
+			/*	Bind MVP Uniform Buffer.	*/
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_mvp_buffer,
+							  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformSize, this->uniformSize);
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_index, this->uniform_instance_buffer,
-							  (getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize,
+			/*	Bind Model Instance Uniform Buffer.	*/
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_binding, this->uniform_instance_buffer,
+							  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize,
 							  this->uniformInstanceSize);
 
 			// TODO add support for batching for limit amount of uniform buffers.

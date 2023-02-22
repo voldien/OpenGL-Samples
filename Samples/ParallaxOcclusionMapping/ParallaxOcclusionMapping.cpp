@@ -7,12 +7,15 @@
 
 namespace glsample {
 
-	class ParallexMap : public GLSampleWindow {
+	class ParallaxOcclusionMapping : public GLSampleWindow {
 	  public:
-		ParallexMap() : GLSampleWindow() {
-			this->setTitle("ParallexMap");
-			this->parallexMapSettingComponent = std::make_shared<ParallexMapSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->parallexMapSettingComponent);
+		ParallaxOcclusionMapping() : GLSampleWindow() {
+			this->setTitle("ParallaxOcclusionMapping");
+			this->parallaxMapSettingComponent = std::make_shared<ParallaxMapSettingComponent>(this->uniformStageBuffer);
+			this->addUIComponent(this->parallaxMapSettingComponent);
+
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct UniformBufferBlock {
@@ -28,9 +31,11 @@ namespace glsample {
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
+			glm::vec3 viewPos = glm::vec3(0);
+
 			float strength = 1.0f;
 
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		/*	*/
 		GeometryObject plan;
@@ -51,10 +56,10 @@ namespace glsample {
 
 		CameraController camera;
 
-		class ParallexMapSettingComponent : public nekomimi::UIComponent {
+		class ParallaxMapSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			ParallexMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			ParallaxMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("ParallexMap Settings");
 			}
 			virtual void draw() override {
@@ -73,10 +78,10 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<ParallexMapSettingComponent> parallexMapSettingComponent;
+		std::shared_ptr<ParallaxMapSettingComponent> parallaxMapSettingComponent;
 
-		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert";
-		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag";
+		const std::string vertexShaderPath = "Shaders/parallaxmap/parallaxmap.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/parallaxmap/parallaxmap.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -97,8 +102,9 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			/*	*/
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
-			const std::string parallexTexturePath = this->getResult()["parallex-texture"].as<std::string>();
+			const std::string parallexTexturePath = this->getResult()["parallax-texture"].as<std::string>();
 
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_binary =
@@ -119,7 +125,8 @@ namespace glsample {
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->parallexMapping_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "ParallexTexture"), 1);
-			glUniformBlockBinding(this->parallexMapping_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->parallexMapping_program, this->uniform_buffer_index,
+								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
@@ -187,20 +194,20 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	*/
-			this->uniformBuffer.proj =
+			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
-
-			/*	*/
 			glViewport(0, 0, width, height);
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
 				glUseProgram(this->parallexMapping_program);
 
 				glDisable(GL_CULL_FACE);
@@ -214,7 +221,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->parallex_texture);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, parallexMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, parallaxMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
@@ -228,32 +235,33 @@ namespace glsample {
 			this->camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(0.0f * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model =
+				glm::rotate(this->uniformStageBuffer.model, glm::radians(0.0f * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
+			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+			this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
+			this->uniformStageBuffer.viewPos = this->camera.getPosition();
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 
-	class ParallexMapGLSample : public GLSample<ParallexMap> {
+	class ParallaxOcclusionMappingGLSample : public GLSample<ParallaxOcclusionMapping> {
 	  public:
-		ParallexMapGLSample() : GLSample<ParallexMap>() {}
+		ParallaxOcclusionMappingGLSample() : GLSample<ParallaxOcclusionMapping>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
-				"P,parallex-texture", "Parallex Texture Path",
-				cxxopts::value<std::string>()->default_value("asset/texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
+				"P,parallax-texture", "Parallax Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/diffuse.png"));
 		}
 	};
 
@@ -261,7 +269,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::ParallexMapGLSample sample;
+		glsample::ParallaxOcclusionMappingGLSample sample;
 
 		sample.run(argc, argv);
 
