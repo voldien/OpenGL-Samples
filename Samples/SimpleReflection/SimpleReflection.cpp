@@ -1,4 +1,3 @@
-
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -12,16 +11,16 @@ namespace glsample {
 	  public:
 		SimpleReflection() : GLSampleWindow() {
 			this->setTitle("Simple Reflection");
-			this->simpleOceanSettingComponent = std::make_shared<SimpleOceanSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->simpleOceanSettingComponent);
+			this->simpleReflectionSettingComponent = std::make_shared<SimpleOceanSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->simpleReflectionSettingComponent);
 		}
 
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 			/*light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
@@ -83,7 +82,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<SimpleOceanSettingComponent> simpleOceanSettingComponent;
+		std::shared_ptr<SimpleOceanSettingComponent> simpleReflectionSettingComponent;
 
 		CameraController camera;
 
@@ -392,7 +391,7 @@ namespace glsample {
 				glDisable(GL_DEPTH_TEST);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, simpleReflectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);

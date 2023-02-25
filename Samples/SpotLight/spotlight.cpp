@@ -18,7 +18,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct spot_light_t {
+		typedef struct spot_light_source_t {
 			glm::vec4 position;
 			glm::vec4 direction;
 			glm::vec4 color;
@@ -30,7 +30,7 @@ namespace glsample {
 			float qudratic_attenuation;
 			float padd0;
 			float padd1;
-		} SpotLightU;
+		} SpotLightSource;
 
 		static const size_t nrSpotLights = 4;
 		struct UniformBufferBlock {
@@ -43,7 +43,7 @@ namespace glsample {
 			/*	light source.	*/
 			glm::vec4 ambientLight = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
 
-			SpotLightU spotLights[nrSpotLights];
+			SpotLightSource spotLights[nrSpotLights];
 		} uniformStageBuffer;
 
 		/*	*/
@@ -98,8 +98,8 @@ namespace glsample {
 		};
 		std::shared_ptr<SpotLightSettingComponent> spotLightSettingComponent;
 
-		const std::string vertexShaderPath = "Shaders/spotlight/spotlight.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/spotlight/spotlight.frag.spv";
+		const std::string vertexSpotlightShaderPath = "Shaders/spotlight/spotlight.vert.spv";
+		const std::string fragmentSpotlightShaderPath = "Shaders/spotlight/spotlight.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -118,13 +118,14 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			const std::string diffuseTexturePath = "asset/diffuse.png";
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			/*	Load shader source.	*/
 			std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				IOUtil::readFileData<uint32_t>(this->vertexSpotlightShaderPath, this->getFileSystem());
 			std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+				IOUtil::readFileData<uint32_t>(this->fragmentSpotlightShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -226,17 +227,17 @@ namespace glsample {
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
-
-			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			/*	Render.	*/
 			{
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
 				glUseProgram(this->pointLight_program);
 
 				glDisable(GL_CULL_FACE);
@@ -254,7 +255,7 @@ namespace glsample {
 
 		virtual void update() override {
 			/*	Update Camera.	*/
-			camera.update(getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
@@ -274,11 +275,13 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+
 	class SpotLightGLSample : public GLSample<SpotLight> {
 	  public:
 		SpotLightGLSample() : GLSample<SpotLight>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}
 	};
 

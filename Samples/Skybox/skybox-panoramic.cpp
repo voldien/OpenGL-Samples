@@ -151,34 +151,37 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
-
 			/*	*/
 			glViewport(0, 0, width, height);
-
 			/*	*/
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			glDisable(GL_CULL_FACE);
-			glDisable(GL_BLEND);
-			glDisable(GL_DEPTH_TEST);
+			{
 
-			/*	Optional - to display wireframe.	*/
-			glPolygonMode(GL_FRONT_AND_BACK, skyboxSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize,
+								  this->uniformSize);
 
-			/*	*/
-			glUseProgram(this->skybox_program);
+				glDisable(GL_CULL_FACE);
+				glDisable(GL_BLEND);
+				glDisable(GL_DEPTH_TEST);
 
-			/*	*/
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, skyboxSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-			/*	Draw triangle.	*/
-			glBindVertexArray(this->SkyboxCube.vao);
-			glDrawElements(GL_TRIANGLES, this->SkyboxCube.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-			glBindVertexArray(0);
+				/*	*/
+				glUseProgram(this->skybox_program);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
+
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->SkyboxCube.vao);
+				glDrawElements(GL_TRIANGLES, this->SkyboxCube.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+			}
 		}
 
 		virtual void update() override {

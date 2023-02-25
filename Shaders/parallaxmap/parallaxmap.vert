@@ -10,6 +10,7 @@ layout(location = 0) out vec3 vertex;
 layout(location = 1) out vec2 UV;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
+layout(location = 4) out vec3 FragIN_bitangent;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -25,7 +26,9 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 ambientColor;
 	/*	*/
 	vec3 CameraEye;
+	
 	float DisplacementHeight;
+	float normalStrength;
 }
 ubo;
 
@@ -35,6 +38,11 @@ void main() {
 	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
 
-	// TBN
 	UV = TextureCoord;
+
+	// TBN
+	vec3 Mnormal = normalize(normal);
+	vec3 Ttangent = normalize(tangent);
+	Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
+	FragIN_bitangent = cross(Ttangent, Mnormal);
 }

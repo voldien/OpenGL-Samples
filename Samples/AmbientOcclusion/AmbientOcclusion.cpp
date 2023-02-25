@@ -71,6 +71,7 @@ namespace glsample {
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_ssao_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
+		unsigned int uniform_ssao_buffer_binding = 1;
 		unsigned int uniform_buffer;
 		unsigned int uniform_ssao_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -160,7 +161,8 @@ namespace glsample {
 			glUniform1iARB(glGetUniformLocation(this->ssao_program, "NormalTexture"), 3);
 			glUniform1iARB(glGetUniformLocation(this->ssao_program, "DepthTexture"), 4);
 			glUniform1iARB(glGetUniformLocation(this->ssao_program, "NormalRandomize"), 5);
-			glUniformBlockBinding(this->ssao_program, this->uniform_ssao_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->ssao_program, this->uniform_ssao_buffer_index,
+								  this->uniform_ssao_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup graphic multipass pipeline.	*/
@@ -387,7 +389,7 @@ namespace glsample {
 			this->uniformBlockSSAO.proj = this->uniformBlock.proj;
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
@@ -417,7 +419,7 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_index, this->uniform_ssao_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_binding, this->uniform_ssao_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
 							  this->uniformSSAOBufferSize);
 

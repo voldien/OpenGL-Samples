@@ -148,9 +148,9 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			const std::string diffuseTexturePath = "asset/diffuse.png";
-			const std::string modelPath = "asset/sponza/sponza.obj";
 
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 			/*	*/
 			const std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
@@ -330,7 +330,7 @@ namespace glsample {
 			{
 
 				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  ((this->getFrameCount() % this->nrUniformBuffer) * this->nrPointLights) *
 									  this->uniformBufferSize,
 								  this->uniformBufferSize);

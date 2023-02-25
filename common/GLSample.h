@@ -17,19 +17,21 @@ template <class T> class GLSample : public glsample::GLSampleSession {
 	virtual void run(int argc, const char **argv) override {
 
 		/*	Parse argument.	*/
-		const std::string helperInfo = "OpenGL Sample\n"
+		const std::string helperInfo = "OpenGL Sample: " + fragcore::SystemInfo::getApplicationName() +
+									   "\n"
 									   ""
 									   "";
 
 		/*	Default common options between all samples.	*/
-		cxxopts::Options options("OpenGL Sample", helperInfo);
-		cxxopts::OptionAdder &addr = options.add_options("OpenGL-Samples")("h,help", "helper information.")(
+		cxxopts::Options options("OpenGL Sample: " + fragcore::SystemInfo::getApplicationName(), helperInfo);
+		cxxopts::OptionAdder &addr = options.add_options(fragcore::SystemInfo::getApplicationName())("h,help", "helper information.")(
 			"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value("true"))(
 			"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
 			"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
 			"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
 			"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
-			"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."));
+			"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."))(
+			"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);

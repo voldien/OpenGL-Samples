@@ -112,8 +112,8 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			const std::string diffuseTexturePath = getResult()["texture"].as<std::string>();
-			const std::string modelPath = getResult()["model"].as<std::string>();
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			/*	Load shader source.	*/
 			std::vector<uint32_t> instance_vertex_binary =

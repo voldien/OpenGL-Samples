@@ -16,20 +16,20 @@ namespace glsample {
 			this->setTitle("Blur");
 
 			this->ambientOcclusionSettingComponent =
-				std::make_shared<AmbientOcclusionSettingComponent>(this->uniformBlockSSAO);
+				std::make_shared<BlurSettingComponent>(this->uniformStageBlockBlur);
 			this->addUIComponent(this->ambientOcclusionSettingComponent);
 		}
 
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
-		} uniformBlock;
+		} uniformStageBlock;
 
-		struct UniformSSAOBufferBlock {
+		struct UniformBlurBufferBlock {
 			glm::mat4 proj;
 			int samples = 4;
 			float radius = 1.5f;
@@ -41,7 +41,7 @@ namespace glsample {
 
 			glm::vec3 kernel[64];
 
-		} uniformBlockSSAO;
+		} uniformStageBlockBlur;
 
 		/*	*/
 		GeometryObject plan;
@@ -70,13 +70,13 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
-		size_t uniformSSAOBufferSize = sizeof(UniformSSAOBufferBlock);
+		size_t uniformBlurBufferSize = sizeof(UniformBlurBufferBlock);
 
 		CameraController camera;
 
 		const std::string modelPath = "asset/sponza/sponza.obj";
 
-		class AmbientOcclusionSettingComponent : public nekomimi::UIComponent {
+		class BlurSettingComponent : public nekomimi::UIComponent {
 
 		  public:
 			AmbientOcclusionSettingComponent(struct UniformSSAOBufferBlock &uniform) : uniform(uniform) {
@@ -157,7 +157,7 @@ namespace glsample {
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
-			this->uniformSSAOBufferSize = fragcore::Math::align(this->uniformSSAOBufferSize, (size_t)minMapBufferSize);
+			this->uniformBlurBufferSize = fragcore::Math::align(this->uniformBlurBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -168,7 +168,7 @@ namespace glsample {
 			/*	*/
 			glGenBuffers(1, &this->uniform_ssao_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSSAOBufferSize * this->nrUniformBuffer, nullptr,
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBlurBufferSize * this->nrUniformBuffer, nullptr,
 						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -231,7 +231,7 @@ namespace glsample {
 				float scale = (float)i / 64.0;
 				scale = fragcore::Math::lerp(0.1f, 1.0f, scale * scale);
 				sample *= scale;
-				uniformBlockSSAO.kernel[i] = sample; // .push_back(sample);
+				uniformStageBlockBlur.kernel[i] = sample; // .push_back(sample);
 			}
 
 			/*	Create white texture.	*/
@@ -361,12 +361,12 @@ namespace glsample {
 			getSize(&width, &height);
 
 			/*	*/
-			this->uniformBlockSSAO.cameraNear = 0.15f;
-			this->uniformBlockSSAO.cameraFar = 1000.0f;
-			this->uniformBlockSSAO.screen = glm::vec2(width, height);
-			this->uniformBlock.proj =
+			this->uniformStageBlockBlur.cameraNear = 0.15f;
+			this->uniformStageBlockBlur.cameraFar = 1000.0f;
+			this->uniformStageBlockBlur.screen = glm::vec2(width, height);
+			this->uniformStageBlock.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-			this->uniformBlockSSAO.proj = this->uniformBlock.proj;
+			this->uniformStageBlockBlur.proj = this->uniformStageBlock.proj;
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -400,8 +400,8 @@ namespace glsample {
 			}
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_index, this->uniform_ssao_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
-							  this->uniformSSAOBufferSize);
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBlurBufferSize,
+							  this->uniformBlurBufferSize);
 
 			/*	Draw post processing effect - Screen Space Ambient Occlusion.	*/
 			{
@@ -449,29 +449,29 @@ namespace glsample {
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBlock.model = glm::mat4(1.0f);
-			this->uniformBlock.model =
-				glm::rotate(this->uniformBlock.model, glm::radians(elapsedTime * 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBlock.model = glm::scale(this->uniformBlock.model, glm::vec3(10.95f));
-			this->uniformBlock.view = this->camera.getViewMatrix();
-			this->uniformBlock.modelViewProjection =
-				this->uniformBlock.proj * this->uniformBlock.view * this->uniformBlock.model;
+			this->uniformStageBlock.model = glm::mat4(1.0f);
+			this->uniformStageBlock.model = glm::rotate(this->uniformStageBlock.model, glm::radians(elapsedTime * 0.0f),
+														glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformStageBlock.model = glm::scale(this->uniformStageBlock.model, glm::vec3(10.95f));
+			this->uniformStageBlock.view = this->camera.getViewMatrix();
+			this->uniformStageBlock.modelViewProjection =
+				this->uniformStageBlock.proj * this->uniformStageBlock.view * this->uniformStageBlock.model;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBlock, sizeof(uniformBlock));
+			memcpy(uniformPointer, &this->uniformStageBlock, sizeof(uniformStageBlock));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
 			void *uniformSSAOPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
-				this->uniformSSAOBufferSize,
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBlurBufferSize,
+				this->uniformBlurBufferSize,
 				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformSSAOPointer, &this->uniformBlockSSAO, sizeof(uniformBlockSSAO));
+			memcpy(uniformSSAOPointer, &this->uniformStageBlockBlur, sizeof(uniformStageBlockBlur));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

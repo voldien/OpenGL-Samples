@@ -24,9 +24,12 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 
 			/*	light source.	*/
+
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+
+			/*	*/
 			float normalLength = 1.0f;
 
 		} uniformBuffer;
@@ -109,7 +112,8 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_normal_binary =
@@ -228,6 +232,7 @@ namespace glsample {
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
+			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -265,6 +270,7 @@ namespace glsample {
 				glBlendEquation(GL_FUNC_ADD);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+				/*	*/
 				glBindVertexArray(this->plan.vao);
 				if (this->normalSettingComponent->showTriangleNormal) {
 					glUseProgram(this->normal_triangle_program);
@@ -310,6 +316,7 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+
 	class NormalGLSample : public GLSample<Normal> {
 	  public:
 		NormalGLSample() : GLSample<Normal>() {}

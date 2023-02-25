@@ -33,7 +33,8 @@ namespace glsample {
 
 			glm::vec3 viewPos = glm::vec3(0);
 
-			float strength = 1.0f;
+			float displacement_scale = 1.0f;
+			float normalStrength = 1.0f;
 
 		} uniformStageBuffer;
 
@@ -42,6 +43,7 @@ namespace glsample {
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
+		unsigned int normal_texture;
 		unsigned int parallex_texture;
 
 		/*	*/
@@ -68,7 +70,9 @@ namespace glsample {
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Parallex Setting");
-				ImGui::DragFloat("Strength", &this->uniform.strength);
+				ImGui::DragFloat("Displacement", &this->uniform.displacement_scale);
+				ImGui::TextUnformatted("Normal Setting");
+				ImGui::DragFloat("Strength", &this->uniform.normalStrength);
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -104,6 +108,7 @@ namespace glsample {
 
 			/*	*/
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string normalTexturePath = this->getResult()["normal-texture"].as<std::string>();
 			const std::string parallexTexturePath = this->getResult()["parallax-texture"].as<std::string>();
 
 			/*	Load shader source.	*/
@@ -124,7 +129,8 @@ namespace glsample {
 			glUseProgram(this->parallexMapping_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->parallexMapping_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "ParallexTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "NormalTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "ParallexTexture"), 2);
 			glUniformBlockBinding(this->parallexMapping_program, this->uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -132,6 +138,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
+			this->normal_texture = textureImporter.loadImage2D(normalTexturePath);
 			this->parallex_texture = textureImporter.loadImage2D(parallexTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -218,6 +225,9 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + 1);
+				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
+				/*	*/
+				glActiveTexture(GL_TEXTURE0 + 2);
 				glBindTexture(GL_TEXTURE_2D, this->parallex_texture);
 
 				/*	Optional - to display wireframe.	*/
@@ -259,9 +269,12 @@ namespace glsample {
 	  public:
 		ParallaxMapGLSample() : GLSample<ParallaxMap>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
+			options("T,texture", "Texture Path",
+					cxxopts::value<std::string>()->default_value("asset/Brick/Brick_Wall_010_COLOR.jpg"))(
 				"P,parallax-texture", "Parallax Texture Path",
-				cxxopts::value<std::string>()->default_value("asset/diffuse.png"));
+				cxxopts::value<std::string>()->default_value("asset/Brick/Brick_Wall_010_DISP.png"))(
+				"N,normal-texture", "Normal Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/Brick/Brick_Wall_010_NORM.jpg"));
 		}
 	};
 

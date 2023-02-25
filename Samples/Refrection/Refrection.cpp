@@ -47,7 +47,6 @@ namespace glsample {
 		struct UniformBufferBlock {
 			UniformSkyBoxBufferBlock skybox;
 			UniformRefrectionBufferBlock refractionObject;
-
 		} uniform_stage_buffer;
 
 		/*	*/
@@ -62,9 +61,8 @@ namespace glsample {
 		unsigned int skybox_program;
 
 		/*  Uniform buffers.    */
-		unsigned int uniform_refrection_buffer_index;
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
+		unsigned int uniform_skybox_buffer_binding = 1;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
@@ -77,6 +75,7 @@ namespace glsample {
 			RefrectionSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Refrection Settings");
 			}
+
 			virtual void draw() override {
 				ImGui::ColorEdit4("Light", &this->uniform.refractionObject.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
@@ -142,17 +141,18 @@ namespace glsample {
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->refrection_program);
-			this->uniform_refrection_buffer_index =
+			int uniform_refrection_buffer_index =
 				glGetUniformBlockIndex(this->refrection_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->refrection_program, "ReflectionTexture"), 0);
-			glUniformBlockBinding(this->refrection_program, this->uniform_refrection_buffer_index,
+			glUniformBlockBinding(this->refrection_program, uniform_refrection_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
 			glUseProgram(this->skybox_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
+			int uniform_skybox_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_skybox_buffer_index,
+								  this->uniform_skybox_buffer_binding);
 			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
@@ -268,7 +268,7 @@ namespace glsample {
 			/*  Refrection. */
 			{
 
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
 									  this->oceanUniformSize,
 								  this->oceanUniformSize);
@@ -290,7 +290,7 @@ namespace glsample {
 
 			/*	Skybox. */
 			{
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_skybox_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize + 0,
 								  this->skyboxUniformSize);
 

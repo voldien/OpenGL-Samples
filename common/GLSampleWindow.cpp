@@ -121,26 +121,28 @@ void GLSampleWindow::captureScreenShot() {
 
 	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-	// glDeleteBuffers(1, &pboBuffer);
 
-	/*	*/
-	Image image(screen_grab_width_size, screen_grab_height_size, TextureFormat::RGBA32);
-	image.setPixelData(pixelData, screen_grab_width_size * screen_grab_height_size * 4);
-	ImageLoader loader;
+	/*	offload the image process and saving to filesystem.	*/
+	std::thread process_thread([screen_grab_width_size, screen_grab_height_size, pixelData]() {
+		/*	*/
+		Image image(screen_grab_width_size, screen_grab_height_size, TextureFormat::RGBA32);
+		image.setPixelData(pixelData, screen_grab_width_size * screen_grab_height_size * 4);
+		ImageLoader loader;
 
-	// Application and time
+		// Application and time
+		time_t rawtime;
+		struct tm *timeinfo;
+		char buffer[80];
 
-	time_t rawtime;
-	struct tm *timeinfo;
-	char buffer[80];
+		std::time(&rawtime);
+		timeinfo = localtime(&rawtime);
 
-	std::time(&rawtime);
-	timeinfo = localtime(&rawtime);
+		strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", timeinfo);
+		std::string str(buffer);
 
-	strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", timeinfo);
-	std::string str(buffer);
-
-	loader.saveImage(SystemInfo::getAppliationName() + "-screenshot-" + str + ".png", image);
+		loader.saveImage(SystemInfo::getApplicationName() + "-screenshot-" + str + ".png", image);
+	});
+	process_thread.detach();
 }
 
 unsigned int GLSampleWindow::getShaderVersion() const {

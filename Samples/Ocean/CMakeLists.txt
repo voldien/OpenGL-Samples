@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Ocean glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(Ocean glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(Ocean PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS Ocean DESTINATION bin)

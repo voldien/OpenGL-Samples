@@ -14,9 +14,9 @@ namespace glsample {
 		BasicShadowMapping() : GLSampleWindow() {
 			this->setTitle("ShadowMapping");
 			this->shadowSettingComponent =
-				std::make_shared<BasicShadowMapSettingComponent>(this->uniform, this->shadowTexture);
+				std::make_shared<BasicShadowMapSettingComponent>(this->uniformStageBuffer, this->shadowTexture);
 			this->addUIComponent(this->shadowSettingComponent);
-			
+
 			/*	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
@@ -38,7 +38,7 @@ namespace glsample {
 
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
-		} uniform;
+		} uniformStageBuffer;
 
 		/*	*/
 		unsigned int shadowFramebuffer;
@@ -55,9 +55,8 @@ namespace glsample {
 		unsigned int shadow_program;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
-		unsigned int uniform_buffer_shadow_index;
-		unsigned int uniform_buffer_binding = 0;
+		unsigned int uniform_shadow_buffer_binding = 0;
+		unsigned int uniform_graphic_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
@@ -94,7 +93,6 @@ namespace glsample {
 		};
 		std::shared_ptr<BasicShadowMapSettingComponent> shadowSettingComponent;
 
-		const std::string modelPath = "asset/sponza/sponza.obj";
 		/*	*/
 		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";
 		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
@@ -117,7 +115,10 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			std::string diffuseTexturePath = "asset/diffuse.png";
+
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
+
 			/*	*/
 			const std::vector<uint32_t> vertex_source =
 				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
@@ -145,17 +146,17 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->shadow_program);
-			this->uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_shadow_index,
-								  this->uniform_buffer_binding);
+			int uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->shadow_program, uniform_buffer_shadow_index,
+								  this->uniform_shadow_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
 			glUseProgram(this->graphic_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_graphic_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -224,12 +225,8 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_shadow_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
+			this->uniformStageBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			{
 
@@ -240,14 +237,20 @@ namespace glsample {
 					glm::ortho(-this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
 							   -this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
 							   near_plane, far_plane);
-				glm::mat4 lightView = glm::lookAt(
-					glm::vec3(-2.0f, 4.0f, -1.0f),
-					glm::vec3(this->uniform.direction.x, this->uniform.direction.y, this->uniform.direction.z),
-					glm::vec3(0.0f, 1.0f, 0.0f));
+				glm::mat4 lightView =
+					glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+								glm::vec3(this->uniformStageBuffer.direction.x, this->uniformStageBuffer.direction.y,
+										  this->uniformStageBuffer.direction.z),
+								glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
 				glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
-				this->uniform.lightModelProject = lightSpaceMatrix;
+				this->uniformStageBuffer.lightModelProject = lightSpaceMatrix;
+
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_shadow_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
 
@@ -271,7 +274,7 @@ namespace glsample {
 
 			{
 				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_graphic_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
@@ -312,18 +315,19 @@ namespace glsample {
 			camera.update(getTimer().deltaTime());
 
 			/*	*/
-			this->uniform.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
 			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
-			this->uniform.view = this->camera.getViewMatrix();
-			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
-			this->uniform.cameraPosition = this->camera.getPosition();
+			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+			this->uniformStageBuffer.cameraPosition = this->camera.getPosition();
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniform, sizeof(uniform));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
@@ -332,7 +336,8 @@ namespace glsample {
 	  public:
 		ShadowMappingGLSample() : GLSample<BasicShadowMapping>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};
 

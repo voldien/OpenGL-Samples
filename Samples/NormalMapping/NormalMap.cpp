@@ -7,11 +7,11 @@
 
 namespace glsample {
 
-	class BasicNormalMap : public GLSampleWindow {
+	class NormalMapping : public GLSampleWindow {
 	  public:
-		BasicNormalMap() : GLSampleWindow() {
-			this->setTitle("NormalMap");
-			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformBuffer);
+		NormalMapping() : GLSampleWindow() {
+			this->setTitle("NormalMapping");
+			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->normalMapSettingComponent);
 		}
 
@@ -34,7 +34,7 @@ namespace glsample {
 			/*	Normal attirbutes.	*/
 			float normalStrength = 1.0f;
 
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		/*	*/
 		GeometryObject plan;
@@ -105,6 +105,7 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string normalTexturePath = this->getResult()["normal-texture"].as<std::string>();
 
@@ -196,13 +197,8 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	*/
-			this->uniformBuffer.proj =
+			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -210,6 +206,11 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
 				glUseProgram(this->normalMapping_program);
 
 				glDisable(GL_CULL_FACE);
@@ -239,33 +240,34 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model = glm::rotate(
+				this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
+			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+			this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 
-	class NormalMapGLSample : public GLSample<BasicNormalMap> {
+	class NormalMappingGLSample : public GLSample<NormalMapping> {
 	  public:
-		NormalMapGLSample() : GLSample<BasicNormalMap>() {}
+		NormalMappingGLSample() : GLSample<NormalMapping>() {}
 
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
 				"N,normal-texture", "NormalMap Path",
-				cxxopts::value<std::string>()->default_value("asset/normalmap.png"));
+				cxxopts::value<std::string>()->default_value("asset/normalmap.png"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}
 	};
 
@@ -273,7 +275,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::NormalMapGLSample sample;
+		glsample::NormalMappingGLSample sample;
 
 		sample.run(argc, argv);
 

@@ -11,7 +11,7 @@ namespace glsample {
 	  public:
 		Glow() : GLSampleWindow() {
 			this->setTitle("Glow");
-			this->glowSettingComponent = std::make_shared<GlowSettingComponent>(this->uniformBuffer);
+			this->glowSettingComponent = std::make_shared<GlowSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->glowSettingComponent);
 		}
 
@@ -49,7 +49,7 @@ namespace glsample {
 			UniformGlowBufferBlock glow;
 			UniformObjectBufferBlock ocean;
 
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		/*	*/
 		unsigned int HDRFramebuffer;
@@ -356,7 +356,7 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->uniformBuffer.ocean.proj =
+			this->uniformStageBuffer.ocean.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
@@ -433,23 +433,23 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBuffer.ocean.model = glm::mat4(1.0f);
-			this->uniformBuffer.ocean.model =
-				glm::rotate(this->uniformBuffer.ocean.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->uniformBuffer.ocean.model = glm::scale(this->uniformBuffer.ocean.model, glm::vec3(10.95f));
-			this->uniformBuffer.ocean.view = this->camera.getViewMatrix();
-			this->uniformBuffer.ocean.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
+			this->uniformStageBuffer.ocean.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.ocean.model =
+				glm::rotate(this->uniformStageBuffer.ocean.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniformStageBuffer.ocean.model = glm::scale(this->uniformStageBuffer.ocean.model, glm::vec3(10.95f));
+			this->uniformStageBuffer.ocean.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.ocean.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
 
-			this->uniformBuffer.ocean.modelViewProjection =
-				this->uniformBuffer.ocean.proj * this->uniformBuffer.ocean.view * this->uniformBuffer.ocean.model;
-			this->uniformBuffer.ocean.position = glm::vec4(this->camera.getPosition(), 0);
+			this->uniformStageBuffer.ocean.modelViewProjection =
+				this->uniformStageBuffer.ocean.proj * this->uniformStageBuffer.ocean.view * this->uniformStageBuffer.ocean.model;
+			this->uniformStageBuffer.ocean.position = glm::vec4(this->camera.getPosition(), 0);
 
 			/*  */
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

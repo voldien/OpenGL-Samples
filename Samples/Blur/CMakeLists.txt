@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Blur glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(Blur glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(Blur PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS Blur DESTINATION bin)

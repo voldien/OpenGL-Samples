@@ -12,7 +12,8 @@ namespace glsample {
 	  public:
 		BasicTessellation() : GLSampleWindow() {
 			this->setTitle("Basic Tessellation");
-			this->tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->uniformBuffer);
+			this->tessellationSettingComponent =
+				std::make_shared<TessellationSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->tessellationSettingComponent);
 		}
 
@@ -33,7 +34,7 @@ namespace glsample {
 			float gDisplace = 1.0f;
 			float tessLevel = 1.0f;
 
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		class TessellationSettingComponent : public nekomimi::UIComponent {
 
@@ -196,40 +197,43 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			this->uniformBuffer.proj =
+			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
 			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			
+			{
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize,
+								  this->uniformSize);
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
+				glUseProgram(this->tessellation_program);
 
-			glUseProgram(this->tessellation_program);
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-			/*	*/
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
+				/*	*/
+				glActiveTexture(GL_TEXTURE0 + 1);
+				glBindTexture(GL_TEXTURE_2D, this->heightmap_texture);
 
-			/*	*/
-			glActiveTexture(GL_TEXTURE0 + 1);
-			glBindTexture(GL_TEXTURE_2D, this->heightmap_texture);
+				glDisable(GL_CULL_FACE);
+				glEnable(GL_DEPTH_TEST);
 
-			glDisable(GL_CULL_FACE);
-			glEnable(GL_DEPTH_TEST);
+				/*	Draw triangle*/
+				glBindVertexArray(this->plan.vao);
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, this->tessellationSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-			/*	Draw triangle*/
-			glBindVertexArray(this->plan.vao);
-			/*	Optional - to display wireframe.	*/
-			glPolygonMode(GL_FRONT_AND_BACK, this->tessellationSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPatchParameteri(GL_PATCH_VERTICES, 3);
+				glDrawElements(GL_PATCHES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
-			glPatchParameteri(GL_PATCH_VERTICES, 3);
-			glDrawElements(GL_PATCHES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-
-			glBindVertexArray(0);
-			glUseProgram(0);
+				glBindVertexArray(0);
+				glUseProgram(0);
+			}
 		}
 
 		virtual void update() override {
@@ -237,22 +241,22 @@ namespace glsample {
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model = glm::translate(this->uniformBuffer.model, glm::vec3(0, 0, 10));
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, (float)Math::PI_half, glm::vec3(1, 0, 0));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10, 10, 10));
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model = glm::translate(this->uniformStageBuffer.model, glm::vec3(0, 0, 10));
+			this->uniformStageBuffer.model =
+				glm::rotate(this->uniformStageBuffer.model, (float)Math::PI_half, glm::vec3(1, 0, 0));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10, 10, 10));
 
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.eyePos = glm::vec4(this->camera.getPosition(), 0);
+			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+			this->uniformStageBuffer.eyePos = glm::vec4(this->camera.getPosition(), 0);
 
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
 				this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

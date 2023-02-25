@@ -43,7 +43,6 @@ namespace glsample {
 		unsigned int depthTexture;
 
 		/*	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -66,15 +65,19 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_buffer);
 
 			/*	*/
-			glDeleteVertexArrays(1, &this->refObj[0].vao);
-			glDeleteBuffers(1, &this->refObj[0].vbo);
-			glDeleteBuffers(1, &this->refObj[0].ibo);
+			for (size_t i = 0; i < this->refObj.size(); i++) {
+				if (glIsVertexArray(this->refObj[i].vao)) {
+					glDeleteVertexArrays(1, &this->refObj[i].vao);
+					glDeleteBuffers(1, &this->refObj[i].vbo);
+					glDeleteBuffers(1, &this->refObj[i].ibo);
+				}
+			}
 		}
 
 		virtual void Initialize() override {
 
-			std::string diffuseTexturePath = "asset/diffuse.png";
-			const std::string modelPath = "asset/sponza/sponza.obj";
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			/*	*/
 			const std::vector<uint32_t> vertex_binary =
@@ -92,7 +95,7 @@ namespace glsample {
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->multipass_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -105,7 +108,7 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = fragcore::Math::align(uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -179,7 +182,7 @@ namespace glsample {
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
@@ -217,7 +220,7 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glViewport(0, 0, width, height);
 
-			/*	*/
+			/*	Transfer each target to default framebuffer.	*/
 			const float halfW = (width / 2.0f);
 			const float halfH = (height / 2.0f);
 			for (size_t i = 0; i < this->multipass_textures.size(); i++) {
@@ -258,7 +261,8 @@ namespace glsample {
 	  public:
 		MultiPassGLSample() : GLSample<MultiPass>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};
 

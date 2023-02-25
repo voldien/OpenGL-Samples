@@ -125,7 +125,8 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			const std::string diffuseTexturePath = "asset/diffuse.png";
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string modelPath = getResult()["model"].as<std::string>();
 
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_source_binary =
@@ -280,7 +281,8 @@ namespace glsample {
 	  public:
 		PhongBlinnGLSample() : GLSample<PhongBlinn>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}
 	};
 

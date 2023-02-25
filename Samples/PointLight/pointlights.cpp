@@ -7,18 +7,18 @@
 
 namespace glsample {
 
-	class PointLights : public GLSampleWindow {
+	class PointLight : public GLSampleWindow {
 	  public:
-		PointLights() : GLSampleWindow() {
-			this->setTitle("PointLights");
-			this->pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->uniformBuffer);
+		PointLight() : GLSampleWindow() {
+			this->setTitle("PointLight");
+			this->pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->pointLightSettingComponent);
 			/*	*/
 			this->camera.setPosition(glm::vec3(18.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct point_light_t {
+		typedef struct point_light_source_t {
 			glm::vec3 position;
 			float range;
 			glm::vec4 color;
@@ -26,7 +26,7 @@ namespace glsample {
 			float constant_attenuation;
 			float linear_attenuation;
 			float qudratic_attenuation;
-		} PointLight;
+		} PointLightSource;
 
 		static const size_t nrPointLights = 4;
 		struct UniformBufferBlock {
@@ -39,8 +39,8 @@ namespace glsample {
 			/*	light source.	*/
 			glm::vec4 ambientLight = glm::vec4(0.075f, 0.075f, 0.075f, 1.0f);
 
-			PointLight pointLights[nrPointLights];
-		} uniformBuffer;
+			PointLightSource pointLights[nrPointLights];
+		} uniformStageBuffer;
 
 		/*	*/
 		GeometryObject plan;
@@ -66,6 +66,7 @@ namespace glsample {
 			PointLightSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Point Light Settings");
 			}
+
 			virtual void draw() override {
 
 				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
@@ -117,7 +118,8 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			/*	Load shader source.	*/
 			std::vector<uint32_t> vertex_source =
@@ -201,14 +203,14 @@ namespace glsample {
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
 			for (size_t i = 0; i < this->nrPointLights; i++) {
-				uniformBuffer.pointLights[i].range = 45.0f;
-				uniformBuffer.pointLights[i].position =
+				uniformStageBuffer.pointLights[i].range = 45.0f;
+				uniformStageBuffer.pointLights[i].position =
 					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(2.0f);
-				uniformBuffer.pointLights[i].color = colors[i];
-				uniformBuffer.pointLights[i].constant_attenuation = 1.0f;
-				uniformBuffer.pointLights[i].linear_attenuation = 0.1f;
-				uniformBuffer.pointLights[i].qudratic_attenuation = 0.05f;
-				uniformBuffer.pointLights[i].intensity = 1.0f;
+				uniformStageBuffer.pointLights[i].color = colors[i];
+				uniformStageBuffer.pointLights[i].constant_attenuation = 1.0f;
+				uniformStageBuffer.pointLights[i].linear_attenuation = 0.1f;
+				uniformStageBuffer.pointLights[i].qudratic_attenuation = 0.05f;
+				uniformStageBuffer.pointLights[i].intensity = 1.0f;
 			}
 		}
 
@@ -217,13 +219,8 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			this->uniformBuffer.proj =
+			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -232,6 +229,11 @@ namespace glsample {
 
 			/*	Render.	*/
 			{
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
 				glUseProgram(this->pointLight_program);
 
 				glDisable(GL_CULL_FACE);
@@ -249,40 +251,43 @@ namespace glsample {
 
 		virtual void update() override {
 			/*	Update Camera.	*/
-			camera.update(getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime());
 
-			/*	*/
+			/*	Animate the point lights.	*/
 			if (this->pointLightSettingComponent->animate) {
-				for (size_t i = 0; i < sizeof(uniformBuffer.pointLights) / sizeof(uniformBuffer.pointLights[0]); i++) {
-					this->uniformBuffer.pointLights[i].position =
-						glm::vec3(10.0f * std::cos(getTimer().getElapsed() * 3.1415 + 1.3 * i), 10,
-								  10.0f * std::sin(getTimer().getElapsed() * 3.1415 + 1.3 * i));
+				for (size_t i = 0;
+					 i < sizeof(uniformStageBuffer.pointLights) / sizeof(uniformStageBuffer.pointLights[0]); i++) {
+					this->uniformStageBuffer.pointLights[i].position =
+						glm::vec3(10.0f * std::cos(this->getTimer().getElapsed() * 3.1415 + 1.3 * i), 10,
+								  10.0f * std::sin(this->getTimer().getElapsed() * 3.1415 + 1.3 * i));
 				}
 			}
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(45.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model =
+				glm::rotate(this->uniformStageBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(45.95f));
+			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
-	class PointLightsGLSample : public GLSample<PointLights> {
+
+	class PointLightsGLSample : public GLSample<PointLight> {
 	  public:
-		PointLightsGLSample() : GLSample<PointLights>() {}
+		PointLightsGLSample() : GLSample<PointLight>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}
 	};
 
@@ -290,6 +295,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
+
 		glsample::PointLightsGLSample sample;
 		sample.run(argc, argv);
 

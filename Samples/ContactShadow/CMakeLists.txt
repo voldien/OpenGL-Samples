@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(ContactShadow glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(ContactShadow glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(ContactShadow PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS ContactShadow DESTINATION bin)
