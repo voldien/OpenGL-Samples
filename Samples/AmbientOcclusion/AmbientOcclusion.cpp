@@ -24,6 +24,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
+		// TODO combine uniform buffer stage.
 		struct UniformBufferBlock {
 			glm::mat4 model;
 			glm::mat4 view;
@@ -35,6 +36,7 @@ namespace glsample {
 
 		struct UniformSSAOBufferBlock {
 			glm::mat4 proj;
+
 			int samples = 4;
 			float radius = 1.5f;
 			float intensity = 1.0f;
@@ -46,8 +48,6 @@ namespace glsample {
 			glm::vec3 kernel[64];
 
 		} uniformBlockSSAO;
-
-		// TODO combine uniform buffer stage.
 
 		/*	*/
 		GeometryObject plan;
@@ -62,14 +62,12 @@ namespace glsample {
 		unsigned int depthTexture;
 
 		unsigned int white_texture;
+		unsigned int random_texture;
 
 		/*	*/
 		unsigned int ssao_program;
-		unsigned int random_texture;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
-		unsigned int uniform_ssao_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_ssao_buffer_binding = 1;
 		unsigned int uniform_buffer;
@@ -95,10 +93,12 @@ namespace glsample {
 				ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
 				ImGui::Checkbox("DownSample", &downScale);
 				ImGui::Checkbox("Use Depth", &useDepth);
+				ImGui::Checkbox("show Only AO", &showAOOnly);
 			}
 
 			bool downScale = false;
 			bool useDepth = false;
+			bool showAOOnly = true;
 
 		  private:
 			struct UniformSSAOBufferBlock &uniform;
@@ -131,6 +131,8 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
+
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
@@ -156,21 +158,20 @@ namespace glsample {
 
 			/*	Setup graphic ambient occlusion pipeline.	*/
 			glUseProgram(this->ssao_program);
-			this->uniform_ssao_buffer_index = glGetUniformBlockIndex(this->ssao_program, "UniformBufferBlock");
+			int uniform_ssao_buffer_index = glGetUniformBlockIndex(this->ssao_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->ssao_program, "WorldTexture"), 1);
 			glUniform1iARB(glGetUniformLocation(this->ssao_program, "NormalTexture"), 3);
 			glUniform1iARB(glGetUniformLocation(this->ssao_program, "DepthTexture"), 4);
 			glUniform1iARB(glGetUniformLocation(this->ssao_program, "NormalRandomize"), 5);
-			glUniformBlockBinding(this->ssao_program, this->uniform_ssao_buffer_index,
-								  this->uniform_ssao_buffer_binding);
+			glUniformBlockBinding(this->ssao_program, uniform_ssao_buffer_index, this->uniform_ssao_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup graphic multipass pipeline.	*/
 			glUseProgram(this->multipass_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
 			glUniform1iARB(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
-			glUniformBlockBinding(this->multipass_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -378,7 +379,7 @@ namespace glsample {
 
 			update();
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
 			this->uniformBlockSSAO.cameraNear = 0.15f;
@@ -388,13 +389,14 @@ namespace glsample {
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 			this->uniformBlockSSAO.proj = this->uniformBlock.proj;
 
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
-							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
-
 			/*	G-Buffer extraction.	*/
 			{
+
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
 				glBindFramebuffer(GL_FRAMEBUFFER, this->multipass_framebuffer);
 				glViewport(0, 0, this->multipass_texture_width, this->multipass_texture_height);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -419,12 +421,13 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_binding, this->uniform_ssao_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
-							  this->uniformSSAOBufferSize);
-
 			/*	Draw post processing effect - Screen Space Ambient Occlusion.	*/
 			{
+
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_binding, this->uniform_ssao_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
+								  this->uniformSSAOBufferSize);
+
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				glViewport(0, 0, width, height);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -451,7 +454,9 @@ namespace glsample {
 
 				glUseProgram(0);
 
-				/*	Downscale.	*/
+				if (this->ambientOcclusionSettingComponent->downScale) {
+				}
+				/*	Downscale the image.	*/
 				for (size_t i = 0; i < 4; i++) {
 					glReadBuffer(GL_NONE);
 					const size_t w = ((float)width / (std::pow(2.0f, i) + 1));
@@ -465,8 +470,8 @@ namespace glsample {
 		virtual void update() override {
 
 			/*	Update Camera.	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = this->getTimer().getElapsed();
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
 			this->uniformBlock.model = glm::mat4(1.0f);
@@ -501,14 +506,12 @@ namespace glsample {
 	  public:
 		AmbientOcclusionGLSample() : GLSample<AmbientOcclusion>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::AmbientOcclusionGLSample sample;

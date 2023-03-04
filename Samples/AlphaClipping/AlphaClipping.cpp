@@ -14,7 +14,8 @@ namespace glsample {
 		AlphaClipping() : GLSampleWindow() {
 			this->setTitle("Alpha Clipping");
 
-			this->alphaClippingSettingComponent = std::make_shared<AlphaClippingSettingComponent>(this->uniform_stage_buffer);
+			this->alphaClippingSettingComponent =
+				std::make_shared<AlphaClippingSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->alphaClippingSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -89,7 +90,8 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			/*	*/
-			std::string texturePath = getResult()["texture"].as<std::string>();
+			std::string texturePath = this->getResult()["texture"].as<std::string>();
+			this->uniform_stage_buffer.clipping = this->getResult()["clipping"].as<float>();
 
 			/*	*/
 			const std::vector<uint32_t> texture_vertex_binary =
@@ -163,10 +165,6 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			/*	Bind subset of the uniform buffer, that the graphic pipeline will use.	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
-
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -178,6 +176,11 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
+				/*	Bind subset of the uniform buffer, that the graphic pipeline will use.	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize,
+								  this->uniformSize);
+
 				/*	Activate texture graphic pipeline.	*/
 				glUseProgram(this->texture_program);
 

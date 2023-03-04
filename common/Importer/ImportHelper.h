@@ -67,7 +67,7 @@ namespace glsample {
 
 			size_t indices_offset = 0;
 			size_t vertices_offset = 0;
-			
+
 			for (size_t i = 0; i < modelLoader.getModels().size(); i++) {
 				const size_t vertexSize = modelLoader.getModels()[i].nrVertices;
 				const size_t indicesSize = modelLoader.getModels()[i].nrIndices;

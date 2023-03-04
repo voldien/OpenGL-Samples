@@ -20,11 +20,7 @@ layout(set = 0, binding = 3) uniform UniformBufferBlock {
 	float diffuseRateA;
 	float diffuseRateB;
 	float delta;
-
-	float posX, posY;
-	float mousePosX, mousePosY;
-	float zoom; /*  */
-	float c;	/*  */
+	float speed;
 }
 ubo;
 
@@ -81,13 +77,14 @@ void main() {
 	float diverageB = lapacianB(pixel_coords, cellCellImageSize, ubo.kernelB);
 
 	/*	*/
-	float pA = computeDiffuseRateA(AB.x, AB.y, diverageA, ubo.killRate, ubo.feedRate, ubo.diffuseRateA, ubo.delta);
-	float pB = computeDiffuseRateB(AB.x, AB.y, diverageB, ubo.killRate, ubo.feedRate, ubo.diffuseRateB, ubo.delta);
+	float pA = computeDiffuseRateA(AB.x, AB.y, diverageA, ubo.killRate, ubo.feedRate, ubo.diffuseRateA, ubo.delta * ubo.speed);
+	float pB = computeDiffuseRateB(AB.x, AB.y, diverageB, ubo.killRate, ubo.feedRate, ubo.diffuseRateB, ubo.delta * ubo.speed);
 
 	CurrentAB.AB[memory_index] = vec2(pA, pB);
 
 	/*	Display the color.	*/
 	vec4 pixel = vec4(diverageA, 0, diverageB, 1);
+
 	// TODO forward the diverage to a buffer to be drawn
 	imageStore(img_output, pixel_coords, pixel);
 }

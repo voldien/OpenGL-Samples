@@ -10,7 +10,7 @@ layout(location = 1) in vec2 uv;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec4 instanceColor;
 
-layout(binding = 4) uniform sampler2D DiffuseTexture;
+layout(binding = 2) uniform sampler2D DiffuseTexture;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;

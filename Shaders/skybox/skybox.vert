@@ -5,7 +5,7 @@ layout(location = 0) in vec3 Vertex;
 
 layout(location = 0) out vec3 vVertex;
 
-layout(binding = 0) uniform UniformBufferBlock {
+layout(binding = 1) uniform UniformBufferBlock {
 	mat4 proj;
 	mat4 modelViewProjection;
 	vec4 tintColor;

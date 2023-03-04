@@ -6,6 +6,7 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(rgba8, binding = 0) uniform writeonly image2D img_output;
 
+/*	*/
 layout(set = 0, binding = 1, std140) uniform UniformBufferBlock {
 	vec2 pos;
 	vec2 mousePos;
@@ -15,10 +16,12 @@ layout(set = 0, binding = 1, std140) uniform UniformBufferBlock {
 }
 u_pushConstants;
 
+/*	*/
 vec2 squareImaginary(in const vec2 number) {
 	return vec2(pow(number.x, 2) - pow(number.y, 2), 2 * number.x * number.y);
 }
 
+/*	*/
 vec4 computeMandel(vec2 uv) {
 
 	const int samples = u_pushConstants.nrSamples;

@@ -58,7 +58,6 @@ namespace glsample {
 		unsigned int phongblinn_program;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -124,9 +123,10 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-
+			
+			/*	*/
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
-			const std::string modelPath = getResult()["model"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_source_binary =
@@ -144,9 +144,9 @@ namespace glsample {
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->phongblinn_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->phongblinn_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->phongblinn_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->phongblinn_program, "DiffuseTexture"), 0);
-			glUniformBlockBinding(this->phongblinn_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->phongblinn_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
@@ -156,7 +156,7 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = Math::align(uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
@@ -236,7 +236,7 @@ namespace glsample {
 			{
 
 				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 				glUseProgram(this->phongblinn_program);

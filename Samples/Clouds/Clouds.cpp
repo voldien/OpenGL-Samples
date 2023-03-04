@@ -33,8 +33,6 @@ namespace glsample {
 		struct UniformCloudsBufferBlock {
 			glm::mat4 proj;
 			glm::mat4 modelViewProjection;
-			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			float exposure = 1.0f;
 		};
 
 		struct UniformBufferBlock {
@@ -53,7 +51,6 @@ namespace glsample {
 		CameraController camera;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -70,9 +67,12 @@ namespace glsample {
 
 		  public:
 			CloudsSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("SkyBox Settings");
+				this->setName("Clouds Settings");
 			}
 			virtual void draw() override {
+				ImGui::TextUnformatted("Clouds");
+
+				ImGui::TextUnformatted("Skybox");
 				ImGui::ColorEdit4("Tint", &this->uniform.skybox.tintColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Exposure", &this->uniform.skybox.exposure);
@@ -89,6 +89,7 @@ namespace glsample {
 		virtual void Release() override {
 
 			glDeleteProgram(this->skybox_program);
+			glDeleteProgram(this->clouds_program);
 
 			glDeleteVertexArrays(1, &this->SkyboxCube.vao);
 			glDeleteBuffers(1, &this->SkyboxCube.vbo);
@@ -123,10 +124,17 @@ namespace glsample {
 			this->clouds_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_clouds_binary, &fragment_clouds_binary);
 
-			/*	Setup graphic pipeline.	*/
+			/*	Setup skybox graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUseProgram(0);
+
+			/*	Setup clouds graphic pipeline.	*/
+			glUseProgram(this->clouds_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
 			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
@@ -186,7 +194,7 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize,
 								  this->uniformSize);
 

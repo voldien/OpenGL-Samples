@@ -24,14 +24,15 @@ template <class T> class GLSample : public glsample::GLSampleSession {
 
 		/*	Default common options between all samples.	*/
 		cxxopts::Options options("OpenGL Sample: " + fragcore::SystemInfo::getApplicationName(), helperInfo);
-		cxxopts::OptionAdder &addr = options.add_options(fragcore::SystemInfo::getApplicationName())("h,help", "helper information.")(
-			"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value("true"))(
-			"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
-			"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
-			"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
-			"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
-			"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."))(
-			"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"));
+		cxxopts::OptionAdder &addr =
+			options.add_options(fragcore::SystemInfo::getApplicationName())("h,help", "helper information.")(
+				"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value("true"))(
+				"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
+				"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
+				"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
+				"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
+				"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."))(
+				"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);
@@ -51,7 +52,7 @@ template <class T> class GLSample : public glsample::GLSampleSession {
 		const bool vsync = result["vsync"].as<bool>();
 
 		if (result.count("time") > 0) {
-			/*	*/
+			/*	Create seperate thread that count down.*/
 			if (result["time"].as<float>() > 0) {
 				int64_t timeout_mili = (int64_t)(result["time"].as<float>() * 1000.0f);
 				std::thread timeout_thread = std::thread([&]() {

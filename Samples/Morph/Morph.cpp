@@ -12,8 +12,9 @@ namespace glsample {
 	  public:
 		Morph() : GLSampleWindow() {
 			this->setTitle("Morph");
-			tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
-			this->addUIComponent(tessellationSettingComponent);
+
+			this->tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
+			this->addUIComponent(this->tessellationSettingComponent);
 		}
 
 		struct UniformBufferBlock {
@@ -62,7 +63,6 @@ namespace glsample {
 		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
 
 		// TODO change to vector
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -118,7 +118,7 @@ namespace glsample {
 
 			/*	Setup Shader.	*/
 			glUseProgram(this->tessellation_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->tessellation_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->tessellation_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->tessellation_program, "diffuse"), 0);
 			glUniform1i(glGetUniformLocation(this->tessellation_program, "gDisplacementMap"), 1);
 			glUniformBlockBinding(this->tessellation_program, this->uniform_buffer_index, 0);

@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(ParticleSystem glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(ParticleSystem glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(ParticleSystem PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS ParticleSystem DESTINATION bin)

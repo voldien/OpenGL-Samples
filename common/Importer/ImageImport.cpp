@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 using namespace fragcore;
+using namespace glsample;
 TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesystem) {}
 
 int TextureImporter::loadImage2D(const std::string &path) {
@@ -46,7 +47,7 @@ int TextureImporter::loadImage2D(const std::string &path) {
 		internalformat = GL_RGBA16F;
 		break;
 	default:
-		throw RuntimeException("Non Supported Format {}", magic_enum::enum_name(image.getFormat()));
+		throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));
 	}
 
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));

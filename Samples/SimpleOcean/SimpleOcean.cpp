@@ -66,7 +66,6 @@ namespace glsample {
 		unsigned int skybox_program;
 
 		/*  Uniform buffers.    */
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -112,8 +111,6 @@ namespace glsample {
 
 		CameraController camera;
 
-		std::string normalTexturePath = "asset/normalmap.png";
-
 		const std::string vertexSimpleOceanShaderPath = "Shaders/simpleocean/simpleocean.vert.spv";
 		const std::string fragmentSimpleOceanShaderPath = "Shaders/simpleocean/simpleocean.frag.spv";
 
@@ -138,7 +135,9 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			const std::string panoramicPath = this->getResult()["texture"].as<std::string>();
+			std::string normalTexturePath = "asset/normalmap.png";
+
+			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
 
 			/*	Load shader source.	*/
 			const std::vector<uint32_t> vertex_simple_ocean_binary =
@@ -163,7 +162,7 @@ namespace glsample {
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->simpleOcean_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->simpleOcean_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->simpleOcean_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->simpleOcean_program, "ReflectionTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->simpleOcean_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->simpleOcean_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -171,17 +170,15 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->skybox_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
+			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
 			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->normal_texture = textureImporter.loadImage2D(this->normalTexturePath);
+			this->normal_texture = textureImporter.loadImage2D(normalTexturePath);
 			this->reflection_texture = textureImporter.loadImage2D(panoramicPath);
-
-			/*	Create Normal texture.	*/
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -290,7 +287,7 @@ namespace glsample {
 			/*	Ocean.	*/
 			{
 				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
 									  this->oceanUniformSize,
 								  this->oceanUniformSize);
@@ -321,7 +318,7 @@ namespace glsample {
 
 			/*	Skybox	*/
 			{
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize + 0,
 								  this->skyboxUniformSize);
 
@@ -398,7 +395,7 @@ namespace glsample {
 	  public:
 		SimpleOceanGLSample() : GLSample<SimpleOcean>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
+			options("T,skybox-texture", "Skybox Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};

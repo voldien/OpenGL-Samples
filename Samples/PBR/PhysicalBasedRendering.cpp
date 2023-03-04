@@ -1,10 +1,8 @@
-#include "GLSampleWindow.h"
-
-#include "ImageImport.h"
-#include "ModelImporter.h"
-#include "ShaderLoader.h"
-
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
+#include <ImageImport.h>
+#include <ModelImporter.h>
+#include <ShaderLoader.h>
 #include <glm/glm.hpp>
 #include <iostream>
 
@@ -14,6 +12,7 @@ namespace glsample {
 	  public:
 		PhysicalBasedRendering() : GLSampleWindow() {
 			this->setTitle(fmt::format("Physical Based Rendering: {}", "path"));
+
 			this->skyboxSettingComponent =
 				std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(skyboxSettingComponent);
@@ -56,9 +55,6 @@ namespace glsample {
 
 		} MaterialUniformBlock;
 
-		const std::string modelPath = "asset/bunny.obj";
-		std::string panoramicPath = "asset/panoramic.jpg";
-
 		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert";
 		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag";
 		const std::string ControlShaderPath = "Shaders/tessellation/tessellation.tesc";
@@ -85,7 +81,8 @@ namespace glsample {
 		virtual void Release() override { glDeleteProgram(this->physical_based_rendering_program); }
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			std::string panoramicPath = "asset/panoramic.jpg";
 
 			/*	Load shader source.	*/
 			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());

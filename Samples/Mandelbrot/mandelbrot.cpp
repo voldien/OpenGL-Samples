@@ -28,7 +28,7 @@ namespace glsample {
 		/*	*/
 		unsigned int mandelbrot_framebuffer;
 		unsigned int mandelbrot_program;
-		unsigned int mandelbrot_texture;
+		unsigned int mandelbrot_texture; // TODO add round robin.
 		unsigned int mandelbrot_texture_width;
 		unsigned int mandelbrot_texture_height;
 
@@ -36,7 +36,6 @@ namespace glsample {
 		int localWorkGroupSize[3];
 
 		/*	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -72,18 +71,24 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			std::vector<char> mandelbrot_source = IOUtil::readFileString(computeShaderPath, this->getFileSystem());
+			/*	Load shader binaries.	*/
+			const std::vector<uint32_t> mandelbrot_source =
+				IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
-			// mandelbrot_source =
-			// 	fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, fragcore::ShaderLanguage::GLSL);
+			/*	*/
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			std::vector<char> mandelbrot_source_T =
+				fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, compilerOptions);
 
 			/*	Load shader	*/
-			this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_source});
+			this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_source_T});
 
 			glUseProgram(this->mandelbrot_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->mandelbrot_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUniform1i(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
 			glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
@@ -143,7 +148,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);

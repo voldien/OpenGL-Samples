@@ -344,6 +344,7 @@ namespace glsample {
 } // namespace glsample
 
 int main(int argc, const char **argv) {
+
 	try {
 		glsample::ShadowMappingGLSample sample;
 

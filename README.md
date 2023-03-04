@@ -9,13 +9,13 @@ A collection of OpenGL Samples.
 
 ```bash
  OpenGL-Samples options:
-  -h, --help            helper information.
-  -d, --debug           Enable Debug View. (default: true)
-  -t, --time arg        How long to run sample (default: 0)
-  -f, --fullscreen      Run in FullScreen Mode
-  -v, --vsync           Vertical Blank Sync
-  -g, --opengl-version  OpenGL Version
-  -F, --filesystem arg  FileSystem (default: .)
+  -h, --help                helper information.
+  -d, --debug               Enable Debug View. (default: true)
+  -t, --time arg            How long to run sample (default: 0)
+  -f, --fullscreen          Run in FullScreen Mode
+  -v, --vsync               Vertical Blank Sync
+  -g, --opengl-version arg  OpenGL Version (default: -1)
+  -F, --filesystem arg      FileSystem (default: .)
 ```
 
 ## Samples

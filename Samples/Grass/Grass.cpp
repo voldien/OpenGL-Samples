@@ -12,9 +12,16 @@ namespace glsample {
 	  public:
 		Grass() : GLSampleWindow() {
 			this->setTitle("Grass");
-			this->tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
-			this->addUIComponent(this->tessellationSettingComponent);
+			this->grassSettingComponent = std::make_shared<GrassSettingComponent>(this->uniformStageBuffer);
+			this->addUIComponent(this->grassSettingComponent);
 		}
+
+		struct UniformSkyBoxBufferBlock {
+			glm::mat4 proj;
+			glm::mat4 modelViewProjection;
+			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			float exposure = 1.0f;
+		};
 
 		struct UniformBufferBlock {
 			glm::mat4 model;
@@ -33,12 +40,12 @@ namespace glsample {
 			float gDisplace = 1.0f;
 			float tessLevel = 1.0f;
 
-		} mvp;
+		} uniformStageBuffer;
 
-		class TessellationSettingComponent : public nekomimi::UIComponent {
+		class GrassSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			GrassSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Grass Settings");
 			}
 			virtual void draw() override {
@@ -47,6 +54,7 @@ namespace glsample {
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -55,9 +63,9 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
+		std::shared_ptr<GrassSettingComponent> grassSettingComponent;
 
-		// TODO change to vector
+		/*	*/
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -81,25 +89,24 @@ namespace glsample {
 		/*	*/
 		unsigned int diffuse_texture;
 		unsigned int heightmap_texture;
-		unsigned int reflection_texture;
+		unsigned int skybox_texture_panoramic;
 
-		const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
-		const std::string heightTexturePath = "asset/tessellation_heightmap.png";
-		const std::string reflectionTexturePath = "asset/tessellation_heightmap.png";
-
+		/*	*/
 		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert";
 		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag";
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/skybox.vert";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox-panoramic/panoramic.frag";
+		/*	*/
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert";
-		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag";
-		const std::string ControlShaderPath = "Shaders/tessellation/tessellation.tesc";
-		const std::string EvoluationShaderPath = "Shaders/tessellation/tessellation.tese";
+		const std::string vertexShaderPath = "Shaders/grass/grass.vert";
+		const std::string fragmentShaderPath = "Shaders/grass/grass.frag";
+		const std::string ControlShaderPath = "Shaders/grass/grass.tesc";
+		const std::string EvoluationShaderPath = "Shaders/grass/grass.tese";
 
 		virtual void Release() override {
+
 			glDeleteProgram(this->terrain_program);
 			glDeleteProgram(this->grass_program);
 			glDeleteProgram(this->water_program);
@@ -108,7 +115,7 @@ namespace glsample {
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, (const GLuint *)&this->heightmap_texture);
-			glDeleteTextures(1, (const GLuint *)&this->reflection_texture);
+			glDeleteTextures(1, (const GLuint *)&this->skybox_texture_panoramic);
 
 			/*	*/
 			glDeleteVertexArrays(1, &this->skybox.vao);
@@ -119,15 +126,38 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
+			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
+
 			/*	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
-			std::vector<char> control_source = IOUtil::readFileString(ControlShaderPath, this->getFileSystem());
-			std::vector<char> evolution_source = IOUtil::readFileString(EvoluationShaderPath, this->getFileSystem());
+			const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
+			const std::string heightTexturePath = "asset/tessellation_heightmap.png";
+			const std::string reflectionTexturePath = "asset/tessellation_heightmap.png";
+
+			/*	*/
+			const std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> control_source =
+				IOUtil::readFileData<uint32_t>(this->ControlShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> evolution_source =
+				IOUtil::readFileData<uint32_t>(this->EvoluationShaderPath, this->getFileSystem());
+
+			const std::vector<uint32_t> vertex_skybox_binary =
+				IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_skybox_binary =
+				IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shader	*/
-			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
-																	&control_source, &evolution_source);
+			this->grass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source,
+																   nullptr, &control_source, &evolution_source);
+
+			this->skybox_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 
 			/*	Setup Shader.	*/
 			glUseProgram(this->skybox_program);
@@ -139,8 +169,8 @@ namespace glsample {
 
 			/*	Load Diffuse and Height Map Texture.	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
-			this->heightmap_texture = textureImporter.loadImage2D(this->heightTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
+			this->heightmap_texture = textureImporter.loadImage2D(heightTexturePath);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
@@ -149,7 +179,7 @@ namespace glsample {
 
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
+			this->uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -196,20 +226,21 @@ namespace glsample {
 		}
 
 		virtual void draw() override {
-			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
+			this->uniformStageBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
 
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
-							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
-
 			{
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
+
 				glUseProgram(this->terrain_program);
 
 				/*	*/
@@ -226,7 +257,7 @@ namespace glsample {
 				/*	Draw triangle*/
 				glBindVertexArray(this->skybox.vao);
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, tessellationSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->grassSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
 				glDrawElements(GL_PATCHES, skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
@@ -236,45 +267,75 @@ namespace glsample {
 			/*	*/
 			{ glUseProgram(this->grass_program); }
 			/*	*/
-			{ glUseProgram(this->skybox_program); }
+			{
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize,
+								  this->uniformSize);
+
+				glDisable(GL_CULL_FACE);
+				glDisable(GL_BLEND);
+				glDisable(GL_DEPTH_TEST);
+
+				/*	*/
+				glUseProgram(this->skybox_program);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
+
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->skybox.vao);
+				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+			}
 			/*	Draw wireframe outline.	*/
 			// if (this->tessellationSettingComponent->showWireFrame) {
 			//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			//	glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
 			//}
-			glBindVertexArray(0);
 		}
 
 		virtual void update() override {
 			/*	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = this->getTimer().getElapsed();
+			this->camera.update(this->getTimer().deltaTime());
 
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model = glm::translate(this->mvp.model, glm::vec3(0, 0, 10));
-			this->mvp.model = glm::rotate(this->mvp.model, (float)Math::PI_half, glm::vec3(1, 0, 0));
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(10, 10, 10));
+			/*	*/
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model = glm::translate(this->uniformStageBuffer.model, glm::vec3(0, 0, 10));
+			this->uniformStageBuffer.model =
+				glm::rotate(this->uniformStageBuffer.model, (float)Math::PI_half, glm::vec3(1, 0, 0));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10, 10, 10));
 
-			this->mvp.view = camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * this->mvp.view * this->mvp.model;
-			this->mvp.eyePos = camera.getPosition();
+			/*	*/
+			this->uniformStageBuffer.view = camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+			this->uniformStageBuffer.eyePos = camera.getPosition();
 
+			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
 								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+	class GrassGLSample : public GLSample<Grass> {
+	  public:
+		GrassGLSample() : GLSample<Grass>() {}
 
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,skybox-texture", "Texture Path",
+					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+		}
+	};
 } // namespace glsample
-
-// TODO add custom image support.
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Grass> sample;
+		glsample::GrassGLSample sample;
 
 		sample.run(argc, argv);
 

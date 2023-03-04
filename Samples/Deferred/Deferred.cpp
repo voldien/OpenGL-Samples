@@ -28,7 +28,12 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+
 		} uniformBuffer;
+
+		typedef struct material_t {
+
+		} Material;
 
 		typedef struct point_light_t {
 			glm::vec3 position;
@@ -72,6 +77,7 @@ namespace glsample {
 		/*	*/
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
+
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/deferred/deferred.vert";
 		const std::string fragmentShaderPath = "Shaders/deferred/deferred.frag";
@@ -89,7 +95,8 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			const std::string modelPath = "asset/bunny.obj";
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			const std::string panoramicPath = "asset/panoramic.jpg";
 
 			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
 			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());

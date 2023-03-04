@@ -157,6 +157,9 @@ namespace glsample {
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, skyboxSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
 			{
 
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -166,9 +169,6 @@ namespace glsample {
 				glDisable(GL_CULL_FACE);
 				glDisable(GL_BLEND);
 				glDisable(GL_DEPTH_TEST);
-
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, skyboxSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glUseProgram(this->skybox_program);

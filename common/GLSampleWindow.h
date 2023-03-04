@@ -71,6 +71,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	cxxopts::ParseResult parseResult;
 	FPSCounter<float> fpsCounter;
 	glsample::Time time;
+	/*	*/
 	size_t frameCount = 0;
 	size_t frameBufferIndex = 0;
 	size_t frameBufferCount = 0;

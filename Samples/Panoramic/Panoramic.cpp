@@ -29,11 +29,6 @@ namespace glsample {
 			float constant_attenuation;
 			float linear_attenuation;
 			float qudratic_attenuation;
-
-			float bias = 0.01f;
-			float shadowStrength = 1.0f;
-			float padding0;
-			float padding1;
 		} PointLight;
 
 		static const size_t nrPointLights = 4;
@@ -42,7 +37,6 @@ namespace glsample {
 			glm::mat4 view;
 			glm::mat4 proj;
 			glm::mat4 modelView;
-			glm::mat4 ViewProjection[6];
 			glm::mat4 modelViewProjection;
 
 			/*	light source.	*/
@@ -63,16 +57,17 @@ namespace glsample {
 		unsigned int panoramicHeight = 1024;
 
 		unsigned int diffuse_texture;
+		unsigned int reflection_texture;
 
 		std::vector<GeometryObject> refObj;
+		GeometryObject skybox;
 
 		/*	*/
 		unsigned int graphic_program;
 		unsigned int panoramic_program;
+		unsigned int skybox_program;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_shadow_index;
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -104,13 +99,9 @@ namespace glsample {
 						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
 						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
 						ImGui::DragFloat("Intensity", &this->uniform.pointLights[i].intensity);
-						ImGui::DragFloat("Shadow Strength", &this->uniform.pointLights[i].shadowStrength, 1, 0.0f,
-										 1.0f);
-						ImGui::DragFloat("Shadow Bias", &this->uniform.pointLights[i].bias, 1, 0.0f, 1.0f);
 					}
 					ImGui::PopID();
 				}
-				ImGui::Checkbox("Animate Lights", &this->animate);
 			}
 
 			bool showWireFrame = false;
@@ -128,14 +119,17 @@ namespace glsample {
 		const std::string geomtryPanoramicShaderPath = "Shaders/panoramic/panoramic.frag.spv";
 		const std::string fragmentPanoramicShaderPath = "Shaders/panoramic/panoramic.frag.spv";
 
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
+
 		/*	Shadow shader paths.	*/
-		const std::string vertexPanoramicShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert.spv";
+		const std::string vertexShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert.spv";
 		const std::string geomtryShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.geom.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.frag.spv";
 
 		virtual void Release() override {
 			glDeleteProgram(this->graphic_program);
-			glDeleteProgram(this->shadow_program);
+			glDeleteProgram(this->panoramic_program);
 
 			glDeleteFramebuffers(this->pointShadowFrameBuffers.size(), this->pointShadowFrameBuffers.data());
 			glDeleteTextures(this->pointShadowTextures.size(), this->pointShadowTextures.data());
@@ -172,27 +166,33 @@ namespace glsample {
 
 			/*	Load shaders	*/
 			this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
-			this->shadow_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_source,
-																	&fragment_shadow_source, &geometry_shadow_source);
+			this->panoramic_program = ShaderLoader::loadGraphicProgram(
+				compilerOptions, &vertex_shadow_source, &fragment_shadow_source, &geometry_shadow_source);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	*/
-			glUseProgram(this->shadow_program);
-			this->uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_shadow_index,
-								  this->uniform_buffer_binding);
+			glUseProgram(this->panoramic_program);
+			int uniform_buffer_shadow_index = glGetUniformBlockIndex(this->panoramic_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->panoramic_program, uniform_buffer_shadow_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	*/
+			glUseProgram(this->skybox_program);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
 			/*	*/
 			glUseProgram(this->graphic_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			const int shadows[4] = {1, 2, 3, 4};
 			glUniform1iv(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 4, shadows);
-			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -223,8 +223,8 @@ namespace glsample {
 
 					/*	Setup each face.	*/
 					for (size_t i = 0; i < 6; i++) {
-						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, this->shadowWidth,
-									 this->shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, this->panoramicWidth,
+									 this->panoramicHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 					}
 
 					/*	*/
@@ -275,16 +275,14 @@ namespace glsample {
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
 			for (size_t i = 0; i < this->nrPointLights; i++) {
-				this->uniform.pointLights[i].range = 25.0f;
-				this->uniform.pointLights[i].position =
+				this->uniformStageBuffer.pointLights[i].range = 25.0f;
+				this->uniformStageBuffer.pointLights[i].position =
 					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(2.0f);
-				this->uniform.pointLights[i].color = colors[i];
-				this->uniform.pointLights[i].constant_attenuation = 1.7f;
-				this->uniform.pointLights[i].linear_attenuation = 1.5f;
-				this->uniform.pointLights[i].qudratic_attenuation = 0.19f;
-				this->uniform.pointLights[i].intensity = 1.0f;
-				this->uniform.pointLights[i].shadowStrength = 1.0f;
-				this->uniform.pointLights[i].bias = 0.01f;
+				this->uniformStageBuffer.pointLights[i].color = colors[i];
+				this->uniformStageBuffer.pointLights[i].constant_attenuation = 1.7f;
+				this->uniformStageBuffer.pointLights[i].linear_attenuation = 1.5f;
+				this->uniformStageBuffer.pointLights[i].qudratic_attenuation = 0.19f;
+				this->uniformStageBuffer.pointLights[i].intensity = 1.0f;
 			}
 		}
 
@@ -294,45 +292,71 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			{
-				/*	Draw each point light shadow.	*/
-				for (size_t i = 0; i < this->nrPointLights; i++) {
+				/*	Draw the scene.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, this->panoramicSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  ((this->getFrameCount() % this->nrUniformBuffer) * this->nrPointLights) *
+									  this->uniformBufferSize,
+								  this->uniformBufferSize);
 
-					/*	*/
+				glBindFramebuffer(GL_FRAMEBUFFER, this->pointShadowFrameBuffers[0]);
+
+				glClear(GL_DEPTH_BUFFER_BIT);
+				glViewport(0, 0, this->panoramicWidth, this->panoramicHeight);
+				glUseProgram(this->panoramic_program);
+
+				glCullFace(GL_FRONT);
+				glEnable(GL_CULL_FACE);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+				/*	Setup the shadow.	*/
+				glBindVertexArray(this->refObj[0].vao);
+
+				/*	*/
+				for (size_t j = 0; j < this->refObj.size(); j++) {
+					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[j].nrIndicesElements, GL_UNSIGNED_INT,
+											 (void *)(sizeof(unsigned int) * this->refObj[j].indices_offset),
+											 this->refObj[j].vertex_offset);
+				}
+				glBindVertexArray(0);
+
+				/*	Draw skybox.	*/
+				{
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-									  ((this->getFrameCount() % this->nrUniformBuffer) * this->nrPointLights + i) *
-										  this->uniformBufferSize,
+									  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize + 0,
 									  this->uniformBufferSize);
 
-					glBindFramebuffer(GL_FRAMEBUFFER, this->pointShadowFrameBuffers[i]);
+					glUseProgram(this->skybox_program);
 
-					glClear(GL_DEPTH_BUFFER_BIT);
-					glViewport(0, 0, this->shadowWidth, this->shadowHeight);
-					glUseProgram(this->shadow_program);
-
-					glCullFace(GL_FRONT);
-					glEnable(GL_CULL_FACE);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-					/*	Setup the shadow.	*/
-					glBindVertexArray(this->refObj[0].vao);
-					glVertexAttribI1i(4, i);
+					glDisable(GL_CULL_FACE);
+					glDisable(GL_BLEND);
+					glEnable(GL_DEPTH_TEST);
+					glStencilMask(GL_FALSE);
+					glDepthFunc(GL_LEQUAL);
 
 					/*	*/
-					for (size_t j = 0; j < this->refObj.size(); j++) {
-						glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[j].nrIndicesElements, GL_UNSIGNED_INT,
-												 (void *)(sizeof(unsigned int) * this->refObj[j].indices_offset),
-												 this->refObj[j].vertex_offset);
-					}
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
+
+					/*	Draw triangle.	*/
+					glBindVertexArray(this->skybox.vao);
+					glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 					glBindVertexArray(0);
 
-					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					glStencilMask(GL_TRUE);
+
+					glUseProgram(0);
 				}
+
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 
+			/*	Draw panoramic texture.	*/
 			{
 
 				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  ((this->getFrameCount() % this->nrUniformBuffer) * this->nrPointLights) *
 									  this->uniformBufferSize,
 								  this->uniformBufferSize);
@@ -347,17 +371,11 @@ namespace glsample {
 				glDisable(GL_CULL_FACE);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->panoramicSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
-
-				/*	*/
-				for (size_t j = 0; j < this->nrPointLights; j++) {
-					glActiveTexture(GL_TEXTURE1 + j);
-					glBindTexture(GL_TEXTURE_CUBE_MAP, this->pointShadowTextures[j]);
-				}
+				/*	Bind reflection cubemap.	*/
+				glActiveTexture(GL_TEXTURE0 + 0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowTextures[0]);
 
 				glBindVertexArray(this->refObj[0].vao);
 				for (size_t i = 0; i < this->refObj.size(); i++) {
@@ -376,14 +394,15 @@ namespace glsample {
 			/*	*/
 			if (this->panoramicSettingComponent->animate) {
 				for (size_t i = 0; i < this->nrPointLights; i++) {
-					this->uniform.pointLights[i].position =
+					this->uniformStageBuffer.pointLights[i].position =
 						glm::vec3(5.0f * std::cos(this->getTimer().getElapsed() * 0.51415 + 1.3 * i), 10,
 								  5.0f * std::sin(this->getTimer().getElapsed() * 0.51415 + 1.3 * i));
 				}
 			}
 
 			/*	*/
-			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 1.0f, 1000.0f);
+			this->uniformStageBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 1.0f, 1000.0f);
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -395,10 +414,10 @@ namespace glsample {
 
 			/*	*/
 			for (size_t i = 0; i < this->nrPointLights; i++) {
-				const glm::vec3 lightPosition = this->uniform.pointLights[i].position;
+				const glm::vec3 lightPosition = this->uniformStageBuffer.pointLights[i].position;
 				/*	*/
 				glm::mat4 model = glm::mat4(1.0f);
-				glm::mat4 translation = glm::translate(model, this->uniform.pointLights[i].position);
+				glm::mat4 translation = glm::translate(model, this->uniformStageBuffer.pointLights[i].position);
 
 				PointView[0] =
 					glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
@@ -415,22 +434,19 @@ namespace glsample {
 
 				/*	Compute light matrices.	*/
 				glm::mat4 pointPer =
-					glm::perspective(glm::radians(90.0f), (float)this->shadowWidth / (float)this->shadowHeight, 0.15f,
-									 this->uniform.pointLights[i].range);
-
-				for (size_t j = 0; j < 6; j++) {
-
-					this->uniform.ViewProjection[j] = pointPer * PointView[j];
-				}
+					glm::perspective(glm::radians(90.0f), (float)this->panoramicWidth / (float)this->panoramicHeight,
+									 0.15f, this->uniformStageBuffer.pointLights[i].range);
 
 				/*	*/
-				this->uniform.model = glm::mat4(1.0f);
+				this->uniformStageBuffer.model = glm::mat4(1.0f);
 
-				this->uniform.view = this->camera.getViewMatrix();
-				this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
-				this->uniform.lightPosition = glm::vec4(this->camera.getPosition(), 0.0f);
+				this->uniformStageBuffer.view = this->camera.getViewMatrix();
+				this->uniformStageBuffer.modelViewProjection =
+					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+				this->uniformStageBuffer.lightPosition = glm::vec4(this->camera.getPosition(), 0.0f);
 
-				memcpy(&uniformPointer[i * this->uniformBufferSize], &this->uniform, sizeof(this->uniform));
+				memcpy(&uniformPointer[i * this->uniformBufferSize], &this->uniformStageBuffer,
+					   sizeof(this->uniformStageBuffer));
 			}
 
 			glUnmapBuffer(GL_UNIFORM_BUFFER);

@@ -1,8 +1,7 @@
-#include "GLSampleWindow.h"
-
-#include "ShaderLoader.h"
 #include <GL/glew.h>
+#include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
+#include <ShaderLoader.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>

@@ -49,7 +49,6 @@ namespace glsample {
 		unsigned int billboarding_program;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -129,7 +128,7 @@ namespace glsample {
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->billboarding_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->billboarding_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->billboarding_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->billboarding_program, "DiffuseTexture"), 0);
 			glUniformBlockBinding(this->billboarding_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -204,7 +203,7 @@ namespace glsample {
 
 			{
 				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 

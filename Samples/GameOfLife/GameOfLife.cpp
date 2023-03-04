@@ -16,7 +16,7 @@ namespace glsample {
 		/*	Framebuffers.	*/
 		unsigned int gameoflife_framebuffer;
 		std::vector<unsigned int> gameoflife_texture;
-		unsigned int gameoflife_render_texture;
+		unsigned int gameoflife_render_texture; // TODO add round robin.
 		size_t gameoflife_texture_width;
 		size_t gameoflife_texture_height;
 
@@ -72,15 +72,16 @@ namespace glsample {
 		}
 
 		virtual void onResize(int width, int height) override {
+
 			this->gameoflife_texture_width = width;
 			this->gameoflife_texture_height = height;
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->gameoflife_framebuffer);
 
-			std::vector<uint8_t> textureData(this->gameoflife_texture_width * this->gameoflife_texture_width *
+			std::vector<uint8_t> textureData(this->gameoflife_texture_width * this->gameoflife_texture_height *
 											 sizeof(uint8_t));
+											 
 			/*	Generate random game state.	*/
-			Random random;
 			for (size_t j = 0; j < this->gameoflife_texture_height; j++) {
 				for (size_t i = 0; i < this->gameoflife_texture_width; i++) {
 					/*	Random value between dead and alive cells.	*/
@@ -104,7 +105,7 @@ namespace glsample {
 			glGenTextures(1, &this->gameoflife_render_texture);
 			glBindTexture(GL_TEXTURE_2D, this->gameoflife_render_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->gameoflife_texture_width, this->gameoflife_texture_height, 0,
-						 GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+						 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);

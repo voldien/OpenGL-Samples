@@ -60,12 +60,7 @@ namespace glsample {
 		} Particle;
 		CameraController camera;
 
-		// TODO change to vector
-		unsigned int uniform_buffer_index;
-
 		/*	*/
-		int particle_buffer_read_index;
-		int particle_buffer_write_index;
 		int particle_read_buffer_binding = 1;
 		int particle_write_buffer_binding = 2;
 
@@ -95,8 +90,6 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/simpleparticlesystem/simpleparticlesystem.vert";
 		const std::string fragmentShaderPath = "Shaders/simpleparticlesystem/simpleparticlesystem.frag";
 
-		const std::string particleTexturePath = "asset/particle.png";
-
 		virtual void Release() override {
 			/*	*/
 			glDeleteProgram(this->particle_graphic_program);
@@ -108,7 +101,8 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
+			const std::string particleTexturePath = "asset/particle.png";
 
 			/*	*/
 			std::vector<char> vertex_source = glsample::IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
@@ -125,9 +119,8 @@ namespace glsample {
 			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->particle_graphic_program);
 			glUniform1i(glGetUniformLocation(this->particle_graphic_program, "spriteTexture"), 0);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->particle_graphic_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->particle_graphic_program, this->uniform_buffer_index,
-								  this->uniform_buffer_binding);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->particle_graphic_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->particle_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
@@ -184,12 +177,17 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
+			/*	*/
+			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			/*	*/
+			glViewport(0, 0, width, height);
+
 			{
-				/*	*/
-				glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				/*	*/
-				glViewport(0, 0, width, height);
+				/*	Bind uniform buffer.	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
+								  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
 
 				glActiveTexture(GL_TEXTURE0 + 0);
 				glBindTexture(GL_TEXTURE_2D, particle_texture);

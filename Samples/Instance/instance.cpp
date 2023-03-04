@@ -93,8 +93,8 @@ namespace glsample {
 		};
 		std::shared_ptr<InstanceSettingComponent> instanceSettingComponent;
 
-		const std::string vertexShaderPath = "Shaders/instance/instance.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/instance/instance.frag.spv";
+		const std::string vertexInstanceShaderPath = "Shaders/instance/instance.vert.spv";
+		const std::string fragmentInstanceShaderPath = "Shaders/instance/instance.frag.spv";
 
 		virtual void Release() override {
 			/*	*/
@@ -117,9 +117,9 @@ namespace glsample {
 
 			/*	Load shader source.	*/
 			std::vector<uint32_t> instance_vertex_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				IOUtil::readFileData<uint32_t>(this->vertexInstanceShaderPath, this->getFileSystem());
 			std::vector<uint32_t> instance_fragment_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+				IOUtil::readFileData<uint32_t>(this->fragmentInstanceShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;

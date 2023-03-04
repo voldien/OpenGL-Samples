@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(SobelEdgeDetection glCommon gl-sample-common-asset-importe
 ADD_DEPENDENCIES(SobelEdgeDetection glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(SobelEdgeDetection PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+INSTALL(TARGETS SobelEdgeDetection DESTINATION bin)
