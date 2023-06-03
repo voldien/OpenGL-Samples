@@ -1,5 +1,5 @@
-#ifndef _GL_SAMPLE_IOTUTIL_H_
-#define _GL_SAMPLE_IOTUTIL_H_ 1
+#pragma once
+
 #include <Core/IO/FileSystem.h>
 #include <Core/IO/IOUtil.h>
 #include <Exception.hpp>
@@ -38,5 +38,3 @@ namespace glsample {
 		}
 	};
 } // namespace glsample
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef _GL_SAMPLE_COMMON_TIME_H_
-#define _GL_SAMPLE_COMMON_TIME_H_ 1
+#pragma once
 #include <SDL2/SDL_timer.h>
 
 namespace glsample {
@@ -44,5 +43,3 @@ namespace glsample {
 	};
 
 } // namespace glsample
-
-#endif

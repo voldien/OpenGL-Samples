@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>
@@ -29,6 +30,7 @@ namespace glsample {
 
 		/*	*/
 		std::vector<GeometryObject> refObj;
+		ModelImporter *modelLoader;
 
 		/*	*/
 		unsigned int diffuse_texture;
@@ -55,6 +57,8 @@ namespace glsample {
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
 
 		virtual void Release() override {
+			delete this->modelLoader;
+
 			glDeleteProgram(this->multipass_program);
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
@@ -101,8 +105,8 @@ namespace glsample {
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	load Textures	*/
-			TextureImporter textureImporter(getFileSystem());
+			/*	load Textures	*/ // TODO remove.
+			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -117,10 +121,12 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
-			ModelImporter modelLoader(FileSystem::getFileSystem());
-			modelLoader.loadContent(modelPath, 0);
+			modelLoader = new ModelImporter(this->getFileSystem());
+			modelLoader->loadContent(modelPath, 0);
 
-			ImportHelper::loadModelBuffer(modelLoader, refObj);
+			/*	*/
+			ImportHelper::loadModelBuffer(*modelLoader, refObj);
+			ImportHelper::loadTextures(*modelLoader);
 
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
@@ -198,15 +204,22 @@ namespace glsample {
 
 				glDisable(GL_CULL_FACE);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
-
 				glBindVertexArray(this->refObj[0].vao);
-				for (size_t i = 0; i < this->refObj.size(); i++) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
-											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
-											 this->refObj[i].vertex_offset);
+				for (size_t x = 0; x < this->modelLoader->getNodes().size(); x++) {
+
+					/*	*/
+					NodeObject *node = this->modelLoader->getNodes()[x];
+
+					for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
+
+						glActiveTexture(GL_TEXTURE0);
+						glBindTexture(GL_TEXTURE_2D, this->modelLoader->getTextures()[0].texture);
+
+						glDrawElementsBaseVertex(
+							GL_TRIANGLES, this->refObj[node->geometryObjectIndex[i]].nrIndicesElements, GL_UNSIGNED_INT,
+							(void *)(sizeof(unsigned int) * this->refObj[node->geometryObjectIndex[i]].indices_offset),
+							this->refObj[node->geometryObjectIndex[i]].vertex_offset);
+					}
 				}
 				glBindVertexArray(0);
 
@@ -270,7 +283,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::MultiPass> sample;
+		glsample::MultiPassGLSample sample;
 
 		sample.run(argc, argv);
 

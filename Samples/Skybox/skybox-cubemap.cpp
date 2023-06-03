@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
@@ -187,12 +188,20 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+	class SkyBoxPanoramicGLSample : public GLSample<SkyBoxPanoramic> {
+	  public:
+		SkyBoxPanoramicGLSample() : GLSample<SkyBoxPanoramic>() {}
+
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path",
+					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+		}
+	};
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::SkyBoxPanoramic> sample;
-
+		glsample::SkyBoxPanoramicGLSample sample;
 		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {

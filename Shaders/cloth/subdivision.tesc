@@ -1,7 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-layout (vertices = 3) out;
-
+layout(vertices = 3) out;
 
 // attributes of the input CPs
 layout(location = 0) in vec3 WorldPos_CS_in[];

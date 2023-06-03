@@ -1,8 +1,8 @@
-
 #include "Chunk.h"
 #include "World.h"
 #include "WorldBuilder.h"
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>

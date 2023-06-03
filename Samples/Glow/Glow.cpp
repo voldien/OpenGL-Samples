@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
@@ -440,8 +441,9 @@ namespace glsample {
 			this->uniformStageBuffer.ocean.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.ocean.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
 
-			this->uniformStageBuffer.ocean.modelViewProjection =
-				this->uniformStageBuffer.ocean.proj * this->uniformStageBuffer.ocean.view * this->uniformStageBuffer.ocean.model;
+			this->uniformStageBuffer.ocean.modelViewProjection = this->uniformStageBuffer.ocean.proj *
+																 this->uniformStageBuffer.ocean.view *
+																 this->uniformStageBuffer.ocean.model;
 			this->uniformStageBuffer.ocean.position = glm::vec4(this->camera.getPosition(), 0);
 
 			/*  */

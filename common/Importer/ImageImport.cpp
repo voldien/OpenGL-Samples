@@ -17,7 +17,11 @@ int TextureImporter::loadImage2D(const std::string &path) {
 	Image image = imageLoader.loadImage(io);
 	io->close();
 
-	GLenum target = GL_TEXTURE_2D;
+	return loadImage2DRaw(image);
+}
+
+int TextureImporter::loadImage2DRaw(const Image &image) {
+		GLenum target = GL_TEXTURE_2D;
 	GLuint texture;
 
 	GLenum format, internalformat, type;

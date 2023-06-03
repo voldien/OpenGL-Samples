@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ModelImporter.h>
@@ -13,24 +14,27 @@ namespace glsample {
 		PhysicalBasedRendering() : GLSampleWindow() {
 			this->setTitle(fmt::format("Physical Based Rendering: {}", "path"));
 
-			this->skyboxSettingComponent =
-				std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
-			this->addUIComponent(skyboxSettingComponent);
+			this->physicalBasedRenderingSettingComponent =
+				std::make_shared<PhysicalBasedRenderingSettingComponent>(this->uniform_stage_buffer);
+			this->addUIComponent(physicalBasedRenderingSettingComponent);
 		}
 
-		int skybox_panoramic;
+		unsigned int reflection_texture;
 
 		/*	*/
 		GeometryObject instanceGeometry;
+		GeometryObject skybox;
 
 		unsigned int physical_based_rendering_program;
+		unsigned int skybox_program;
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t skyboxUniformSize = 0;
 
 		const NodeObject *rootNode;
 		CameraController camera;
@@ -41,13 +45,8 @@ namespace glsample {
 			alignas(16) glm::mat4 proj;
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
-			glm::vec4 diffuseColor;
-			float delta;
 
-			/*	*/
-			float speed;
-			float lifetime;
-			float gravity;
+			glm::vec4 diffuseColor;
 
 		} uniform_stage_buffer;
 
@@ -55,19 +54,35 @@ namespace glsample {
 
 		} MaterialUniformBlock;
 
-		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert";
-		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag";
-		const std::string ControlShaderPath = "Shaders/tessellation/tessellation.tesc";
-		const std::string EvoluationShaderPath = "Shaders/tessellation/tessellation.tese";
+		/*	Skybox.	*/
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
-		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
+		/*	Simple	*/
+		const std::string vertexPBRShaderPath = "Shaders/pbr/simplephysicalbasedrendering.vert";
+		const std::string fragmentPBRShaderPath = "Shaders/pbr/simplephysicalbasedrendering.frag";
+
+		/*	Advanced.	*/
+		const std::string vertexShaderPath = "Shaders/pbr/physicalbasedrendering.vert";
+		const std::string fragmentShaderPath = "Shaders/pbr/physicalbasedrendering.frag";
+		const std::string ControlShaderPath = "Shaders/pbr/physicalbasedrendering.tesc";
+		const std::string EvoluationShaderPath = "Shaders/pbr/physicalbasedrendering.tese";
+
+		class PhysicalBasedRenderingSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			SkyboxPanoramicSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("SkyBox Settings");
+			PhysicalBasedRenderingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Physical Based Rendering Settings");
 			}
 			virtual void draw() override {
-				//	ImGui::DragFloat("Exposure", &this->uniform.exposure);
+				/*	*/
+				ImGui::TextUnformatted("Skybox");
+				// ImGui::ColorEdit4("Tint", &this->uniform.skybox.tintColor[0],
+				//				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				// ImGui::DragFloat("Exposure", &this->uniform.skybox.exposure);
+				/*	*/
+				ImGui::TextUnformatted("Debug");
+
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -76,21 +91,42 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<SkyboxPanoramicSettingComponent> skyboxSettingComponent;
+
+		std::shared_ptr<PhysicalBasedRenderingSettingComponent> physicalBasedRenderingSettingComponent;
 
 		virtual void Release() override { glDeleteProgram(this->physical_based_rendering_program); }
 
 		virtual void Initialize() override {
+
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
-			std::string panoramicPath = "asset/panoramic.jpg";
-
-			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
-
-			this->physical_based_rendering_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
 
 			/*	*/
+			const std::vector<uint32_t> vertex_source =
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_source =
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> control_source =
+				IOUtil::readFileData<uint32_t>(this->ControlShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> evolution_source =
+				IOUtil::readFileData<uint32_t>(this->EvoluationShaderPath, this->getFileSystem());
+
+			const std::vector<uint32_t> vertex_skybox_binary =
+				IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+			const std::vector<uint32_t> fragment_skybox_binary =
+				IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+
+			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+			compilerOptions.glslVersion = this->getShaderVersion();
+
+			/*	Load shader	*/
+			this->physical_based_rendering_program = ShaderLoader::loadGraphicProgram(
+				compilerOptions, &vertex_source, &fragment_source, nullptr, &control_source, &evolution_source);
+			this->skybox_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+
+			/*	Setup shader.	*/
 			glUseProgram(this->physical_based_rendering_program);
 			this->uniform_buffer_index =
 				glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
@@ -108,19 +144,27 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
+			glUseProgram(this->skybox_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUseProgram(0);
+
+			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize = fragcore::Math::align(uniformSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
 
 			rootNode = modelLoader.getNodeRoot();
+
 			const ModelSystemObject &modelRef = modelLoader.getModels()[0];
 
 			/*	Create array buffer, for rendering static geometry.	*/
@@ -160,6 +204,37 @@ namespace glsample {
 
 				glBindVertexArray(0);
 			}
+
+			std::vector<ProceduralGeometry::Vertex> verticesCube;
+			std::vector<unsigned int> indicesCube;
+			ProceduralGeometry::generateCube(1, verticesCube, indicesCube);
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenVertexArrays(1, &this->skybox.vao);
+			glBindVertexArray(this->skybox.vao);
+
+			/*	*/
+			glGenBuffers(1, &this->skybox.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCube.size() * sizeof(indicesCube[0]), indicesCube.data(),
+						 GL_STATIC_DRAW);
+			this->skybox.nrIndicesElements = indicesCube.size();
+
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenBuffers(1, &this->skybox.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
+			glBufferData(GL_ARRAY_BUFFER, verticesCube.size() * sizeof(ProceduralGeometry::Vertex), verticesCube.data(),
+						 GL_STATIC_DRAW);
+
+			/*	*/
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+
+			/*	*/
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+								  reinterpret_cast<void *>(12));
+
+			glBindVertexArray(0);
 		}
 
 		virtual void draw() override {
@@ -189,6 +264,34 @@ namespace glsample {
 				// glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
 				// glBindVertexArray(0);
 			}
+
+			/*	Skybox	*/
+			{
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize + 0,
+								  this->skyboxUniformSize);
+
+				glUseProgram(this->skybox_program);
+
+				glDisable(GL_CULL_FACE);
+				glDisable(GL_BLEND);
+				glEnable(GL_DEPTH_TEST);
+				glStencilMask(GL_FALSE);
+				glDepthFunc(GL_LEQUAL);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
+
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->skybox.vao);
+				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+
+				glStencilMask(GL_TRUE);
+
+				glUseProgram(0);
+			}
 		}
 
 		virtual void update() override {
@@ -200,18 +303,21 @@ namespace glsample {
 			this->uniform_stage_buffer.modelViewProjection = (this->uniform_stage_buffer.proj * camera.getViewMatrix());
 
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->uniformSize,
-								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->skyboxUniformSize,
+				this->skyboxUniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
 			glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};
+
 	class PhysicalBasedRenderingGLSample : public GLSample<PhysicalBasedRendering> {
 	  public:
 		PhysicalBasedRenderingGLSample() : GLSample<PhysicalBasedRendering>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
+				"T,skybox-texture", "Skybox Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};
 } // namespace glsample

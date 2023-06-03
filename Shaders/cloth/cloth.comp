@@ -18,6 +18,4 @@ readBuffer;
 layout(std430, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]; }
 writeBuffer;
 
-void main() {
-
-}
+void main() {}

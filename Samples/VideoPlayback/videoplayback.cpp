@@ -1,6 +1,7 @@
 #include <AL/al.h>
 #include <AL/alc.h>
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <OpenALAudioInterface.h>
 #include <ShaderLoader.h>

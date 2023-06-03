@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
@@ -123,7 +124,7 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			
+
 			/*	*/
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();

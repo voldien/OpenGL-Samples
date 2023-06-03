@@ -3,9 +3,9 @@
 
 layout(triangles, equal_spacing, ccw) in;
 
-//uniform mat4 gVP;
-//uniform sampler2D gDisplacementMap;
-//uniform float gDispFactor;
+// uniform mat4 gVP;
+// uniform sampler2D gDisplacementMap;
+// uniform float gDispFactor;
 
 layout(location = 0) in vec3 WorldPos_ES_in[];
 layout(location = 1) in vec2 TexCoord_ES_in[];

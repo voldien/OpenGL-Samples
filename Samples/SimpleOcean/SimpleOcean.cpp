@@ -2,6 +2,7 @@
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
+#include <GLSample.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <iostream>
@@ -114,6 +115,7 @@ namespace glsample {
 		const std::string vertexSimpleOceanShaderPath = "Shaders/simpleocean/simpleocean.vert.spv";
 		const std::string fragmentSimpleOceanShaderPath = "Shaders/simpleocean/simpleocean.frag.spv";
 
+		/*	Skybox.	*/
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
@@ -246,7 +248,7 @@ namespace glsample {
 			/*	*/
 			glGenBuffers(1, &this->skybox.ibo);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indicesCube[0]), indicesCube.data(),
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCube.size() * sizeof(indicesCube[0]), indicesCube.data(),
 						 GL_STATIC_DRAW);
 			this->skybox.nrIndicesElements = indicesCube.size();
 

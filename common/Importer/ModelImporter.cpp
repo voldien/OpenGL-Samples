@@ -10,8 +10,8 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	/*  */
 	const aiScene *pScene = importer.ReadFileFromMemory(
 		bufferIO.data(), bufferIO.size(),
-		aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_SplitLargeMeshes |
-			aiProcess_ValidateDataStructure | aiProcess_FindInstances | aiProcess_EmbedTextures);
+		aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_ValidateDataStructure |
+			aiProcess_SplitLargeMeshes | aiProcess_FindInstances | aiProcess_EmbedTextures);
 
 	bufferIO.clear();
 	if (pScene == nullptr) {
@@ -22,6 +22,7 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	this->sceneRef = (aiScene *)pScene;
 
 	if (pScene) {
+		/*	inverse.	*/
 		aiMatrix4x4 m_GlobalInverseTransform = pScene->mRootNode->mTransformation;
 		m_GlobalInverseTransform.Inverse();
 
@@ -44,29 +45,45 @@ void ModelImporter::clear() {
 void ModelImporter::initScene(const aiScene *scene) {
 	int x;
 
-	/*	 */
-	if (scene->HasMeshes()) {
-		this->models.resize(scene->mNumMeshes);
-		for (size_t x = 0; x < scene->mNumMeshes; x++) {
-			this->initMesh(scene->mMeshes[x], x);
+	/*	*/
+	std::thread process_textures_thread([&]() {
+		// /*	*/
+		if (scene->HasTextures()) {
+			this->textures.resize(scene->mNumTextures);
+			for (size_t x = 0; x < scene->mNumTextures; x++) {
+				std::cout << scene->mTextures[x]->mFilename.C_Str() << std::endl;
+				this->textures[x] = *this->initTexture(scene->mTextures[x], x);
+				this->textureMapping[scene->mTextures[x]->mFilename.C_Str()] = &this->textures[x];
+			}
 		}
-	}
+	});
 
-	// /*	*/
-	if (scene->HasAnimations()) {
-		this->animations.reserve(scene->mNumAnimations);
-		for (unsigned int x = 0; x < scene->mNumAnimations; x++) {
-			//	this->initAnimation(scene->mAnimations[x], x);
+	/*	*/
+	std::thread process_model_thread([&]() {
+		/*	 */
+		if (scene->HasMeshes()) {
+			this->models.resize(scene->mNumMeshes);
+			for (size_t x = 0; x < scene->mNumMeshes; x++) {
+				this->initMesh(scene->mMeshes[x], x);
+			}
 		}
-	}
+	});
 
-	// /*	*/
-	if (scene->HasTextures()) {
-		this->textures.resize(scene->mNumTextures);
-		for (size_t x = 0; x < scene->mNumTextures; x++) {
-			this->initTexture(scene->mTextures[x], x);
+	/*	*/
+	std::thread process_animation_thread([&]() {
+		/*	*/
+		if (scene->HasAnimations()) {
+			this->animations.reserve(scene->mNumAnimations);
+			for (unsigned int x = 0; x < scene->mNumAnimations; x++) {
+				//	this->initAnimation(scene->mAnimations[x], x);
+			}
 		}
-	}
+	});
+
+	/*	Wait intill done.	*/
+	process_model_thread.join();
+	process_textures_thread.join();
+	process_animation_thread.join();
 
 	// /*	*/
 	if (scene->HasMaterials()) {
@@ -97,6 +114,7 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 		aiQuaternion rotation;
 
 		NodeObject *pobject = new NodeObject();
+
 		/*	extract position, rotation, position from transformation matrix.	*/
 		nodes->mTransformation.Decompose(scale, rotation, position);
 		if (parent) {
@@ -111,11 +129,18 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 		pobject->scale = glm::vec3(scale.x, scale.y, scale.z);
 		pobject->name = nodes->mChildren[x]->mName.C_Str();
 
-		/**/
+		/*	*/
 		if (nodes->mChildren[x]->mMeshes) {
-			nodes->mChildren[x]->mTransformation;
+
+			/*	*/
 			for (size_t y = 0; y < nodes->mChildren[x]->mNumMeshes; y++) {
-				this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->mMaterialIndex;
+				/*	Get material for mesh object.	*/
+				MaterialObject &materialRef =
+					getMaterials()[this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->mMaterialIndex];
+
+				pobject->materialIndex.push_back(
+					this->sceneRef->mMeshes[nodes->mChildren[x]->mMeshes[y]]->mMaterialIndex);
+				pobject->geometryObjectIndex.push_back(nodes->mChildren[x]->mMeshes[y]);
 			}
 		}
 		this->nodes.push_back(pobject);
@@ -127,41 +152,47 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 
 ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int index) {
 	ModelSystemObject *pmesh = &this->models[index];
+
 	size_t z;
 
-	size_t vertexSize =
-		(3 + 2 + 3 + 3) * sizeof(float); // VDMesh::getVertexStrideSize((VDMesh::MeshComponent)this->flags);
-	// GLuint vertexSize = getdataStructSize(this->supportFlag);
-	size_t indicesSize = 4; // VDGeometryUtility::getindexBufferSize(aimesh->mNumFaces);
+	/*	*/
+	size_t vertexSize = (3 + 2 + 3 + 3) * sizeof(float);
+	size_t indicesSize = 4;
 
-	if (aimesh->HasBones()) {
-	}
-
+	/*	*/
 	unsigned int VertexIndex = 0, IndicesIndex = 0, bonecount = 0, initilzebone = 0;
 
+	/*	*/
 	float *vertices = (float *)malloc(aimesh->mNumVertices * vertexSize);
 	unsigned char *Indice = (unsigned char *)malloc(indicesSize * aimesh->mNumFaces * 3);
 
+	/*	*/
 	float *temp = vertices;
 	unsigned char *Itemp = Indice;
 
+	/*	*/
 	const aiVector3D Zero = aiVector3D(0, 0, 0);
 
 	for (unsigned int x = 0; x < aimesh->mNumVertices; x++) {
+
+		/*	*/
 		const aiVector3D *Pos = &(aimesh->mVertices[x]);
 		aiVector3D *pNormal = &(aimesh->mNormals[x]);
 		const aiVector3D *pTexCoord = aimesh->HasTextureCoords(0) ? &(aimesh->mTextureCoords[0][x]) : &Zero;
 		glm::vec3 mtangent;
 
+		/*	*/
 		*vertices++ = Pos->x;
 		*vertices++ = Pos->y;
 		*vertices++ = Pos->z;
 
+		/*	*/
 		*vertices++ = pTexCoord->x;
 		*vertices++ = pTexCoord->y;
 		// uvs[x] = pTexCoord->x;
 		// uvs[x] = pTexCoord->y;
 
+		/*	*/
 		pNormal->Normalize();
 		*vertices++ = pNormal->x;
 		*vertices++ = pNormal->y;
@@ -170,14 +201,52 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		// mtangent = tangent(VDVector3(pNormal->x, pNormal->y, pNormal->z));
 		// mtangent.makeUnitVector();
 
+		/*	*/
 		*vertices++ = mtangent.x;
 		*vertices++ = mtangent.y;
 		*vertices++ = mtangent.z;
-		// TODO add bone weights.
+
+		/*	*/
+		// for (size_t joint = 0; joint < bonecount; joint++) {
+		//	*vertices++ = 0; /*	Bone ID.	*/
+		//	*vertices++ = 0; /*	Vertex Weight.	*/
+		//}
 
 	} /**/
 
 	vertices = temp;
+
+	/*	Load bones.	*/
+	if (aimesh->HasBones()) {
+		bonecount = 4; /*	TODO */
+		// vertexSize += bonecount * sizeof(float);
+
+		// TODO add bone support.
+		for (uint i = 0; i < aimesh->mNumBones; i++) {
+			uint BoneIndex = 0;
+
+			std::string BoneName(aimesh->mBones[i]->mName.data);
+
+			/*	*/
+			// if (vertexBoneData.find(BoneName) == vertexBoneData.end()) {
+			//	BoneIndex = m_NumBones;
+			//	m_NumBones++;
+			//	BoneInfo bi;
+			//	m_BoneInfo.push_back(bi);
+			//} else {
+			//	BoneIndex = vertexBoneData[BoneName];
+			//}
+
+			// m_BoneMapping[BoneName] = BoneIndex;
+			// m_BoneInfo[BoneIndex].BoneOffset = aimesh->mBones[i]->mOffsetMatrix;
+			//
+			// for (uint j = 0; j < aimesh->mBones[i]->mNumWeights; j++) {
+			//	uint VertexID = m_Entries[index].BaseVertex + pMesh->mBones[i]->mWeights[j].mVertexId;
+			//	float Weight = pMesh->mBones[i]->mWeights[j].mWeight;
+			//	Bones[VertexID].AddBoneData(BoneIndex, Weight);
+			//}
+		}
+	}
 
 	/*	some issues with this I thing? */
 	for (size_t x = 0; x < aimesh->mNumFaces; x++) {
@@ -200,27 +269,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	pmesh->vertexData = vertices;
 	pmesh->vertexStride = vertexSize;
 
-	// if (this->getFlag() & IMPORT_MESH) {
-	//
-	//	VDMesh *mmesh = VDMesh::createMesh();
-	//	mmesh->assemblyMesh(
-	//		vertices, vertexSize, aimesh->mNumVertices * vertexSize, Indice, indicesSize,
-	//		indicesSize * aimesh->mNumFaces * 3,
-	//		(((unsigned int)flags & ((VDMesh::eVertex | VDMesh::eNormal | VDMesh::eTangent | VDMesh::eTextureCoord))) |
-	//		 (aimesh->HasBones() == true ? (VDMesh::eBoneID | VDMesh::eBoneWeight) : 0)));
-	//	/**/
-	//	mmesh->setName(aimesh->mName.data);
-	//	this->setMesh(mmesh);
-	//
-	//	// VDAssetManager::assignAsset(mmesh, this->getPath());
-	//}
-
-	/**/
-	// free(vertices);
-	// free(Indice);
-
-	/**/
-	return pmesh; // this->getMesh(this->getMeshCount() - 1);
+	return pmesh;
 }
 
 MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index) {
@@ -248,40 +297,77 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 		return nullptr;
 	}
 
+	const bool isTextureEmpty = this->textures.size() == 0;
+
 	/**/
 	pmaterial->Get(AI_MATKEY_NAME, name);
 	material->name = name.C_Str();
 
-	/*	load all texture assoicated with texture.	*/
-	for (size_t y = 0; y < aiTextureType::aiTextureType_UNKNOWN; y++) {
-		for (size_t x = 0; x < pmaterial->GetTextureCount((aiTextureType)y); x++) {
+	/*	load all texture assoicated with material.	*/
+	for (size_t textureType = aiTextureType::aiTextureType_DIFFUSE; textureType < aiTextureType::aiTextureType_UNKNOWN;
+		 textureType++) {
 
-			/*	extract texture information.	*/
-			if (pmaterial->GetTexture((aiTextureType)y, x, &path, nullptr, nullptr, nullptr, nullptr, &mapmode) ==
-				aiReturn::aiReturn_SUCCESS) {
-				if (path.C_Str()) {
-					// std::string thepath = VDFile::getDirectory(this->getPath()) + "/" + path.C_Str();
-					//// tex = findTexture(thepath.c_str());
-					//
-					// if (tex == nullptr) {
-					//	tex = VDResources::load<VDTexture2D>(thepath.c_str());
-					//
-					//	/*	texture mapmode.	*/
-					//	if (tex != nullptr) {
-					//		switch (mapmode) {
-					//		case aiTextureMapMode_Clamp:
-					//			tex->setWrapMode(VDTexture::eClamp);
-					//			break;
-					//		case aiTextureMapMode_Wrap:
-					//			tex->setWrapMode(VDTexture::eRepeat);
-					//			break;
-					//		}
-					//	}
-					//}
+		/*	*/
+		for (size_t textureIndex = 0; textureIndex < pmaterial->GetTextureCount((aiTextureType)textureType);
+			 textureIndex++) {
 
-					// mate->setTexture(y - 1, tex);
+			/*	*/
+			aiString textureName;
+			int ret = pmaterial->Get(AI_MATKEY_TEXTURE(textureType, textureIndex), textureName);
+
+			/*	*/
+			std::cout << textureName.C_Str() << std::endl;
+			auto *texture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
+
+			if (texture == nullptr) {
+				/*	extract texture information.	*/
+				if (pmaterial->GetTexture((aiTextureType)textureType, textureIndex, &path, nullptr, nullptr, nullptr,
+										  nullptr, &mapmode) == aiReturn::aiReturn_SUCCESS) {
+
+					/*	*/
+					TextureObject *textureObj = this->textureMapping[path.C_Str()];
+					material->diffuseIndex = 0;
+					if (this->textureMapping.find(path.C_Str()) != this->textureMapping.end()) {
+						// add
+						TextureObject textureUp;
+						textureUp.filepath = path.C_Str();
+						this->textures.push_back(textureUp);
+						this->textureMapping[path.C_Str()] = &textures.back();
+					}
 				}
+			} else {
+
+				/*	*/
+				TextureObject textureUp;
+				textureUp.filepath = path.C_Str();
+				textureUp.width = texture->mWidth;
+				textureUp.height = texture->mHeight;
+				textureUp.data = texture->pcData;
+
+				this->textures.push_back(textureUp);
+				this->textureMapping[path.C_Str()] = &textures.back();
 			}
+
+			// std::string thepath = VDFile::getDirectory(this->getPath()) + "/" + path.C_Str();
+			//// tex = findTexture(thepath.c_str());
+			//
+			// if (tex == nullptr) {
+			//	tex = VDResources::load<VDTexture2D>(thepath.c_str());
+			//
+			//	/*	texture mapmode.	*/
+			//	if (tex != nullptr) {
+			//		switch (mapmode) {
+			//		case aiTextureMapMode_Clamp:
+			//			tex->setWrapMode(VDTexture::eClamp);
+			//			break;
+			//		case aiTextureMapMode_Wrap:
+			//			tex->setWrapMode(VDTexture::eRepeat);
+			//			break;
+			//		}
+			//	}
+			//}
+
+			// mate->setTexture(y - 1, tex);
 
 			// tex = nullptr;
 		} /**/
@@ -311,141 +397,18 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	material->hinininessStrength = shininessStrength;
 	pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, color[0]);
 
+	pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc);
+	pmaterial->Get(AI_MATKEY_TWOSIDED, blendfunc);
+
 	return material;
 }
-//
+
 TextureObject *ModelImporter::initTexture(aiTexture *texture, unsigned int index) {
 	TextureObject *mTexture = &textures[index];
 	mTexture->width = texture->mWidth;
 	mTexture->height = texture->mHeight;
 	mTexture->filepath = texture->mFilename.C_Str();
-	// VDTexture2D *mtexture = new VDTexture2D(texture->mWidth, texture->mWidth, texture->achFormatHint[0]);
-	// mtexture->setPixelData(0, mtexture->width(), mtexture->height(), 0, VDTexture::eRGB, VDTexture::eRGB,
-	//					   VDTexture::eUnsignedByte, texture->pcData, 0);
-	// setTexture(mtexture);
+	mTexture->data = texture->pcData;
+	std::cout << mTexture->filepath << std::endl;
 	return mTexture;
 }
-
-// VDAnimationClip *ModelImporter::initAnimation(const aiAnimation *panimation, unsigned int index) {
-//	VDAnimationClip *clip = new VDAnimationClip(panimation->mDuration, panimation->mTicksPerSecond);
-//	unsigned int channel_index = 0;
-//
-//	clip->setName(panimation->mName.data);
-//	for (unsigned int x = 0; x < panimation->mNumChannels; x++) {
-//		this->initAnimationPosition(panimation->mChannels[x], clip);
-//		this->initAnimationRotation(panimation->mChannels[x], clip);
-//		this->initAnimationScale(panimation->mChannels[x], clip);
-//	}
-//	this->setAnimationClip(clip);
-//	return clip;
-//}
-//
-// void ModelImporter::initAnimationPosition(aiNodeAnim *position, VDAnimationClip *animationClip) {
-//	if (position->mNumPositionKeys <= 0) {
-//		return;
-//	}
-//
-//	animationClip->addCurve(VDCurve(position->mNumPositionKeys));
-//	animationClip->addCurve(VDCurve(position->mNumPositionKeys));
-//	animationClip->addCurve(VDCurve(position->mNumPositionKeys));
-//
-//	animationClip->getCurve(animationClip->getNumCurves() - 3).setCurveFlag(VDCurve::eTransformPosX);
-//	animationClip->getCurve(animationClip->getNumCurves() - 2).setCurveFlag(VDCurve::eTransformPosY);
-//	animationClip->getCurve(animationClip->getNumCurves() - 1).setCurveFlag(VDCurve::eTransformPosZ);
-//
-//	animationClip->getCurve(animationClip->getNumCurves() - 3).setName(position->mNodeName.data);
-//	animationClip->getCurve(animationClip->getNumCurves() - 2).setName(position->mNodeName.data);
-//	animationClip->getCurve(animationClip->getNumCurves() - 1).setName(position->mNodeName.data);
-//
-//	for (unsigned int x = 0; x < position->mNumPositionKeys; x++) {
-//		// curve Position X
-//		animationClip->getCurve(animationClip->getNumCurves() - 3)
-//			.getKey(x)
-//			.setValue(position->mPositionKeys[x].mValue.x);
-//		animationClip->getCurve(animationClip->getNumCurves() - 3).getKey(x).setTime(position->mPositionKeys[x].mTime);
-//
-//		// curve Position Y
-//		animationClip->getCurve(animationClip->getNumCurves() - 2)
-//			.getKey(x)
-//			.setValue(position->mPositionKeys[x].mValue.y);
-//		animationClip->getCurve(animationClip->getNumCurves() - 2).getKey(x).setTime(position->mPositionKeys[x].mTime);
-//		// curve Position Z
-//		animationClip->getCurve(animationClip->getNumCurves() - 1)
-//			.getKey(x)
-//			.setValue(position->mPositionKeys[x].mValue.z);
-//		animationClip->getCurve(animationClip->getNumCurves() - 1).getKey(x).setTime(position->mPositionKeys[x].mTime);
-//	}
-//}
-//
-// void ModelImporter::initAnimationRotation(aiNodeAnim *rotation, VDAnimationClip *animationClip) {
-//	if (rotation->mNumRotationKeys <= 0)
-//		return;
-//
-//	animationClip->addCurve(VDCurve(rotation->mNumRotationKeys));
-//	animationClip->addCurve(VDCurve(rotation->mNumRotationKeys));
-//	animationClip->addCurve(VDCurve(rotation->mNumRotationKeys));
-//	animationClip->addCurve(VDCurve(rotation->mNumRotationKeys));
-//
-//	animationClip->getCurve(animationClip->getNumCurves() - 4).setCurveFlag(VDCurve::eTransformQuadX);
-//	animationClip->getCurve(animationClip->getNumCurves() - 3).setCurveFlag(VDCurve::eTransformQuadY);
-//	animationClip->getCurve(animationClip->getNumCurves() - 2).setCurveFlag(VDCurve::eTransformQuadZ);
-//	animationClip->getCurve(animationClip->getNumCurves() - 1).setCurveFlag(VDCurve::eTransformQuadW);
-//
-//	animationClip->getCurve(animationClip->getNumCurves() - 4).setName(rotation->mNodeName.data);
-//	animationClip->getCurve(animationClip->getNumCurves() - 3).setName(rotation->mNodeName.data);
-//	animationClip->getCurve(animationClip->getNumCurves() - 2).setName(rotation->mNodeName.data);
-//	animationClip->getCurve(animationClip->getNumCurves() - 1).setName(rotation->mNodeName.data);
-//
-//	for (unsigned int x = 0; x < rotation->mNumRotationKeys; x++) {
-//		// curve rotation X
-//		animationClip->getCurve(animationClip->getNumCurves() - 4)
-//			.getKey(x)
-//			.setValue(rotation->mRotationKeys[x].mValue.x);
-//		animationClip->getCurve(animationClip->getNumCurves() - 4).getKey(x).setTime(rotation->mRotationKeys[x].mTime);
-//		// curve rotation Y
-//		animationClip->getCurve(animationClip->getNumCurves() - 3)
-//			.getKey(x)
-//			.setValue(rotation->mRotationKeys[x].mValue.y);
-//		animationClip->getCurve(animationClip->getNumCurves() - 3).getKey(x).setTime(rotation->mRotationKeys[x].mTime);
-//		// curve rotation Z
-//		animationClip->getCurve(animationClip->getNumCurves() - 2)
-//			.getKey(x)
-//			.setValue(rotation->mRotationKeys[x].mValue.z);
-//		animationClip->getCurve(animationClip->getNumCurves() - 2).getKey(x).setTime(rotation->mRotationKeys[x].mTime);
-//		// curve rotation W
-//		animationClip->getCurve(animationClip->getNumCurves() - 1)
-//			.getKey(x)
-//			.setValue(rotation->mRotationKeys[x].mValue.w);
-//		animationClip->getCurve(animationClip->getNumCurves() - 1).getKey(x).setTime(rotation->mRotationKeys[x].mTime);
-//	}
-//}
-//
-// void ModelImporter::initAnimationScale(aiNodeAnim *scale, VDAnimationClip *animationClip) {
-//	if (scale->mNumScalingKeys <= 0) {
-//		return;
-//	}
-//
-//	animationClip->addCurve(VDCurve(scale->mNumScalingKeys));
-//	animationClip->addCurve(VDCurve(scale->mNumScalingKeys));
-//	animationClip->addCurve(VDCurve(scale->mNumScalingKeys));
-//
-//	animationClip->getCurve(animationClip->getNumCurves() - 3).setCurveFlag(VDCurve::eTransformScaX);
-//	animationClip->getCurve(animationClip->getNumCurves() - 2).setCurveFlag(VDCurve::eTransformScaY);
-//	animationClip->getCurve(animationClip->getNumCurves() - 1).setCurveFlag(VDCurve::eTransformScaZ);
-//
-//	animationClip->getCurve(animationClip->getNumCurves() - 3).setName(scale->mNodeName.data);
-//	animationClip->getCurve(animationClip->getNumCurves() - 2).setName(scale->mNodeName.data);
-//	animationClip->getCurve(animationClip->getNumCurves() - 1).setName(scale->mNodeName.data);
-//
-//	for (unsigned int x = 0; x < scale->mNumScalingKeys; x++) {
-//		/* curve Scale X	*/
-//		animationClip->getCurve(animationClip->getNumCurves() - 3).getKey(x).setValue(scale->mScalingKeys[x].mValue.x);
-//		animationClip->getCurve(animationClip->getNumCurves() - 3).getKey(x).setTime(scale->mScalingKeys[x].mTime);
-//		/* curve Scale Y	*/
-//		animationClip->getCurve(animationClip->getNumCurves() - 2).getKey(x).setValue(scale->mScalingKeys[x].mValue.y);
-//		animationClip->getCurve(animationClip->getNumCurves() - 2).getKey(x).setTime(scale->mScalingKeys[x].mTime);
-//		/* curve Scale Z	*/
-//		animationClip->getCurve(animationClip->getNumCurves() - 1).getKey(x).setValue(scale->mScalingKeys[x].mValue.z);
-//		animationClip->getCurve(animationClip->getNumCurves() - 1).getKey(x).setTime(scale->mScalingKeys[x].mTime);
-//	}
-//}

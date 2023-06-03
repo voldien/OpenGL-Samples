@@ -1,11 +1,11 @@
-FILE(GLOB SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-FILE(GLOB HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+FILE(GLOB SOURCE_OPENGL_COMMON_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+FILE(GLOB HEADER_OPENGL_COMMON_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
-ADD_LIBRARY(glCommon SHARED ${SOURCE_FILES} ${HEADER_FILES} )
-TARGET_LINK_LIBRARIES(glCommon PUBLIC fragcore nekomimi-window fragcore-rgl fragcore-shader-compiler cxxopts fragcore-geometry-util fragcore-window-sdl fragcore-imageloader ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${SDL2_LINK_LIBRARIES} )
+ADD_LIBRARY(glCommon SHARED ${SOURCE_OPENGL_COMMON_FILES} ${HEADER_OPENGL_COMMON_FILES})
+TARGET_LINK_LIBRARIES(glCommon PUBLIC fragcore nekomimi-window fragcore-rgl fragcore-shader-compiler cxxopts fragcore-geometry-util fragcore-window-sdl fragcore-imageloader ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${SDL2_LINK_LIBRARIES})
 
 # OpenGL dependies headers.
-TARGET_INCLUDE_DIRECTORIES(glCommon PRIVATE ${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} )
+TARGET_INCLUDE_DIRECTORIES(glCommon PRIVATE ${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 ADD_DEPENDENCIES(glCommon fragcore nekomimi-window fragcore-rgl fragcore-shader-compiler fragcore-geometry-util fragcore-window-sdl cxxopts fragcore-imageloader)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Importer)

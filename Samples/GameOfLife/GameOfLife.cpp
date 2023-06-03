@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderCompiler.h>
@@ -80,7 +81,7 @@ namespace glsample {
 
 			std::vector<uint8_t> textureData(this->gameoflife_texture_width * this->gameoflife_texture_height *
 											 sizeof(uint8_t));
-											 
+
 			/*	Generate random game state.	*/
 			for (size_t j = 0; j < this->gameoflife_texture_height; j++) {
 				for (size_t i = 0; i < this->gameoflife_texture_width; i++) {

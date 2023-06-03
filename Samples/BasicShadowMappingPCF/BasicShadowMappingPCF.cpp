@@ -1,10 +1,11 @@
-
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
 namespace glsample {
 
 	class BasicShadowMapping : public GLSampleWindow {

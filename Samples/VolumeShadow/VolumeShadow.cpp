@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>
@@ -103,9 +104,6 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-
-
-
 
 			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
 			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
