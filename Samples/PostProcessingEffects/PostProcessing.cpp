@@ -9,12 +9,13 @@
 #include <iostream>
 #include <random>
 
+// TODO move to post processing section.
 namespace glsample {
 
-	class Blur : public GLSampleWindow {
+	class PostProcessing : public GLSampleWindow {
 	  public:
-		Blur() : GLSampleWindow() {
-			this->setTitle("Blur");
+		PostProcessing() : GLSampleWindow() {
+			this->setTitle("Post Processing");
 
 			this->ambientOcclusionSettingComponent =
 				std::make_shared<BlurSettingComponent>(this->uniformStageBlockBlur);
@@ -59,6 +60,19 @@ namespace glsample {
 		unsigned int white_texture;
 
 		/*	*/
+		unsigned int bloom_program;
+		unsigned int brightnesscontrast_program;
+		unsigned int dilation_program;
+		unsigned int fogminst_program;
+		unsigned int gammacorrection_program;
+		unsigned int grayscale_program;
+		unsigned int level_program;
+		unsigned int outline_program;
+		unsigned int pixlate_program;
+		unsigned int posterization_program;
+		unsigned int scanlines_program;
+		unsigned int sepia_program;
+
 		unsigned int ssao_program;
 		unsigned int random_texture;
 
@@ -74,6 +88,8 @@ namespace glsample {
 		size_t uniformBlurBufferSize = sizeof(UniformBlurBufferBlock);
 
 		CameraController camera;
+
+		const std::vector<std::string> postProcessings = {""};
 
 		const std::string modelPath = "asset/sponza/sponza.obj";
 
@@ -478,9 +494,9 @@ namespace glsample {
 	};
 
 	/*	*/
-	class BlurGLSample : public GLSample<Blur> {
+	class PostProcessingSample : public GLSample<PostProcessing> {
 	  public:
-		BlurGLSample(int argc, const char **argv) : GLSample<Blur>(argc, argv) {}
+		PostProcessingSample(int argc, const char **argv) : GLSample<PostProcessing>(argc, argv) {}
 		virtual void commandline(cxxopts::OptionAdder &options) override {
 			options.add_options("Texture-Sample")("T,texture", "Texture Path",
 												  cxxopts::value<std::string>()->default_value("texture.png"))(
@@ -493,7 +509,7 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::BlurGLSample sample(argc, argv);
+		glsample::PostProcessingSample sample(argc, argv);
 
 		sample.run();
 

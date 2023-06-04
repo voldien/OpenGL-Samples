@@ -47,7 +47,6 @@ namespace glsample {
 		unsigned int normal_triangle_program;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -146,21 +145,20 @@ namespace glsample {
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normal_vertex_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->normal_vertex_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->normal_vertex_program, this->uniform_buffer_index,
-								  this->uniform_buffer_binding);
+			unsigned int uniform_buffer_index =
+				glGetUniformBlockIndex(this->normal_vertex_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->normal_vertex_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normal_triangle_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->normal_triangle_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->normal_triangle_program, this->uniform_buffer_index,
-								  this->uniform_buffer_binding);
+			uniform_buffer_index = glGetUniformBlockIndex(this->normal_triangle_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->normal_triangle_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->graphic_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -229,7 +227,7 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 

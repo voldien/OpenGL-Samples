@@ -11,7 +11,7 @@ namespace glsample {
 	class BasicShadowMapping : public GLSampleWindow {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
-			this->setTitle("ShadowMap");
+			this->setTitle("Percentage Filtering ShadowMap");
 			this->tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->tessellationSettingComponent);
 		}
@@ -46,7 +46,6 @@ namespace glsample {
 		unsigned int shadow_program;
 
 		// TODO change to vector
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -107,7 +106,7 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->graphic_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->graphic_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);

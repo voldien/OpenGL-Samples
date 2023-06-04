@@ -7,6 +7,7 @@ layout(location = 0) out vec4 fragColor;
 
 layout(location = 0) in vec2 FragIN_uv;
 layout(location = 1) in vec3 FragIN_normal;
+layout(location = 2) in vec4 FragIN_instanceColor;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -16,9 +17,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
-	/*	*/
-	vec4 tintColor;
-
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
@@ -26,12 +24,12 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(binding = 1) uniform sampler2D DiffuseTexture;
+layout(binding = 2) uniform sampler2D DiffuseTexture;
 
 void main() {
 
 	/*	Compute directional light	*/
 	vec4 lightColor = max(0.0, dot(normalize(FragIN_normal), -normalize(ubo.direction.xyz))) * ubo.lightColor;
 
-	fragColor = texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, FragIN_uv) * FragIN_instanceColor * (ubo.ambientColor + lightColor);
 }

@@ -1,17 +1,21 @@
-#include <GLSampleWindow.h>
-#include <ShaderLoader.h>
 #include <GL/glew.h>
 #include <GLSample.h>
+#include <GLSampleWindow.h>
+#include <ImageImport.h>
+#include <ImportHelper.h>
 #include <Importer/ImageImport.h>
+#include <ModelImporter.h>
+#include <ShaderLoader.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
 namespace glsample {
 
-	class CascadingShadow : public GLSampleWindow {
+	class ClothSimulation : public GLSampleWindow {
 	  public:
-		CascadingShadow() : GLSampleWindow() {
-			this->setTitle("CascadingShadow");
+		ClothSimulation() : GLSampleWindow() {
+			this->setTitle("Cloth Simulation");
 			this->vectorFieldSettingComponent = std::make_shared<ParticleSystemSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->vectorFieldSettingComponent);
 		}
@@ -227,7 +231,7 @@ namespace glsample {
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = Math::align<size_t>(uniformBufferSize, minMapBufferSize);
+			uniformBufferSize = fragcore::Math::align<size_t>(uniformBufferSize, minMapBufferSize);
 
 			// GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT
 
@@ -426,11 +430,21 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+	/*	*/
+	class ClothSimulationSample : public GLSample<ClothSimulation> {
+	  public:
+		ClothSimulationSample(int argc, const char **argv) : GLSample<ClothSimulation>(argc, argv) {}
+		virtual void commandline(cxxopts::OptionAdder &options) override {
+			options.add_options("Texture-Sample")("T,texture", "Texture Path",
+												  cxxopts::value<std::string>()->default_value("texture.png"))(
+				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+		}
+	};
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::CascadingShadow> sample;
+		glsample::ClothSimulationSample sample;
 
 		sample.run(argc, argv);
 

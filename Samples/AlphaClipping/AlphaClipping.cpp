@@ -36,7 +36,6 @@ namespace glsample {
 		} uniform_stage_buffer;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -111,8 +110,8 @@ namespace glsample {
 
 			/*	Setup graphic program.	*/
 			glUseProgram(this->texture_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->texture_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->texture_program, this->uniform_buffer_index, 0);
+			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->texture_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->texture_program, uniform_buffer_index, 0);
 			glUniform1i(glGetUniformLocation(this->texture_program, "diffuse"), 0);
 			glUseProgram(0);
 

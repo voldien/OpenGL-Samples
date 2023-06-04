@@ -16,6 +16,7 @@ A collection of OpenGL Samples.
   -v, --vsync               Vertical Blank Sync
   -g, --opengl-version arg  OpenGL Version (default: -1)
   -F, --filesystem arg      FileSystem (default: .)
+  -r, --renderdoc           Enable RenderDoc
 ```
 
 ## Samples

@@ -55,7 +55,6 @@ namespace glsample {
 		unsigned int skybox_program;
 
 		/*  Uniform buffers.    */
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -140,7 +139,7 @@ namespace glsample {
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->graphic_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "ReflectionTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->graphic_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -148,8 +147,8 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->skybox_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
+			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
 			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUseProgram(0);
 
@@ -303,7 +302,7 @@ namespace glsample {
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 

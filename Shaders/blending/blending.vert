@@ -9,6 +9,7 @@ layout(location = 2) in vec3 Normal;
 
 layout(location = 0) out vec2 FragIN_uv;
 layout(location = 1) out vec3 FragIN_normal;
+layout(location = 2) out vec4 FragIN_instanceColor;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -18,9 +19,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
-	/*	Tint color.	*/
-	vec4 tintColor;
-
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
@@ -28,8 +26,15 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
+layout(binding = 1, std140) uniform UniformInstanceBlock {
+	vec4 color[4];
+	mat4 model[4];
+}
+instance_ubo;
+
 void main() {
-	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
-	FragIN_normal = (ubo.model * vec4(Normal, 0.0)).xyz;
+	gl_Position = ubo.proj * ubo.view * instance_ubo.model[gl_InstanceID] * vec4(Vertex, 1.0);
+	FragIN_normal = (instance_ubo.model[gl_InstanceID] * vec4(Normal, 0.0)).xyz;
 	FragIN_uv = TextureCoord;
+	FragIN_instanceColor = instance_ubo.color[gl_InstanceID];
 }

@@ -3,6 +3,7 @@
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
+#include <array>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
@@ -24,16 +25,23 @@ namespace glsample {
 			glm::mat4 ViewProj;
 			glm::mat4 modelViewProjection;
 
-			glm::vec4 tintColor = glm::vec4(1, 1, 1, 0.8f);
-			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
 		} uniformBuffer;
 
+		struct InstanceSubBuffer {
+			glm::vec4 color[4];
+			glm::mat4 model[4];
+		};
+
+		size_t rows = 2;
+		size_t cols = 2;
+
 		/*	*/
 		GeometryObject plan;
+		InstanceSubBuffer instanceBuffer;
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
@@ -42,11 +50,13 @@ namespace glsample {
 		unsigned int blending_program;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
+		unsigned int uniform_instance_buffer_binding = 1;
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_share_buffer;
+		unsigned int uniform_instance_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformInstanceSize = 0;
 
 		CameraController camera;
 
@@ -57,8 +67,6 @@ namespace glsample {
 			}
 
 			virtual void draw() override {
-				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
@@ -88,7 +96,7 @@ namespace glsample {
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 
 			/*	*/
-			glDeleteBuffers(1, &this->uniform_buffer);
+			glDeleteBuffers(1, &this->uniform_share_buffer);
 
 			/*	*/
 			glDeleteVertexArrays(1, &this->plan.vao);
@@ -116,9 +124,14 @@ namespace glsample {
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->blending_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->blending_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->blending_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->blending_program, "DiffuseTexture"), 0);
 			glUniformBlockBinding(this->blending_program, uniform_buffer_index, this->uniform_buffer_binding);
+
+			/*	*/
+			int uniform_instance_buffer_index = glGetUniformBlockIndex(this->blending_program, "UniformInstanceBlock");
+			glUniformBlockBinding(this->blending_program, uniform_instance_buffer_index,
+								  this->uniform_instance_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
@@ -131,15 +144,23 @@ namespace glsample {
 			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
-			glGenBuffers(1, &this->uniform_buffer);
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glGenBuffers(1, &this->uniform_share_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_share_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+			/*	*/
+			this->uniformInstanceSize = fragcore::Math::align(sizeof(instanceBuffer), (size_t)minMapBufferSize);
+			glGenBuffers(1, &this->uniform_instance_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateTorus(1, vertices, indices);
+			ProceduralGeometry::generateCube(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->plan.vao);
@@ -177,6 +198,10 @@ namespace glsample {
 								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
+
+			for (size_t i = 0; i < 4; i++) {
+				instanceBuffer.color[i] = glm::vec4(i / 3.0f, (i + 1) / 4.0f, 1.0f, 0.5f);
+			}
 		}
 
 		virtual void draw() override {
@@ -188,10 +213,17 @@ namespace glsample {
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
+			// TODO draw multiple instance with various position and color to show the blending.
+
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_share_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
+
+			/*	Bind Model Instance Uniform Buffer.	*/
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_binding, this->uniform_instance_buffer,
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformInstanceSize,
+							  this->uniformInstanceSize);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -215,11 +247,11 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glDrawElementsInstanced(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr, 4);
 				glBindVertexArray(0);
 			}
 		}
@@ -228,6 +260,20 @@ namespace glsample {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
+
+			/*	Update instance model matrix.	*/
+			for (size_t i = 0; i < rows; i++) {
+				for (size_t j = 0; j < cols; j++) {
+					const size_t index = i * cols + j;
+
+					glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(i * 10.0f, 0, j * 10.0f));
+					model = glm::rotate(model, glm::radians(elapsedTime * 45.0f + index * 11.5f),
+										glm::vec3(0.0f, 1.0f, 0.0f));
+					model = glm::scale(model, glm::vec3(1.95f));
+
+					this->instanceBuffer.model[index] = model;
+				}
+			}
 
 			/*	*/
 			this->uniformBuffer.model = glm::mat4(1.0f);
@@ -239,12 +285,20 @@ namespace glsample {
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
 
-			/*	*/
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			/*	Update uniform.	*/
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_share_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+			/*	Update instance buffer.	*/
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
+			void *uniformInstance = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformInstanceSize,
+				this->uniformInstanceSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			memcpy(uniformInstance, &instanceBuffer, sizeof(this->instanceBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

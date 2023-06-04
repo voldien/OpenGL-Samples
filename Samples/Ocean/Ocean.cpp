@@ -53,7 +53,6 @@ namespace glsample {
 
 		} mvp;
 
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -167,26 +166,26 @@ namespace glsample {
 
 			/*	Setup ocean shader.	*/
 			glUseProgram(this->ocean_graphic_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->ocean_graphic_program, "UniformBufferBlock");
+			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->ocean_graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->ocean_graphic_program, "reflection"), 0);
 			glUniformBlockBinding(this->ocean_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup spectrum compute shader.	*/
 			glUseProgram(this->spectrum_compute_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->spectrum_compute_program, "UniformBufferBlock");
+			uniform_buffer_index = glGetUniformBlockIndex(this->spectrum_compute_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->spectrum_compute_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup fast furious transform.	*/
 			glUseProgram(this->kff_compute_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->kff_compute_program, "UniformBufferBlock");
+			uniform_buffer_index = glGetUniformBlockIndex(this->kff_compute_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->kff_compute_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup skybox shader.	*/
 			glUseProgram(this->skybox_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
 			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -281,7 +280,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Bind uniform buffer associated with all of the pipelines.	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			/*	Compute fast fourier transformation.	*/

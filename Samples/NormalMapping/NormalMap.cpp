@@ -48,7 +48,6 @@ namespace glsample {
 		unsigned int normalMapping_program;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -127,7 +126,8 @@ namespace glsample {
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normalMapping_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->normalMapping_program, "UniformBufferBlock");
+			unsigned int uniform_buffer_index =
+				glGetUniformBlockIndex(this->normalMapping_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->normalMapping_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->normalMapping_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->normalMapping_program, uniform_buffer_index, this->uniform_buffer_binding);

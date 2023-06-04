@@ -36,7 +36,6 @@ namespace glsample {
 		CameraController camera;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -93,8 +92,8 @@ namespace glsample {
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, this->uniform_buffer_index, 0);
+			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
 			glUniform1i(glGetUniformLocation(this->skybox_program, "textureCubeMap"), 0);
 			glUseProgram(0);
 
@@ -146,7 +145,7 @@ namespace glsample {
 			int width, height;
 			getSize(&width, &height);
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			/*	*/

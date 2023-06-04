@@ -52,7 +52,6 @@ namespace glsample {
 		unsigned int graphic_fog_program;
 
 		/*	Uniform Buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -124,9 +123,9 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->graphic_fog_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->graphic_fog_program, "UniformBufferBlock");
+			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_fog_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_fog_program, "DiffuseTexture"), 0);
-			glUniformBlockBinding(this->graphic_fog_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->graphic_fog_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -168,7 +167,7 @@ namespace glsample {
 			{
 
 				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 

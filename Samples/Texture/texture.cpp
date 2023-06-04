@@ -29,7 +29,6 @@ namespace glsample {
 		} uniform_stage_buffer;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -82,8 +81,8 @@ namespace glsample {
 
 			/*	Setup graphic program.	*/
 			glUseProgram(this->texture_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->texture_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->texture_program, this->uniform_buffer_index, 0);
+			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->texture_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->texture_program, uniform_buffer_index, 0);
 			glUniform1i(glGetUniformLocation(this->texture_program, "diffuse"), 0);
 			glUseProgram(0);
 
@@ -138,7 +137,7 @@ namespace glsample {
 		virtual void draw() override {
 
 			/*	Bind subset of the uniform buffer, that the graphic pipeline will use.	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
 			int width, height;
