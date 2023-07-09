@@ -134,7 +134,7 @@ namespace glsample {
 			/*	*/
 			this->multipass_textures.resize(4);
 			glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
-			onResize(this->width(), this->height());
+			this->onResize(this->width(), this->height());
 		}
 
 		virtual void onResize(int width, int height) override {
@@ -283,8 +283,8 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
+		
 		glsample::MultiPassGLSample sample;
-
 		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {

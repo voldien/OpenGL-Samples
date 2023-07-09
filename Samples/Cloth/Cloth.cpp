@@ -433,12 +433,8 @@ namespace glsample {
 	/*	*/
 	class ClothSimulationSample : public GLSample<ClothSimulation> {
 	  public:
-		ClothSimulationSample(int argc, const char **argv) : GLSample<ClothSimulation>(argc, argv) {}
-		virtual void commandline(cxxopts::OptionAdder &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
-		}
+		ClothSimulationSample() : GLSample<ClothSimulation>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {}
 	};
 } // namespace glsample
 

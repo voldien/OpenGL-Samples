@@ -1,8 +1,8 @@
-#include <GLSampleWindow.h>
-#include <ShaderLoader.h>
 #include <GL/glew.h>
 #include <GLSample.h>
+#include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
+#include <ShaderLoader.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -109,7 +109,6 @@ namespace glsample {
 		}
 
 		virtual void Initialize() override {
-			glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
 
 			/*	*/
 			std::vector<char> vertex_source = glsample::IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
@@ -204,6 +203,7 @@ namespace glsample {
 
 			int width, height;
 			this->getSize(&width, &height);
+			glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
 
 			/*	Compute particles.	*/
 			{
@@ -296,11 +296,21 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+
+	class ParticleSystemGLSample : public GLSample<ParticleSystem> {
+	  public:
+		ParticleSystemGLSample() : GLSample<ParticleSystem>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));
+		}
+	};
+
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::ParticleSystem> sample;
+		glsample::ParticleSystemGLSample sample;
 
 		sample.run(argc, argv);
 

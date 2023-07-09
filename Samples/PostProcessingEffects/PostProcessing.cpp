@@ -1,3 +1,4 @@
+#include "UIComponent.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -17,9 +18,9 @@ namespace glsample {
 		PostProcessing() : GLSampleWindow() {
 			this->setTitle("Post Processing");
 
-			this->ambientOcclusionSettingComponent =
-				std::make_shared<BlurSettingComponent>(this->uniformStageBlockBlur);
-			this->addUIComponent(this->ambientOcclusionSettingComponent);
+			//this->ambientOcclusionSettingComponent =
+			//	std::make_shared<PostProcessingSettingComponent>(this->uniformStageBlockBlur);
+			//this->addUIComponent(this->ambientOcclusionSettingComponent);
 		}
 
 		struct UniformBufferBlock {
@@ -71,6 +72,7 @@ namespace glsample {
 		unsigned int pixlate_program;
 		unsigned int posterization_program;
 		unsigned int scanlines_program;
+		unsigned int sobel_edge_program;
 		unsigned int sepia_program;
 
 		unsigned int ssao_program;
@@ -93,18 +95,18 @@ namespace glsample {
 
 		const std::string modelPath = "asset/sponza/sponza.obj";
 
-		class BlurSettingComponent : public nekomimi::UIComponent {
+		class PostProcessingSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			AmbientOcclusionSettingComponent(struct UniformSSAOBufferBlock &uniform) : uniform(uniform) {
+			PostProcessingSettingComponent(struct UniformSSAOBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Ambient Occlusion Settings");
 			}
 			virtual void draw() override {
-				ImGui::DragFloat("Intensity", &this->uniform.intensity, 0.1f, 0.0f);
-				ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
-				ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
-				ImGui::Checkbox("DownSample", &downScale);
-				ImGui::Checkbox("Use Depth", &useDepth);
+			//ImGui::DragFloat("Intensity", &this->uniform.intensity, 0.1f, 0.0f);
+			//ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
+			//ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
+			//ImGui::Checkbox("DownSample", &downScale);
+			//ImGui::Checkbox("Use Depth", &useDepth);
 			}
 
 			bool downScale = false;
@@ -113,7 +115,7 @@ namespace glsample {
 		  private:
 			struct UniformSSAOBufferBlock &uniform;
 		};
-		std::shared_ptr<AmbientOcclusionSettingComponent> ambientOcclusionSettingComponent;
+		std::shared_ptr<PostProcessingSettingComponent> ambientOcclusionSettingComponent;
 
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
@@ -496,12 +498,12 @@ namespace glsample {
 	/*	*/
 	class PostProcessingSample : public GLSample<PostProcessing> {
 	  public:
-		PostProcessingSample(int argc, const char **argv) : GLSample<PostProcessing>(argc, argv) {}
-		virtual void commandline(cxxopts::OptionAdder &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
-		}
+		PostProcessingSample() : GLSample<PostProcessing>() {}
+		//virtual void commandline(cxxopts::OptionAdder &options) override {
+		//	options.add_options("Texture-Sample")("T,texture", "Texture Path",
+		//										  cxxopts::value<std::string>()->default_value("texture.png"))(
+		//		"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+		//}
 	};
 
 } // namespace glsample
@@ -509,9 +511,9 @@ namespace glsample {
 // TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
-		glsample::PostProcessingSample sample(argc, argv);
+		glsample::PostProcessingSample sample;
 
-		sample.run();
+		sample.run(argc,argv);
 
 	} catch (const std::exception &ex) {
 

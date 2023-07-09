@@ -328,6 +328,9 @@ namespace glsample {
 		GrassGLSample() : GLSample<Grass>() {}
 
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			// 			const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
+			// const std::string heightTexturePath = "asset/tessellation_heightmap.png";
+			// const std::string reflectionTexturePath = "asset/tessellation_heightmap.png";
 			options("T,skybox-texture", "Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}

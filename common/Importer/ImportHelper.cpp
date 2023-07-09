@@ -111,6 +111,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader) {
 				try {
 					Reftextures[i].texture = textureImporter.loadImage2DRaw(imageLoader.loadImage(refIO));
 				} catch (std::exception &ex) {
+					
 				}
 
 			} else {

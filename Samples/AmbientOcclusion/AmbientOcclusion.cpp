@@ -37,16 +37,16 @@ namespace glsample {
 
 		struct UniformSSAOBufferBlock {
 			glm::mat4 proj;
-
 			int samples = 4;
 			float radius = 1.5f;
 			float intensity = 1.0f;
-			float bias;
+			float bias = 0.025;
 			float cameraNear;
 			float cameraFar;
 			glm::vec2 screen;
+			glm::vec4 kernel[64];
 
-			glm::vec3 kernel[64];
+			glm::vec4 color;
 
 		} uniformBlockSSAO;
 
@@ -92,6 +92,7 @@ namespace glsample {
 				ImGui::DragFloat("Intensity", &this->uniform.intensity, 0.1f, 0.0f);
 				ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
 				ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
+				ImGui::DragFloat("Bias", &this->uniform.bias, 0.01f, 0, 1);
 				ImGui::Checkbox("DownSample", &downScale);
 				ImGui::Checkbox("Use Depth", &useDepth);
 				ImGui::Checkbox("show Only AO", &showAOOnly);
@@ -106,9 +107,10 @@ namespace glsample {
 		};
 		std::shared_ptr<AmbientOcclusionSettingComponent> ambientOcclusionSettingComponent;
 
-		/*	*/
+		/*	Shader to extract values.	*/
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
+
 		/*	*/
 		const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
@@ -243,63 +245,65 @@ namespace glsample {
 			glBindVertexArray(0);
 
 			/*	FIXME:	*/
-			std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
-			std::default_random_engine generator;
-			for (size_t i = 0; i < 64; ++i) {
-				glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0,
-								 randomFloats(generator));
-				sample = glm::normalize(sample);
-				sample *= randomFloats(generator);
-				float scale = (float)i / 64.0;
-				scale = fragcore::Math::lerp(0.1f, 1.0f, scale * scale);
-				sample *= scale;
-				uniformBlockSSAO.kernel[i] = sample; // .push_back(sample);
+			{
+				std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+				std::default_random_engine generator;
+				for (size_t i = 0; i < 64; ++i) {
+					glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0,
+									 randomFloats(generator));
+					sample = glm::normalize(sample);
+					sample *= randomFloats(generator);
+					float scale = (float)i / 64.0f;
+					scale = fragcore::Math::lerp(0.1f, 1.0f, scale * scale);
+					sample *= scale;
+					uniformBlockSSAO.kernel[i] = glm::vec4(sample.x, sample.y, sample.z, 0); // .push_back(sample);
+				}
+
+				/*	Create white texture.	*/
+				glGenTextures(1, &this->white_texture);
+				glBindTexture(GL_TEXTURE_2D, this->white_texture);
+				unsigned char white[] = {255, 255, 255, 255};
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				/*	Border clamped to max value, it makes the outside area.	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+
+				FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				/*	Create noise vector.	*/
+				const size_t noiseW = 4;
+				const size_t noiseH = 4;
+				std::vector<glm::vec3> randomNoise(noiseW * noiseH);
+				for (size_t i = 0; i < randomNoise.size(); i++) {
+					randomNoise[i].r = Random::normalizeRand<float>() * 2.0 - 1.0;
+					randomNoise[i].g = Random::normalizeRand<float>() * 2.0 - 1.0;
+					randomNoise[i].b = 0.0f;
+				}
+
+				/*	Create random texture.	*/
+				glGenTextures(1, &this->random_texture);
+				glBindTexture(GL_TEXTURE_2D, this->random_texture);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseW, noiseH, 0, GL_RGB, GL_FLOAT, randomNoise.data());
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				/*	Border clamped to max value, it makes the outside area.	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+
+				FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+				glBindTexture(GL_TEXTURE_2D, 0);
 			}
-
-			/*	Create white texture.	*/
-			glGenTextures(1, &this->white_texture);
-			glBindTexture(GL_TEXTURE_2D, this->white_texture);
-			unsigned char white[] = {255, 255, 255, 255};
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			/*	Border clamped to max value, it makes the outside area.	*/
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
-
-			FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
-
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
-			glBindTexture(GL_TEXTURE_2D, 0);
-
-			/*	Create noise vector.	*/
-			const size_t noiseW = 4;
-			const size_t noiseH = 4;
-			std::vector<glm::vec3> randomNoise(noiseW * noiseH);
-			for (size_t i = 0; i < randomNoise.size(); i++) {
-				randomNoise[i].r = Random::normalizeRand<float>() * 2.0 - 1.0;
-				randomNoise[i].g = Random::normalizeRand<float>() * 2.0 - 1.0;
-				randomNoise[i].b = 0.0f;
-			}
-
-			/*	Create white texture.	*/
-			glGenTextures(1, &this->random_texture);
-			glBindTexture(GL_TEXTURE_2D, this->random_texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseW, noiseH, 0, GL_RGB, GL_FLOAT, randomNoise.data());
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			/*	Border clamped to max value, it makes the outside area.	*/
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
-
-			FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
-
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
-			glBindTexture(GL_TEXTURE_2D, 0);
 
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
@@ -323,11 +327,11 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, this->multipass_texture_width, this->multipass_texture_height,
 							 0, GL_RGB, GL_FLOAT, nullptr);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
 
@@ -392,7 +396,6 @@ namespace glsample {
 
 			/*	G-Buffer extraction.	*/
 			{
-
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
@@ -483,22 +486,26 @@ namespace glsample {
 			this->uniformBlock.modelViewProjection =
 				this->uniformBlock.proj * this->uniformBlock.view * this->uniformBlock.model;
 
-			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBlock, sizeof(uniformBlock));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			/*	Update uniform buffers.	*/
+			{
+				glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+				void *uniformPointer = glMapBufferRange(
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferSize,
+					this->uniformBufferSize,
+					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				memcpy(uniformPointer, &this->uniformBlock, sizeof(uniformBlock));
+				glUnmapBufferARB(GL_UNIFORM_BUFFER);
 
-			/*	*/
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
-			void *uniformSSAOPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
-				this->uniformSSAOBufferSize,
-				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformSSAOPointer, &this->uniformBlockSSAO, sizeof(uniformBlockSSAO));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+				/*	*/
+				glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
+				void *uniformSSAOPointer = glMapBufferRange(
+					GL_UNIFORM_BUFFER,
+					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
+					this->uniformSSAOBufferSize,
+					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				memcpy(uniformSSAOPointer, &this->uniformBlockSSAO, sizeof(uniformBlockSSAO));
+				glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			}
 		}
 	};
 
