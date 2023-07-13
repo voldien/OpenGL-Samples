@@ -1,3 +1,4 @@
+#include "GLSampleSession.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -14,9 +15,9 @@ namespace glsample {
 	class VolumeShadow : public GLSampleWindow {
 	  public:
 		VolumeShadow() : GLSampleWindow() {
-			this->setTitle("Volume Shadow");
+			this->setTitle("Stencil/Volume Shadow");
 
-			this->shadowSettingComponent = std::make_shared<PointLightShadowSettingComponent>(this->uniform);
+			this->shadowSettingComponent = std::make_shared<StencilVolumeShadowSettingComponent>(this->uniform);
 			this->addUIComponent(this->shadowSettingComponent);
 		}
 
@@ -34,23 +35,25 @@ namespace glsample {
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
 		} uniform;
+
 		/*	*/
 		GeometryObject plan;
-
-		/*	G-Buffer	*/
-		unsigned int multipass_framebuffer;
-		unsigned int multipass_texture_width;
-		unsigned int multipass_texture_height;
-		unsigned int multipass_texture;
-		unsigned int depthTexture;
+		// TODO add scene
+		GeometryObject scene;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_shadow_index;
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+
+		/*	G-Buffer	*/
+		unsigned int multipass_framebuffer;
+		unsigned int multipass_program;
+		unsigned int multipass_texture_width;
+		unsigned int multipass_texture_height;
+		unsigned int multipass_texture;
+		unsigned int depthTexture;
 
 		int volumeshadow_program;
 		int graphic_program;
@@ -59,9 +62,9 @@ namespace glsample {
 
 		std::string texturePath = "texture.png";
 
-		class PointLightShadowSettingComponent : public nekomimi::UIComponent {
+		class StencilVolumeShadowSettingComponent : public nekomimi::UIComponent {
 		  public:
-			PointLightShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			StencilVolumeShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Point Light Shadow Settings");
 			}
 			virtual void draw() override {
@@ -82,11 +85,11 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<PointLightShadowSettingComponent> shadowSettingComponent;
+		std::shared_ptr<StencilVolumeShadowSettingComponent> shadowSettingComponent;
 
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
-		const std::string fragmentShaderPath = "Shaders/texture/texture.frag";
+		const std::string vertexShaderPath = "Shaders/phong/phong.vert";
+		const std::string fragmentShaderPath = "Shaders/phong/phong.frag";
 
 		/*	Shadow shader paths.	*/
 		const std::string vertexShadowShaderPath = "Shaders/volumeshadow/volumeshadow.vert.spv";
@@ -113,16 +116,15 @@ namespace glsample {
 
 			/*	*/
 			glUseProgram(this->volumeshadow_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->volumeshadow_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->volumeshadow_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->volumeshadow_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->volumeshadow_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			glUseProgram(this->graphic_program);
-			this->uniform_buffer_shadow_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			int uniform_buffer_shadow_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_program, this->uniform_buffer_shadow_index,
-								  this->uniform_buffer_binding);
+			glUniformBlockBinding(this->graphic_program, uniform_buffer_shadow_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -234,7 +236,7 @@ namespace glsample {
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 

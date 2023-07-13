@@ -18,9 +18,9 @@ namespace glsample {
 		PostProcessing() : GLSampleWindow() {
 			this->setTitle("Post Processing");
 
-			//this->ambientOcclusionSettingComponent =
+			// this->ambientOcclusionSettingComponent =
 			//	std::make_shared<PostProcessingSettingComponent>(this->uniformStageBlockBlur);
-			//this->addUIComponent(this->ambientOcclusionSettingComponent);
+			// this->addUIComponent(this->ambientOcclusionSettingComponent);
 		}
 
 		struct UniformBufferBlock {
@@ -92,6 +92,7 @@ namespace glsample {
 		CameraController camera;
 
 		const std::vector<std::string> postProcessings = {""};
+		std::vector<bool> postEnabled;
 
 		const std::string modelPath = "asset/sponza/sponza.obj";
 
@@ -102,11 +103,11 @@ namespace glsample {
 				this->setName("Ambient Occlusion Settings");
 			}
 			virtual void draw() override {
-			//ImGui::DragFloat("Intensity", &this->uniform.intensity, 0.1f, 0.0f);
-			//ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
-			//ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
-			//ImGui::Checkbox("DownSample", &downScale);
-			//ImGui::Checkbox("Use Depth", &useDepth);
+				// ImGui::DragFloat("Intensity", &this->uniform.intensity, 0.1f, 0.0f);
+				// ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
+				// ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
+				// ImGui::Checkbox("DownSample", &downScale);
+				// ImGui::Checkbox("Use Depth", &useDepth);
 			}
 
 			bool downScale = false;
@@ -399,6 +400,7 @@ namespace glsample {
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+				// TODO add scene object.
 				/*	*/
 				glUseProgram(this->multipass_program);
 
@@ -449,15 +451,6 @@ namespace glsample {
 				glBindVertexArray(0);
 
 				glUseProgram(0);
-
-				/*	Downscale.	*/
-				for (size_t i = 0; i < 4; i++) {
-					glReadBuffer(GL_NONE);
-					const size_t w = ((float)width / (std::pow(2.0f, i) + 1));
-					const size_t h = ((float)height / (std::pow(2.0f, i) + 1));
-					// glBindTexture(GL_TEXTURE_2D, this->)
-					// glCopyTexImage2D(GL_TEXTURE_2D, i + 1, GL_RGB8, 0, 0, w, h, 0);
-				}
 			}
 		}
 
@@ -499,7 +492,7 @@ namespace glsample {
 	class PostProcessingSample : public GLSample<PostProcessing> {
 	  public:
 		PostProcessingSample() : GLSample<PostProcessing>() {}
-		//virtual void commandline(cxxopts::OptionAdder &options) override {
+		// virtual void commandline(cxxopts::OptionAdder &options) override {
 		//	options.add_options("Texture-Sample")("T,texture", "Texture Path",
 		//										  cxxopts::value<std::string>()->default_value("texture.png"))(
 		//		"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
@@ -513,7 +506,7 @@ int main(int argc, const char **argv) {
 	try {
 		glsample::PostProcessingSample sample;
 
-		sample.run(argc,argv);
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

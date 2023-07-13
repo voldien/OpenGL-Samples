@@ -175,6 +175,9 @@ namespace glsample {
 			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, alphaClippingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
 			{
 				/*	Bind subset of the uniform buffer, that the graphic pipeline will use.	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -186,9 +189,6 @@ namespace glsample {
 
 				/*	Disable culling of faces, allows faces to be visable from both directions.	*/
 				glDisable(GL_CULL_FACE);
-
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, alphaClippingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	active and bind texture to texture unit 0.	*/
 				glActiveTexture(GL_TEXTURE0);

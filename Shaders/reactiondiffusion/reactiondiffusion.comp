@@ -1,5 +1,7 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_compute_shader : enable
+#extension GL_EXT_control_flow_attributes : enable
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -41,7 +43,9 @@ int memoryAddress(ivec2 invokedPixelCoord, ivec2 imageSize, ivec2 offset) {
 
 float lapacianA(ivec2 pixelCord, ivec2 imageSize, mat4 convolutionKernel) {
 	float result = 0;
+	[[unroll]]
 	for (int y = 0; y < 3; y++) {
+		[[unroll]]
 		for (int x = 0; x < 3; x++) {
 			result += convolutionKernel[x][2 - y] *
 					  PreviousAB.AB[memoryAddress(pixelCord, imageSize, ivec2(-1 + x, -1 + y))].x;
@@ -52,7 +56,9 @@ float lapacianA(ivec2 pixelCord, ivec2 imageSize, mat4 convolutionKernel) {
 
 float lapacianB(ivec2 pixelCord, ivec2 imageSize, mat4 convolutionKernel) {
 	float result = 0;
+	[[unroll]]
 	for (int y = 0; y < 3; y++) {
+		[[unroll]]
 		for (int x = 0; x < 3; x++) {
 			result += convolutionKernel[x][2 - y] *
 					  PreviousAB.AB[memoryAddress(pixelCord, imageSize, ivec2(-1 + x, -1 + y))].y;
