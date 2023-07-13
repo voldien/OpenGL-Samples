@@ -5,7 +5,9 @@
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
+#include <cstdint>
 #include <glm/fwd.hpp>
+#include <glm/geometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -26,23 +28,36 @@ namespace glsample {
 		}
 
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
+
+			/*	Light source.	*/
+			glm::vec4 lightDirection = glm::vec4(0, 1, 0, 0);
+			glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
 
 			/*	*/
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 viewPos = glm::vec4(0);
+			glm::vec4 ambientColor = glm::vec4(0.4f, 0.4f, 0.4f, 1);
+			glm::vec4 specularColor = glm::vec4(1);
+			glm::vec4 viewPos;
 
+			/*	*/
 			float shininess = 8;
-			bool useBlinn = true;
-
-			alignas(16) glm::mat4 shadowProjection;
 
 		} uniformBuffer;
+
+		struct UniformProjectShadow {
+			glm::mat4 model;
+			glm::mat4 viewProjection;
+			alignas(16) glm::mat4 shadowProjectMatrix;
+			glm::vec4 color = glm::vec4(1, 1, 1, 1);
+
+			glm::vec3 planeNormal = glm::vec3(0, 1, 0);
+			glm::vec3 lightPosition = glm::vec3(20, 20, 20);
+
+		} projectShadowUniformBuffer;
 
 		GeometryObject plan;
 		GeometryObject model;
@@ -54,16 +69,19 @@ namespace glsample {
 		unsigned int phongblinn_program;
 		unsigned int shadow_program;
 
+		/*	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
+		size_t uniformAlignSize;
+		size_t uniformProjectShadowAlignSize;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
 		CameraController camera;
 
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/phongblinn/phongblinn.frag.spv";
+		const std::string vertexShaderPath = "Shaders/phong/phong.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/phong/phong.frag.spv";
 
 		/*	*/
 		const std::string vertexShadowShaderPath = "Shaders/projectedshadow/projectedshadow.vert.spv";
@@ -79,17 +97,19 @@ namespace glsample {
 
 				ImGui::TextUnformatted("Projected Shadow Setting");
 
-				ImGui::TextUnformatted("Directional Light Setting");
-				ImGui::ColorEdit4("Light Direction", &this->uniform.ambientLight[0],
+				// mGui::TextUnformatted("Directional Light Setting");
+				// ImGui::ColorEdit4("Light Direction", &this->uni.lightPosition[0],
+				//				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				//
+				ImGui::ColorEdit4("Light Color", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-
-				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Specular Color", &this->uniform.specularColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
 				ImGui::TextUnformatted("Material Setting");
 				ImGui::DragFloat("Shinnes", &this->uniform.shininess);
-				ImGui::Checkbox("Blinn", &this->uniform.useBlinn);
 
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -171,6 +191,21 @@ namespace glsample {
 			uniform_buffer_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->shadow_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
+
+			/*	Align the uniform buffer size to hardware specific.	*/
+			GLint minMapBufferSize;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			this->uniformAlignSize = fragcore::Math::align(sizeof(this->uniformBuffer), (size_t)minMapBufferSize);
+			this->uniformProjectShadowAlignSize =
+				fragcore::Math::align(sizeof(this->projectShadowUniformBuffer), (size_t)minMapBufferSize);
+
+			this->uniformBufferSize = this->uniformAlignSize + this->uniformProjectShadowAlignSize;
+
+			/*	Create uniform buffer.	*/
+			glGenBuffers(1, &this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -260,19 +295,23 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			this->uniform_buffer.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniformBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, this->shadowProjectedSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
 			{
 
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-								  this->uniformBufferSize);
+								  this->uniformAlignSize);
 
 				/*	Draw plane.	*/
 				{
@@ -309,13 +348,18 @@ namespace glsample {
 
 				/*	Draw Shadow.	*/
 				{
+					/*	*/
+					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+									  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
+										  this->uniformAlignSize,
+									  this->uniformProjectShadowAlignSize);
 
 					glUseProgram(this->shadow_program);
 
 					glDisable(GL_CULL_FACE);
 					/*	Offset */
-					glEnable(GL_POLYGON_OFFSET_FILL);
-					glPolygonOffset(1.0, 1.0);
+					// glEnable(GL_POLYGON_OFFSET_FILL);
+					// glPolygonOffset(1.0, 1.0);
 
 					/*	Draw triangle.	*/
 					glBindVertexArray(this->model.vao);
@@ -324,30 +368,73 @@ namespace glsample {
 				}
 			}
 		}
+
 		virtual void update() override {
+
 			/*	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
-
-			/*	Compute project matrix.	*/
-			{}
-
 			/*	*/
 			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.view = camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection = this->uniformBuffer.model * camera.getViewMatrix();
-			this->uniformBuffer.viewPos = glm::vec4(this->camera.getPosition(), 0);
+			this->uniformBuffer.model =
+				glm::rotate(this->uniformBuffer.model, glm::radians(45.0f * elapsedTime), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(2.95f));
+			this->uniformBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+			this->uniformBuffer.modelViewProjection =
+				(this->uniformBuffer.proj * this->camera.getViewMatrix() * this->uniformBuffer.model);
+			this->uniformBuffer.viewPos = glm::vec4(this->camera.getPosition(), 0.0f);
+			this->uniformBuffer.lightDirection =
+				glm::vec4(-glm::normalize(this->projectShadowUniformBuffer.lightPosition), 0);
 
-			/*	*/
+			/*	Compute project matrix.	*/
+			glm::mat4 projectedMatrix = this->computeProjectShadow();
+
+			this->projectShadowUniformBuffer.shadowProjectMatrix = projectedMatrix;
+			this->projectShadowUniformBuffer.model = uniformBuffer.model;
+			this->projectShadowUniformBuffer.viewProjection = (this->uniformBuffer.proj * this->camera.getViewMatrix());
+
+			/*	Update next uniform buffer region.	*/
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-				void *uniformPointer = glMapBufferRange(
+				uint8_t *uniformPointer = (uint8_t *)glMapBufferRange(
 					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 					this->uniformBufferSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-				memcpy(uniformPointer, &this->uniform_buffer, sizeof(this->uniform_buffer));
+				/*	*/
+				memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+				/*	*/
+				memcpy(&uniformPointer[uniformAlignSize], &this->projectShadowUniformBuffer,
+					   sizeof(this->projectShadowUniformBuffer));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}
+		}
+
+		glm::mat4 computeProjectShadow() const {
+			glm::mat4 projectedMatrix;
+			const glm::vec3 planeNormal = glm::normalize(this->projectShadowUniformBuffer.planeNormal);
+			const glm::vec3 &lightPosition = glm::vec4(this->projectShadowUniformBuffer.lightPosition, 0);
+			float d = 1;
+			projectedMatrix[0][0] = glm::dot(planeNormal, lightPosition) - planeNormal.x * lightPosition.x;
+			projectedMatrix[0][1] = -planeNormal.x * lightPosition.y;
+			projectedMatrix[0][2] = -planeNormal.x * lightPosition.z;
+			projectedMatrix[0][3] = -planeNormal.x;
+
+			projectedMatrix[1][0] = -planeNormal.y * lightPosition.x;
+			projectedMatrix[1][1] = glm::dot(planeNormal, lightPosition) - planeNormal.y * lightPosition.y;
+			projectedMatrix[1][2] = -planeNormal.y * lightPosition.z;
+			projectedMatrix[1][3] = -planeNormal.y;
+
+			projectedMatrix[2][0] = -planeNormal.z * lightPosition.x;
+			projectedMatrix[2][1] = -planeNormal.z * lightPosition.y;
+			projectedMatrix[2][2] = glm::dot(planeNormal, lightPosition) - planeNormal.z * lightPosition.z;
+			projectedMatrix[2][3] = -planeNormal.z;
+
+			projectedMatrix[3][0] = -d * lightPosition.x;
+			projectedMatrix[3][1] = -d * lightPosition.y;
+			projectedMatrix[3][2] = -d * lightPosition.z;
+			projectedMatrix[3][3] = glm::dot(planeNormal, lightPosition);
+			return projectedMatrix;
 		}
 	};
 

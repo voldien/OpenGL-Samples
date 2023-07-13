@@ -5,7 +5,12 @@
 
 layout(location = 0) out vec4 fragColor;
 
-
-void main() { 
-    fragColor = vec4(1, 1, 1, 0);
+layout(binding = 0, std140) uniform UniformBufferBlock {
+	mat4 model;
+	mat4 viewProjection;
+	mat4 shadowProject;
+	vec4 color;
 }
+ubo;
+
+void main() { fragColor = ubo.color; }

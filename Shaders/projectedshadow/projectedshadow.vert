@@ -10,15 +10,10 @@ layout(location = 3) in vec3 Tangent;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 ViewProj;
-	mat4 modelViewProjection;
+	mat4 viewProjection;
 	mat4 shadowProject;
+	vec4 color;
 }
 ubo;
 
-void main() {
-	gl_Position = ubo.shadowProject * vec4(Vertex, 1.0);
-}
+void main() { gl_Position = ubo.viewProjection * (ubo.shadowProject * (ubo.model * vec4(Vertex, 1.0))); }
