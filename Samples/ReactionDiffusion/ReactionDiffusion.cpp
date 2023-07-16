@@ -87,20 +87,22 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			/*	Load shader binaries.	*/
-			const std::vector<uint32_t> gameoflife_source =
-				IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
+			{
+				/*	Load shader binaries.	*/
+				const std::vector<uint32_t> gameoflife_source =
+					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> gameoflife_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, compilerOptions);
+				std::vector<char> gameoflife_source_T =
+					fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, compilerOptions);
 
-			/*	Create compute pipeline.	*/
-			this->reactiondiffusion_program = ShaderLoader::loadComputeProgram({&gameoflife_source_T});
+				/*	Create compute pipeline.	*/
+				this->reactiondiffusion_program = ShaderLoader::loadComputeProgram({&gameoflife_source_T});
+			}
 
 			/*	Setup compute pipeline.	*/
 			glUseProgram(this->reactiondiffusion_program);
@@ -123,13 +125,15 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	*/
-			glGenFramebuffers(1, &this->reactiondiffusion_framebuffer);
-			this->reactiondiffusion_buffer.resize(2);
-			glGenBuffers(this->reactiondiffusion_buffer.size(), this->reactiondiffusion_buffer.data());
-			glGenTextures(1, &this->reactiondiffusion_render_texture);
-			/*	Create init framebuffers.	*/
-			this->onResize(this->width(), this->height());
+			{
+				/*	*/
+				glGenFramebuffers(1, &this->reactiondiffusion_framebuffer);
+				this->reactiondiffusion_buffer.resize(2);
+				glGenBuffers(this->reactiondiffusion_buffer.size(), this->reactiondiffusion_buffer.data());
+				glGenTextures(1, &this->reactiondiffusion_render_texture);
+				/*	Create init framebuffers.	*/
+				this->onResize(this->width(), this->height());
+			}
 		}
 
 		virtual void onResize(int width, int height) override {

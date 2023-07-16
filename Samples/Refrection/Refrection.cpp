@@ -62,7 +62,7 @@ namespace glsample {
 		unsigned int skybox_program;
 
 		/*  Uniform buffers.    */
-		unsigned int uniform_buffer_binding = 0;
+		unsigned int refraction_uniform_buffer_binding = 0;
 		unsigned int uniform_skybox_buffer_binding = 1;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -120,25 +120,28 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_refrection_source =
-				IOUtil::readFileData<uint32_t>(this->vertexRefrectionShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_refrection_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentRefrectionShaderPath, this->getFileSystem());
+			{
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_refrection_source =
+					IOUtil::readFileData<uint32_t>(this->vertexRefrectionShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_refrection_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentRefrectionShaderPath, this->getFileSystem());
 
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
-			this->refrection_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_refrection_source,
-																		&fragment_refrection_source);
-			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				/*	Load shader	*/
+				this->refrection_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_refrection_source,
+																			&fragment_refrection_source);
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			}
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->refrection_program);
@@ -146,7 +149,7 @@ namespace glsample {
 				glGetUniformBlockIndex(this->refrection_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->refrection_program, "ReflectionTexture"), 0);
 			glUniformBlockBinding(this->refrection_program, uniform_refrection_buffer_index,
-								  this->uniform_buffer_binding);
+								  this->refraction_uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
@@ -176,78 +179,83 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateTorus(1, vertices, indices);
+			{
+				/*	Load geometry.	*/
+				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<unsigned int> indices;
+				ProceduralGeometry::generateTorus(1, vertices, indices);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->torus.vao);
-			glBindVertexArray(this->torus.vao);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenVertexArrays(1, &this->torus.vao);
+				glBindVertexArray(this->torus.vao);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->torus.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, torus.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenBuffers(1, &this->torus.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, torus.vbo);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
-			/*  Create index buffer.    */
-			glGenBuffers(1, &this->torus.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, torus.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->torus.nrIndicesElements = indices.size();
+				/*  Create index buffer.    */
+				glGenBuffers(1, &this->torus.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, torus.ibo);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
+							 GL_STATIC_DRAW);
+				this->torus.nrIndicesElements = indices.size();
 
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				/*	Vertex.	*/
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
+				/*	UV.	*/
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(12));
 
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(20));
+				/*	Normal.	*/
+				glEnableVertexAttribArray(2);
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(20));
 
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(32));
+				/*	Tangent.	*/
+				glEnableVertexAttribArray(3);
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(32));
 
-			glBindVertexArray(0);
+				glBindVertexArray(0);
+			}
 
-			std::vector<ProceduralGeometry::Vertex> verticesCube;
-			std::vector<unsigned int> indicesCube;
-			ProceduralGeometry::generateCube(1, verticesCube, indicesCube);
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->skybox.vao);
-			glBindVertexArray(this->skybox.vao);
+			{
+				std::vector<ProceduralGeometry::Vertex> verticesCube;
+				std::vector<unsigned int> indicesCube;
+				ProceduralGeometry::generateCube(1, verticesCube, indicesCube);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenVertexArrays(1, &this->skybox.vao);
+				glBindVertexArray(this->skybox.vao);
 
-			/*	*/
-			glGenBuffers(1, &this->skybox.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indicesCube[0]), indicesCube.data(),
-						 GL_STATIC_DRAW);
-			this->skybox.nrIndicesElements = indicesCube.size();
+				/*	*/
+				glGenBuffers(1, &this->skybox.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCube.size() * sizeof(indicesCube[0]), indicesCube.data(),
+							 GL_STATIC_DRAW);
+				this->skybox.nrIndicesElements = indicesCube.size();
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->skybox.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
-			glBufferData(GL_ARRAY_BUFFER, verticesCube.size() * sizeof(ProceduralGeometry::Vertex), verticesCube.data(),
-						 GL_STATIC_DRAW);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenBuffers(1, &this->skybox.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
+				glBufferData(GL_ARRAY_BUFFER, verticesCube.size() * sizeof(ProceduralGeometry::Vertex),
+							 verticesCube.data(), GL_STATIC_DRAW);
 
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				/*	*/
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			/*	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
+				/*	*/
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(12));
 
-			glBindVertexArray(0);
+				glBindVertexArray(0);
+			}
 		}
 
 		virtual void draw() override {
@@ -269,7 +277,7 @@ namespace glsample {
 			/*  Refrection. */
 			{
 
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->refraction_uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
 									  this->oceanUniformSize,
 								  this->oceanUniformSize);

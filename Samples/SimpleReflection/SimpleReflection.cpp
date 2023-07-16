@@ -65,7 +65,7 @@ namespace glsample {
 		unsigned int multipass_program;
 		unsigned int multipass_texture_width;
 		unsigned int multipass_texture_height;
-		unsigned int multipass_textures;
+		unsigned int multipass_texture;
 		unsigned int depthstencil_texture;
 
 		/*	*/
@@ -283,7 +283,7 @@ namespace glsample {
 			glGenFramebuffers(1, &this->multipass_framebuffer);
 
 			/*	*/
-			glGenTextures(1, &this->multipass_textures);
+			glGenTextures(1, &this->multipass_texture);
 			glGenTextures(1, &this->depthstencil_texture);
 			onResize(this->width(), this->height());
 
@@ -310,7 +310,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, this->multipass_framebuffer);
 
 			/*	Resize the image.	*/
-			glBindTexture(GL_TEXTURE_2D, this->multipass_textures);
+			glBindTexture(GL_TEXTURE_2D, this->multipass_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->multipass_texture_width, this->multipass_texture_height, 0,
 						 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -326,7 +326,7 @@ namespace glsample {
 			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
 			glBindTexture(GL_TEXTURE_2D, 0);
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->multipass_textures, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->multipass_texture, 0);
 
 			glBindTexture(GL_TEXTURE_2D, this->depthstencil_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, this->multipass_texture_width,

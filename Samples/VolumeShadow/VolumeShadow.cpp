@@ -48,20 +48,17 @@ namespace glsample {
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
 		/*	G-Buffer	*/
-		unsigned int multipass_framebuffer;
+		unsigned int graphic_framebuffer;
 		unsigned int multipass_program;
 		unsigned int multipass_texture_width;
 		unsigned int multipass_texture_height;
 		unsigned int multipass_texture;
-		unsigned int depthTexture;
+		unsigned int depthstencil_texture;
 
 		int volumeshadow_program;
 		int graphic_program;
 
 		CameraController camera;
-
-		std::string texturePath = "texture.png";
-
 		class StencilVolumeShadowSettingComponent : public nekomimi::UIComponent {
 		  public:
 			StencilVolumeShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
@@ -88,8 +85,8 @@ namespace glsample {
 		std::shared_ptr<StencilVolumeShadowSettingComponent> shadowSettingComponent;
 
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/phong/phong.vert";
-		const std::string fragmentShaderPath = "Shaders/phong/phong.frag";
+		const std::string vertexGraphicShaderPath = "Shaders/phong/phong.vert";
+		const std::string fragmentGraphicShaderPath = "Shaders/phong/phong.frag";
 
 		/*	Shadow shader paths.	*/
 		const std::string vertexShadowShaderPath = "Shaders/volumeshadow/volumeshadow.vert.spv";
@@ -100,6 +97,14 @@ namespace glsample {
 			glDeleteProgram(this->volumeshadow_program);
 			glDeleteProgram(this->graphic_program);
 
+			/*	*/
+			glDeleteFramebuffers(1, &this->graphic_framebuffer);
+			glDeleteTextures(1, &this->depthstencil_texture);
+			glDeleteTextures(1, &this->multipass_texture);
+
+			/*	*/
+			glDeleteBuffers(1, &this->uniform_buffer);
+
 			// glDeleteTextures(1, (const GLuint *)&this->gl_texture);
 
 			glDeleteVertexArrays(1, &this->plan.vao);
@@ -108,11 +113,35 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			const std::string panoramicPath = this->getResult()["skybox"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
-			/*	Load shader	*/
-			this->volumeshadow_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			{
+				/*	Load shader source data.	*/
+				const std::vector<uint32_t> graphic_vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> graphic_fragment_ocean_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
+
+				/*	*/
+				const std::vector<uint32_t> volume_shadow_vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> volume_shadow_geometry_source =
+					IOUtil::readFileData<uint32_t>(this->geomtryShadowShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> volume_shadow_fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
+
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
+
+				this->volumeshadow_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &volume_shadow_vertex_source,
+													 &volume_shadow_fragment_source, &volume_shadow_geometry_source);
+				/*	Load shader programs.	*/
+				this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &graphic_vertex_source,
+																		 &graphic_fragment_ocean_source);
+			}
 
 			/*	*/
 			glUseProgram(this->volumeshadow_program);
@@ -123,7 +152,6 @@ namespace glsample {
 			glUseProgram(this->graphic_program);
 			int uniform_buffer_shadow_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_shadow_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -142,81 +170,101 @@ namespace glsample {
 			// TextureImporter textureImporter(this->getFileSystem());
 			// this->gl_texture = textureImporter.loadImage2D(this->texturePath);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateTorus(1, vertices, indices);
+			{
+				/*	Load geometry.	*/
+				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<unsigned int> indices;
+				ProceduralGeometry::generateTorus(1, vertices, indices);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenVertexArrays(1, &this->plan.vao);
+				glBindVertexArray(this->plan.vao);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenBuffers(1, &this->plan.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
-			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
+				/*	*/
+				glGenBuffers(1, &this->plan.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
+							 GL_STATIC_DRAW);
+				this->plan.nrIndicesElements = indices.size();
 
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				/*	Vertex.	*/
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
+				/*	UV.	*/
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(12));
 
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(20));
+				/*	Normal.	*/
+				glEnableVertexAttribArray(2);
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(20));
 
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(32));
+				/*	Tangent.	*/
+				glEnableVertexAttribArray(3);
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(32));
 
-			glBindVertexArray(0);
+				glBindVertexArray(0);
+			}
 
-			/*	Create multipass framebuffer.	*/
-			glGenFramebuffers(1, &this->multipass_framebuffer);
+			{
+				/*	Create multipass framebuffer.	*/
+				glGenFramebuffers(1, &this->graphic_framebuffer);
 
-			/*	*/
-			glGenTextures(1, &this->multipass_texture);
-			onResize(this->width(), this->height());
-		}
+				/*	*/
+				glGenTextures(1, &this->multipass_texture);
+				this->onResize(this->width(), this->height());
+			}
+		} // namespace glsample
 
 		virtual void onResize(int width, int height) override {
 
 			this->multipass_texture_width = width;
 			this->multipass_texture_height = height;
 
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->graphic_framebuffer);
 
 			/*	Resize the image.	*/
-
 			glBindTexture(GL_TEXTURE_2D, this->multipass_texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->multipass_texture_width, this->multipass_texture_height, 0,
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->multipass_texture_width, this->multipass_texture_height, 0,
 						 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			/*	Border clamped to max value, it makes the outside area.	*/
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+
+			FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->multipass_texture, 0);
-			glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-			/*	*/
-			glGenTextures(1, &this->depthTexture);
-			glBindTexture(GL_TEXTURE_2D, depthTexture);
+			glBindTexture(GL_TEXTURE_2D, this->depthstencil_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, this->multipass_texture_width,
-						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+						 this->multipass_texture_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			/*	Border clamped to max value, it makes the outside area.	*/
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
+								   this->depthstencil_texture, 0);
 			glBindTexture(GL_TEXTURE_2D, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
+
+			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
 
 			/*  Validate if created properly.*/
 			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -224,7 +272,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		virtual void draw() override {
@@ -248,12 +296,11 @@ namespace glsample {
 			// Stencil shadow.
 			{
 				glEnable(GL_STENCIL_TEST);
-
+				glDisable(GL_DEPTH_TEST);
+				glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 				glDepthMask(GL_FALSE);
-				glEnable(GL_DEPTH_CLAMP);
-				glDisable(GL_CULL_FACE);
-
-				glStencilFunc(GL_ALWAYS, 0, 0xff);
+				glStencilFunc(GL_NEVER, 255, 0xFF);
+				glStencilMask(0xFF);
 
 				// Set the stencil test per the depth fail algorithm
 				glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
@@ -262,29 +309,21 @@ namespace glsample {
 				// Draw camera
 				glUseProgram(this->volumeshadow_program);
 
+				/*	*/
 				glDisable(GL_DEPTH_CLAMP);
 				glEnable(GL_CULL_FACE);
 			}
+
+			/*	Draw shadow.	*/
+			{}
 
 			/*	Draw scene.	*/
 			{
 
 				glDisable(GL_STENCIL_TEST);
 
-				glUseProgram(this->volumeshadow_program);
+				glUseProgram(this->graphic_program);
 
-				// glActiveTexture(GL_TEXTURE0);
-				// glBindTexture(GL_TEXTURE_2D, this->gl_texture);
-
-				/*	Draw triangle	*/
-				glBindVertexArray(this->plan.vao);
-				// glDrawArrays(GL_TRIANGLES, 0, this->vertices.size());
-				glBindVertexArray(0);
-			}
-			if (this->shadowSettingComponent->showVolume) {
-
-				glDisable(GL_STENCIL_TEST);
-				glUseProgram(this->volumeshadow_program);
 				glBindVertexArray(this->plan.vao);
 				glDrawElementsBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
 										 (void *)(sizeof(unsigned int) * this->plan.indices_offset),
@@ -293,11 +332,23 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			/*	Draw shadow.	*/
+			/*	Draw volume geometry.	 */
+			if (this->shadowSettingComponent->showVolume) {
+
+				glDisable(GL_CULL_FACE);
+				glUseProgram(this->volumeshadow_program);
+				glBindVertexArray(this->plan.vao);
+				glDrawElementsBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
+										 (void *)(sizeof(unsigned int) * this->plan.indices_offset),
+										 this->plan.vertex_offset);
+				glBindVertexArray(0);
+				glUseProgram(0);
+			}
 		}
 
 		virtual void update() override {
-			this->camera.update(getTimer().deltaTime());
+
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
 			this->uniform.model = glm::mat4(1.0f);
@@ -308,12 +359,14 @@ namespace glsample {
 			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
 
 			/*	*/
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniform, sizeof(this->uniform));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
+			{
+				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+				void *uniformPointer = glMapBufferRange(
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+					this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				memcpy(uniformPointer, &this->uniform, sizeof(this->uniform));
+				glUnmapBuffer(GL_UNIFORM_BUFFER);
+			}
 		}
 	};
 
@@ -321,7 +374,9 @@ namespace glsample {
 	  public:
 		VolumeShadowGLSample() : GLSample<VolumeShadow>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
+				"S,skybox", "SkyboxPath", cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}
 	};
 } // namespace glsample

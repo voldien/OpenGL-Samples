@@ -1,3 +1,4 @@
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -97,11 +98,11 @@ namespace glsample {
 			virtual void draw() override {
 
 				ImGui::TextUnformatted("Projected Shadow Setting");
+				// TODO add support for plane
+				// ImGui::DragFloat3("Normal", &this->uniform.ambientColor[0]);
+				// ImGui::DragFloat3("Position", &this->uniform.ambientColor[0]);
 
-				// mGui::TextUnformatted("Directional Light Setting");
-				// ImGui::ColorEdit4("Light Direction", &this->uni.lightPosition[0],
-				//				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				//
+				ImGui::TextUnformatted("Material Settings");
 				ImGui::ColorEdit4("Light Color", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientColor[0],
@@ -412,6 +413,7 @@ namespace glsample {
 			}
 		}
 
+		/*	Create projection matrix from light point and the plane surface orientation.	*/
 		glm::mat4 computeProjectShadow() const {
 			glm::mat4 projectedMatrix;
 			const glm::vec3 planeNormal = glm::normalize(this->projectShadowUniformBuffer.planeNormal);

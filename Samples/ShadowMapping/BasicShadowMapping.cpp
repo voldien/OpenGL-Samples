@@ -10,6 +10,7 @@
 
 namespace glsample {
 
+	// TODO integrate PCF
 	class BasicShadowMapping : public GLSampleWindow {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
@@ -148,14 +149,14 @@ namespace glsample {
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
-			/*	*/
+			/*	Setup shadow graphic pipeline.	*/
 			glUseProgram(this->shadow_program);
 			int uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->shadow_program, uniform_buffer_shadow_index,
 								  this->uniform_shadow_buffer_binding);
 			glUseProgram(0);
 
-			/*	*/
+			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->graphic_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
