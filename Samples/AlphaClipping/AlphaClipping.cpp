@@ -10,11 +10,15 @@
 
 namespace glsample {
 
+	/**
+	 *	Simple Alpha clipping sample, where fragments are discarded if it is below a certain alpha threashold.
+	 */
 	class AlphaClipping : public GLSampleWindow {
 	  public:
 		AlphaClipping() : GLSampleWindow() {
 			this->setTitle("Alpha Clipping");
 
+			/*	Setting Window.	*/
 			this->alphaClippingSettingComponent =
 				std::make_shared<AlphaClippingSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->alphaClippingSettingComponent);
@@ -31,7 +35,7 @@ namespace glsample {
 			glm::mat4 modelView;
 			glm::mat4 ViewProj;
 			glm::mat4 modelViewProjection;
-
+			/*	*/
 			float clipping = 0.5f;
 		} uniform_stage_buffer;
 
@@ -52,12 +56,12 @@ namespace glsample {
 		class AlphaClippingSettingComponent : public nekomimi::UIComponent {
 		  public:
 			AlphaClippingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("NormalMap Settings");
+				this->setName("Alpha Clipping Settings");
 			}
 
 			virtual void draw() override {
 
-				ImGui::TextUnformatted("BillBoarding Setting");
+				ImGui::TextUnformatted("Alpha Clipping Setting");
 				ImGui::DragFloat("Clipping", &this->uniform.clipping, 0.035f, 0.0f, 1.0f);
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -75,13 +79,16 @@ namespace glsample {
 		const std::string fragmentShaderPath = "Shaders/alphaclipping/alphaclipping.frag.spv";
 
 		virtual void Release() override {
-			/*	*/
+			/*	Delete graphic pipeline.	*/
 			glDeleteProgram(this->texture_program);
 
-			/*	*/
+			/*	Delete texture.	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 
-			/*	*/
+			/*	Delete uniform buffer.	*/
+			glDeleteBuffers(1, &this->uniform_buffer);
+
+			/*	Delete geometry data.	*/
 			glDeleteVertexArrays(1, &this->planGeometry.vao);
 			glDeleteBuffers(1, &this->planGeometry.vbo);
 			glDeleteBuffers(1, &this->planGeometry.ibo);
@@ -89,24 +96,26 @@ namespace glsample {
 
 		virtual void Initialize() override {
 
-			/*	*/
+			/*	User command line option override.	*/
 			std::string texturePath = this->getResult()["texture"].as<std::string>();
 			this->uniform_stage_buffer.clipping = this->getResult()["clipping"].as<float>();
 
-			/*	*/
-			const std::vector<uint32_t> texture_vertex_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> texture_fragment_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+			{
+				/*	*/
+				const std::vector<uint32_t> alpha_clip_vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> alpha_clip_fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
-			this->texture_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
+				/*	Load shader	*/
+				this->texture_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
+			}
 
 			/*	Setup graphic program.	*/
 			glUseProgram(this->texture_program);
@@ -124,43 +133,47 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSize = Math::align(this->uniformSize, (size_t)minMapBufferSize);
 
-			/*	Create uniform buffer.	*/
+			/*	Create uniform buffer, with round robin support.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateCube(1, vertices, indices);
+			{
+				/*	Load geometry.	*/
+				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<unsigned int> indices;
+				ProceduralGeometry::generateCube(1, vertices, indices);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->planGeometry.vao);
-			glBindVertexArray(this->planGeometry.vao);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenVertexArrays(1, &this->planGeometry.vao);
+				glBindVertexArray(this->planGeometry.vao);
 
-			/*	Create indices buffer.	*/
-			glGenBuffers(1, &this->planGeometry.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planGeometry.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->planGeometry.nrIndicesElements = indices.size();
+				/*	Create indices buffer.	*/
+				glGenBuffers(1, &this->planGeometry.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planGeometry.ibo);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
+							 GL_STATIC_DRAW);
+				this->planGeometry.nrIndicesElements = indices.size();
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->planGeometry.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, planGeometry.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenBuffers(1, &this->planGeometry.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, planGeometry.vbo);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(0));
+				/*	Set Vertex attribute location and size.	*/
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(0));
 
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
+				/*	Set UV attribute location and size.	*/
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(12));
 
-			glBindVertexArray(0);
+				glBindVertexArray(0);
+			}
 		}
 
 		virtual void draw() override {
@@ -199,6 +212,7 @@ namespace glsample {
 				glDrawElements(GL_TRIANGLES, this->planGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 
+				/*	Unbound any graphic/compute pipeline.	*/
 				glUseProgram(0);
 			}
 		}
@@ -230,7 +244,7 @@ namespace glsample {
 
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
-				"C,clipping", "Clipping Value", cxxopts::value<float>()->default_value("0.5"));
+				"C,clipping", "Default Clipping Threshold", cxxopts::value<float>()->default_value("0.5"));
 		}
 	};
 } // namespace glsample

@@ -10,13 +10,19 @@
 
 namespace glsample {
 
-	class FrustumCulling : public GLSampleWindow {
+	class FrustumComputeCulling : public GLSampleWindow {
 	  public:
-		FrustumCulling() : GLSampleWindow() {
-			this->setTitle("FrustumCulling");
+		FrustumComputeCulling() : GLSampleWindow() {
+			this->setTitle("FrustumCulling - Compute");
+
+			/*	Setting Window.	*/
 			this->shadowSettingComponent =
-				std::make_shared<BasicShadowMapSettingComponent>(this->uniform, this->shadowTexture);
+				std::make_shared<FrustumCullingSettingComponent>(this->uniform, this->shadowTexture);
 			this->addUIComponent(this->shadowSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct UniformBufferBlock {
@@ -61,14 +67,15 @@ namespace glsample {
 
 		CameraController camera;
 
-		class BasicShadowMapSettingComponent : public nekomimi::UIComponent {
+		class FrustumCullingSettingComponent : public nekomimi::UIComponent {
 		  public:
-			BasicShadowMapSettingComponent(struct UniformBufferBlock &uniform, unsigned int &depth)
+			FrustumCullingSettingComponent(struct UniformBufferBlock &uniform, unsigned int &depth)
 				: uniform(uniform), depth(depth) {
-				this->setName("Basic Shadow Mapping Settings");
+				this->setName("Frustum Culling Settings");
 			}
 
 			virtual void draw() override {
+				ImGui::TextUnformatted("Frustum Culling Settings");
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
@@ -87,7 +94,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<BasicShadowMapSettingComponent> shadowSettingComponent;
+		std::shared_ptr<FrustumCullingSettingComponent> shadowSettingComponent;
 
 		const std::string modelPath = "asset/sponza/sponza.obj";
 		/*	*/

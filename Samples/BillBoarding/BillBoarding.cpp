@@ -12,9 +12,12 @@ namespace glsample {
 	  public:
 		BillBoarding() : GLSampleWindow() {
 			this->setTitle("BillBoarding");
+
+			/*	Setting Window.	*/
 			this->billboardSettingComponent = std::make_shared<BillBoardSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->billboardSettingComponent);
 
+			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -41,7 +44,7 @@ namespace glsample {
 		} uniformBuffer;
 
 		/*	*/
-		GeometryObject plan;
+		GeometryObject geometry;
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
@@ -60,7 +63,7 @@ namespace glsample {
 		class BillBoardSettingComponent : public nekomimi::UIComponent {
 		  public:
 			BillBoardSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("NormalMap Settings");
+				this->setName("BillBoarding Setting");
 			}
 
 			virtual void draw() override {
@@ -87,21 +90,21 @@ namespace glsample {
 		std::shared_ptr<BillBoardSettingComponent> billboardSettingComponent;
 
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/billboarding/billboarding.vert.spv";
-		const std::string geomtryShaderPath = "Shaders/billboarding/billboarding.geom.spv";
-		const std::string fragmentShaderPath = "Shaders/billboarding/billboarding.frag.spv";
+		const std::string vertexBillBoardShaderPath = "Shaders/billboarding/billboarding.vert.spv";
+		const std::string geomtryBillBoardShaderPath = "Shaders/billboarding/billboarding.geom.spv";
+		const std::string fragmentBillBoardShaderPath = "Shaders/billboarding/billboarding.frag.spv";
 
 		virtual void Release() override {
-			/*	*/
+			/*	Delete graphic pipeline.	*/
 			glDeleteProgram(this->billboarding_program);
 
-			/*	*/
+			/*	Delete texture.	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 
-			/*	*/
+			/*	Delete uniform buffer.	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
 
-			/*	*/
+			/*	Delete geometry data.	*/
 			glDeleteVertexArrays(1, &this->plan.vao);
 			glDeleteBuffers(1, &this->plan.vbo);
 			glDeleteBuffers(1, &this->plan.ibo);
@@ -111,21 +114,23 @@ namespace glsample {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 
-			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> geomtry_source =
-				IOUtil::readFileData<uint32_t>(this->geomtryShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+			{
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> geomtry_source =
+					IOUtil::readFileData<uint32_t>(this->geomtryShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
-			this->billboarding_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source, &geomtry_source);
+				/*	Load shader	*/
+				this->billboarding_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source,
+																			  &fragment_source, &geomtry_source);
+			}
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->billboarding_program);

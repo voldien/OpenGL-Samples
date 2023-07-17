@@ -16,11 +16,12 @@ namespace glsample {
 
 		/*	Framebuffers.	*/
 		unsigned int gameoflife_framebuffer;
-		std::vector<unsigned int> gameoflife_texture;
-		unsigned int gameoflife_render_texture; // TODO add round robin.
+		std::vector<unsigned int> gameoflife_state_texture; /*	*/
+		unsigned int gameoflife_render_texture;				// TODO add round robin.
 		size_t gameoflife_texture_width;
 		size_t gameoflife_texture_height;
 
+		/*	*/
 		unsigned int gameoflife_program;
 		int localWorkGroupSize[3];
 
@@ -34,26 +35,30 @@ namespace glsample {
 
 			glDeleteFramebuffers(1, &this->gameoflife_framebuffer);
 
-			glDeleteTextures(this->gameoflife_texture.size(), (const GLuint *)this->gameoflife_texture.data());
+			glDeleteTextures(this->gameoflife_state_texture.size(),
+							 (const GLuint *)this->gameoflife_state_texture.data());
 			glDeleteTextures(1, &this->gameoflife_render_texture);
 		}
 
 		virtual void Initialize() override {
 
-			/*	Load shader binaries.	*/
-			const std::vector<uint32_t> gameoflife_source =
-				IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
+			{
+				/*	Load shader binaries.	*/
+				const std::vector<uint32_t> gameoflife_source =
+					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<char> gameoflife_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, compilerOptions);
+				// TODO fix
+				std::vector<char> gameoflife_source_T =
+					fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, compilerOptions);
 
-			/*	Create compute pipeline.	*/
-			this->gameoflife_program = ShaderLoader::loadComputeProgram({&gameoflife_source_T});
+				/*	Create compute pipeline.	*/
+				this->gameoflife_program = ShaderLoader::loadComputeProgram({&gameoflife_source_T});
+			}
 
 			/*	Setup compute pipeline.	*/
 			glUseProgram(this->gameoflife_program);
@@ -63,16 +68,18 @@ namespace glsample {
 			glGetProgramiv(this->gameoflife_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			glUseProgram(0);
 
-			/*	Create framebuffer and its textures.	*/
-			glGenFramebuffers(1, &this->gameoflife_framebuffer);
-			this->gameoflife_texture.resize(2);
-			glGenTextures(this->gameoflife_texture.size(), this->gameoflife_texture.data());
+			{
+				/*	Create framebuffer and its textures.	*/
+				glGenFramebuffers(1, &this->gameoflife_framebuffer);
+				this->gameoflife_texture.resize(2);
+				glGenTextures(this->gameoflife_texture.size(), this->gameoflife_texture.data());
 
-			/*	Create init framebuffers.	*/
-			this->onResize(this->width(), this->height());
+				/*	Create init framebuffers.	*/
+				this->onResize(this->width(), this->height());
+			}
 		}
 
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->gameoflife_texture_width = width;
 			this->gameoflife_texture_height = height;
@@ -129,7 +136,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);
@@ -171,8 +178,10 @@ namespace glsample {
 			/*	Update the next frame in round robin.	*/
 			this->nthTexture = (this->nthTexture + 1) % this->gameoflife_texture.size();
 		}
-		virtual void update() override {}
+		void update() override {}
 	};
+
+	
 
 } // namespace glsample
 

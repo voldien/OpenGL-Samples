@@ -10,12 +10,21 @@
 
 namespace glsample {
 
+	/**
+	 * Simple Fog Sample.
+	 */
 	class Fog : public GLSampleWindow {
 	  public:
 		Fog() : GLSampleWindow() {
 			this->setTitle("Fog");
+
+			/*	Setting Window.	*/
 			this->fogSettingComponent = std::make_shared<FogSettingComponent>(this->uniform);
 			this->addUIComponent(this->fogSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		enum class FogType : unsigned int { None, Linear, Exp, Exp2, Height };
@@ -43,8 +52,6 @@ namespace glsample {
 			float fogIntensity = 1.0f;
 		} uniform;
 
-		std::string diffuseTexturePath = "asset/diffuse.png"; // TODO remove.
-
 		unsigned int diffuse_texture;
 
 		std::vector<GeometryObject> refObj;
@@ -70,6 +77,7 @@ namespace glsample {
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+
 				ImGui::TextUnformatted("Fog Settings");
 				ImGui::DragInt("Fog Type", (int *)&this->uniform.fogType);
 				ImGui::ColorEdit4("Fog Color", &this->uniform.fogColor[0], ImGuiColorEditFlags_Float);
@@ -77,6 +85,7 @@ namespace glsample {
 				ImGui::DragFloat("Fog Intensity", &this->uniform.fogIntensity);
 				ImGui::DragFloat("Fog Start", &this->uniform.fogStart);
 				ImGui::DragFloat("Fog End", &this->uniform.fogEnd);
+
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -98,24 +107,28 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_buffer);
 
 			/*	TODO delete geometry.	*/
+			/*	Delete geometry data.	*/
 		}
 
 		virtual void Initialize() override {
+
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			const std::string diffuseTexturePath = "asset/diffuse.png"; // TODO remove.
+			{
+				/*	*/
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
-			/*	*/
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
-
-			/*	Load shaders	*/
-			this->graphic_fog_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				/*	Load shaders	*/
+				this->graphic_fog_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			}
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -168,7 +181,7 @@ namespace glsample {
 
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
 				glUseProgram(this->graphic_fog_program);
@@ -190,9 +203,9 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
-			this->camera.update(getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
 			this->uniform.model = glm::mat4(1.0f);

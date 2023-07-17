@@ -13,8 +13,14 @@ namespace glsample {
 	  public:
 		Blending() : GLSampleWindow() {
 			this->setTitle("Blending");
-			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->normalMapSettingComponent);
+
+			/*	Setting Window.	*/
+			this->blendingSettingComponent = std::make_shared<BlendingSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->blendingSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct UniformBufferBlock {
@@ -40,7 +46,7 @@ namespace glsample {
 		size_t cols = 2;
 
 		/*	*/
-		GeometryObject plan;
+		GeometryObject geometry;
 		InstanceSubBuffer instanceBuffer;
 
 		/*	Textures.	*/
@@ -60,9 +66,9 @@ namespace glsample {
 
 		CameraController camera;
 
-		class NormalMapSettingComponent : public nekomimi::UIComponent {
+		class BlendingSettingComponent : public nekomimi::UIComponent {
 		  public:
-			NormalMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			BlendingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("NormalMap Settings");
 			}
 
@@ -82,23 +88,22 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
+		std::shared_ptr<BlendingSettingComponent> blendingSettingComponent;
 
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/blending/blending.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/blending/blending.frag.spv";
 
 		virtual void Release() override {
-			/*	*/
+			/*	Delete graphic pipeline.	*/
 			glDeleteProgram(this->blending_program);
-
-			/*	*/
+			/*	Delete texture.	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 
-			/*	*/
+			/*	Delete uniform buffer.	*/
 			glDeleteBuffers(1, &this->uniform_share_buffer);
 
-			/*	*/
+			/*	Delete geometry data.	*/
 			glDeleteVertexArrays(1, &this->plan.vao);
 			glDeleteBuffers(1, &this->plan.vbo);
 			glDeleteBuffers(1, &this->plan.ibo);
@@ -107,20 +112,21 @@ namespace glsample {
 		virtual void Initialize() override {
 
 			const std::string diffuseTexturePath = getResult()["texture"].as<std::string>();
+			{
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_blending_binary_data =
+					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_blending_binary_data =
+					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
-			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
-
-			/*	Create graphic pipeline program.	*/
-			this->blending_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				/*	Create graphic pipeline program.	*/
+				this->blending_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_blending_binary_data, &fragment_blending_binary_data);
+			}
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->blending_program);
@@ -247,7 +253,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->blendingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);

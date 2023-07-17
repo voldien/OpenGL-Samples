@@ -58,8 +58,6 @@ namespace glsample {
 		unsigned int instance_model_buffer;
 
 		/*	*/
-		unsigned int uniform_buffer_index = 0;
-		unsigned int uniform_instance_buffer_index = 0;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_instance_buffer_binding = 1;
 		unsigned int uniform_mvp_buffer;
@@ -134,11 +132,10 @@ namespace glsample {
 			glUseProgram(this->instance_program);
 			glUniform1i(glGetUniformLocation(this->instance_program, "DiffuseTexture"), 0);
 			/*	*/
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->instance_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			/*	*/
-			this->uniform_instance_buffer_index =
-				glGetUniformBlockIndex(this->instance_program, "UniformInstanceBlock");
+			int uniform_instance_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformInstanceBlock");
 			glUniformBlockBinding(this->instance_program, this->uniform_instance_buffer_index,
 								  this->uniform_instance_buffer_binding);
 			glUseProgram(0);

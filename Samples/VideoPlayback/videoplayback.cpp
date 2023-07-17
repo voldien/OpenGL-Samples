@@ -97,7 +97,7 @@ namespace glsample {
 		unsigned int vbo;
 		unsigned vao;
 
-		/*	Audio.	*/
+		/*	Audio.	*/ // TODO fix
 		fragcore::AudioClip *clip;
 		fragcore::AudioListener *listener;
 		fragcore::AudioSource *audioSource;
@@ -389,7 +389,7 @@ namespace glsample {
 						 GL_DYNAMIC_COPY);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
-			/*	*/
+			/*	Create round robin texture array.	*/
 			glGenTextures(this->videoFrameTextures.size(), this->videoFrameTextures.data());
 			for (size_t i = 0; i < this->videoFrameTextures.size(); i++) {
 				glBindTexture(GL_TEXTURE_2D, this->videoFrameTextures[i]);
@@ -405,6 +405,7 @@ namespace glsample {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				/*	Disable LOD.	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 			}

@@ -11,16 +11,20 @@
 
 namespace glsample {
 
-	class AmbientOcclusion : public GLSampleWindow {
+	/**
+	 * Screen Space Ambient Occlusion post processing effect. Both World and Depth Space.
+	 */
+	class ScreenSpaceAmbientOcclusion : public GLSampleWindow {
 	  public:
-		AmbientOcclusion() : GLSampleWindow() {
-			this->setTitle("AmbientOcclusion");
+		ScreenSpaceAmbientOcclusion() : GLSampleWindow() {
+			this->setTitle("ScreenSpace AmbientOcclusion");
 
-			/*	*/
+			/*	Setting Window.	*/
 			this->ambientOcclusionSettingComponent =
 				std::make_shared<AmbientOcclusionSettingComponent>(this->uniformBlockSSAO);
 			this->addUIComponent(this->ambientOcclusionSettingComponent);
 
+			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -62,11 +66,14 @@ namespace glsample {
 		std::vector<unsigned int> multipass_textures;
 		unsigned int depthTexture;
 
+		/*	White texture for each object.	*/
 		unsigned int white_texture;
+		/*	Random direction texture.	*/
 		unsigned int random_texture;
 
 		/*	*/
-		unsigned int ssao_program;
+		unsigned int ssao_world_program;
+		unsigned int ssao_depth_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
@@ -75,12 +82,10 @@ namespace glsample {
 		unsigned int uniform_ssao_buffer;
 		const size_t nrUniformBuffer = 3;
 
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
-		size_t uniformSSAOBufferSize = sizeof(UniformSSAOBufferBlock);
+		size_t uniformBufferAlignSize = sizeof(UniformBufferBlock);
+		size_t uniformSSAOBufferAlignSize = sizeof(UniformSSAOBufferBlock);
 
 		CameraController camera;
-
-		const std::string modelPath = "asset/sponza/sponza.obj";
 
 		class AmbientOcclusionSettingComponent : public nekomimi::UIComponent {
 
@@ -116,17 +121,23 @@ namespace glsample {
 		const std::string fragmentShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
 
 		virtual void Release() override {
-			/*	*/
-			glDeleteProgram(this->ssao_program);
+			/*	Delete graphic pipelines.	*/
+			glDeleteProgram(this->ssao_world_program);
+			glDeleteProgram(this->ssao_depth_program);
 			glDeleteProgram(this->multipass_program);
 
+			/*	*/
+			glDeleteFramebuffers(1, &this->multipass_framebuffer);
+			/*	Delete textures.	*/
 			glDeleteTextures(1, &this->depthTexture);
 			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
+			glDeleteTextures(1, &this->random_texture);
+			glDeleteTextures(1, &this->white_texture);
 
-			/*	*/
+			/*	Delete uniform buffer.	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
 
-			/*	*/
+			/*	Delete geometry data.	*/
 			glDeleteVertexArrays(1, &this->plan.vao);
 			glDeleteBuffers(1, &this->plan.vbo);
 			glDeleteBuffers(1, &this->plan.ibo);
@@ -136,37 +147,40 @@ namespace glsample {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+			{
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_ssao_source =
-				IOUtil::readFileData<uint32_t>(this->vertexSSAOShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_ssao_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_ssao_source =
+					IOUtil::readFileData<uint32_t>(this->vertexSSAOShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_ssao_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
-			const std::vector<uint32_t> vertex_multi_pass_source =
-				IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_multi_pass_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> vertex_multi_pass_source =
+					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_multi_pass_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
-			/*	Load shader	*/
-			this->ssao_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_source, &fragment_ssao_source);
+				/*	Load shader	*/
+				this->ssao_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_source, &fragment_ssao_source);
 
-			/*	Load shader	*/
-			this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_multi_pass_source,
-																	   &fragment_multi_pass_source);
-
+				/*	Load shader	*/
+				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_multi_pass_source,
+																		   &fragment_multi_pass_source);
+			}
 			/*	Setup graphic ambient occlusion pipeline.	*/
-			glUseProgram(this->ssao_program);
-			int uniform_ssao_buffer_index = glGetUniformBlockIndex(this->ssao_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->ssao_program, "WorldTexture"), 1);
-			glUniform1iARB(glGetUniformLocation(this->ssao_program, "NormalTexture"), 3);
-			glUniform1iARB(glGetUniformLocation(this->ssao_program, "DepthTexture"), 4);
-			glUniform1iARB(glGetUniformLocation(this->ssao_program, "NormalRandomize"), 5);
-			glUniformBlockBinding(this->ssao_program, uniform_ssao_buffer_index, this->uniform_ssao_buffer_binding);
+			glUseProgram(this->ssao_world_program);
+			int uniform_ssao_world_buffer_index =
+				glGetUniformBlockIndex(this->ssao_world_program, "UniformBufferBlock");
+			glUniform1iARB(glGetUniformLocation(this->ssao_world_program, "WorldTexture"), 1);
+			glUniform1iARB(glGetUniformLocation(this->ssao_world_program, "NormalTexture"), 3);
+			glUniform1iARB(glGetUniformLocation(this->ssao_world_program, "DepthTexture"), 4);
+			glUniform1iARB(glGetUniformLocation(this->ssao_world_program, "NormalRandomize"), 5);
+			glUniformBlockBinding(this->ssao_world_program, uniform_ssao_world_buffer_index,
+								  this->uniform_ssao_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup graphic multipass pipeline.	*/
@@ -186,13 +200,14 @@ namespace glsample {
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferAlignSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_ssao_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSSAOBufferSize * this->nrUniformBuffer, nullptr,
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformSSAOBufferAlignSize * this->nrUniformBuffer, nullptr,
 						 GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
@@ -270,6 +285,7 @@ namespace glsample {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
+				/*	No Mipmap.	*/
 				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
 
 				FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
@@ -305,13 +321,15 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 
-			/*	Create multipass framebuffer.	*/
-			glGenFramebuffers(1, &this->multipass_framebuffer);
+			{
+				/*	Create multipass framebuffer.	*/
+				glGenFramebuffers(1, &this->multipass_framebuffer);
 
-			/*	*/
-			this->multipass_textures.resize(4);
-			glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
-			onResize(this->width(), this->height());
+				/*	*/
+				this->multipass_textures.resize(4);
+				glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
+				onResize(this->width(), this->height());
+			}
 		}
 
 		virtual void onResize(int width, int height) override {
@@ -382,7 +400,7 @@ namespace glsample {
 
 		virtual void draw() override {
 
-			update();
+			this->update();
 			int width, height;
 			this->getSize(&width, &height);
 
@@ -398,8 +416,8 @@ namespace glsample {
 			{
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-								  this->uniformBufferSize);
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferAlignSize,
+								  this->uniformBufferAlignSize);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, this->multipass_framebuffer);
 				glViewport(0, 0, this->multipass_texture_width, this->multipass_texture_height);
@@ -429,15 +447,15 @@ namespace glsample {
 			{
 
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_binding, this->uniform_ssao_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
-								  this->uniformSSAOBufferSize);
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSSAOBufferAlignSize,
+								  this->uniformSSAOBufferAlignSize);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				glViewport(0, 0, width, height);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				glUseProgram(this->ssao_program);
+				glUseProgram(this->ssao_world_program);
 
 				glDisable(GL_CULL_FACE);
 
@@ -459,14 +477,14 @@ namespace glsample {
 				glUseProgram(0);
 
 				if (this->ambientOcclusionSettingComponent->downScale) {
-				}
-				/*	Downscale the image.	*/
-				for (size_t i = 0; i < 4; i++) {
-					glReadBuffer(GL_NONE);
-					const size_t w = ((float)width / (std::pow(2.0f, i) + 1));
-					const size_t h = ((float)height / (std::pow(2.0f, i) + 1));
-					// glBindTexture(GL_TEXTURE_2D, this->)
-					// glCopyTexImage2D(GL_TEXTURE_2D, i + 1, GL_RGB8, 0, 0, w, h, 0);
+					/*	Downscale the image.	*/
+					for (size_t i = 0; i < 4; i++) {
+						glReadBuffer(GL_NONE);
+						const size_t w = ((float)width / (std::pow(2.0f, i) + 1));
+						const size_t h = ((float)height / (std::pow(2.0f, i) + 1));
+						// glBindTexture(GL_TEXTURE_2D, this->)
+						// glCopyTexImage2D(GL_TEXTURE_2D, i + 1, GL_RGB8, 0, 0, w, h, 0);
+					}
 				}
 			}
 		}
@@ -490,8 +508,8 @@ namespace glsample {
 			{
 				glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				void *uniformPointer = glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferSize,
-					this->uniformBufferSize,
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferAlignSize,
+					this->uniformBufferAlignSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				memcpy(uniformPointer, &this->uniformBlock, sizeof(uniformBlock));
 				glUnmapBufferARB(GL_UNIFORM_BUFFER);
@@ -500,8 +518,8 @@ namespace glsample {
 				glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
 				void *uniformSSAOPointer = glMapBufferRange(
 					GL_UNIFORM_BUFFER,
-					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSSAOBufferSize,
-					this->uniformSSAOBufferSize,
+					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSSAOBufferAlignSize,
+					this->uniformSSAOBufferAlignSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				memcpy(uniformSSAOPointer, &this->uniformBlockSSAO, sizeof(uniformBlockSSAO));
 				glUnmapBufferARB(GL_UNIFORM_BUFFER);
