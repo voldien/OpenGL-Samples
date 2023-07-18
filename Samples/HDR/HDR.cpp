@@ -97,7 +97,7 @@ namespace glsample {
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->refrection_program);
 
@@ -112,7 +112,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->torus.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string panoramicPath = this->getResult()["texture"].as<std::string>();
 
@@ -245,7 +245,7 @@ namespace glsample {
 			glGenTextures(1, &this->depthTexture);
 			onResize(this->width(), this->height());
 		}
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->hdrWidth = width;
 			this->hdrHeight = height;
@@ -411,7 +411,7 @@ namespace glsample {
 							  GL_NEAREST);
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

@@ -92,7 +92,7 @@ namespace glsample {
 		const std::string ControlShaderPath = "Shaders/tessellation/tessellation.tesc";
 		const std::string EvoluationShaderPath = "Shaders/tessellation/tessellation.tese";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->tessellation_program);
 
 			/*	*/
@@ -105,7 +105,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	*/
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath);
@@ -219,7 +219,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());

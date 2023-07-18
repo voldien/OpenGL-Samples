@@ -143,7 +143,7 @@ namespace glsample {
 
 		// TODO add support to toggle between quad and blit.
 
-		virtual void Release() override {
+		void Release() override {
 
 			/*	*/
 			glDeleteProgram(this->videoplayback_program);
@@ -311,7 +311,7 @@ namespace glsample {
 			this->frame_timer = av_gettime() / 1000000.0;
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	*/
 			const std::string videoPath = this->getResult()["video"].as<std::string>();
@@ -432,7 +432,7 @@ namespace glsample {
 			// this->audioSource->play();
 		}
 
-		virtual void onResize(int width, int height) override {}
+		void onResize(int width, int height) override {}
 
 		virtual void draw() override {
 
@@ -469,7 +469,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			/*  */
 			AVPacket *packet = av_packet_alloc();

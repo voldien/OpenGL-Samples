@@ -119,7 +119,7 @@ namespace glsample {
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->simpleOcean_program);
 
@@ -135,7 +135,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			std::string normalTexturePath = "asset/normalmap.png";
 
@@ -347,7 +347,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

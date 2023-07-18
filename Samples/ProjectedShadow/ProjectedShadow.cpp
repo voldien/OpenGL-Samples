@@ -124,7 +124,7 @@ namespace glsample {
 		};
 		std::shared_ptr<AlphaClippingSettingComponent> shadowProjectedSettingComponent;
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->phongblinn_program);
 
@@ -139,7 +139,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	*/
 			std::string texturePath = this->getResult()["texture"].as<std::string>();
@@ -371,7 +371,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			/*	*/
 			float elapsedTime = this->getTimer().getElapsed();

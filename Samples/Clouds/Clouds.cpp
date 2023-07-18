@@ -87,7 +87,7 @@ namespace glsample {
 		};
 		std::shared_ptr<CloudsSettingComponent> cloudsSettingComponent;
 
-		virtual void Release() override {
+		void Release() override {
 
 			glDeleteProgram(this->skybox_program);
 			glDeleteProgram(this->clouds_program);
@@ -99,7 +99,7 @@ namespace glsample {
 			glDeleteTextures(1, (const GLuint *)&this->skybox_texture_panoramic);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 			const std::string panoramicPath = this->getResult()["texture"].as<std::string>();
 
 			/*	Load shader binaries.	*/
@@ -222,7 +222,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			this->camera.update(this->getTimer().deltaTime());
 

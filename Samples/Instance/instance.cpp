@@ -95,7 +95,7 @@ namespace glsample {
 		const std::string vertexInstanceShaderPath = "Shaders/instance/instance.vert.spv";
 		const std::string fragmentInstanceShaderPath = "Shaders/instance/instance.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->instance_program);
 
@@ -109,7 +109,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->instanceGeometry.vbo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
@@ -256,7 +256,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

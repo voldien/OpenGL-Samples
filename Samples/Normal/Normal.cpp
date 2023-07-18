@@ -92,7 +92,7 @@ namespace glsample {
 		const std::string geomtryNormalTriangleShaderPath = "Shaders/normal/normal-triangle.geom.spv";
 		const std::string fragmentNormalShaderPath = "Shaders/normal/normal.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->normal_triangle_program);
@@ -110,7 +110,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
@@ -285,7 +285,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			int width, height;
 			this->getSize(&width, &height);

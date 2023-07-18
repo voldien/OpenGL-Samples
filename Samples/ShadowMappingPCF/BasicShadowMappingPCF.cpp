@@ -78,7 +78,7 @@ namespace glsample {
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->shadow_program);
 
@@ -89,7 +89,7 @@ namespace glsample {
 			// glDeleteBuffers(1, &this->ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			std::vector<char> vertex_source = IOUtil::readFile(vertexShaderPath, FileSystem::getFileSystem());
@@ -299,7 +299,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

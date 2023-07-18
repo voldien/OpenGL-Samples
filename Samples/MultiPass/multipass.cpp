@@ -56,7 +56,7 @@ namespace glsample {
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			delete this->modelLoader;
 
 			glDeleteProgram(this->multipass_program);
@@ -78,25 +78,25 @@ namespace glsample {
 			}
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			{
+				/*	*/
+				const std::vector<uint32_t> multipass_vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> multipass_fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
-			/*	*/
-			const std::vector<uint32_t> vertex_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
-
-			/*	Load shader	*/
-			this->multipass_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
-
+				/*	Load shader	*/
+				this->multipass_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &multipass_vertex_binary, &multipass_fragment_binary);
+			}
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->multipass_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
@@ -137,7 +137,7 @@ namespace glsample {
 			this->onResize(this->width(), this->height());
 		}
 
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->multipass_texture_width = width;
 			this->multipass_texture_height = height;
@@ -245,7 +245,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			/*	Update Camera.	*/
 			const float elapsedTime = this->getTimer().getElapsed();
@@ -283,7 +283,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		
+
 		glsample::MultiPassGLSample sample;
 		sample.run(argc, argv);
 

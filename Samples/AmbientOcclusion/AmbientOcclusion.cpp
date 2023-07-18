@@ -120,7 +120,7 @@ namespace glsample {
 		const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	Delete graphic pipelines.	*/
 			glDeleteProgram(this->ssao_world_program);
 			glDeleteProgram(this->ssao_depth_program);
@@ -143,7 +143,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
@@ -332,7 +332,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->multipass_texture_width = width;
 			this->multipass_texture_height = height;
@@ -489,7 +489,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();

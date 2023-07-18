@@ -130,7 +130,7 @@ namespace glsample {
 		const std::string vectorFieldGeometryShaderPath = "Shaders/vectorfield/vectorField.geom.spv";
 		const std::string vectorFieldFragmentPath = "Shaders/vectorfield/vectorField.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->particle_graphic_program);
 			glDeleteProgram(this->particle_compute_program);
@@ -143,7 +143,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->particles.vbo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	*/
 			const std::string particleTexturePath = "asset/particle.png";
@@ -447,7 +447,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);

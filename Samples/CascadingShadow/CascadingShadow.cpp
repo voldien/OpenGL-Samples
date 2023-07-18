@@ -101,7 +101,7 @@ namespace glsample {
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->shadow_program);
 
@@ -115,7 +115,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
@@ -311,7 +311,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			camera.update(getTimer().deltaTime());
 

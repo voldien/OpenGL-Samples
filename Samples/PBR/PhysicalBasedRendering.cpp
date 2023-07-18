@@ -94,9 +94,9 @@ namespace glsample {
 
 		std::shared_ptr<PhysicalBasedRenderingSettingComponent> physicalBasedRenderingSettingComponent;
 
-		virtual void Release() override { glDeleteProgram(this->physical_based_rendering_program); }
+		void Release() override { glDeleteProgram(this->physical_based_rendering_program); }
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
@@ -294,7 +294,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			camera.update(getTimer().deltaTime());
 

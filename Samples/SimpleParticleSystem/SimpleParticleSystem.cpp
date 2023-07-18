@@ -91,7 +91,7 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/simpleparticlesystem/simpleparticlesystem.vert";
 		const std::string fragmentShaderPath = "Shaders/simpleparticlesystem/simpleparticlesystem.frag";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->particle_graphic_program);
 
@@ -101,7 +101,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->vbo_particle);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string particleTexturePath = "asset/particle.png";
 
@@ -218,7 +218,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);

@@ -124,7 +124,7 @@ namespace glsample {
 		const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert";
 		const std::string fragmentShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->ssao_program);
 			glDeleteProgram(this->multipass_program);
@@ -141,7 +141,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	Load shader source.	*/
 			std::vector<char> vertex_source = IOUtil::readFileString(this->vertexSSAOShaderPath, this->getFileSystem());
@@ -308,7 +308,7 @@ namespace glsample {
 			onResize(this->width(), this->height());
 		}
 
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->multipass_texture_width = width;
 			this->multipass_texture_height = height;
@@ -454,7 +454,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			/*	Update Camera.	*/
 			float elapsedTime = getTimer().getElapsed();

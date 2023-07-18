@@ -62,7 +62,7 @@ namespace glsample {
 		/*	*/
 		const std::string computeShaderPath = "Shaders/mandelbrot/mandelbrot.comp";
 
-		virtual void Release() override {
+		void Release() override {
 
 			glDeleteProgram(this->mandelbrot_program);
 			glDeleteFramebuffers(1, &this->mandelbrot_framebuffer);
@@ -70,7 +70,7 @@ namespace glsample {
 			glDeleteTextures(1, (const GLuint *)&this->mandelbrot_texture);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	Load shader binaries.	*/
 			const std::vector<uint32_t> mandelbrot_source =
@@ -111,7 +111,7 @@ namespace glsample {
 			onResize(this->width(), this->height());
 		}
 
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->mandelbrot_texture_width = width;
 			this->mandelbrot_texture_height = height;
@@ -175,7 +175,7 @@ namespace glsample {
 							  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =

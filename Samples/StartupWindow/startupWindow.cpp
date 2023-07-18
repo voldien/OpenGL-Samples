@@ -6,9 +6,9 @@
 class StartUpWindow : public GLSampleWindow {
   public:
 	StartUpWindow() : GLSampleWindow() { this->setTitle("StartUp Window"); }
-	virtual void Release() override {}
+	void Release() override {}
 
-	virtual void Initialize() override {}
+	void Initialize() override {}
 
 	virtual void draw() override {
 
@@ -25,7 +25,7 @@ class StartUpWindow : public GLSampleWindow {
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
 
-	virtual void update() override {}
+	void update() override {}
 };
 
 int main(int argc, const char **argv) {

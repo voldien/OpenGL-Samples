@@ -80,7 +80,7 @@ namespace glsample {
 		const std::string computeShaderPath = "Shaders/ocean/ocean.comp";
 		const std::string computeKFFShaderPath = "Shaders/ocean/kff.comp";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->skybox_program);
 			glDeleteProgram(this->ocean_graphic_program);
@@ -139,7 +139,7 @@ namespace glsample {
 		// 	}
 		// }
 
-		virtual void Initialize() override {
+		void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	Load source code for the ocean shader.	*/
@@ -336,7 +336,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());

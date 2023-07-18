@@ -88,7 +88,7 @@ namespace glsample {
 		const std::string ControlShaderPath = "Shaders/pntessellation/pntessellation.tesc.spv";
 		const std::string EvoluationShaderPath = "Shaders/pntessellation/pntessellation.tese.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->tessellation_pn_program);
 
@@ -104,7 +104,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string heightTexturePath = this->getResult()["heightmap"].as<std::string>();
@@ -238,7 +238,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

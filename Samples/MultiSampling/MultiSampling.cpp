@@ -54,7 +54,7 @@ namespace glsample {
 
 		const std::string modelPath = "asset/sponza/sponza.obj";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->multipass_program);
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
@@ -70,7 +70,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	*/
 			const std::vector<uint32_t> vertex_binary =
@@ -124,7 +124,7 @@ namespace glsample {
 			onResize(this->width(), this->height());
 		}
 
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->multipass_texture_width = width;
 			this->multipass_texture_height = height;
@@ -225,7 +225,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			const float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

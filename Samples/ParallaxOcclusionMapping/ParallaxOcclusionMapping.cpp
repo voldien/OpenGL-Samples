@@ -83,7 +83,7 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/parallaxmap/parallaxmap.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/parallaxmap/parallaxmap.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->parallexMapping_program);
 
@@ -100,7 +100,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	*/
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
@@ -230,7 +230,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			this->camera.update(getTimer().deltaTime());
 

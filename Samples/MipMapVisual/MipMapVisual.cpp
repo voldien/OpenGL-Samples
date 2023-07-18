@@ -81,7 +81,7 @@ namespace glsample {
 		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";
 		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->graphic_program);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -91,7 +91,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 

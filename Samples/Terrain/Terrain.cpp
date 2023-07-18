@@ -76,7 +76,7 @@ namespace glsample {
 		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert";
 		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->terrain_program);
 
 			glDeleteVertexArrays(1, &this->terrain.vao);
@@ -116,7 +116,7 @@ namespace glsample {
 		};
 		std::shared_ptr<SimpleOceanSettingComponent> simpleOceanSettingComponent;
 
-		virtual void Initialize() override {
+		void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	Load shader	*/
@@ -275,7 +275,7 @@ namespace glsample {
 			// glBindVertexArray(0);
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());

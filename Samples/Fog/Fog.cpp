@@ -101,7 +101,7 @@ namespace glsample {
 		const std::string vertexGraphicShaderPath = "Shaders/fog/fog.vert.spv";
 		const std::string fragmentGraphicShaderPath = "Shaders/fog/fog.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->graphic_fog_program);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -110,7 +110,7 @@ namespace glsample {
 			/*	Delete geometry data.	*/
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 			const std::string diffuseTexturePath = "asset/diffuse.png"; // TODO remove.

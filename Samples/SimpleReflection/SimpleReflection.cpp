@@ -119,7 +119,7 @@ namespace glsample {
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->skybox_program);
 			glDeleteProgram(this->graphic_program);
@@ -140,7 +140,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->skybox.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string panoramicPath = this->getResult()["skybox"].as<std::string>();
 			const std::string normalTexturePath = this->getResult()["texture"].as<std::string>();
@@ -302,7 +302,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->multipass_texture_width = width;
 			this->multipass_texture_height = height;
@@ -506,7 +506,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

@@ -28,7 +28,7 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->solhouetteDetection_program);
 
 			glDeleteTextures(1, (const GLuint *)&this->gl_texture);
@@ -37,7 +37,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.vbo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
@@ -150,7 +150,7 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
-		virtual void update() override { camera.update(getTimer().deltaTime()); }
+		void update() override { camera.update(getTimer().deltaTime()); }
 	};
 
 	class SilhouetteDetectionGLSample : public GLSample<SilhouetteDetection> {

@@ -94,7 +94,7 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/blending/blending.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/blending/blending.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	Delete graphic pipeline.	*/
 			glDeleteProgram(this->blending_program);
 			/*	Delete texture.	*/
@@ -109,7 +109,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string diffuseTexturePath = getResult()["texture"].as<std::string>();
 			{
@@ -262,7 +262,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

@@ -101,7 +101,7 @@ namespace glsample {
 		const std::string fragmentShaderPath = "Shaders/nbodysimulation/nbodysimulation.frag";
 		const std::string computeShaderPath = "Shaders/nbodysimulation/nbodysimulation.comp";
 
-		virtual void Release() override {
+		void Release() override {
 
 			/*	*/
 			glDeleteProgram(this->particle_graphic_program);
@@ -115,7 +115,7 @@ namespace glsample {
 			/*	*/
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
@@ -269,7 +269,7 @@ namespace glsample {
 			glUseProgram(0);
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			float elapsedTime = getTimer().getElapsed();
 			camera.update(getTimer().deltaTime());

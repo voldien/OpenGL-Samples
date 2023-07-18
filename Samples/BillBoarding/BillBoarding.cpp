@@ -94,7 +94,7 @@ namespace glsample {
 		const std::string geomtryBillBoardShaderPath = "Shaders/billboarding/billboarding.geom.spv";
 		const std::string fragmentBillBoardShaderPath = "Shaders/billboarding/billboarding.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	Delete graphic pipeline.	*/
 			glDeleteProgram(this->billboarding_program);
 
@@ -110,7 +110,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 
@@ -241,7 +241,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());

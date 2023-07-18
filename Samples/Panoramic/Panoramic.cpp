@@ -128,7 +128,7 @@ namespace glsample {
 		const std::string geomtryShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.geom.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->panoramic_program);
 
@@ -142,7 +142,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			const std::string diffuseTexturePath = "asset/diffuse.png";
 			const std::string modelPath = "asset/sponza/sponza.obj";
@@ -388,7 +388,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime());
 

@@ -9,10 +9,17 @@
 
 namespace glsample {
 
+	/**
+	 * Deferred Rendering Path Sample.
+	 **/
 	class Deferred : public GLSampleWindow {
 	  public:
 		Deferred() : GLSampleWindow() {
 			this->setTitle("Deferred Rendering");
+
+			/*	Setting Window.	*/
+			this->fogSettingComponent = std::make_shared<FogSettingComponent>(this->uniform);
+			this->addUIComponent(this->fogSettingComponent);
 
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
@@ -60,11 +67,14 @@ namespace glsample {
 
 		/*	*/
 		unsigned int deferred_framebuffer;
-		unsigned int deferred_program;
+
 		unsigned int deferred_texture_width;
 		unsigned int deferred_texture_height;
 		std::vector<unsigned int> deferred_textures; /*	Albedo, WorldSpace, Normal, */
 		unsigned int depthTexture;
+
+		unsigned int deferred_program;
+		unsigned int multipass_program;
 
 		/*	*/
 		unsigned int uniform_buffer_index;
@@ -75,16 +85,53 @@ namespace glsample {
 
 		CameraController camera;
 
-		/*	*/
+		/*	Multipass Shader Source.	*/
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
 
-		/*	*/
+		/*	Deferred Rendering Path.	*/
 		const std::string vertexShaderPath = "Shaders/deferred/deferred.vert";
 		const std::string fragmentShaderPath = "Shaders/deferred/deferred.frag";
 
-		virtual void Release() override {
+		class FogSettingComponent : public nekomimi::UIComponent {
+		  public:
+			FogSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Fog Settings");
+			}
+
+			virtual void draw() override {
+				ImGui::TextUnformatted("Light Settings");
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+
+				ImGui::TextUnformatted("Fog Settings");
+				ImGui::DragInt("Fog Type", (int *)&this->uniform.fogType);
+				ImGui::ColorEdit4("Fog Color", &this->uniform.fogColor[0], ImGuiColorEditFlags_Float);
+				ImGui::DragFloat("Fog Density", &this->uniform.fogDensity);
+				ImGui::DragFloat("Fog Intensity", &this->uniform.fogIntensity);
+				ImGui::DragFloat("Fog Start", &this->uniform.fogStart);
+				ImGui::DragFloat("Fog End", &this->uniform.fogEnd);
+
+				ImGui::TextUnformatted("Debug Settings");
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<FogSettingComponent> fogSettingComponent;
+
+		void Release() override {
 			glDeleteProgram(this->deferred_program);
+			glDeleteProgram(this->multipass_program);
+
+			/*	*/
+			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
+			glDeleteTextures(1, &this->depthTexture);
+			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -95,15 +142,35 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 			const std::string panoramicPath = "asset/panoramic.jpg";
 
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			{
 
-			/*	Load shader	*/
-			this->deferred_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+				/*	*/
+				const std::vector<uint32_t> vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
+
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
+
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
+
+				/*	Load shader	*/
+				this->deferred_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+
+				/*	Load shader	*/
+				this->multipass_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+			}
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->deferred_program);
@@ -116,73 +183,77 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = fragcore::Math::align(uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateSphere(1, vertices, indices);
-			ProceduralGeometry::generatePlan(1, vertices, indices);
+			{
+				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<unsigned int> indices;
+				ProceduralGeometry::generateSphere(1, vertices, indices);
+				ProceduralGeometry::generatePlan(1, vertices, indices);
 
-			/*	*/
-			ModelImporter modelLoader(FileSystem::getFileSystem());
-			modelLoader.loadContent(modelPath, 0);
+				/*	*/
+				ModelImporter modelLoader(FileSystem::getFileSystem());
+				modelLoader.loadContent(modelPath, 0);
 
-			const ModelSystemObject &modelRef = modelLoader.getModels()[0];
+				const ModelSystemObject &modelRef = modelLoader.getModels()[0];
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenVertexArrays(1, &this->plan.vao);
+				glBindVertexArray(this->plan.vao);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenBuffers(1, &this->plan.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
-			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
+				/*	*/
+				glGenBuffers(1, &this->plan.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
+							 GL_STATIC_DRAW);
+				this->plan.nrIndicesElements = indices.size();
 
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				/*	Vertex.	*/
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
+				/*	UV.	*/
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(12));
 
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(20));
+				/*	Normal.	*/
+				glEnableVertexAttribArray(2);
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(20));
 
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(32));
+				/*	Tangent.	*/
+				glEnableVertexAttribArray(3);
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(32));
 
-			glBindVertexArray(0);
+				glBindVertexArray(0);
+			}
+			{
+				/*	Create deferred framebuffer.	*/
+				glGenFramebuffers(1, &this->deferred_framebuffer);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
 
-			/*	Create deferred framebuffer.	*/
-			glGenFramebuffers(1, &this->deferred_framebuffer);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
-
-			this->deferred_textures.resize(4);
-			glGenTextures(this->deferred_textures.size(), this->deferred_textures.data());
-			onResize(this->width(), this->height());
+				this->deferred_textures.resize(4);
+				glGenTextures(this->deferred_textures.size(), this->deferred_textures.data());
+				this->onResize(this->width(), this->height());
+			}
 		}
 
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->deferred_texture_width = width;
 			this->deferred_texture_height = height;
@@ -277,7 +348,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();

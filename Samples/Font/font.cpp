@@ -45,11 +45,11 @@ namespace glsample {
 		const std::vector<Vertex> vertices = {
 			{0.0f, -0.5f, 1.0f, 1.0f, 1.0f}, {0.5f, 0.5f, 0.0f, 1.0f, 0.0f}, {-0.5f, 0.5f, 0.0f, 0.0f, 1.0f}};
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->triangle_program);
 			glDeleteBuffers(1, &this->vbo);
 		}
-		virtual void Initialize() override {
+		void Initialize() override {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath);
@@ -111,7 +111,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void update() override {}
+		void update() override {}
 	};
 
 } // namespace glsample

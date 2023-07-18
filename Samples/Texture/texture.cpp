@@ -46,7 +46,7 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->texture_program);
 
@@ -59,7 +59,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->planGeometry.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	*/
 			std::string texturePath = getResult()["texture"].as<std::string>();
@@ -170,7 +170,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime());

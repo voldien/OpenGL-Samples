@@ -75,7 +75,7 @@ namespace glsample {
 		/*	*/
 		const std::string computeShaderPath = "Shaders/reactiondiffusion/reactiondiffusion.comp.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->reactiondiffusion_program);
 
 			glDeleteFramebuffers(1, &this->reactiondiffusion_framebuffer);
@@ -85,7 +85,7 @@ namespace glsample {
 			glDeleteTextures(1, &this->reactiondiffusion_render_texture);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			{
 				/*	Load shader binaries.	*/
@@ -136,7 +136,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void onResize(int width, int height) override {
+		void onResize(int width, int height) override {
 
 			this->reactiondiffusion_texture_width = width;
 			this->reactiondiffusion_texture_height = height;
@@ -235,7 +235,7 @@ namespace glsample {
 			this->nthTexture = (this->nthTexture + 1) % this->reactiondiffusion_buffer.size();
 		}
 
-		virtual void update() override {
+		void update() override {
 
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();

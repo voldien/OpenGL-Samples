@@ -65,14 +65,14 @@ namespace glsample {
 		};
 		std::shared_ptr<SkyboxPanoramicSettingComponent> skyboxSettingComponent;
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->skybox_program);
 			glDeleteVertexArrays(1, &this->SkyboxCube.vao);
 			glDeleteBuffers(1, &this->SkyboxCube.vbo);
 			glDeleteTextures(1, (const GLuint *)&this->skybox_cubemap);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			std::vector<std::string> cubemapPaths = {"asset/X+.png", "asset/X-.png", "asset/Y+.png",
 													 "asset/Y-.png", "asset/Z+.png", "asset/Z-.png"};
@@ -169,7 +169,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	*/
 			camera.update(getTimer().deltaTime());
 

@@ -29,13 +29,13 @@ namespace glsample {
 
 		};
 
-		virtual void Release() override {
+		void Release() override {
 			glDeleteProgram(this->triangle_program);
 			glDeleteVertexArrays(1, &this->vao);
 			glDeleteBuffers(1, &this->vbo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 			{
 
 				/*	Load shader binaries.	*/
@@ -102,7 +102,7 @@ namespace glsample {
 				glUseProgram(0);
 			}
 		}
-		virtual void update() override {}
+		void update() override {}
 	};
 
 } // namespace glsample

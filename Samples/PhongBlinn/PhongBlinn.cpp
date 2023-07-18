@@ -108,7 +108,7 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/phongblinn/phongblinn.frag.spv";
 
-		virtual void Release() override {
+		void Release() override {
 			/*	*/
 			glDeleteProgram(this->phongblinn_program);
 
@@ -123,7 +123,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
-		virtual void Initialize() override {
+		void Initialize() override {
 
 			/*	*/
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
@@ -255,7 +255,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void update() override {
+		void update() override {
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
