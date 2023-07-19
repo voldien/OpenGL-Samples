@@ -15,6 +15,7 @@ namespace glsample {
 		MultiPass() : GLSampleWindow() {
 			this->setTitle("MultiPass");
 
+			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -177,7 +178,7 @@ namespace glsample {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			/*	*/
 			int width, height;

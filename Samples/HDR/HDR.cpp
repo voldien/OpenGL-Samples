@@ -73,7 +73,7 @@ namespace glsample {
 				this->setName("Refrection Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
@@ -332,7 +332,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			getSize(&width, &height);

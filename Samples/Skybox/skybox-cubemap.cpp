@@ -51,7 +51,7 @@ namespace glsample {
 			SkyboxPanoramicSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("SkyBox Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Exposure", &this->uniform.exposure);
@@ -140,7 +140,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			getSize(&width, &height);

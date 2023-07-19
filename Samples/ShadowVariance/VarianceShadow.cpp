@@ -66,7 +66,7 @@ namespace glsample {
 				: uniform(uniform), depth(depth) {
 				this->setName("Basic Shadow Mapping Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
@@ -215,7 +215,7 @@ namespace glsample {
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			update();
 			int width, height;

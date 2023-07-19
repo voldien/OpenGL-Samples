@@ -74,7 +74,7 @@ namespace glsample {
 				this->setName("Frustum Culling Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Frustum Culling Settings");
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
@@ -216,7 +216,7 @@ namespace glsample {
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			update();
 			int width, height;

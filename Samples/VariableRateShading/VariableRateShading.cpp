@@ -10,7 +10,13 @@ namespace glsample {
 
 	class VariableRateShading : public GLSampleWindow {
 	  public:
-		VariableRateShading() : GLSampleWindow() { this->setTitle("VariableRateShading"); }
+		VariableRateShading() : GLSampleWindow() {
+			this->setTitle("Variable Rate Shading");
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
+		}
 
 		struct UniformBufferBlock {
 			glm::mat4 model;
@@ -145,7 +151,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			update();
 			int width, height;

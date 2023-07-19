@@ -59,7 +59,7 @@ namespace glsample {
 				this->setName("Alpha Clipping Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 
 				ImGui::TextUnformatted("Alpha Clipping Setting");
 				ImGui::DragFloat("Clipping", &this->uniform.clipping, 0.035f, 0.0f, 1.0f);
@@ -176,7 +176,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

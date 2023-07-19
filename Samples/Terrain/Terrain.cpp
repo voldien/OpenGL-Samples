@@ -93,7 +93,7 @@ namespace glsample {
 			SimpleOceanSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Simple Ocean Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Color", &this->uniform.terrain.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
@@ -200,7 +200,7 @@ namespace glsample {
 			//		ProceduralGeometry::generateCube(1, vertices, indices);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			update();
 			int width, height;

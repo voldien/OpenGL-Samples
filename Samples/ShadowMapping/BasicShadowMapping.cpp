@@ -54,6 +54,7 @@ namespace glsample {
 
 		/*	*/
 		unsigned int graphic_program;
+		unsigned int graphic_pfc_program;
 		unsigned int shadow_program;
 
 		/*	Uniform buffer.	*/
@@ -72,7 +73,7 @@ namespace glsample {
 				this->setName("Basic Shadow Mapping Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
@@ -82,6 +83,7 @@ namespace glsample {
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
 				ImGui::TextUnformatted("Depth Texture");
 				ImGui::Image(reinterpret_cast<ImTextureID>(this->depth), ImVec2(512, 512));
 			}
@@ -89,6 +91,7 @@ namespace glsample {
 			float distance = 50.0;
 			unsigned int &depth;
 			bool showWireFrame = false;
+			bool use_pcf;
 
 		  private:
 			struct UniformBufferBlock &uniform;
@@ -98,6 +101,7 @@ namespace glsample {
 		/*	*/
 		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";
 		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
+		const std::string fragmentPCFGraphicShaderPath = "Shaders/shadowmap/texture_pcf.frag.spv";
 
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
@@ -127,6 +131,8 @@ namespace glsample {
 					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_source =
 					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_pfc_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentPCFGraphicShaderPath, this->getFileSystem());
 
 				/*	*/
 				const std::vector<uint32_t> vertex_shadow_source =
@@ -141,6 +147,8 @@ namespace glsample {
 				/*	Load shaders	*/
 				this->graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				this->graphic_pfc_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_pfc_source);
 				this->shadow_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_source, &fragment_shadow_source);
 			}
@@ -149,21 +157,32 @@ namespace glsample {
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
-			/*	Setup shadow graphic pipeline.	*/
-			glUseProgram(this->shadow_program);
-			int uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->shadow_program, uniform_buffer_shadow_index,
-								  this->uniform_shadow_buffer_binding);
-			glUseProgram(0);
+			{
+				/*	Setup shadow graphic pipeline.	*/
+				glUseProgram(this->shadow_program);
+				int uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
+				glUniformBlockBinding(this->shadow_program, uniform_buffer_shadow_index,
+									  this->uniform_shadow_buffer_binding);
+				glUseProgram(0);
 
-			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->graphic_program);
-			int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_graphic_buffer_binding);
-			glUseProgram(0);
+				/*	Setup graphic pipeline.	*/
+				glUseProgram(this->graphic_program);
+				int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+				glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
+				glUniformBlockBinding(this->graphic_program, uniform_buffer_index,
+									  this->uniform_graphic_buffer_binding);
+				glUseProgram(0);
 
+				/*	Setup graphic pipeline.	*/
+				glUseProgram(this->graphic_pfc_program);
+				uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
+				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), 0);
+				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), 1);
+				glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index,
+									  this->uniform_graphic_buffer_binding);
+				glUseProgram(0);
+			}
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -225,7 +244,7 @@ namespace glsample {
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);
@@ -277,6 +296,7 @@ namespace glsample {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 
+			/*	Render Graphic.	*/
 			{
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_graphic_buffer_binding, this->uniform_buffer,
@@ -289,12 +309,16 @@ namespace glsample {
 
 				/*	*/
 				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-				glUseProgram(this->graphic_program);
+				if (this->shadowSettingComponent->use_pcf) {
+					glUseProgram(this->graphic_pfc_program);
+				} else {
+					glUseProgram(this->graphic_program);
+				}
 
 				glCullFace(GL_BACK);
 				// glDisable(GL_CULL_FACE);
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
@@ -317,7 +341,7 @@ namespace glsample {
 
 		void update() override {
 			/*	Update Camera.	*/
-			camera.update(getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);

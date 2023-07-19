@@ -75,7 +75,7 @@ namespace glsample {
 			InstanceSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Instance Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
@@ -212,7 +212,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			getSize(&width, &height);

@@ -93,7 +93,7 @@ namespace glsample {
 			AmbientOcclusionSettingComponent(struct UniformSSAOBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Ambient Occlusion Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragFloat("Intensity", &this->uniform.intensity, 0.1f, 0.0f);
 				ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
 				ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
@@ -398,7 +398,7 @@ namespace glsample {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			this->update();
 			int width, height;

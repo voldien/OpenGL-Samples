@@ -269,7 +269,7 @@ namespace glsample {
 			this->skybox_panoramic_texture = textureImporter.loadImage2D(this->panoramicPath);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

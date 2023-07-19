@@ -34,6 +34,8 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
+#define EPSILON 0.00001
+
 float ShadowCalculation(const in vec4 fragPosLightSpace) {
 
 	// perform perspective divide
@@ -45,16 +47,22 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 	float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(ubo.direction).xyz)), ubo.bias);
 	projCoords.z *= (1 - bias);
 
-	float shadow = textureProj(ShadowTexture, projCoords, 0).r;
+	float shadowFactor = 0;
 
-	if (projCoords.z > 1.0) {
-		shadow = 0.0;
-	}
-	if (fragPosLightSpace.w > 1) {
-		shadow = 0;
+	float xOffset = 1.0 / gMapSize.x;
+	float yOffset = 1.0 / gMapSize.y;
+
+	const float nrSamples = 3 * 3;
+
+	[[unroll]] for (int y = -1; y <= 1; y++) {
+		[[unroll]] for (int x = -1; x <= 1; x++) {
+			vec2 Offsets = vec2(x * xOffset, y * yOffset);
+			vec3 UVC = vec3(projCoords.xy + Offsets, z + EPSILON);
+			shadowFactor += texture(gShadowMap, UVC);
+		}
 	}
 
-	return (1.0 - shadow);
+	return shadowFactor / nrSamples;
 }
 
 void main() {

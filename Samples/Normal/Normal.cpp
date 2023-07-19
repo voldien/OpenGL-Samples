@@ -60,7 +60,7 @@ namespace glsample {
 			NormalSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Normal Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
@@ -221,7 +221,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

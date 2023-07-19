@@ -10,7 +10,7 @@ class StartUpWindow : public GLSampleWindow {
 
 	void Initialize() override {}
 
-	virtual void draw() override {
+	void draw() override {
 
 		int width, height;
 		this->getSize(&width, &height);

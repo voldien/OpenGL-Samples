@@ -134,7 +134,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			/*	Bind subset of the uniform buffer, that the graphic pipeline will use.	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,

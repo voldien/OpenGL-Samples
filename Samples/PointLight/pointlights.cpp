@@ -68,7 +68,7 @@ namespace glsample {
 				this->setName("Point Light Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 
 				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
 					ImGui::PushID(1000 + i);
@@ -215,7 +215,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

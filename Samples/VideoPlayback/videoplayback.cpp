@@ -119,7 +119,7 @@ namespace glsample {
 
 		  public:
 			VideoPlaybackSettingComponent() { this->setName("VideoPlayback Settings"); }
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragFloat("Speed", &this->speed);
 				ImGui::DragFloat("Volume", &this->volume);
 				ImGui::Checkbox("Use Blit", &this->useBlit);
@@ -434,7 +434,7 @@ namespace glsample {
 
 		void onResize(int width, int height) override {}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

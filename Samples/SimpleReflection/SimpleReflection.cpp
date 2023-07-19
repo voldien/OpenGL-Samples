@@ -91,7 +91,7 @@ namespace glsample {
 				: uniform(uniform), depth(depth) {
 				this->setName("Simple Reflection Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
 
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
@@ -352,7 +352,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

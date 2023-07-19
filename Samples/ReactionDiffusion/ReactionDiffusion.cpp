@@ -58,7 +58,7 @@ namespace glsample {
 				this->setName("Reaction Diffusion Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragFloat("Speed", &this->uniform.speed);
 				ImGui::DragFloat("Feed Rate", &this->uniform.feedRate, 0.01f, 0.0f);
 				ImGui::DragFloat("Kill Rate", &this->uniform.killRate, 0.01f, 0.0f);
@@ -191,7 +191,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

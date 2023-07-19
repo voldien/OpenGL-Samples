@@ -72,7 +72,7 @@ namespace glsample {
 				: uniform(uniform), depth(depth) {
 				this->setName("SubSurface Scattering Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
@@ -218,7 +218,7 @@ namespace glsample {
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 			int width, height;
 			getSize(&width, &height);
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);

@@ -21,6 +21,7 @@ namespace glsample {
 			this->fogSettingComponent = std::make_shared<FogSettingComponent>(this->uniform);
 			this->addUIComponent(this->fogSettingComponent);
 
+			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -99,7 +100,7 @@ namespace glsample {
 				this->setName("Fog Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Light Settings");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
@@ -290,7 +291,7 @@ namespace glsample {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			/*	*/
 			int width, height;

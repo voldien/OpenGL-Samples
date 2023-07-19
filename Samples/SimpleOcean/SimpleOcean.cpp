@@ -80,7 +80,7 @@ namespace glsample {
 			SimpleOceanSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Simple Ocean Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				/*	*/
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Light", &this->uniform.ocean.lightColor[0],
@@ -270,7 +270,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

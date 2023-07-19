@@ -9,13 +9,17 @@
 
 namespace glsample {
 
-	class Morph : public GLSampleWindow {
+	class MorphTarget : public GLSampleWindow {
 	  public:
-		Morph() : GLSampleWindow() {
+		MorphTarget() : GLSampleWindow() {
 			this->setTitle("Morph");
 
-			this->tessellationSettingComponent = std::make_shared<TessellationSettingComponent>(this->mvp);
+			/*	*/
+			this->tessellationSettingComponent = std::make_shared<MorphTargetSettingComponent>(this->mvp);
 			this->addUIComponent(this->tessellationSettingComponent);
+
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct UniformBufferBlock {
@@ -37,13 +41,13 @@ namespace glsample {
 
 		} mvp;
 
-		class TessellationSettingComponent : public nekomimi::UIComponent {
+		class MorphTargetSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			MorphTargetSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Tessellation Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				int nrMorphTargets = 3;
 				for (size_t i = 0; i < nrMorphTargets; i++) {
 					ImGui::DragFloat("Morph Target", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
@@ -61,7 +65,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
+		std::shared_ptr<MorphTargetSettingComponent> tessellationSettingComponent;
 
 		// TODO change to vector
 		unsigned int uniform_buffer_binding = 0;
@@ -178,7 +182,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 			this->mvp.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
 
 			int width, height;
@@ -243,15 +247,20 @@ namespace glsample {
 		}
 	};
 
-} // namespace glsample
+	class MorphTargetGLSample : public GLSample<MorphTarget> {
+	  public:
+		MorphTargetGLSample() : GLSample<MorphTarget>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
+		}
+	};
 
-// TODO add custom image support.
+} // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Morph> sample(argc, argv);
-
-		sample.run();
+		glsample::MorphTargetGLSample sample;
+		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
 

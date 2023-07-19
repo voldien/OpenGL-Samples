@@ -43,7 +43,7 @@ namespace glsample {
 			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Tessellation Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
@@ -194,7 +194,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 			int width, height;
 			getSize(&width, &height);
 

@@ -17,8 +17,13 @@ namespace glsample {
 		VolumeShadow() : GLSampleWindow() {
 			this->setTitle("Stencil/Volume Shadow");
 
+			/*	Setting Window.	*/
 			this->shadowSettingComponent = std::make_shared<StencilVolumeShadowSettingComponent>(this->uniform);
 			this->addUIComponent(this->shadowSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct UniformBufferBlock {
@@ -64,13 +69,13 @@ namespace glsample {
 			StencilVolumeShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Point Light Shadow Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
-				/**/
+				/*	*/
 				ImGui::TextUnformatted("Debug Seting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Show Volume", &this->showVolume);
@@ -251,6 +256,7 @@ namespace glsample {
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->multipass_texture, 0);
 
+			/*	Depth and Stencil texture attachment.	*/
 			glBindTexture(GL_TEXTURE_2D, this->depthstencil_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, this->multipass_texture_width,
 						 this->multipass_texture_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
@@ -275,10 +281,10 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
 			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
@@ -293,7 +299,10 @@ namespace glsample {
 			/*	*/
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-			// Stencil shadow.
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, alphaClippingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
+			// Create stencil outline geometry from the light direction, Stencil shadow.
 			{
 				glEnable(GL_STENCIL_TEST);
 				glDisable(GL_DEPTH_TEST);
@@ -309,13 +318,18 @@ namespace glsample {
 				// Draw camera
 				glUseProgram(this->volumeshadow_program);
 
+				glBindVertexArray(this->plan.vao);
+				glDrawElementsBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
+										 (void *)(sizeof(unsigned int) * this->plan.indices_offset),
+										 this->plan.vertex_offset);
+				glBindVertexArray(0);
+
 				/*	*/
 				glDisable(GL_DEPTH_CLAMP);
 				glEnable(GL_CULL_FACE);
-			}
 
-			/*	Draw shadow.	*/
-			{}
+				glUseProgram(0);
+			}
 
 			/*	Draw scene.	*/
 			{
@@ -332,10 +346,22 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
+			/*	Draw shadow.	*/
+			{
+				glEnable(GL_STENCIL_TEST);
+				glUseProgram(this->graphic_program);
+
+				glUseProgram(0);
+			}
+
 			/*	Draw volume geometry.	 */
 			if (this->shadowSettingComponent->showVolume) {
 
 				glDisable(GL_CULL_FACE);
+				glDisable(GL_STENCIL_TEST);
+				/*	Blend to see through in order to see the whole thing.	*/
+				glEnable(GL_BLEND);
+
 				glUseProgram(this->volumeshadow_program);
 				glBindVertexArray(this->plan.vao);
 				glDrawElementsBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,

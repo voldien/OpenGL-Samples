@@ -58,7 +58,7 @@ namespace glsample {
 			TessellationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Tessellation Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 10.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
@@ -225,7 +225,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			update();
 			int width, height;

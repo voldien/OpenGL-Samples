@@ -49,7 +49,7 @@ namespace glsample {
 			GrassSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Grass Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Tessellation Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
@@ -226,7 +226,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
 

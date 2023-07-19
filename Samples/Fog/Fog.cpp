@@ -72,7 +72,7 @@ namespace glsample {
 				this->setName("Fog Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Light Settings");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
@@ -159,7 +159,7 @@ namespace glsample {
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

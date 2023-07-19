@@ -95,7 +95,7 @@ namespace glsample {
 				this->setName("NormalMap Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 
 				ImGui::TextUnformatted("Projected Shadow Setting");
 				// TODO add support for plane
@@ -292,7 +292,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

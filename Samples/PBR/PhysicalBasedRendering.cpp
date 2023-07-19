@@ -74,7 +74,7 @@ namespace glsample {
 			PhysicalBasedRenderingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Physical Based Rendering Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				/*	*/
 				ImGui::TextUnformatted("Skybox");
 				// ImGui::ColorEdit4("Tint", &this->uniform.skybox.tintColor[0],
@@ -237,7 +237,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			getSize(&width, &height);

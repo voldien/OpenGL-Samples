@@ -77,7 +77,7 @@ namespace glsample {
 			SimpleParticleSystemSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Simple Particle System Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragFloat("Speed", &this->uniform.particleSetting.speed, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("LifeTime", &this->uniform.particleSetting.lifetime, 1, 0.0f, 10.0f);
 			}
@@ -173,7 +173,7 @@ namespace glsample {
 			fragcore::resetErrorFlag();
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			getSize(&width, &height);

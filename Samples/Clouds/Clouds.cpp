@@ -70,7 +70,7 @@ namespace glsample {
 			CloudsSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Clouds Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::TextUnformatted("Clouds");
 
 				ImGui::TextUnformatted("Skybox");
@@ -182,7 +182,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			getSize(&width, &height);

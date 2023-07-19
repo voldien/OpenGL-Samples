@@ -84,7 +84,7 @@ namespace glsample {
 			PointLightShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Point Light Shadow Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
@@ -123,13 +123,14 @@ namespace glsample {
 		std::shared_ptr<PointLightShadowSettingComponent> shadowSettingComponent;
 
 		/*	Graphic shader paths.	*/
-		const std::string vertexGraphicShaderPath = "Shaders/pointlightshadow/pointlightlight.vert.spv";
-		const std::string fragmentGraphicShaderPath = "Shaders/pointlightshadow/pointlightlight.frag.spv";
+		const std::string vertexGraphicShaderPath = "Shaders/shadowpointlight/pointlightlight.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/shadowpointlight/pointlightlight.frag.spv";
+		const std::string fragmentGraphicPCFShaderPath = "Shaders/shadowpointlight/pointlightlight_pcf.frag.spv";
 
 		/*	Shadow shader paths.	*/
-		const std::string vertexShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.vert.spv";
-		const std::string geomtryShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.geom.spv";
-		const std::string fragmentShadowShaderPath = "Shaders/pointlightshadow/pointlightshadow.frag.spv";
+		const std::string vertexShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.vert.spv";
+		const std::string geomtryShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.geom.spv";
+		const std::string fragmentShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.frag.spv";
 
 		void Release() override {
 			glDeleteProgram(this->graphic_program);
@@ -149,28 +150,32 @@ namespace glsample {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
-			/*	*/
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
-			/*	*/
-			const std::vector<uint32_t> vertex_shadow_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> geometry_shadow_source =
-				IOUtil::readFileData<uint32_t>(this->geomtryShadowShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_shadow_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
+			{
+				/*	*/
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				const std::vector<uint32_t> vertex_shadow_source =
+					IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> geometry_shadow_source =
+					IOUtil::readFileData<uint32_t>(this->geomtryShadowShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_shadow_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
-			/*	Load shaders	*/
-			this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
-			this->shadow_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_source,
-																	&fragment_shadow_source, &geometry_shadow_source);
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
+
+				/*	Load shaders	*/
+				this->graphic_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				this->shadow_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_shadow_source, &fragment_shadow_source, &geometry_shadow_source);
+			}
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -284,7 +289,7 @@ namespace glsample {
 			}
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

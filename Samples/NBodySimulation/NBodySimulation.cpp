@@ -69,7 +69,7 @@ namespace glsample {
 			NBodySimulationSettingView(UniformBufferBlock::particle_setting_t &settings) : settings(settings) {
 				this->setName("NBodySimulation Setting");
 			}
-			virtual void draw() override {
+			void draw() override {
 
 				ImGui::DragFloat("Damping", &this->settings._Damping, 1.0f, 0.0f);
 				ImGui::DragFloat("Speed", &this->settings.speed, 1.0f, 0.0f);
@@ -206,7 +206,7 @@ namespace glsample {
 				glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 0.15f, 1000.0f);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			getSize(&width, &height);

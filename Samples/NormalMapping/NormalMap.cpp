@@ -61,7 +61,7 @@ namespace glsample {
 				this->setName("NormalMap Settings");
 			}
 
-			virtual void draw() override {
+			void draw() override {
 				ImGui::ColorEdit4("Tint Color", &this->uniform.tintColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Light Setting");
@@ -192,7 +192,7 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);

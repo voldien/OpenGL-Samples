@@ -47,7 +47,7 @@ namespace glsample {
 			MandelBrotSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Mandelbrot Settings");
 			}
-			virtual void draw() override {
+			void draw() override {
 				ImGui::DragInt("Number of Samples", &this->uniform.nrSamples, 1, 0, 128);
 				ImGui::DragFloat("C", &this->uniform.c);
 			}
@@ -139,7 +139,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			int width, height;
 			getSize(&width, &height);

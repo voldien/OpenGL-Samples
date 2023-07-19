@@ -12,11 +12,19 @@
 
 namespace glsample {
 
+	class MultiSamplingAntiAliasing {};
+
 	class AntiAliasing : public GLSampleWindow {
 	  public:
 		AntiAliasing() : GLSampleWindow() {
 			this->setTitle("AntiAliasing");
 
+			/*	Setting Window.	*/
+			this->antialiasingSettingComponent =
+				std::make_shared<AntiAliasingSettingComponent>(this->uniform_stage_buffer);
+			this->addUIComponent(this->antialiasingSettingComponent);
+
+			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -57,6 +65,27 @@ namespace glsample {
 		/*	*/
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
+
+		class AntiAliasingSettingComponent : public nekomimi::UIComponent {
+		  public:
+			AntiAliasingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Alpha Clipping Settings");
+			}
+
+			void draw() override {
+
+				ImGui::TextUnformatted("Alpha Clipping Setting");
+				ImGui::DragFloat("Clipping", &this->uniform.clipping, 0.035f, 0.0f, 1.0f);
+				ImGui::TextUnformatted("Debug Setting");
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct UniformBufferBlock &uniform;
+		};
+		std::shared_ptr<AntiAliasingSettingComponent> antialiasingSettingComponent;
 
 		void Release() override {
 			delete this->modelLoader;
@@ -179,7 +208,7 @@ namespace glsample {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}
 
-		virtual void draw() override {
+		void draw() override {
 
 			/*	*/
 			int width, height;
