@@ -11,6 +11,7 @@ namespace glsample {
 
 	class Blending : public GLSampleWindow {
 	  public:
+	  
 		Blending() : GLSampleWindow() {
 			this->setTitle("Blending");
 
@@ -104,9 +105,9 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_share_buffer);
 
 			/*	Delete geometry data.	*/
-			glDeleteVertexArrays(1, &this->plan.vao);
-			glDeleteBuffers(1, &this->plan.vbo);
-			glDeleteBuffers(1, &this->plan.ibo);
+			glDeleteVertexArrays(1, &this->geometry.vao);
+			glDeleteBuffers(1, &this->geometry.vbo);
+			glDeleteBuffers(1, &this->geometry.ibo);
 		}
 
 		void Initialize() override {
@@ -169,20 +170,20 @@ namespace glsample {
 			ProceduralGeometry::generateCube(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
+			glGenVertexArrays(1, &this->geometry.vao);
+			glBindVertexArray(this->geometry.vao);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
+			glGenBuffers(1, &this->geometry.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, geometry.vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
 			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
+			glGenBuffers(1, &this->geometry.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
+			this->geometry.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
 			glEnableVertexAttribArray(0);
@@ -256,8 +257,8 @@ namespace glsample {
 				glPolygonMode(GL_FRONT_AND_BACK, this->blendingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElementsInstanced(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr, 4);
+				glBindVertexArray(this->geometry.vao);
+				glDrawElementsInstanced(GL_TRIANGLES, this->geometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr, 4);
 				glBindVertexArray(0);
 			}
 		}

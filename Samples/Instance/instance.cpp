@@ -113,30 +113,30 @@ namespace glsample {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			{
+				/*	Load shader source.	*/
+				std::vector<uint32_t> instance_vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexInstanceShaderPath, this->getFileSystem());
+				std::vector<uint32_t> instance_fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentInstanceShaderPath, this->getFileSystem());
 
-			/*	Load shader source.	*/
-			std::vector<uint32_t> instance_vertex_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexInstanceShaderPath, this->getFileSystem());
-			std::vector<uint32_t> instance_fragment_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentInstanceShaderPath, this->getFileSystem());
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
-
-			/*	Load shader	*/
-			this->instance_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &instance_vertex_binary, &instance_fragment_binary);
-
+				/*	Load shader	*/
+				this->instance_program = ShaderLoader::loadGraphicProgram(compilerOptions, &instance_vertex_binary,
+																		  &instance_fragment_binary);
+			}
 			/*	Setup instance graphic pipeline.	*/
 			glUseProgram(this->instance_program);
 			glUniform1i(glGetUniformLocation(this->instance_program, "DiffuseTexture"), 0);
 			/*	*/
 			int uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->instance_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->instance_program, uniform_buffer_index, this->uniform_buffer_binding);
 			/*	*/
 			int uniform_instance_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformInstanceBlock");
-			glUniformBlockBinding(this->instance_program, this->uniform_instance_buffer_index,
+			glUniformBlockBinding(this->instance_program, uniform_instance_buffer_index,
 								  this->uniform_instance_buffer_binding);
 			glUseProgram(0);
 

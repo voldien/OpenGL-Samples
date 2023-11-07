@@ -305,9 +305,9 @@ namespace glsample {
 		}
 	};
 
-	class FrustumCullingGLSample : public GLSample<FrustumCulling> {
+	class FrustumCullingGLSample : public GLSample<FrustumComputeCulling> {
 	  public:
-		FrustumCullingGLSample() : GLSample<FrustumCulling>() {}
+		FrustumCullingGLSample() : GLSample<FrustumComputeCulling>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));

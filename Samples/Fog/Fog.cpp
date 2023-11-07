@@ -27,7 +27,13 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		enum class FogType : unsigned int { None, Linear, Exp, Exp2, Height };
+		enum class FogType : unsigned int {
+			None,	/*	*/
+			Linear, /*	*/
+			Exp,	/*	*/
+			Exp2,	/*	*/
+			Height	/*	*/
+		};
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -114,6 +120,7 @@ namespace glsample {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 			const std::string diffuseTexturePath = "asset/diffuse.png"; // TODO remove.
+
 			{
 				/*	*/
 				const std::vector<uint32_t> vertex_source =
@@ -132,7 +139,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	*/
 			glUseProgram(this->graphic_fog_program);

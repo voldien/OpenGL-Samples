@@ -18,7 +18,7 @@ namespace glsample {
 			this->setTitle("Deferred Rendering");
 
 			/*	Setting Window.	*/
-			this->fogSettingComponent = std::make_shared<FogSettingComponent>(this->uniform);
+			this->fogSettingComponent = std::make_shared<FogSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->fogSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -106,14 +106,6 @@ namespace glsample {
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
-				ImGui::TextUnformatted("Fog Settings");
-				ImGui::DragInt("Fog Type", (int *)&this->uniform.fogType);
-				ImGui::ColorEdit4("Fog Color", &this->uniform.fogColor[0], ImGuiColorEditFlags_Float);
-				ImGui::DragFloat("Fog Density", &this->uniform.fogDensity);
-				ImGui::DragFloat("Fog Intensity", &this->uniform.fogIntensity);
-				ImGui::DragFloat("Fog Start", &this->uniform.fogStart);
-				ImGui::DragFloat("Fog End", &this->uniform.fogEnd);
-
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -132,7 +124,7 @@ namespace glsample {
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, &this->depthTexture);
-			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
+			glDeleteTextures(this->deferred_textures.size(), this->deferred_textures.data());
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -377,7 +369,8 @@ namespace glsample {
 	  public:
 		DeferredGLSample() : GLSample<Deferred>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}
 	};
 
@@ -385,7 +378,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Deferred> sample;
+		glsample::DeferredGLSample sample;
 
 		sample.run(argc, argv);
 

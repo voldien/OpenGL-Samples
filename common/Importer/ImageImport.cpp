@@ -21,21 +21,31 @@ int TextureImporter::loadImage2D(const std::string &path) {
 }
 
 int TextureImporter::loadImage2DRaw(const Image &image) {
-		GLenum target = GL_TEXTURE_2D;
+	GLenum target = GL_TEXTURE_2D;
 	GLuint texture;
 
 	GLenum format, internalformat, type;
 
 	switch (image.getFormat()) {
 	case TextureFormat::RGB24:
+		format = GL_RGB;
+		internalformat = GL_RGBA8;
+		type = GL_UNSIGNED_BYTE;
+		break;
 	case TextureFormat::BGR24:
 		format = GL_BGR;
 		internalformat = GL_RGBA8;
 		type = GL_UNSIGNED_BYTE;
 		break;
-	case TextureFormat::RGBA32:
 	case TextureFormat::ARGB32:
+		break;
 	case TextureFormat::BGRA32:
+		format = GL_BGRA;
+		internalformat = GL_RGBA8;
+		type = GL_UNSIGNED_BYTE;
+		break;
+	case TextureFormat::RGBA32:
+
 		format = GL_RGBA;
 		internalformat = GL_RGBA8;
 		type = GL_UNSIGNED_BYTE;
@@ -49,6 +59,11 @@ int TextureImporter::loadImage2DRaw(const Image &image) {
 		format = GL_RGB;
 		type = GL_FLOAT;
 		internalformat = GL_RGBA16F;
+		break;
+	case TextureFormat::Alpha8:
+		format = GL_RED;
+		type = GL_UNSIGNED_BYTE;
+		internalformat = GL_R8;
 		break;
 	default:
 		throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));

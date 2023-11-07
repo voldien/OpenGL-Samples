@@ -71,8 +71,8 @@ namespace glsample {
 			{
 				/*	Create framebuffer and its textures.	*/
 				glGenFramebuffers(1, &this->gameoflife_framebuffer);
-				this->gameoflife_texture.resize(2);
-				glGenTextures(this->gameoflife_texture.size(), this->gameoflife_texture.data());
+				this->gameoflife_state_texture.resize(2);
+				glGenTextures(this->gameoflife_state_texture.size(), this->gameoflife_state_texture.data());
 
 				/*	Create init framebuffers.	*/
 				this->onResize(this->width(), this->height());
@@ -98,8 +98,8 @@ namespace glsample {
 			}
 
 			/*	Create game of life state textures.	*/
-			for (size_t i = 0; i < this->gameoflife_texture.size(); i++) {
-				glBindTexture(GL_TEXTURE_2D, this->gameoflife_texture[i]);
+			for (size_t i = 0; i < this->gameoflife_state_texture.size(); i++) {
+				glBindTexture(GL_TEXTURE_2D, this->gameoflife_state_texture[i]);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, this->gameoflife_texture_width, this->gameoflife_texture_height,
 							 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, textureData.data());
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -148,11 +148,11 @@ namespace glsample {
 				glUseProgram(this->gameoflife_program);
 
 				/*	Previous game of life state.	*/
-				glBindImageTexture(0, this->gameoflife_texture[this->nthTexture % this->gameoflife_texture.size()], 0,
+				glBindImageTexture(0, this->gameoflife_state_texture[this->nthTexture % this->gameoflife_state_texture.size()], 0,
 								   GL_FALSE, 0, GL_READ_ONLY, GL_R8UI);
 				/*	The resulting game of life state.	*/
 				glBindImageTexture(1,
-								   this->gameoflife_texture[(this->nthTexture + 1) % this->gameoflife_texture.size()],
+								   this->gameoflife_state_texture[(this->nthTexture + 1) % this->gameoflife_state_texture.size()],
 								   0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8UI);
 
 				/*	The image where the graphic version will be stored as.	*/
@@ -176,7 +176,7 @@ namespace glsample {
 							  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 			/*	Update the next frame in round robin.	*/
-			this->nthTexture = (this->nthTexture + 1) % this->gameoflife_texture.size();
+			this->nthTexture = (this->nthTexture + 1) % this->gameoflife_state_texture.size();
 		}
 		void update() override {}
 	};

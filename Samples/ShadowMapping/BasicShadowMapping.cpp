@@ -108,6 +108,7 @@ namespace glsample {
 
 		void Release() override {
 			glDeleteProgram(this->graphic_program);
+			glDeleteProgram(this->graphic_pfc_program);
 			glDeleteProgram(this->shadow_program);
 
 			glDeleteFramebuffers(1, &this->shadowFramebuffer);
@@ -309,6 +310,8 @@ namespace glsample {
 
 				/*	*/
 				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+				/*	*/
 				if (this->shadowSettingComponent->use_pcf) {
 					glUseProgram(this->graphic_pfc_program);
 				} else {

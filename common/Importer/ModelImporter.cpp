@@ -1,4 +1,8 @@
 #include "ModelImporter.h"
+#include <assimp/material.h>
+#include <assimp/postprocess.h>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 void ModelImporter::loadContent(const std::string &path, unsigned long int supportFlag) {
 	Importer importer;
@@ -6,14 +10,17 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	/*	Load file content. */
 	Ref<IO> io = Ref<IO>(fileSystem->openFile(path.c_str(), IO::IOMode::READ));
 	std::vector<char> bufferIO = IOUtil::readFile<char>(io);
+	io->close();
+	bufferIO.clear();
+	this->filepath = fs::path(fileSystem->getAbsolutePath(path.c_str())).parent_path();
 
 	/*  */
-	const aiScene *pScene = importer.ReadFileFromMemory(
-		bufferIO.data(), bufferIO.size(),
-		aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_ValidateDataStructure |
-			aiProcess_SplitLargeMeshes | aiProcess_FindInstances | aiProcess_EmbedTextures);
+	//	const aiScene *pScene = importer.ReadFileFromMemory(
+	//		bufferIO.data(), bufferIO.size(), aiProcessPreset_TargetRealtime_Quality);
+	//		aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_ValidateDataStructure |
+	//			aiProcess_SplitLargeMeshes | aiProcess_FindInstances | aiProcess_EmbedTextures);
+	const aiScene *pScene = importer.ReadFile(path.c_str(), aiProcessPreset_TargetRealtime_Quality);
 
-	bufferIO.clear();
 	if (pScene == nullptr) {
 		throw RuntimeException("Failed to load file: {} - Error: {}", path, importer.GetErrorString());
 	}
@@ -22,6 +29,7 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	this->sceneRef = (aiScene *)pScene;
 
 	if (pScene) {
+
 		/*	inverse.	*/
 		aiMatrix4x4 m_GlobalInverseTransform = pScene->mRootNode->mTransformation;
 		m_GlobalInverseTransform.Inverse();
@@ -43,17 +51,22 @@ void ModelImporter::clear() {
 }
 
 void ModelImporter::initScene(const aiScene *scene) {
-	int x;
 
 	/*	*/
 	std::thread process_textures_thread([&]() {
 		// /*	*/
 		if (scene->HasTextures()) {
+
 			this->textures.resize(scene->mNumTextures);
-			for (size_t x = 0; x < scene->mNumTextures; x++) {
-				std::cout << scene->mTextures[x]->mFilename.C_Str() << std::endl;
-				this->textures[x] = *this->initTexture(scene->mTextures[x], x);
-				this->textureMapping[scene->mTextures[x]->mFilename.C_Str()] = &this->textures[x];
+
+			for (size_t i = 0; i < scene->mNumTextures; i++) {
+				std::cout << scene->mTextures[i]->mFilename.C_Str() << std::endl;
+
+				/*	*/
+				this->textures[i] = *this->initTexture(scene->mTextures[i], i);
+				this->textureMapping[scene->mTextures[i]->mFilename.C_Str()] = &this->textures[i];
+
+				this->textureIndexMapping[scene->mTextures[i]->mFilename.C_Str()] = i;
 			}
 		}
 	});
@@ -87,6 +100,10 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 	// /*	*/
 	if (scene->HasMaterials()) {
+		for (size_t x = 0; x < scene->mNumMaterials; x++) {
+			this->loadTexturesFromMaterials(scene->mMaterials[x]);
+		}
+
 		this->materials.resize(scene->mNumMaterials);
 		for (size_t x = 0; x < scene->mNumMaterials; x++) {
 			this->initMaterial(scene->mMaterials[x], x);
@@ -134,12 +151,15 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 
 			/*	*/
 			for (size_t y = 0; y < nodes->mChildren[x]->mNumMeshes; y++) {
+
 				/*	Get material for mesh object.	*/
 				MaterialObject &materialRef =
 					getMaterials()[this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->mMaterialIndex];
 
+				/*	*/
 				pobject->materialIndex.push_back(
 					this->sceneRef->mMeshes[nodes->mChildren[x]->mMeshes[y]]->mMaterialIndex);
+
 				pobject->geometryObjectIndex.push_back(nodes->mChildren[x]->mMeshes[y]);
 			}
 		}
@@ -178,6 +198,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		/*	*/
 		const aiVector3D *Pos = &(aimesh->mVertices[x]);
 		aiVector3D *pNormal = &(aimesh->mNormals[x]);
+
 		const aiVector3D *pTexCoord = aimesh->HasTextureCoords(0) ? &(aimesh->mTextureCoords[0][x]) : &Zero;
 		glm::vec3 mtangent;
 
@@ -193,6 +214,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		// uvs[x] = pTexCoord->y;
 
 		/*	*/
+
 		pNormal->Normalize();
 		*vertices++ = pNormal->x;
 		*vertices++ = pNormal->y;
@@ -314,72 +336,49 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 			/*	*/
 			aiString textureName;
 			int ret = pmaterial->Get(AI_MATKEY_TEXTURE(textureType, textureIndex), textureName);
-
 			/*	*/
-			std::cout << textureName.C_Str() << std::endl;
-			auto *texture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
+			auto *embeededTexture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
 
-			if (texture == nullptr) {
-				/*	extract texture information.	*/
-				if (pmaterial->GetTexture((aiTextureType)textureType, textureIndex, &path, nullptr, nullptr, nullptr,
-										  nullptr, &mapmode) == aiReturn::aiReturn_SUCCESS) {
+			if (pmaterial->GetTexture((aiTextureType)textureType, textureIndex, &path, nullptr, nullptr, nullptr,
+									  nullptr, &mapmode) == aiReturn::aiReturn_SUCCESS) {
 
-					/*	*/
-					TextureObject *textureObj = this->textureMapping[path.C_Str()];
-					material->diffuseIndex = 0;
-					if (this->textureMapping.find(path.C_Str()) != this->textureMapping.end()) {
-						// add
-						TextureObject textureUp;
-						textureUp.filepath = path.C_Str();
-						this->textures.push_back(textureUp);
-						this->textureMapping[path.C_Str()] = &textures.back();
+				if (path.data[0] == '*' && embeededTexture) {
+
+					const int idIndex = atoi(&path.data[1]);
+
+					switch (textureType) {
+					case aiTextureType::aiTextureType_DIFFUSE:
+						material->diffuseIndex = idIndex;
+						break;
+					case aiTextureType::aiTextureType_NORMALS:
+						material->normalIndex = idIndex;
+						break;
+					default:
+						break;
+					}
+
+				} else {
+					TextureAssetObject *textureObj = this->textureMapping[path.C_Str()];
+
+					if (textureObj) {
+						const int texIndex = this->textureIndexMapping[path.C_Str()];
+						switch (textureType) {
+						case aiTextureType::aiTextureType_DIFFUSE:
+							material->diffuseIndex = texIndex;
+							break;
+						case aiTextureType::aiTextureType_NORMALS:
+							material->normalIndex = texIndex;
+							break;
+						default:
+							break;
+						}
 					}
 				}
-			} else {
-
-				/*	*/
-				TextureObject textureUp;
-				textureUp.filepath = path.C_Str();
-				textureUp.width = texture->mWidth;
-				textureUp.height = texture->mHeight;
-				textureUp.data = texture->pcData;
-
-				this->textures.push_back(textureUp);
-				this->textureMapping[path.C_Str()] = &textures.back();
 			}
 
-			// std::string thepath = VDFile::getDirectory(this->getPath()) + "/" + path.C_Str();
-			//// tex = findTexture(thepath.c_str());
-			//
-			// if (tex == nullptr) {
-			//	tex = VDResources::load<VDTexture2D>(thepath.c_str());
-			//
-			//	/*	texture mapmode.	*/
-			//	if (tex != nullptr) {
-			//		switch (mapmode) {
-			//		case aiTextureMapMode_Clamp:
-			//			tex->setWrapMode(VDTexture::eClamp);
-			//			break;
-			//		case aiTextureMapMode_Wrap:
-			//			tex->setWrapMode(VDTexture::eRepeat);
-			//			break;
-			//		}
-			//	}
-			//}
-
-			// mate->setTexture(y - 1, tex);
-
-			// tex = nullptr;
 		} /**/
 	}	  /**/
 
-	/*	Determine shader type.	*/
-	// pmaterial->Get(AI_MATKEY_SHADING_MODEL, name);
-	// pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, specular);
-	// pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc);
-	// pmaterial->Get(AI_MATKEY_TWOSIDED, blendfunc);
-
-	// AI_MATKEY_OPACITY;
 	/*	Assign shader attributes.	*/
 	pmaterial->Get(AI_MATKEY_COLOR_AMBIENT, color[0]);
 	material->ambient = color;
@@ -394,7 +393,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	pmaterial->Get(AI_MATKEY_REFLECTIVITY, color[0]);
 	material->reflectivity = color;
 	pmaterial->Get(AI_MATKEY_SHININESS, shininessStrength);
-	material->hinininessStrength = shininessStrength;
+	material->shinininessStrength = shininessStrength;
 	pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, color[0]);
 
 	pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc);
@@ -403,12 +402,57 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	return material;
 }
 
-TextureObject *ModelImporter::initTexture(aiTexture *texture, unsigned int index) {
-	TextureObject *mTexture = &textures[index];
+void ModelImporter::loadTexturesFromMaterials(aiMaterial *pmaterial) {
+
+	/*	load all texture assoicated with material.	*/
+	for (size_t textureType = aiTextureType::aiTextureType_DIFFUSE; textureType < aiTextureType::aiTextureType_UNKNOWN;
+		 textureType++) {
+
+		/*	*/
+		for (size_t textureIndex = 0; textureIndex < pmaterial->GetTextureCount((aiTextureType)textureType);
+			 textureIndex++) {
+
+			/*	*/
+			aiString textureName;
+			int ret = pmaterial->Get(AI_MATKEY_TEXTURE(textureType, textureIndex), textureName);
+
+			/*	*/
+			auto *embeededTexture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
+
+			aiString path;
+			if (pmaterial->GetTexture((aiTextureType)textureType, textureIndex, &path, nullptr, nullptr, nullptr,
+									  nullptr, nullptr) == aiReturn::aiReturn_SUCCESS) {
+
+				/*	None embedded.	*/
+				if (embeededTexture == nullptr) {
+
+					/*	Check if file exists.	*/
+					if (this->textureMapping.find(path.C_Str()) == this->textureMapping.end()) {
+
+						TextureAssetObject textureUp;
+						textureUp.filepath = fmt::format("{0}/{1}", this->filepath, path.C_Str());
+
+						/*	add texture.	*/
+						this->textures.push_back(textureUp);
+						this->textureMapping[path.C_Str()] = &textures.back();
+						this->textureIndexMapping[path.C_Str()] = this->textureIndexMapping.size();
+					}
+				}
+			} else {
+			}
+
+		} /**/
+	}	  /**/
+}
+
+TextureAssetObject *ModelImporter::initTexture(aiTexture *texture, unsigned int index) {
+	TextureAssetObject *mTexture = &textures[index];
 	mTexture->width = texture->mWidth;
 	mTexture->height = texture->mHeight;
+	if (mTexture->height == 0) {
+		mTexture->dataSize = texture->mWidth;
+	}
 	mTexture->filepath = texture->mFilename.C_Str();
-	mTexture->data = texture->pcData;
-	std::cout << mTexture->filepath << std::endl;
+	mTexture->data = (char *)texture->pcData;
 	return mTexture;
 }

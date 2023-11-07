@@ -1,14 +1,22 @@
+#include "Core/math/Random.h"
+#include "imgui.h"
 #include <GL/glew.h>
+#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
-#include <GLSample.h>
+#include <glm/fwd.hpp>
+#include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <iostream>
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class SimpleOcean : public GLSampleWindow {
 	  public:
 		SimpleOcean() : GLSampleWindow() {
@@ -17,7 +25,8 @@ namespace glsample {
 				std::make_shared<SimpleOceanSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->simpleOceanSettingComponent);
 
-			this->camera.setPosition(glm::vec3(-2.5f));
+			/*	*/
+			this->camera.setPosition(glm::vec3(200.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -26,7 +35,15 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			float exposure = 1.0f;
+			float gamma = 1.0;
 		};
+
+		const size_t nrWaves = 32;
+
+		typedef struct wave_t {
+			glm::vec4 waveAmpSpeed;
+			glm::vec4 direction;
+		} Wave;
 
 		struct UniformOceanBufferBlock {
 			glm::mat4 model;
@@ -37,20 +54,27 @@ namespace glsample {
 
 			/*	light source.	*/
 			glm::vec4 lookDirection;
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
+			glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 position;
 
+			Wave waves[32];
+
+			int nrWaves = 16;
 			float time = 0.0f;
-			float speed = 1.0f;
-			float freq = 2.0f;
-			float amplitude = 1.0f;
+
+			/*	Material	*/
+			float shininess = 8;
+			float fresnelPower = 4;
+			glm::vec4 oceanColor = glm::vec4(0, 0.4, 1, 1);
 		};
 
+		/*	Combined uniform block.	*/
 		struct UniformBufferBlock {
-			UniformSkyBoxBufferBlock skybox;
-			UniformOceanBufferBlock ocean;
+			UniformSkyBoxBufferBlock skybox; /*	*/
+			UniformOceanBufferBlock ocean;	 /*	*/
 
 		} uniform_stage_buffer;
 
@@ -80,6 +104,7 @@ namespace glsample {
 			SimpleOceanSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Simple Ocean Settings");
 			}
+
 			void draw() override {
 				/*	*/
 				ImGui::TextUnformatted("Light Setting");
@@ -87,16 +112,45 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ocean.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Specular Color", &this->uniform.ocean.specularColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				if (ImGui::DragFloat3("Light Direction", &this->uniform.ocean.lightDirection[0])) {
+					this->uniform.ocean.lightDirection = glm::normalize(this->uniform.ocean.lightDirection);
+				}
+
 				/*	*/
 				ImGui::TextUnformatted("Ocean");
-				ImGui::DragFloat("Speed", &this->uniform.ocean.speed);
-				ImGui::DragFloat("Freqency", &this->uniform.ocean.freq);
-				ImGui::DragFloat("Amplitude", &this->uniform.ocean.amplitude);
-				/*	*/
+
+				// TODO add section
+				if (ImGui::CollapsingHeader("Ocean Wave Setttings", &ocean_setting_visable,
+											ImGuiTreeNodeFlags_CollapsingHeader)) {
+					ImGui::DragInt("Number Waves", &this->uniform.ocean.nrWaves, 1, 0, 32);
+					for (int i = 0; i < this->uniform.ocean.nrWaves; i++) {
+						ImGui::PushID(i);
+						ImGui::Text("Wave %d", i);
+						ImGui::DragFloat("WaveLength", &this->uniform.ocean.waves[i].waveAmpSpeed[0]);
+						ImGui::DragFloat("Amplitude", &this->uniform.ocean.waves[i].waveAmpSpeed[1]);
+						ImGui::DragFloat("Speed", &this->uniform.ocean.waves[i].waveAmpSpeed[2]);
+						ImGui::DragFloat("Steepness", &this->uniform.ocean.waves[i].waveAmpSpeed[3]);
+
+						if (ImGui::DragFloat2("Direction", &this->uniform.ocean.waves[i].direction[0])) {
+						}
+						ImGui::PopID();
+						/*	*/
+					}
+				}
+
+				ImGui::TextUnformatted("Ocean Material");
+				ImGui::DragFloat("Shinines", &this->uniform.ocean.shininess);
+				ImGui::DragFloat("Fresnel Power", &this->uniform.ocean.fresnelPower);
+				ImGui::ColorEdit4("Ocean Base Color", &this->uniform.ocean.oceanColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
 				ImGui::TextUnformatted("Skybox");
 				ImGui::ColorEdit4("Tint", &this->uniform.skybox.tintColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Exposure", &this->uniform.skybox.exposure);
+				ImGui::DragFloat("Gamma", &this->uniform.skybox.gamma);
 				/*	*/
 				ImGui::TextUnformatted("Debug");
 
@@ -107,11 +161,13 @@ namespace glsample {
 
 		  private:
 			struct UniformBufferBlock &uniform;
+			bool ocean_setting_visable = false;
 		};
 		std::shared_ptr<SimpleOceanSettingComponent> simpleOceanSettingComponent;
 
 		CameraController camera;
 
+		/*	Simple Ocean Wave.	*/
 		const std::string vertexSimpleOceanShaderPath = "Shaders/simpleocean/simpleocean.vert.spv";
 		const std::string fragmentSimpleOceanShaderPath = "Shaders/simpleocean/simpleocean.frag.spv";
 
@@ -136,8 +192,6 @@ namespace glsample {
 		}
 
 		void Initialize() override {
-
-			std::string normalTexturePath = "asset/normalmap.png";
 
 			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
 
@@ -170,7 +224,7 @@ namespace glsample {
 			glUniformBlockBinding(this->simpleOcean_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	*/
+			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->skybox_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
@@ -179,7 +233,6 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->normal_texture = textureImporter.loadImage2D(normalTexturePath);
 			this->reflection_texture = textureImporter.loadImage2D(panoramicPath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -268,6 +321,17 @@ namespace glsample {
 								  reinterpret_cast<void *>(12));
 
 			glBindVertexArray(0);
+
+			/*	Initilize Waves.	*/
+			for (int i = 0; i < nrWaves; i++) {
+
+				float waveLength = 0;
+				float waveAmplitude = 0;
+
+				this->uniform_stage_buffer.ocean.waves[i].waveAmpSpeed = glm::vec4((i * 1.2 + 1), 0.1f / (i + 1), 2, 0);
+
+				this->uniform_stage_buffer.ocean.waves[i].direction = glm::normalize(glm::vec4(rand(), rand(), 0, 0));
+			}
 		}
 
 		void draw() override {
@@ -276,7 +340,7 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			this->uniform_stage_buffer.ocean.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 10000.0f);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -291,14 +355,16 @@ namespace glsample {
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
-									  this->oceanUniformSize,
+									  this->skyboxUniformSize,
 								  this->oceanUniformSize);
 
 				glUseProgram(this->simpleOcean_program);
 
+				/*	*/
 				glDisable(GL_CULL_FACE);
 				glEnable(GL_DEPTH_TEST);
 
+				/*	*/
 				glEnable(GL_BLEND);
 				glBlendEquation(GL_FUNC_ADD);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -320,6 +386,7 @@ namespace glsample {
 
 			/*	Skybox	*/
 			{
+
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize + 0,
 								  this->skyboxUniformSize);
@@ -348,19 +415,22 @@ namespace glsample {
 		}
 
 		void update() override {
+
 			/*	Update Camera.	*/
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 
-			/*	*/
+			/*	Update Ocean uniforms.	*/
 			{
 				this->uniform_stage_buffer.ocean.model = glm::mat4(1.0f);
 				this->uniform_stage_buffer.ocean.model = glm::rotate(this->uniform_stage_buffer.ocean.model,
-																	 glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+																	 glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 				this->uniform_stage_buffer.ocean.model =
-					glm::scale(this->uniform_stage_buffer.ocean.model, glm::vec3(10.95f));
+					glm::scale(this->uniform_stage_buffer.ocean.model, glm::vec3(1000.95f));
+
 				this->uniform_stage_buffer.ocean.view = this->camera.getViewMatrix();
 				this->uniform_stage_buffer.ocean.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
+
 				this->uniform_stage_buffer.ocean.modelViewProjection = this->uniform_stage_buffer.ocean.proj *
 																	   this->uniform_stage_buffer.ocean.view *
 																	   this->uniform_stage_buffer.ocean.model;
@@ -368,7 +438,7 @@ namespace glsample {
 				this->uniform_stage_buffer.ocean.time = elapsedTime;
 			}
 
-			/*	*/
+			/*	Update skybox uniforms.	*/
 			{
 				glm::quat rotation = glm::quatLookAt(glm::normalize(this->camera.getLookDirection()),
 													 glm::normalize(this->camera.getUp()));
@@ -383,10 +453,10 @@ namespace glsample {
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT));
 
-			/*	*/
+			/*	Copy skybox.	*/
 			memcpy(uniformPointer + 0, &this->uniform_stage_buffer.skybox, sizeof(this->uniform_stage_buffer.skybox));
 			/*	*/
-			memcpy(uniformPointer + this->oceanUniformSize, &this->uniform_stage_buffer.ocean,
+			memcpy(uniformPointer + this->skyboxUniformSize, &this->uniform_stage_buffer.ocean,
 				   sizeof(this->uniform_stage_buffer.ocean));
 
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
@@ -398,7 +468,7 @@ namespace glsample {
 		SimpleOceanGLSample() : GLSample<SimpleOcean>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,skybox-texture", "Skybox Texture Path",
-					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+					cxxopts::value<std::string>()->default_value("asset/skybox-animestyle.png"));
 		}
 	};
 

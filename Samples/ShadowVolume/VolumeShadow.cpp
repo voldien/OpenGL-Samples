@@ -90,8 +90,8 @@ namespace glsample {
 		std::shared_ptr<StencilVolumeShadowSettingComponent> shadowSettingComponent;
 
 		/*	*/
-		const std::string vertexGraphicShaderPath = "Shaders/phong/phong.vert";
-		const std::string fragmentGraphicShaderPath = "Shaders/phong/phong.frag";
+		const std::string vertexGraphicShaderPath = "Shaders/phong/phong.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/phong/phong.frag.spv";
 
 		/*	Shadow shader paths.	*/
 		const std::string vertexShadowShaderPath = "Shaders/volumeshadow/volumeshadow.vert.spv";
@@ -294,18 +294,23 @@ namespace glsample {
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
+			/*	Optional - to display wireframe.	*/
+			glPolygonMode(GL_FRONT_AND_BACK, this->shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
 			/*	*/
-			glViewport(0, 0, width, height);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->graphic_framebuffer);
+
 			/*	*/
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-			/*	Optional - to display wireframe.	*/
-			glPolygonMode(GL_FRONT_AND_BACK, alphaClippingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+			/*	*/
+			glViewport(0, 0, width, height);
 
 			// Create stencil outline geometry from the light direction, Stencil shadow.
 			{
 				glEnable(GL_STENCIL_TEST);
 				glDisable(GL_DEPTH_TEST);
+
 				glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 				glDepthMask(GL_FALSE);
 				glStencilFunc(GL_NEVER, 255, 0xFF);
@@ -325,8 +330,14 @@ namespace glsample {
 				glBindVertexArray(0);
 
 				/*	*/
-				glDisable(GL_DEPTH_CLAMP);
+				glEnable(GL_DEPTH_CLAMP);
 				glEnable(GL_CULL_FACE);
+
+				glDisable(GL_STENCIL_TEST);
+				glEnable(GL_DEPTH_TEST);
+
+				glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+				glDepthMask(GL_TRUE);
 
 				glUseProgram(0);
 			}
@@ -337,6 +348,9 @@ namespace glsample {
 				glDisable(GL_STENCIL_TEST);
 
 				glUseProgram(this->graphic_program);
+
+				// glActiveTexture(GL_TEXTURE0);
+				// glBindTexture(GL_TEXTURE_2D, this->graphic_texture);
 
 				glBindVertexArray(this->plan.vao);
 				glDrawElementsBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
@@ -370,6 +384,25 @@ namespace glsample {
 				glBindVertexArray(0);
 				glUseProgram(0);
 			}
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+			/*	*/
+			glViewport(0, 0, width, height);
+
+			// Transfer the result. (blit)
+			{
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->graphic_framebuffer);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				/*	*/
+				glViewport(0, 0, width, height);
+
+				glReadBuffer(GL_COLOR_ATTACHMENT0);
+				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
+								  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		void update() override {

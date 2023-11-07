@@ -14,6 +14,7 @@
 #include <assimp/types.h>
 #include <assimp/vector3.h>
 #include <cassert>
+#include <cstddef>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -32,10 +33,10 @@ typedef struct material_object_t {
 	std::string name;
 
 	/*	*/
-	unsigned int diffuseIndex;
-	unsigned int normalIndex;
-	unsigned int emissionIndex;
-	unsigned int heightIndex;
+	unsigned int diffuseIndex = -1;
+	unsigned int normalIndex = -1;
+	unsigned int emissionIndex = -1;
+	unsigned int heightIndex = -1;
 
 	/*	TODO its own struct.	*/
 	glm::vec4 ambient;
@@ -45,7 +46,7 @@ typedef struct material_object_t {
 	glm::vec4 transparent;
 	glm::vec4 reflectivity;
 	float shinininess;
-	float hinininessStrength;
+	float shinininessStrength;
 } MaterialObject;
 
 typedef struct model_object {
@@ -54,6 +55,7 @@ typedef struct model_object {
 	glm::vec3 scale;
 	glm::mat4 transform;
 
+	/*	*/
 	std::vector<unsigned int> geometryObjectIndex;
 	std::vector<unsigned int> materialIndex;
 
@@ -69,6 +71,8 @@ typedef struct model_system_object {
 	void *vertexData;
 	void *indicesData;
 
+	unsigned int material_index;
+
 	unsigned int vertexOffset;
 	unsigned int normalOffset;
 	unsigned int tangentOffset;
@@ -77,16 +81,25 @@ typedef struct model_system_object {
 
 } ModelSystemObject;
 
-typedef struct texture_object_t {
+typedef struct texture_asset_object_t {
 	size_t texture = 0;
 	size_t width = 0;
 	size_t height = 0;
+
+	size_t dataSize = 0;
 	std::string filepath;
-	void *data;
-} TextureObject;
+	char *data = nullptr;
+} TextureAssetObject;
+
+typedef struct key_frame_t {
+	float time;
+	float value;
+	float tangentIn;
+	float tangentOut;
+} KeyFrame;
 
 typedef struct animation_object_t {
-
+	std::vector<KeyFrame> keyframes;
 } AnimationObject;
 
 using namespace Assimp;
@@ -113,11 +126,12 @@ class FVDECLSPEC ModelImporter {
 
 	ModelSystemObject *initMesh(const aiMesh *mesh, unsigned int index);
 
-	TextureObject *initTexture(aiTexture *texture, unsigned int index);
+	TextureAssetObject *initTexture(aiTexture *texture, unsigned int index);
 
 	// VDAnimationClip *initAnimation(const aiAnimation *animation, unsigned int index);
 	//
-	// VDLight *initLight(const aiLight *light, unsigned int index);
+
+	void loadTexturesFromMaterials(aiMaterial *material);
 
   public:
 	const std::vector<NodeObject *> getNodes() const { return this->nodes; }
@@ -128,16 +142,21 @@ class FVDECLSPEC ModelImporter {
 	std::vector<MaterialObject> &getMaterials() { return this->materials; }
 
 	/*	*/
-	const std::vector<TextureObject> &getTextures() const { return this->textures; }
-	std::vector<TextureObject> &getTextures() { return this->textures; }
+	const std::vector<TextureAssetObject> &getTextures() const { return this->textures; }
+	std::vector<TextureAssetObject> &getTextures() { return this->textures; }
 
   private:
+	std::string filepath;
 	aiScene *sceneRef;
 	std::vector<NodeObject *> nodes;
+
 	std::vector<ModelSystemObject> models;
 	std::vector<MaterialObject> materials;
-	std::vector<TextureObject> textures;
-	std::map<std::string, TextureObject *> textureMapping;
+	/*	*/
+	std::vector<TextureAssetObject> textures;
+	std::map<std::string, TextureAssetObject *> textureMapping;
+	std::map<std::string, unsigned int> textureIndexMapping;
+
 	std::vector<AnimationObject> animations;
 	std::map<std::string, VertexBoneData> vertexBoneData;
 

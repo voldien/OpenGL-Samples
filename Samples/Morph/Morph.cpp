@@ -1,3 +1,4 @@
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -9,14 +10,18 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class MorphTarget : public GLSampleWindow {
 	  public:
 		MorphTarget() : GLSampleWindow() {
 			this->setTitle("Morph");
 
 			/*	*/
-			this->tessellationSettingComponent = std::make_shared<MorphTargetSettingComponent>(this->mvp);
-			this->addUIComponent(this->tessellationSettingComponent);
+			this->morphSettingComponent = std::make_shared<MorphTargetSettingComponent>(this->mvp);
+			this->addUIComponent(this->morphSettingComponent);
 
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
@@ -57,15 +62,18 @@ namespace glsample {
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 
+				ImGui::TextUnformatted("Debugging");
+				ImGui::Checkbox("Use Compute Shader", &this->useComputeShader);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
 			bool showWireFrame;
+			bool useComputeShader;
 
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<MorphTargetSettingComponent> tessellationSettingComponent;
+		std::shared_ptr<MorphTargetSettingComponent> morphSettingComponent;
 
 		// TODO change to vector
 		unsigned int uniform_buffer_binding = 0;
@@ -88,8 +96,10 @@ namespace glsample {
 		unsigned int diffuse_texture;
 		unsigned int heightmap_texture;
 
+		/*	*/
 		const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
 		const std::string heightTexturePath = "asset/tessellation_heightmap.png";
+
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert";
 		const std::string fragmentShaderPath = "Shaders/tessellation/tessellation.frag";
@@ -216,7 +226,7 @@ namespace glsample {
 			glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
 
 			/*	Draw wireframe outline.	*/
-			if (this->tessellationSettingComponent->showWireFrame) {
+			if (this->morphSettingComponent->showWireFrame) {
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				glDrawElements(GL_PATCHES, nrElements, GL_UNSIGNED_INT, nullptr);
 			}

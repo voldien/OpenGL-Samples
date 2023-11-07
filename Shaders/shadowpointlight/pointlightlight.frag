@@ -61,12 +61,12 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 
 	float currentDepth = length(frag2Light);
 
-	float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
-
 	/*	*/
 	if (currentDepth > ubo.point_light[index].range) {
-		shadow = 1.0;
+		return 1;
 	}
+
+	float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
 
 	return shadow;
 }

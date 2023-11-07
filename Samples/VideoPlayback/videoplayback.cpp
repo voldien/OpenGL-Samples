@@ -518,6 +518,7 @@ namespace glsample {
 							sws_scale(this->sws_ctx, this->frame->data, this->frame->linesize, 0, this->frame->height,
 									  this->frameoutput->data, this->frameoutput->linesize);
 
+							/*	*/
 							glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStagingTextureBuffer);
 							void *uniformPointer = glMapBufferRange(
 								GL_PIXEL_UNPACK_BUFFER_ARB, this->nthVideoFrame * this->videoStageBufferMemorySize,

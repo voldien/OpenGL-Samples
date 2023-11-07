@@ -41,12 +41,14 @@ namespace glsample {
 
 		struct UniformSSAOBufferBlock {
 			glm::mat4 proj;
+			/*	*/
 			int samples = 4;
 			float radius = 1.5f;
 			float intensity = 1.0f;
 			float bias = 0.025;
 			float cameraNear;
 			float cameraFar;
+
 			glm::vec2 screen;
 			glm::vec4 kernel[64];
 
@@ -88,23 +90,24 @@ namespace glsample {
 		CameraController camera;
 
 		class AmbientOcclusionSettingComponent : public nekomimi::UIComponent {
-
 		  public:
 			AmbientOcclusionSettingComponent(struct UniformSSAOBufferBlock &uniform) : uniform(uniform) {
 				this->setName("Ambient Occlusion Settings");
 			}
+
 			void draw() override {
+
 				ImGui::DragFloat("Intensity", &this->uniform.intensity, 0.1f, 0.0f);
 				ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
 				ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
 				ImGui::DragFloat("Bias", &this->uniform.bias, 0.01f, 0, 1);
 				ImGui::Checkbox("DownSample", &downScale);
-				ImGui::Checkbox("Use Depth", &useDepth);
+				ImGui::Checkbox("Use Depth Only", &useDepthOnly);
 				ImGui::Checkbox("show Only AO", &showAOOnly);
 			}
 
 			bool downScale = false;
-			bool useDepth = false;
+			bool useDepthOnly = false;
 			bool showAOOnly = true;
 
 		  private:
@@ -118,7 +121,12 @@ namespace glsample {
 
 		/*	*/
 		const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
+		const std::string fragmentSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
+
+		const std::string vertexSSAODepthOnlyShaderPath =
+			"Shaders/ambientocclusion/ambientocclusion_depthonly.vert.spv";
+		const std::string fragmentSSAODepthOnlyShaderPath =
+			"Shaders/ambientocclusion/ambientocclusion_depthonly.frag.spv";
 
 		void Release() override {
 			/*	Delete graphic pipelines.	*/
@@ -156,7 +164,7 @@ namespace glsample {
 				const std::vector<uint32_t> vertex_ssao_source =
 					IOUtil::readFileData<uint32_t>(this->vertexSSAOShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_ssao_source =
-					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->fragmentSSAOShaderPath, this->getFileSystem());
 
 				const std::vector<uint32_t> vertex_multi_pass_source =
 					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
@@ -164,7 +172,11 @@ namespace glsample {
 					IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
 				/*	Load shader	*/
-				this->ssao_program =
+				this->ssao_world_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_source, &fragment_ssao_source);
+
+				/*	Load shader	*/
+				this->ssao_depth_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_source, &fragment_ssao_source);
 
 				/*	Load shader	*/
@@ -194,8 +206,10 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
-			this->uniformSSAOBufferSize = fragcore::Math::align(this->uniformSSAOBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferAlignSize =
+				fragcore::Math::align(this->uniformBufferAlignSize, (size_t)minMapBufferSize);
+			this->uniformSSAOBufferAlignSize =
+				fragcore::Math::align(this->uniformSSAOBufferAlignSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -261,23 +275,27 @@ namespace glsample {
 
 			/*	FIXME:	*/
 			{
+				/*	Create random vector.	*/
 				std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
 				std::default_random_engine generator;
 				for (size_t i = 0; i < 64; ++i) {
+
 					glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0,
 									 randomFloats(generator));
+
 					sample = glm::normalize(sample);
-					sample *= randomFloats(generator);
+
 					float scale = (float)i / 64.0f;
 					scale = fragcore::Math::lerp(0.1f, 1.0f, scale * scale);
+
 					sample *= scale;
-					uniformBlockSSAO.kernel[i] = glm::vec4(sample.x, sample.y, sample.z, 0); // .push_back(sample);
+					uniformBlockSSAO.kernel[i] = glm::vec4(sample.x, sample.y, sample.z, 0);
 				}
 
 				/*	Create white texture.	*/
 				glGenTextures(1, &this->white_texture);
 				glBindTexture(GL_TEXTURE_2D, this->white_texture);
-				unsigned char white[] = {255, 255, 255, 255};
+				const unsigned char white[] = {255, 255, 255, 255};
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -293,13 +311,13 @@ namespace glsample {
 				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
 				glBindTexture(GL_TEXTURE_2D, 0);
 
-				/*	Create noise vector.	*/
+				/*	Create noise normalMap.	*/
 				const size_t noiseW = 4;
 				const size_t noiseH = 4;
 				std::vector<glm::vec3> randomNoise(noiseW * noiseH);
 				for (size_t i = 0; i < randomNoise.size(); i++) {
-					randomNoise[i].r = Random::normalizeRand<float>() * 2.0 - 1.0;
-					randomNoise[i].g = Random::normalizeRand<float>() * 2.0 - 1.0;
+					randomNoise[i].r = randomFloats(generator) * 2.0 - 1.0;
+					randomNoise[i].g = randomFloats(generator) * 2.0 - 1.0;
 					randomNoise[i].b = 0.0f;
 				}
 
@@ -307,8 +325,8 @@ namespace glsample {
 				glGenTextures(1, &this->random_texture);
 				glBindTexture(GL_TEXTURE_2D, this->random_texture);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseW, noiseH, 0, GL_RGB, GL_FLOAT, randomNoise.data());
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				/*	Border clamped to max value, it makes the outside area.	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -325,10 +343,10 @@ namespace glsample {
 				/*	Create multipass framebuffer.	*/
 				glGenFramebuffers(1, &this->multipass_framebuffer);
 
-				/*	*/
+				/*	Setup framebuffer textures.	*/
 				this->multipass_textures.resize(4);
 				glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
-				onResize(this->width(), this->height());
+				this->onResize(this->width(), this->height());
 			}
 		}
 
@@ -338,15 +356,19 @@ namespace glsample {
 			this->multipass_texture_height = height;
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);
+
 			/*	Resize the image.	*/
 			std::vector<GLenum> drawAttach(multipass_textures.size());
 			for (size_t i = 0; i < multipass_textures.size(); i++) {
 
+				/*	*/
 				glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, this->multipass_texture_width, this->multipass_texture_height,
-							 0, GL_RGB, GL_FLOAT, nullptr);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, this->multipass_texture_width,
+							 this->multipass_texture_height, 0, GL_RGB, GL_FLOAT, nullptr);
+
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 				/*	Border clamped to max value, it makes the outside area.	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -363,6 +385,7 @@ namespace glsample {
 				drawAttach[i] = GL_COLOR_ATTACHMENT0 + i;
 			}
 
+			/*	Create depth buffer texture.	*/
 			glGenTextures(1, &this->depthTexture);
 			glBindTexture(GL_TEXTURE_2D, depthTexture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
@@ -455,7 +478,11 @@ namespace glsample {
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				glUseProgram(this->ssao_world_program);
+				if (this->ambientOcclusionSettingComponent->useDepthOnly) {
+					glUseProgram(this->ssao_depth_program);
+				} else {
+					glUseProgram(this->ssao_world_program);
+				}
 
 				glDisable(GL_CULL_FACE);
 
@@ -496,13 +523,15 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBlock.model = glm::mat4(1.0f);
-			this->uniformBlock.model =
-				glm::rotate(this->uniformBlock.model, glm::radians(elapsedTime * 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBlock.model = glm::scale(this->uniformBlock.model, glm::vec3(10.95f));
-			this->uniformBlock.view = this->camera.getViewMatrix();
-			this->uniformBlock.modelViewProjection =
-				this->uniformBlock.proj * this->uniformBlock.view * this->uniformBlock.model;
+			{
+				this->uniformBlock.model = glm::mat4(1.0f);
+				this->uniformBlock.model = glm::rotate(this->uniformBlock.model, glm::radians(elapsedTime * 0.0f),
+													   glm::vec3(0.0f, 1.0f, 0.0f));
+				this->uniformBlock.model = glm::scale(this->uniformBlock.model, glm::vec3(10.95f));
+				this->uniformBlock.view = this->camera.getViewMatrix();
+				this->uniformBlock.modelViewProjection =
+					this->uniformBlock.proj * this->uniformBlock.view * this->uniformBlock.model;
+			}
 
 			/*	Update uniform buffers.	*/
 			{
@@ -528,11 +557,12 @@ namespace glsample {
 	};
 
 	/*	*/
-	class AmbientOcclusionGLSample : public GLSample<AmbientOcclusion> {
+	class AmbientOcclusionGLSample : public GLSample<ScreenSpaceAmbientOcclusion> {
 	  public:
-		AmbientOcclusionGLSample() : GLSample<AmbientOcclusion>() {}
+		AmbientOcclusionGLSample() : GLSample<ScreenSpaceAmbientOcclusion>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
+			options("M,model", "Model FilePath",
+					cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};
 

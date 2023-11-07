@@ -11,7 +11,7 @@
 namespace glsample {
 
 	/**
-	 *	Simple Alpha clipping sample, where fragments are discarded if it is below a certain alpha threashold.
+	 *	Simple Alpha clipping sample, where fragments are discarded if they are below a certain alpha threashold.
 	 */
 	class AlphaClipping : public GLSampleWindow {
 	  public:
@@ -47,8 +47,9 @@ namespace glsample {
 
 		GeometryObject planGeometry;
 
-		/*	*/
+		/*	OpenGL Graphic Program.	*/
 		int texture_program;
+		/*	Texture.	*/
 		int diffuse_texture;
 
 		CameraController camera;
@@ -114,7 +115,7 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->texture_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &alpha_clip_vertex_binary, &alpha_clip_fragment_binary);
 			}
 
 			/*	Setup graphic program.	*/

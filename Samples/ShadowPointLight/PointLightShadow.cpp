@@ -1,3 +1,4 @@
+#include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -63,12 +64,12 @@ namespace glsample {
 		unsigned int shadowWidth = 1024;
 		unsigned int shadowHeight = 1024;
 
-		unsigned int diffuse_texture;
-
+		Scene scene;
 		std::vector<GeometryObject> refObj;
 
 		/*	*/
 		unsigned int graphic_program;
+		unsigned int graphic_pfc_program;
 		unsigned int shadow_program;
 
 		/*	Uniform buffer.	*/
@@ -90,6 +91,7 @@ namespace glsample {
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
 				ImGui::TextUnformatted("Depth Texture");
 
 				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
@@ -114,6 +116,7 @@ namespace glsample {
 
 			bool showWireFrame = false;
 			bool animate = false;
+			bool use_pcf = false;
 
 			bool lightvisible[4] = {true, true, true, true};
 
@@ -135,6 +138,7 @@ namespace glsample {
 		void Release() override {
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->shadow_program);
+			glDeleteProgram(this->graphic_pfc_program);
 
 			glDeleteFramebuffers(this->pointShadowFrameBuffers.size(), this->pointShadowFrameBuffers.data());
 			glDeleteTextures(this->pointShadowTextures.size(), this->pointShadowTextures.data());
@@ -148,7 +152,6 @@ namespace glsample {
 
 		void Initialize() override {
 
-			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			{
@@ -157,6 +160,8 @@ namespace glsample {
 					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_source =
 					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_pcf_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentGraphicPCFShaderPath, this->getFileSystem());
 
 				/*	*/
 				const std::vector<uint32_t> vertex_shadow_source =
@@ -173,13 +178,15 @@ namespace glsample {
 				/*	Load shaders	*/
 				this->graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				this->graphic_pfc_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_pcf_source);
+
 				this->shadow_program = ShaderLoader::loadGraphicProgram(
 					compilerOptions, &vertex_shadow_source, &fragment_shadow_source, &geometry_shadow_source);
 			}
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	*/
 			glUseProgram(this->shadow_program);
@@ -191,7 +198,7 @@ namespace glsample {
 			glUseProgram(this->graphic_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-			const int shadows[4] = {1, 2, 3, 4};
+			const int shadows[4] = {2, 3, 4, 5};
 			glUniform1iv(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 4, shadows);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -269,6 +276,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(modelLoader);
 
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 
@@ -312,19 +320,13 @@ namespace glsample {
 
 					glCullFace(GL_FRONT);
 					glEnable(GL_CULL_FACE);
+					/*	Make sure it fills the triangles.	*/
 					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 					/*	Setup the shadow.	*/
-					glBindVertexArray(this->refObj[0].vao);
+					// TODO enbable.
 					glVertexAttribI1i(4, i);
-
-					/*	*/
-					for (size_t j = 0; j < this->refObj.size(); j++) {
-						glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[j].nrIndicesElements, GL_UNSIGNED_INT,
-												 (void *)(sizeof(unsigned int) * this->refObj[j].indices_offset),
-												 this->refObj[j].vertex_offset);
-					}
-					glBindVertexArray(0);
+					this->scene.render();
 
 					glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				}
@@ -341,7 +343,12 @@ namespace glsample {
 
 				/*	*/
 				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-				glUseProgram(this->graphic_program);
+
+				if (this->shadowSettingComponent->use_pcf) {
+					glUseProgram(this->graphic_pfc_program);
+				} else {
+					glUseProgram(this->graphic_program);
+				}
 
 				glCullFace(GL_BACK);
 				glDisable(GL_CULL_FACE);
@@ -350,27 +357,19 @@ namespace glsample {
 				glPolygonMode(GL_FRONT_AND_BACK, this->shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
-
-				/*	*/
 				for (size_t j = 0; j < this->nrPointLights; j++) {
-					glActiveTexture(GL_TEXTURE1 + j);
+					glActiveTexture(GL_TEXTURE2 + j);
 					glBindTexture(GL_TEXTURE_CUBE_MAP, this->pointShadowTextures[j]);
 				}
 
-				glBindVertexArray(this->refObj[0].vao);
-				for (size_t i = 0; i < this->refObj.size(); i++) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
-											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
-											 this->refObj[i].vertex_offset);
-				}
-				glBindVertexArray(0);
+				this->scene.render();
+
 			}
 		}
 
 		void update() override {
 			/*	Update Camera.	*/
+			this->scene.update(getTimer().deltaTime());
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/

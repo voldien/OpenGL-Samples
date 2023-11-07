@@ -12,8 +12,13 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class ClothSimulation : public GLSampleWindow {
 	  public:
+	  
 		ClothSimulation() : GLSampleWindow() {
 			this->setTitle("Cloth Simulation");
 			this->vectorFieldSettingComponent = std::make_shared<ParticleSystemSettingComponent>(this->uniformBuffer);

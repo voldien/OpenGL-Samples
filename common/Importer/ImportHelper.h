@@ -7,6 +7,6 @@ namespace glsample {
 	  public:
 		static void loadModelBuffer(ModelImporter &modelLoader, std::vector<GeometryObject> &modelSet);
 
-		static void loadTextures(ModelImporter &modelLoader);
+		static void loadTextures(ModelImporter &modelLoader, std::vector<TextureAssetObject> &textures);
 	};
 } // namespace glsample

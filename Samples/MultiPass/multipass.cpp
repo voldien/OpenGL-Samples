@@ -4,6 +4,7 @@
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
+#include <Scene.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -37,6 +38,15 @@ namespace glsample {
 		unsigned int diffuse_texture;
 		unsigned int normal_texture;
 
+		enum GBuffer {
+			WorldSpace = 0,
+			Diffuse = 1,
+			Specular = 2,
+			Emission = 3,
+			Normal = 4,
+			Depth = 5,
+		};
+
 		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer;
 		unsigned int multipass_program;
@@ -52,6 +62,8 @@ namespace glsample {
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
 		CameraController camera;
+
+		Scene scene;
 
 		/*	*/
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
@@ -81,8 +93,9 @@ namespace glsample {
 
 		void Initialize() override {
 
-			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			/*	*/
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
+
 			{
 				/*	*/
 				const std::vector<uint32_t> multipass_vertex_binary =
@@ -95,8 +108,8 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->multipass_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &multipass_vertex_binary, &multipass_fragment_binary);
+				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &multipass_vertex_binary,
+																		   &multipass_fragment_binary);
 			}
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->multipass_program);
@@ -108,7 +121,6 @@ namespace glsample {
 
 			/*	load Textures	*/ // TODO remove.
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -124,10 +136,11 @@ namespace glsample {
 			/*	*/
 			modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(*modelLoader);
 
 			/*	*/
 			ImportHelper::loadModelBuffer(*modelLoader, refObj);
-			ImportHelper::loadTextures(*modelLoader);
+			// ImportHelper::loadTextures(*modelLoader);
 
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
@@ -186,7 +199,7 @@ namespace glsample {
 
 			/*	*/
 			this->uniformBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 5000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -205,24 +218,28 @@ namespace glsample {
 
 				glDisable(GL_CULL_FACE);
 
-				glBindVertexArray(this->refObj[0].vao);
-				for (size_t x = 0; x < this->modelLoader->getNodes().size(); x++) {
+				this->scene.render();
 
-					/*	*/
-					NodeObject *node = this->modelLoader->getNodes()[x];
-
-					for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
-
-						glActiveTexture(GL_TEXTURE0);
-						glBindTexture(GL_TEXTURE_2D, this->modelLoader->getTextures()[0].texture);
-
-						glDrawElementsBaseVertex(
-							GL_TRIANGLES, this->refObj[node->geometryObjectIndex[i]].nrIndicesElements, GL_UNSIGNED_INT,
-							(void *)(sizeof(unsigned int) * this->refObj[node->geometryObjectIndex[i]].indices_offset),
-							this->refObj[node->geometryObjectIndex[i]].vertex_offset);
-					}
-				}
-				glBindVertexArray(0);
+				//				glBindVertexArray(this->refObj[0].vao);
+				//
+				//				for (size_t x = 0; x < this->modelLoader->getNodes().size(); x++) {
+				//
+				//					/*	*/
+				//					NodeObject *node = this->modelLoader->getNodes()[x];
+				//
+				//					for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
+				//
+				//						glActiveTexture(GL_TEXTURE0);
+				//						glBindTexture(GL_TEXTURE_2D, this->modelLoader->getTextures()[0].texture);
+				//
+				//						glDrawElementsBaseVertex(
+				//							GL_TRIANGLES, this->refObj[node->geometryObjectIndex[i]].nrIndicesElements,
+				//GL_UNSIGNED_INT, 							(void *)(sizeof(unsigned int) *
+				//this->refObj[node->geometryObjectIndex[i]].indices_offset),
+				//							this->refObj[node->geometryObjectIndex[i]].vertex_offset);
+				//					}
+				//				}
+				//				glBindVertexArray(0);
 
 				glUseProgram(0);
 			}
@@ -275,8 +292,7 @@ namespace glsample {
 	  public:
 		MultiPassGLSample() : GLSample<MultiPass>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"));
 		}
 	};
 

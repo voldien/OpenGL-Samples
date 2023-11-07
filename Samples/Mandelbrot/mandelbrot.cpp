@@ -13,8 +13,12 @@ namespace glsample {
 	  public:
 		MandelBrot() : GLSampleWindow() {
 			this->setTitle("MandelBrot Compute");
-			mandelbrotSettingComponent = std::make_shared<MandelBrotSettingComponent>(this->params);
-			this->addUIComponent(mandelbrotSettingComponent);
+
+			/*	*/
+			this->mandelbrotSettingComponent = std::make_shared<MandelBrotSettingComponent>(this->params);
+			this->addUIComponent(this->mandelbrotSettingComponent);
+
+				/*	*/
 		}
 
 		struct UniformBufferBlock {
@@ -26,6 +30,7 @@ namespace glsample {
 		} params;
 
 		/*	*/
+		const size_t round_robin_size = 2;
 		unsigned int mandelbrot_framebuffer;
 		unsigned int mandelbrot_program;
 		unsigned int mandelbrot_texture; // TODO add round robin.

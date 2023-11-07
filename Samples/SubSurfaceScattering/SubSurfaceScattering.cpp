@@ -1,3 +1,4 @@
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -73,8 +74,9 @@ namespace glsample {
 				this->setName("SubSurface Scattering Settings");
 			}
 			void draw() override {
-				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
-				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
+
+				ImGui::TextUnformatted("Light Settings");
+
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
@@ -82,9 +84,16 @@ namespace glsample {
 				ImGui::ColorEdit4("SubSurface Color", &this->uniform.subsurfaceColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::TextUnformatted("Shadow Settings");
+
+				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
+				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
+
+				ImGui::TextUnformatted("SubSurface Settings");
 				ImGui::DragFloat("Distance", &this->uniform.range);
 				ImGui::DragFloat("Sigma", &this->uniform.sigma);
 
+				ImGui::TextUnformatted("Debugging");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
 				ImGui::Image(reinterpret_cast<ImTextureID>(this->depth), ImVec2(512, 512));

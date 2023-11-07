@@ -2,6 +2,9 @@
 #include "ImageImport.h"
 #include <GL/glew.h>
 #include <ProceduralGeometry.h>
+#include <exception>
+#include <iostream>
+#include <ostream>
 using namespace glsample;
 using namespace fragcore;
 
@@ -90,37 +93,52 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<Geome
 	}
 }
 
-void ImportHelper::loadTextures(ModelImporter &modelLoader) {
-	std::vector<TextureObject> &Reftextures = modelLoader.getTextures();
+void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureAssetObject> &textures) {
+
+	std::vector<TextureAssetObject> &Reftextures = modelLoader.getTextures();
+
+	textures.resize(Reftextures.size());
 
 	glsample::TextureImporter textureImporter(modelLoader.fileSystem);
 
 	for (size_t i = 0; i < Reftextures.size(); i++) {
-		if (Reftextures[i].data == nullptr) {
-			Reftextures[i].texture = textureImporter.loadImage2D(Reftextures[i].filepath);
+		TextureAssetObject &tex = Reftextures[i];
+
+		if (tex.data == nullptr) {
+			try {
+				std::cout << "Loading " << tex.filepath << std::endl;
+				tex.texture = textureImporter.loadImage2D(tex.filepath);
+			} catch (const std::exception &ex) {
+				std::cerr << "Failed to load: " << tex.filepath << " " << ex.what() << std::endl;
+			}
 		} else {
 
 			/*	Compressed data.	*/
-			if (Reftextures[i].height == 0 && Reftextures[i].data && Reftextures[i].width > 0) {
+			if (tex.height == 0 && tex.dataSize > 0 && tex.data && tex.width > 0) {
+
 				fragcore::Ref<fragcore::IO> refIO = fragcore::Ref<fragcore::IO>(
-					new fragcore::BufferIO((const void *)Reftextures[i].data, (unsigned long)Reftextures[i].width));
+					new fragcore::BufferIO((const void *)tex.data, (unsigned long)tex.dataSize));
 
 				/*	*/
 				fragcore::ImageLoader imageLoader;
-				std::cout << Reftextures[i].width << std::endl;
+
 				try {
-					Reftextures[i].texture = textureImporter.loadImage2DRaw(imageLoader.loadImage(refIO));
+
+					Image image = imageLoader.loadImage(refIO);
+					tex.texture = textureImporter.loadImage2DRaw(image);
 				} catch (std::exception &ex) {
-					
+					std::cerr << "Failed to load: " << ex.what() << std::endl;
 				}
-
+				refIO->close();
 			} else {
-				/*	None-compressed.	*/
-				fragcore::Image image(Reftextures[i].width, Reftextures[i].height, TextureFormat::ARGB32);
-				image.setPixelData(Reftextures[i].data, image.getSize());
 
-				Reftextures[i].texture = textureImporter.loadImage2DRaw(image);
+				/*	None-compressed.	*/
+				fragcore::Image image(tex.width, tex.height, TextureFormat::ARGB32);
+				image.setPixelData(tex.data, image.getSize());
+
+				tex.texture = textureImporter.loadImage2DRaw(image);
 			}
 		}
 	}
+	textures = Reftextures;
 }

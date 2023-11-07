@@ -8,6 +8,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class BillBoarding : public GLSampleWindow {
 	  public:
 		BillBoarding() : GLSampleWindow() {
@@ -40,6 +44,7 @@ namespace glsample {
 			/*	*/
 			glm::vec4 cameraPosition;
 			glm::vec2 scale = glm::vec2(1);
+			glm::vec4 offset;
 
 		} uniformBuffer;
 
@@ -89,7 +94,7 @@ namespace glsample {
 		};
 		std::shared_ptr<BillBoardSettingComponent> billboardSettingComponent;
 
-		/*	*/
+		/*	BillBoard Shader Paths.	*/
 		const std::string vertexBillBoardShaderPath = "Shaders/billboarding/billboarding.vert.spv";
 		const std::string geomtryBillBoardShaderPath = "Shaders/billboarding/billboarding.geom.spv";
 		const std::string fragmentBillBoardShaderPath = "Shaders/billboarding/billboarding.frag.spv";
@@ -105,9 +110,9 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_buffer);
 
 			/*	Delete geometry data.	*/
-			glDeleteVertexArrays(1, &this->plan.vao);
-			glDeleteBuffers(1, &this->plan.vbo);
-			glDeleteBuffers(1, &this->plan.ibo);
+			glDeleteVertexArrays(1, &this->geometry.vao);
+			glDeleteBuffers(1, &this->geometry.vbo);
+			glDeleteBuffers(1, &this->geometry.ibo);
 		}
 
 		void Initialize() override {
@@ -117,11 +122,11 @@ namespace glsample {
 			{
 				/*	Load shader source.	*/
 				const std::vector<uint32_t> vertex_source =
-					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->vertexBillBoardShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> geomtry_source =
-					IOUtil::readFileData<uint32_t>(this->geomtryShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->geomtryBillBoardShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_source =
-					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->fragmentBillBoardShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -160,20 +165,20 @@ namespace glsample {
 			ProceduralGeometry::generateTorus(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
+			glGenVertexArrays(1, &this->geometry.vao);
+			glBindVertexArray(this->geometry.vao);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
+			glGenBuffers(1, &this->geometry.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, geometry.vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
 			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
+			glGenBuffers(1, &this->geometry.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
+			this->geometry.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
 			glEnableVertexAttribArray(0);
@@ -235,8 +240,8 @@ namespace glsample {
 				glPolygonMode(GL_FRONT_AND_BACK, billboardSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_POINTS, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(this->geometry.vao);
+				glDrawElements(GL_POINTS, this->geometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
 		}
@@ -276,7 +281,10 @@ namespace glsample {
 	  public:
 		BillBoardingGLSample() : GLSample<BillBoarding>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"));
+			options("G,ground-texture", "Ground Texture",
+					cxxopts::value<std::string>()->default_value("asset/stylized-ground.png"));
+			options("T,texture", "Texture Path",
+					cxxopts::value<std::string>()->default_value("asset/stylized-tree.png"));
 		}
 	};
 
