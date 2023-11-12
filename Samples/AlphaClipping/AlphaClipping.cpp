@@ -61,9 +61,10 @@ namespace glsample {
 			}
 
 			void draw() override {
-
+				/*	*/
 				ImGui::TextUnformatted("Alpha Clipping Setting");
 				ImGui::DragFloat("Clipping", &this->uniform.clipping, 0.035f, 0.0f, 1.0f);
+				/*	*/
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -114,8 +115,8 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->texture_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &alpha_clip_vertex_binary, &alpha_clip_fragment_binary);
+				this->texture_program = ShaderLoader::loadGraphicProgram(compilerOptions, &alpha_clip_vertex_binary,
+																		 &alpha_clip_fragment_binary);
 			}
 
 			/*	Setup graphic program.	*/
@@ -176,6 +177,7 @@ namespace glsample {
 				glBindVertexArray(0);
 			}
 		}
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
 
@@ -224,8 +226,7 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniform_stage_buffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
 			this->uniform_stage_buffer.modelViewProjection =
 				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix());
 

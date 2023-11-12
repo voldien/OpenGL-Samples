@@ -28,7 +28,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-
 //	float OccluderBias = 0.045;
 
 float SamplePixels(in vec3 srcPosition, in vec3 srcNormal, in vec2 uv) {
@@ -93,7 +92,6 @@ void main() {
 	}
 
 	/* Average and clamp ambient occlusion	*/
-	// occlusion /= (ubo.samples);
 	occlusion = (1.0 - (occlusion / float(ubo.samples)));
 
 	fragColor = vec4(occlusion, occlusion, occlusion, 1.0);

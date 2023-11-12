@@ -18,83 +18,56 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	float radius;
 	float intensity;
 	float bias;
-	float cameraNear;
-	float cameraFar;
 	vec2 screen;
 
-	vec3 kernel[64];
+	vec4 kernel[64];
 
 	vec4 color;
 }
 ubo;
 
-
-//	float OccluderBias = 0.045;
-
-float SamplePixels(in vec3 srcPosition, in vec3 srcNormal, in vec2 uv) {
-
-	float OccluderBias = 0.045;
-	vec2 Attenuation = vec2(0.82999289, 0.0020000297);
-	// Get the 3D position of the destination pixel
-	// vec3 dstPosition = texture2D(WorldTexture, uv).xyz;
-
-	// Calculate ambient occlusion amount between these two points
-	// It is simular to diffuse lighting. Objects directly above the fragment cast
-	// the hardest shadow and objects closer to the horizon have minimal effect.
-	vec3 positionVec = texture(WorldTexture, uv).xyz - srcPosition;
-	float intensity = max(dot(normalize(positionVec), srcNormal) - OccluderBias, 0.0);
-
-	// Attenuate the occlusion, similar to how you attenuate a light source.
-	// The further the distance between points, the less effect AO has on the fragment.
-	float dist = length(positionVec);
-	float attenuation = 1.0 / (Attenuation.x + (Attenuation.y * dist));
-
-	return intensity * attenuation * ubo.intensity;
-}
-
-float getExpToLinear(const in float start, const in float end, const in float expValue) {
-	return ((2.0f * start) / (end + start - expValue * (end - start)));
-}
-
 void main() {
 
-	/*	*/
-	vec3 srcPosition = texture(WorldTexture, uv).xyz;
-	vec3 srcNormal = texture(NormalTexture, uv).rgb;
-	vec3 randVec = texture(NormalRandomize, uv * (ubo.screen / 3.0)).xyz;
+	const vec2 noiseScale = ubo.screen / 4; // screen = 800x600
 
 	/*	*/
-	vec3 tangent = normalize(randVec - srcNormal * dot(randVec, srcNormal));
-	vec3 bitangent = cross(srcNormal, tangent);
-	mat3 TBN = mat3(tangent, bitangent, srcNormal);
+	const vec3 srcPosition = texture(WorldTexture, uv).xyz;
+	const vec3 srcNormal = normalize(texture(NormalTexture, uv).rgb);
+	const vec3 randVec = texture(NormalRandomize, uv * noiseScale).xyz;
 
 	/*	*/
-	// float srcDepth = texture(DepthTexture, uv).r;
-	// srcDepth = getExpToLinear(ubo.cameraNear, ubo.cameraFar, srcDepth);
+	const vec3 tangent = normalize(randVec - srcNormal * dot(randVec, srcNormal));
+	const vec3 bitangent = cross(srcNormal, tangent);
+	const mat3 TBN = mat3(tangent, bitangent, srcNormal);
 
-	float kernelRadius = ubo.radius; // * (1.0 - srcDepth);
+	/*	*/
+	const float kernelRadius = ubo.radius;
+	const int samples = clamp(ubo.samples, 1, 64);
 
+	/*	*/
 	float occlusion = 0.0;
 
-	for (int i = 0; i < ubo.samples; i++) {
-		vec3 samplePos = TBN * (ubo.kernel[i]); // from tangent to view-space
-		samplePos = srcPosition + samplePos * kernelRadius;
+	for (int i = 0; i < samples; i++) {
 
+		/*	from tangent to view-space */
+		const vec3 sampleWorldDir = TBN * ubo.kernel[i].xyz;
+		/*	*/
+		const vec3 samplePos = srcPosition + (sampleWorldDir * kernelRadius);
+
+		/*	From view to clip-space*/
 		vec4 offset = vec4(samplePos, 1.0);
-		offset = ubo.proj * offset;			 // from view to clip-space
+		offset = ubo.proj * offset;
 		offset.xyz /= offset.w;				 // perspective divide
 		offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
 
-		float bias = 0.045f;
-		float sampleDepth = texture(WorldTexture, offset.xy).z;
+		const float sampleDepth = texture(WorldTexture, offset.xy).z;
 
+		/*	*/
 		float rangeCheck = smoothstep(0.0, 1.0, kernelRadius / abs(srcPosition.z - sampleDepth));
-		occlusion += (sampleDepth >= srcPosition.z + bias ? 1.0 : 0.0) * rangeCheck * ubo.intensity;
+		occlusion += ((sampleDepth >= srcPosition.z + ubo.bias ? 1.0 : 0.0) * rangeCheck);
 	}
 
 	/* Average and clamp ambient occlusion	*/
-	// occlusion /= (ubo.samples);
-	occlusion = (1.0 - (occlusion / float(ubo.samples)));
-
-	fragColor = vec4(occlusion, occlusion, occlusion, 1.0);
+	occlusion = 1.0 - (occlusion / float(samples)) * ubo.intensity;
+	fragColor = vec4(occlusion.xxx, 1.0);
 }

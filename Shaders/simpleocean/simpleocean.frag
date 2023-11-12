@@ -8,25 +8,38 @@ layout(location = 1) in vec2 UV;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 
+struct Wave {
+	float wavelength;
+	float amplitude;
+	float speed;
+	float steepness;
+	vec2 direction;
+	vec2 padding;
+};
+
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
 	mat4 modelView;
 	mat4 modelViewProjection;
-	
+
 	/*	Light source.	*/
 	vec4 lookDirection;
-
 	vec4 direction;
 	vec4 lightColor;
+	vec4 specularColor;
 	vec4 ambientColor;
 	vec4 position;
 
+	Wave waves[32];
+	int nrWaves;
 	float time;
-	float speed;
-	float freq;
-	float amplitude;
+
+	/*	Material	*/
+	float shininess;
+	float fresnelPower;
+	vec4 oceanColor;
 }
 ubo;
 
@@ -56,22 +69,27 @@ vec2 inverse_equirectangular(const in vec3 direction) {
 void main() {
 
 	// Create new normal per pixel based on the normal map.
-	vec3 Mnormal = normalize(normal);
-	vec3 Ttangent = normalize(tangent);
-	Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
-	vec3 bittagnet = cross(Ttangent, Mnormal);
-
-	vec3 NormalMapBump = 2.0 * texture(NormalTexture, UV).xyz - vec3(1.0, 1.0, 1.0);
-
-	vec3 alteredNormal = normalize(mat3(Ttangent, bittagnet, Mnormal) * NormalMapBump);
+	const vec3 Mnormal = normalize(normal);
 
 	/*	Compute directional light	*/
-	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
+	const vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, Mnormal) * ubo.lightColor;
+
+	const vec3 viewDir = normalize(ubo.position.xyz - vertex);
+	const vec3 diffVertex = (ubo.position.xyz - vertex);
+	const vec3 lightDir = normalize(diffVertex);
+	const vec3 halfwayDir = normalize(lightDir + viewDir);
+	const float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), ubo.shininess);
+
+	const vec4 specular = ubo.specularColor * spec;
 
 	/*	*/
-	vec3 viewDir = normalize(ubo.position.xyz - vertex);
-	vec3 reflection = normalize(reflect(viewDir, normalize(normal)));
+	vec3 reflection = normalize(reflect(viewDir, normalize(Mnormal)));
 	vec2 reflection_uv = inverse_equirectangular(reflection);
 
-	fragColor = texture(ReflectionTexture, reflection_uv); // * (ubo.ambientColor + lightColor);
+	float fresnel = max(dot(Mnormal, viewDir), 0);
+	fresnel = pow(fresnel, ubo.fresnelPower);
+
+	vec4 color = mix(ubo.oceanColor, texture(ReflectionTexture, reflection_uv), fresnel);
+	fragColor = color * (ubo.ambientColor + lightColor + specular);
+	fragColor.a = 1 - fresnel;
 }

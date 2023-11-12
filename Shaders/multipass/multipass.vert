@@ -1,6 +1,6 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
-#extension GL_ARB_explicit_attrib_location: enable
+#extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
 
 layout(location = 0) in vec3 Vertex;
@@ -12,6 +12,7 @@ layout(location = 0) out vec4 vertex;
 layout(location = 1) out vec2 uv;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
+layout(location = 4) out vec3 bitangent;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -23,10 +24,15 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 void main() {
+
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
 
-	vertex = (ubo.model * vec4(Vertex, 1.0));
+	vertex = (ubo.modelView * vec4(Vertex, 1.0));
 	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
+	
+	//const vec3 Ttangent = normalize(tangent - dot(tangent, normal) * normal);
+	bitangent = cross(tangent, normal);
+
 	uv = TextureCoord;
 }

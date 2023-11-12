@@ -118,6 +118,8 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Mandelbrot)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ReactionDiffusion)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/GameOfLife)
 
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VariableRateShading)
+
 # ###################################
 # Shader Source Files
 # ###################################

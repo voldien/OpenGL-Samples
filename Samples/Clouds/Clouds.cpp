@@ -10,6 +10,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class Clouds : public GLSampleWindow {
 
 	  public:
@@ -200,6 +204,7 @@ namespace glsample {
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	Skybox.	*/
 			{
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize,
@@ -225,6 +230,11 @@ namespace glsample {
 				glBindVertexArray(0);
 
 				glUseProgram(0);
+			}
+
+			/*	Clouds.	*/
+			{
+
 			}
 		}
 

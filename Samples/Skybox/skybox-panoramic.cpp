@@ -31,6 +31,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			float exposure = 1.0f;
+			float gamma = 0;
 		} uniform_stage_buffer;
 
 		GeometryObject SkyboxCube;
@@ -165,10 +166,6 @@ namespace glsample {
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize,
 								  this->uniformSize);
-
-				glDisable(GL_CULL_FACE);
-				glDisable(GL_BLEND);
-				glDisable(GL_DEPTH_TEST);
 
 				/*	*/
 				glUseProgram(this->skybox_program);

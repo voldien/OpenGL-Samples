@@ -9,6 +9,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class Grass : public GLSampleWindow {
 	  public:
 		Grass() : GLSampleWindow() {

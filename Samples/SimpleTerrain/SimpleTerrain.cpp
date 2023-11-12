@@ -188,11 +188,11 @@ namespace glsample {
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	Load shader	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexTerrainShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
+			const std::vector<char> simple_terrain_vertex_source = IOUtil::readFileString(vertexTerrainShaderPath, this->getFileSystem());
+			const std::vector<char> simple_terrain_fragment_source =
 				IOUtil::readFileString(fragmentTerrainShaderPath, this->getFileSystem());
 
-			this->terrain_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			this->terrain_program = ShaderLoader::loadGraphicProgram(&simple_terrain_vertex_source, &simple_terrain_fragment_source);
 
 			/*	Create Terrain Shader.	*/
 			glUseProgram(this->terrain_program);

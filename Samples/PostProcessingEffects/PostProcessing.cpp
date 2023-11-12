@@ -74,6 +74,7 @@ namespace glsample {
 		unsigned int scanlines_program;
 		unsigned int sobel_edge_program;
 		unsigned int sepia_program;
+		unsigned int cell_shading_program;
 
 		unsigned int ssao_program;
 		unsigned int random_texture;

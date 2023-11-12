@@ -1,3 +1,5 @@
+#include "Scene.h"
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -5,6 +7,7 @@
 #include <ImportHelper.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
+#include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <random>
@@ -28,7 +31,8 @@ namespace glsample {
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
-
+		static const int maxKernels = 64;
+		
 		// TODO combine uniform buffer stage.
 		struct UniformBufferBlock {
 			glm::mat4 model;
@@ -46,19 +50,17 @@ namespace glsample {
 			float radius = 1.5f;
 			float intensity = 1.0f;
 			float bias = 0.025;
-			float cameraNear;
-			float cameraFar;
 
-			glm::vec2 screen;
-			glm::vec4 kernel[64];
+			glm::vec4 kernel[maxKernels];
 
 			glm::vec4 color;
+			glm::vec2 screen;
 
 		} uniformBlockSSAO;
 
 		/*	*/
 		GeometryObject plan;
-		std::vector<GeometryObject> refObj;
+		Scene scene;
 
 		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer;
@@ -67,6 +69,9 @@ namespace glsample {
 		unsigned int multipass_texture_height;
 		std::vector<unsigned int> multipass_textures;
 		unsigned int depthTexture;
+
+		unsigned int ssao_framebuffer;
+		unsigned int ssaoTexture;
 
 		/*	White texture for each object.	*/
 		unsigned int white_texture;
@@ -84,7 +89,8 @@ namespace glsample {
 		unsigned int uniform_ssao_buffer;
 		const size_t nrUniformBuffer = 3;
 
-		size_t uniformBufferAlignSize = sizeof(UniformBufferBlock);
+		/*	*/
+		size_t uniformBufferAlignedSize = sizeof(UniformBufferBlock);
 		size_t uniformSSAOBufferAlignSize = sizeof(UniformSSAOBufferBlock);
 
 		CameraController camera;
@@ -101,14 +107,19 @@ namespace glsample {
 				ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
 				ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
 				ImGui::DragFloat("Bias", &this->uniform.bias, 0.01f, 0, 1);
-				ImGui::Checkbox("DownSample", &downScale);
-				ImGui::Checkbox("Use Depth Only", &useDepthOnly);
-				ImGui::Checkbox("show Only AO", &showAOOnly);
+				ImGui::Checkbox("DownSample", &this->downScale);
+				ImGui::Checkbox("Use Depth Only", &this->useDepthOnly);
+				ImGui::TextUnformatted("Debugging");
+				ImGui::Checkbox("Show Only AO", &this->showAOOnly);
+				ImGui::Checkbox("Show GBuffer", &this->showGBuffers);
+				ImGui::Checkbox("Show Wireframe", &this->showWireframe);
 			}
 
+			bool showWireframe = false;
 			bool downScale = false;
 			bool useDepthOnly = false;
 			bool showAOOnly = true;
+			bool showGBuffers = false;
 
 		  private:
 			struct UniformSSAOBufferBlock &uniform;
@@ -136,11 +147,14 @@ namespace glsample {
 
 			/*	*/
 			glDeleteFramebuffers(1, &this->multipass_framebuffer);
+			glDeleteFramebuffers(1, &this->ssao_framebuffer);
+
 			/*	Delete textures.	*/
 			glDeleteTextures(1, &this->depthTexture);
 			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
 			glDeleteTextures(1, &this->random_texture);
 			glDeleteTextures(1, &this->white_texture);
+			glDeleteTextures(1, &this->ssaoTexture);
 
 			/*	Delete uniform buffer.	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -149,6 +163,8 @@ namespace glsample {
 			glDeleteVertexArrays(1, &this->plan.vao);
 			glDeleteBuffers(1, &this->plan.vbo);
 			glDeleteBuffers(1, &this->plan.ibo);
+
+			this->scene.release();
 		}
 
 		void Initialize() override {
@@ -195,6 +211,18 @@ namespace glsample {
 								  this->uniform_ssao_buffer_binding);
 			glUseProgram(0);
 
+			/*	Setup graphic ambient occlusion pipeline.	*/
+			glUseProgram(this->ssao_depth_program);
+			int uniform_ssao_depth_buffer_index =
+				glGetUniformBlockIndex(this->ssao_depth_program, "UniformBufferBlock");
+			glUniform1iARB(glGetUniformLocation(this->ssao_depth_program, "WorldTexture"), 1);
+			glUniform1iARB(glGetUniformLocation(this->ssao_depth_program, "NormalTexture"), 3);
+			glUniform1iARB(glGetUniformLocation(this->ssao_depth_program, "DepthTexture"), 4);
+			glUniform1iARB(glGetUniformLocation(this->ssao_depth_program, "NormalRandomize"), 5);
+			glUniformBlockBinding(this->ssao_depth_program, uniform_ssao_depth_buffer_index,
+								  this->uniform_ssao_buffer_binding);
+			glUseProgram(0);
+
 			/*	Setup graphic multipass pipeline.	*/
 			glUseProgram(this->multipass_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
@@ -206,15 +234,15 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferAlignSize =
-				fragcore::Math::align(this->uniformBufferAlignSize, (size_t)minMapBufferSize);
+			this->uniformBufferAlignedSize =
+				fragcore::Math::align(this->uniformBufferAlignedSize, (size_t)minMapBufferSize);
 			this->uniformSSAOBufferAlignSize =
 				fragcore::Math::align(this->uniformSSAOBufferAlignSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferAlignSize * this->nrUniformBuffer, nullptr,
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferAlignedSize * this->nrUniformBuffer, nullptr,
 						 GL_DYNAMIC_DRAW);
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
@@ -229,67 +257,71 @@ namespace glsample {
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
 
-			ImportHelper::loadModelBuffer(modelLoader, refObj);
+			this->scene = Scene::loadFrom(modelLoader);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices, 1, 1);
+			{
+				/*	Load geometry.	*/
+				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<unsigned int> indices;
+				ProceduralGeometry::generatePlan(1, vertices, indices, 1, 1);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenVertexArrays(1, &this->plan.vao);
+				glBindVertexArray(this->plan.vao);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenBuffers(1, &this->plan.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
-			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
+				/*	*/
+				glGenBuffers(1, &this->plan.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
+							 GL_STATIC_DRAW);
+				this->plan.nrIndicesElements = indices.size();
 
-			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				/*	Vertex.	*/
+				glEnableVertexAttribArrayARB(0);
+				glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			/*	UV.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(12));
+				/*	UV.	*/
+				glEnableVertexAttribArrayARB(1);
+				glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+										 reinterpret_cast<void *>(12));
 
-			/*	Normal.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(20));
+				/*	Normal.	*/
+				glEnableVertexAttribArrayARB(2);
+				glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+										 reinterpret_cast<void *>(20));
 
-			/*	Tangent.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									 reinterpret_cast<void *>(32));
+				/*	Tangent.	*/
+				glEnableVertexAttribArrayARB(3);
+				glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+										 reinterpret_cast<void *>(32));
 
-			glBindVertexArray(0);
+				glBindVertexArray(0);
+			}
 
 			/*	FIXME:	*/
 			{
 				/*	Create random vector.	*/
 				std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
 				std::default_random_engine generator;
-				for (size_t i = 0; i < 64; ++i) {
+				for (size_t i = 0; i < maxKernels; ++i) {
 
 					glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0,
 									 randomFloats(generator));
 
 					sample = glm::normalize(sample);
+					sample *= randomFloats(generator);
 
-					float scale = (float)i / 64.0f;
+					float scale = (float)i / static_cast<float>(maxKernels);
 					scale = fragcore::Math::lerp(0.1f, 1.0f, scale * scale);
 
 					sample *= scale;
-					uniformBlockSSAO.kernel[i] = glm::vec4(sample.x, sample.y, sample.z, 0);
+					uniformBlockSSAO.kernel[i] = glm::vec4(sample, 0);
 				}
 
 				/*	Create white texture.	*/
@@ -314,19 +346,21 @@ namespace glsample {
 				/*	Create noise normalMap.	*/
 				const size_t noiseW = 4;
 				const size_t noiseH = 4;
-				std::vector<glm::vec3> randomNoise(noiseW * noiseH);
-				for (size_t i = 0; i < randomNoise.size(); i++) {
-					randomNoise[i].r = randomFloats(generator) * 2.0 - 1.0;
-					randomNoise[i].g = randomFloats(generator) * 2.0 - 1.0;
-					randomNoise[i].b = 0.0f;
+				std::vector<glm::vec3> ssaoRandomNoise(noiseW * noiseH);
+				for (size_t i = 0; i < ssaoRandomNoise.size(); i++) {
+					ssaoRandomNoise[i].r = randomFloats(generator) * 2.0 - 1.0;
+					ssaoRandomNoise[i].g = randomFloats(generator) * 2.0 - 1.0;
+					ssaoRandomNoise[i].b = 0.0f;
+					/*	*/
+					ssaoRandomNoise[i] = glm::normalize(ssaoRandomNoise[i]);
 				}
 
 				/*	Create random texture.	*/
 				glGenTextures(1, &this->random_texture);
 				glBindTexture(GL_TEXTURE_2D, this->random_texture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseW, noiseH, 0, GL_RGB, GL_FLOAT, randomNoise.data());
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseW, noiseH, 0, GL_RGB, GL_FLOAT, ssaoRandomNoise.data());
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 				/*	Border clamped to max value, it makes the outside area.	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -342,12 +376,19 @@ namespace glsample {
 			{
 				/*	Create multipass framebuffer.	*/
 				glGenFramebuffers(1, &this->multipass_framebuffer);
+				glGenFramebuffers(1, &this->ssao_framebuffer);
 
 				/*	Setup framebuffer textures.	*/
 				this->multipass_textures.resize(4);
 				glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
+				glGenTextures(1, &this->depthTexture);
+				glGenTextures(1, &this->ssaoTexture);
+
 				this->onResize(this->width(), this->height());
 			}
+
+			this->camera.setNear(0.15f);
+			this->camera.setFar(10000.0f);
 		}
 
 		void onResize(int width, int height) override {
@@ -359,12 +400,13 @@ namespace glsample {
 
 			/*	Resize the image.	*/
 			std::vector<GLenum> drawAttach(multipass_textures.size());
+			// TODO add 16 bit for normal,
 			for (size_t i = 0; i < multipass_textures.size(); i++) {
 
 				/*	*/
 				glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, this->multipass_texture_width,
-							 this->multipass_texture_height, 0, GL_RGB, GL_FLOAT, nullptr);
+							 this->multipass_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -380,14 +422,15 @@ namespace glsample {
 				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
 				glBindTexture(GL_TEXTURE_2D, 0);
 
+				/*	*/
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D,
 									   this->multipass_textures[i], 0);
 				drawAttach[i] = GL_COLOR_ATTACHMENT0 + i;
 			}
 
 			/*	Create depth buffer texture.	*/
-			glGenTextures(1, &this->depthTexture);
-			glBindTexture(GL_TEXTURE_2D, depthTexture);
+
+			glBindTexture(GL_TEXTURE_2D, this->depthTexture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
 						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
@@ -418,7 +461,22 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			{
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->ssao_framebuffer);
+
+				glBindTexture(GL_TEXTURE_2D, this->ssaoTexture);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, this->multipass_texture_width, this->multipass_texture_height, 0,
+							 GL_RED, GL_FLOAT, nullptr);
+				GLint swizzleMask[] = {GL_RED, GL_RED, GL_RED, GL_ONE};
+				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->ssaoTexture, 0);
+
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			}
+
+			this->camera.setAspect((float)width / (float)height);
 		}
 
 		void draw() override {
@@ -428,19 +486,17 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	*/
-			this->uniformBlockSSAO.cameraNear = 0.15f;
-			this->uniformBlockSSAO.cameraFar = 1000.0f;
 			this->uniformBlockSSAO.screen = glm::vec2(width, height);
-			this->uniformBlock.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-			this->uniformBlockSSAO.proj = this->uniformBlock.proj;
+
+			this->uniformBlock.proj = this->camera.getProjectionMatrix();
+			this->uniformBlockSSAO.proj = this->camera.getProjectionMatrix();
 
 			/*	G-Buffer extraction.	*/
 			{
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferAlignSize,
-								  this->uniformBufferAlignSize);
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferAlignedSize,
+								  this->uniformBufferAlignedSize);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, this->multipass_framebuffer);
 				glViewport(0, 0, this->multipass_texture_width, this->multipass_texture_height);
@@ -450,18 +506,19 @@ namespace glsample {
 				/*	*/
 				glUseProgram(this->multipass_program);
 
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK,
+							  this->ambientOcclusionSettingComponent->showWireframe ? GL_LINE : GL_FILL);
+
 				glDisable(GL_CULL_FACE);
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->white_texture);
 
-				glBindVertexArray(this->refObj[0].vao);
-				for (size_t i = 0; i < this->refObj.size(); i++) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
-											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
-											 this->refObj[i].vertex_offset);
-				}
-				glBindVertexArray(0);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				this->scene.render();
 
 				glUseProgram(0);
 			}
@@ -473,10 +530,11 @@ namespace glsample {
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSSAOBufferAlignSize,
 								  this->uniformSSAOBufferAlignSize);
 
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->ssao_framebuffer);
+
 				glViewport(0, 0, width, height);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glClear(GL_DEPTH_BUFFER_BIT);
 
 				if (this->ambientOcclusionSettingComponent->useDepthOnly) {
 					glUseProgram(this->ssao_depth_program);
@@ -503,6 +561,7 @@ namespace glsample {
 
 				glUseProgram(0);
 
+				/*	Downscale for creating blurred version.	*/
 				if (this->ambientOcclusionSettingComponent->downScale) {
 					/*	Downscale the image.	*/
 					for (size_t i = 0; i < 4; i++) {
@@ -514,6 +573,48 @@ namespace glsample {
 					}
 				}
 			}
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glViewport(0, 0, width, height);
+
+			if (this->ambientOcclusionSettingComponent->showAOOnly) {
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->ssao_framebuffer);
+
+				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
+								  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			} else {
+
+				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				// Blend to color layer.
+
+				glUseProgram(0);
+				/*	Draw.	*/
+				glBindVertexArray(this->plan.vao);
+				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+
+				glUseProgram(0);
+			}
+
+			/*	Blit image targets to screen.	*/
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
+
+			if (this->ambientOcclusionSettingComponent->showGBuffers) {
+
+				/*	Transfer each target to default framebuffer.	*/
+				const float halfW = (width / 4.0f);
+				const float halfH = (height / 4.0f);
+				for (size_t i = 0; i < this->multipass_textures.size(); i++) {
+					glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+					glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
+									  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW,
+									  halfH + (i / 2) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+				}
+			}
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		void update() override {
@@ -522,6 +623,8 @@ namespace glsample {
 			float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 
+			this->scene.update(this->getTimer().deltaTime());
+
 			/*	*/
 			{
 				this->uniformBlock.model = glm::mat4(1.0f);
@@ -529,6 +632,7 @@ namespace glsample {
 													   glm::vec3(0.0f, 1.0f, 0.0f));
 				this->uniformBlock.model = glm::scale(this->uniformBlock.model, glm::vec3(10.95f));
 				this->uniformBlock.view = this->camera.getViewMatrix();
+				this->uniformBlock.modelView = (this->uniformBlock.view * this->uniformBlock.model);
 				this->uniformBlock.modelViewProjection =
 					this->uniformBlock.proj * this->uniformBlock.view * this->uniformBlock.model;
 			}
@@ -537,8 +641,8 @@ namespace glsample {
 			{
 				glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				void *uniformPointer = glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferAlignSize,
-					this->uniformBufferAlignSize,
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferAlignedSize,
+					this->uniformBufferAlignedSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				memcpy(uniformPointer, &this->uniformBlock, sizeof(uniformBlock));
 				glUnmapBufferARB(GL_UNIFORM_BUFFER);
@@ -561,8 +665,9 @@ namespace glsample {
 	  public:
 		AmbientOcclusionGLSample() : GLSample<ScreenSpaceAmbientOcclusion>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("M,model", "Model FilePath",
-					cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
+				"S,skybox", "Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};
 

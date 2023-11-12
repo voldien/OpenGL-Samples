@@ -13,7 +13,11 @@
 namespace glsample {
 
 	class MultiSamplingAntiAliasing {};
-
+	
+	/**
+	 * @brief 
+	 * 
+	 */
 	class AntiAliasing : public GLSampleWindow {
 	  public:
 		AntiAliasing() : GLSampleWindow() {
@@ -23,6 +27,7 @@ namespace glsample {
 			this->antialiasingSettingComponent =
 				std::make_shared<AntiAliasingSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->antialiasingSettingComponent);
+
 
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));

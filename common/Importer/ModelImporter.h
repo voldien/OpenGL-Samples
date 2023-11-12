@@ -1,5 +1,5 @@
 #pragma once
-#include "../GLSampleSession.h"
+#include "Core/IO/IFileSystem.h"
 #include <assimp/Importer.hpp>
 #include <assimp/anim.h>
 #include <assimp/camera.h>
@@ -18,6 +18,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+
 typedef struct vertex_bone_data_t {
 	static const int NUM_BONES_PER_VERTEX = 4;
 	uint IDs[NUM_BONES_PER_VERTEX];
@@ -33,12 +34,18 @@ typedef struct material_object_t {
 	std::string name;
 
 	/*	*/
-	unsigned int diffuseIndex = -1;
-	unsigned int normalIndex = -1;
-	unsigned int emissionIndex = -1;
-	unsigned int heightIndex = -1;
+	int diffuseIndex = -1;
+	int normalIndex = -1;
+	int emissionIndex = -1;
+	int heightIndex = -1;
+	int specularIndex = -1;
+	int reflectionIndex = -1;
+	int ambientOcclusionIndex = -1;
+	int metalIndex = -1;
+	int maskTextureIndex = -1;
 
 	/*	TODO its own struct.	*/
+	// Material properties.
 	glm::vec4 ambient;
 	glm::vec4 diffuse;
 	glm::vec4 emission;
@@ -47,19 +54,25 @@ typedef struct material_object_t {
 	glm::vec4 reflectivity;
 	float shinininess;
 	float shinininessStrength;
+
+	int blend_mode;
+
+	unsigned int shade_model;
 } MaterialObject;
 
 typedef struct model_object {
+
 	glm::vec3 position;
 	glm::quat rotation;
 	glm::vec3 scale;
+
 	glm::mat4 transform;
 
-	/*	*/
+	/*	Geometry and material.	*/
 	std::vector<unsigned int> geometryObjectIndex;
 	std::vector<unsigned int> materialIndex;
 
-	struct model_object *parent;
+	struct model_object *parent = nullptr;
 	std::string name;
 } NodeObject;
 
@@ -73,22 +86,26 @@ typedef struct model_system_object {
 
 	unsigned int material_index;
 
+	/*	*/
 	unsigned int vertexOffset;
 	unsigned int normalOffset;
 	unsigned int tangentOffset;
 	unsigned int uvOffset;
 	unsigned int boneOffset;
 
+	// Bounding box.
+	//ColorSpace colorSpace;
 } ModelSystemObject;
 
 typedef struct texture_asset_object_t {
-	size_t texture = 0;
+	unsigned int texture = 0;
 	size_t width = 0;
 	size_t height = 0;
 
 	size_t dataSize = 0;
 	std::string filepath;
 	char *data = nullptr;
+
 } TextureAssetObject;
 
 typedef struct key_frame_t {
@@ -98,21 +115,30 @@ typedef struct key_frame_t {
 	float tangentOut;
 } KeyFrame;
 
-typedef struct animation_object_t {
+typedef struct curve_t {
 	std::vector<KeyFrame> keyframes;
+	std::string name;
+
+	/*	Binding.	*/
+} Curve;
+
+typedef struct animation_object_t {
+	std::vector<Curve> curves;
+	std::string name;
+
 } AnimationObject;
 
 using namespace Assimp;
 
 class FVDECLSPEC ModelImporter {
   public:
-	IFileSystem *fileSystem;
-	ModelImporter(IFileSystem *fileSystem) : fileSystem(fileSystem) {}
+	ModelImporter(fragcore::IFileSystem *fileSystem) : fileSystem(fileSystem) {}
 	~ModelImporter() { this->clear(); }
 
-	void loadContent(const std::string &path, unsigned long int supportFlag);
+	virtual void loadContent(const std::string &path, unsigned long int supportFlag);
+	virtual void clear();
 
-	void clear();
+	fragcore::IFileSystem *getFileSystem() const noexcept { return this->fileSystem; }
 
   protected:
 	void initScene(const aiScene *scene);
@@ -128,10 +154,13 @@ class FVDECLSPEC ModelImporter {
 
 	TextureAssetObject *initTexture(aiTexture *texture, unsigned int index);
 
-	// VDAnimationClip *initAnimation(const aiAnimation *animation, unsigned int index);
+	AnimationObject *initAnimation(const aiAnimation *animation, unsigned int index);
+	void loadCurve(aiNodeAnim *curve, Curve *animationClip);
 	//
 
 	void loadTexturesFromMaterials(aiMaterial *material);
+
+	// TODO Compute bounding box
 
   public:
 	const std::vector<NodeObject *> getNodes() const { return this->nodes; }
@@ -145,7 +174,11 @@ class FVDECLSPEC ModelImporter {
 	const std::vector<TextureAssetObject> &getTextures() const { return this->textures; }
 	std::vector<TextureAssetObject> &getTextures() { return this->textures; }
 
+	const std::string &getDirectoryPath() const { return this->filepath; }
+
   private:
+	fragcore::IFileSystem *fileSystem;
+
 	std::string filepath;
 	aiScene *sceneRef;
 	std::vector<NodeObject *> nodes;

@@ -12,7 +12,6 @@ namespace glsample {
 	class PhysicalBasedRendering : public GLSampleWindow {
 	  public:
 		PhysicalBasedRendering() : GLSampleWindow() {
-			this->setTitle(fmt::format("Physical Based Rendering: {}", "path"));
 
 			this->physicalBasedRenderingSettingComponent =
 				std::make_shared<PhysicalBasedRenderingSettingComponent>(this->uniform_stage_buffer);
@@ -100,6 +99,8 @@ namespace glsample {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
+
+			this->setTitle(fmt::format("Physical Based Rendering: {}", modelPath));
 
 			/*	*/
 			const std::vector<uint32_t> vertex_source =

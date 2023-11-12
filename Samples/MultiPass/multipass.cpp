@@ -1,3 +1,4 @@
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -31,25 +32,28 @@ namespace glsample {
 		} uniformBuffer;
 
 		/*	*/
-		std::vector<GeometryObject> refObj;
 		ModelImporter *modelLoader;
 
 		/*	*/
-		unsigned int diffuse_texture;
-		unsigned int normal_texture;
 
 		enum GBuffer {
-			WorldSpace = 0,
-			Diffuse = 1,
-			Specular = 2,
+
+			WorldSpace = 1,
+			TextureCoordinate = 2,
+			Albedo = 0,
+			Normal = 3,
+			Specular = 2, // Roughness
 			Emission = 3,
-			Normal = 4,
-			Depth = 5,
 		};
+
+		Skybox skybox;
+
+		unsigned int multipass_program;
+		unsigned int skybox_program;
 
 		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer;
-		unsigned int multipass_program;
+
 		unsigned int multipass_texture_width;
 		unsigned int multipass_texture_height;
 		std::vector<unsigned int> multipass_textures;
@@ -69,32 +73,29 @@ namespace glsample {
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
 
+		/*	*/
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
+
 		void Release() override {
 			delete this->modelLoader;
 
 			glDeleteProgram(this->multipass_program);
+			glDeleteProgram(this->skybox_program);
+
 			/*	*/
-			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, &this->depthTexture);
 			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			/*	*/
-			for (size_t i = 0; i < this->refObj.size(); i++) {
-				if (glIsVertexArray(this->refObj[i].vao)) {
-					glDeleteVertexArrays(1, &this->refObj[i].vao);
-					glDeleteBuffers(1, &this->refObj[i].vbo);
-					glDeleteBuffers(1, &this->refObj[i].ibo);
-				}
-			}
 		}
 
 		void Initialize() override {
 
 			/*	*/
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
 
 			{
 				/*	*/
@@ -110,7 +111,22 @@ namespace glsample {
 				/*	Load shader	*/
 				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &multipass_vertex_binary,
 																		   &multipass_fragment_binary);
+
+				/*	Load shader binaries.	*/
+				std::vector<uint32_t> vertex_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+
+				/*	*/
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
+
+				/*	Create skybox graphic pipeline program.	*/
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
+
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->multipass_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
@@ -119,8 +135,17 @@ namespace glsample {
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	load Textures	*/ // TODO remove.
+			/*	Setup graphic pipeline.	*/
+			glUseProgram(this->skybox_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUseProgram(0);
+
+			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
+			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
+			skybox.Init(skytexture, this->skybox_program);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -138,16 +163,13 @@ namespace glsample {
 			modelLoader->loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom(*modelLoader);
 
-			/*	*/
-			ImportHelper::loadModelBuffer(*modelLoader, refObj);
-			// ImportHelper::loadTextures(*modelLoader);
-
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
 
 			/*	*/
 			this->multipass_textures.resize(4);
 			glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
+			glGenTextures(1, &this->depthTexture);
 			this->onResize(this->width(), this->height());
 		}
 
@@ -173,8 +195,8 @@ namespace glsample {
 			}
 
 			/*	*/
-			glGenTextures(1, &this->depthTexture);
-			glBindTexture(GL_TEXTURE_2D, depthTexture);
+
+			glBindTexture(GL_TEXTURE_2D, this->depthTexture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
 						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 			glBindTexture(GL_TEXTURE_2D, 0);
@@ -220,26 +242,7 @@ namespace glsample {
 
 				this->scene.render();
 
-				//				glBindVertexArray(this->refObj[0].vao);
-				//
-				//				for (size_t x = 0; x < this->modelLoader->getNodes().size(); x++) {
-				//
-				//					/*	*/
-				//					NodeObject *node = this->modelLoader->getNodes()[x];
-				//
-				//					for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
-				//
-				//						glActiveTexture(GL_TEXTURE0);
-				//						glBindTexture(GL_TEXTURE_2D, this->modelLoader->getTextures()[0].texture);
-				//
-				//						glDrawElementsBaseVertex(
-				//							GL_TRIANGLES, this->refObj[node->geometryObjectIndex[i]].nrIndicesElements,
-				//GL_UNSIGNED_INT, 							(void *)(sizeof(unsigned int) *
-				//this->refObj[node->geometryObjectIndex[i]].indices_offset),
-				//							this->refObj[node->geometryObjectIndex[i]].vertex_offset);
-				//					}
-				//				}
-				//				glBindVertexArray(0);
+				this->skybox.Render(this->camera);
 
 				glUseProgram(0);
 			}
@@ -273,7 +276,7 @@ namespace glsample {
 			this->uniformBuffer.model = glm::mat4(1.0f);
 			this->uniformBuffer.model =
 				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(40.95f));
+			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(2.95f));
 			this->uniformBuffer.view = this->camera.getViewMatrix();
 			this->uniformBuffer.modelViewProjection =
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
@@ -292,7 +295,9 @@ namespace glsample {
 	  public:
 		MultiPassGLSample() : GLSample<MultiPass>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
+				"S,skybox", "Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};
 

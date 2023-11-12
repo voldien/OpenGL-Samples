@@ -10,6 +10,7 @@ layout(binding = 1) uniform UniformBufferBlock {
 	mat4 proj;
 	mat4 modelViewProjection;
 	vec4 tintColor;
+	/*	*/
 	float exposure;
 	float gamma;
 }

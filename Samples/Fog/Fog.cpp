@@ -1,3 +1,4 @@
+#include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -60,7 +61,7 @@ namespace glsample {
 
 		unsigned int diffuse_texture;
 
-		std::vector<GeometryObject> refObj;
+		Scene scene;
 
 		unsigned int graphic_fog_program;
 
@@ -162,8 +163,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-
-			ImportHelper::loadModelBuffer(modelLoader, refObj);
+			this->scene = Scene::loadFrom(modelLoader);
 		}
 
 		void draw() override {
@@ -200,13 +200,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-				glBindVertexArray(this->refObj[0].vao);
-				for (size_t i = 0; i < this->refObj.size(); i++) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
-											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
-											 this->refObj[i].vertex_offset);
-				}
-				glBindVertexArray(0);
+				this->scene.render();
 			}
 		}
 

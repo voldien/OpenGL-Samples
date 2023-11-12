@@ -17,32 +17,30 @@
 #include "IOUtil.h"
 #include <cxxopts.hpp>
 
-
 namespace glsample {
 
 	// TODO relocate.
-typedef struct geometry_object_t {
-	unsigned int vao;
-	unsigned int vbo;
-	unsigned int ibo;
-	size_t nrIndicesElements = 0;
-	size_t nrVertices = 0;
+	typedef struct geometry_object_t {
+		unsigned int vao;
+		unsigned int vbo;
+		unsigned int ibo;
+		size_t nrIndicesElements = 0;
+		size_t nrVertices = 0;
 
-	size_t vertex_offset = 0;
-	size_t indices_offset = 0;
-} GeometryObject;
+		size_t vertex_offset = 0;
+		size_t indices_offset = 0;
+	} GeometryObject;
 
-typedef struct texture_object_t {
-	unsigned int width;
-	unsigned int height;
-	unsigned int depth;
-	unsigned int texture;
-} TextureObject;
-
+	typedef struct texture_object_t {
+		unsigned int width;
+		unsigned int height;
+		unsigned int depth;
+		unsigned int texture;
+	} TextureObject;
 
 	class FVDECLSPEC GLSampleSession {
 	  public:
-		virtual void run(int argc, const char **argv) = 0;
+		virtual void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) = 0;
 		virtual void customOptions(cxxopts::OptionAdder &options) {}
 
 		fragcore::IFileSystem *getFileSystem() noexcept { return this->activeFileSystem; }

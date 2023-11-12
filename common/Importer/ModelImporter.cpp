@@ -1,15 +1,18 @@
 #include "ModelImporter.h"
+#include "IOUtil.h"
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
+#include <assimp/types.h>
 #include <filesystem>
 namespace fs = std::filesystem;
+using namespace fragcore;
 
 void ModelImporter::loadContent(const std::string &path, unsigned long int supportFlag) {
 	Importer importer;
 
 	/*	Load file content. */
 	Ref<IO> io = Ref<IO>(fileSystem->openFile(path.c_str(), IO::IOMode::READ));
-	std::vector<char> bufferIO = IOUtil::readFile<char>(io);
+	std::vector<char> bufferIO = fragcore::IOUtil::readFile<char>(io);
 	io->close();
 	bufferIO.clear();
 	this->filepath = fs::path(fileSystem->getAbsolutePath(path.c_str())).parent_path();
@@ -69,6 +72,9 @@ void ModelImporter::initScene(const aiScene *scene) {
 				this->textureIndexMapping[scene->mTextures[i]->mFilename.C_Str()] = i;
 			}
 		}
+		for (size_t x = 0; x < scene->mNumMaterials; x++) {
+			this->loadTexturesFromMaterials(scene->mMaterials[x]);
+		}
 	});
 
 	/*	*/
@@ -84,14 +90,23 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 	/*	*/
 	std::thread process_animation_thread([&]() {
-		/*	*/
 		if (scene->HasAnimations()) {
-			this->animations.reserve(scene->mNumAnimations);
-			for (unsigned int x = 0; x < scene->mNumAnimations; x++) {
-				//	this->initAnimation(scene->mAnimations[x], x);
+			for (size_t x = 0; x < scene->mNumAnimations; x++) {
+				this->initAnimation(scene->mAnimations[x], x);
 			}
 		}
 	});
+
+	if (scene->HasLights()) {
+		for (unsigned int x = 0; x < scene->mNumLights; x++) {
+			// this->initLight(scene->mLights[x], x);
+		}
+	}
+
+	if (scene->HasCameras()) {
+		for (unsigned int x = 0; x < scene->mNumCameras; x++) {
+		}
+	}
 
 	/*	Wait intill done.	*/
 	process_model_thread.join();
@@ -100,9 +115,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 	// /*	*/
 	if (scene->HasMaterials()) {
-		for (size_t x = 0; x < scene->mNumMaterials; x++) {
-			this->loadTexturesFromMaterials(scene->mMaterials[x]);
-		}
+		/*	Extract additional texture */
 
 		this->materials.resize(scene->mNumMaterials);
 		for (size_t x = 0; x < scene->mNumMaterials; x++) {
@@ -111,11 +124,11 @@ void ModelImporter::initScene(const aiScene *scene) {
 	}
 
 	// /*	*/
-	// if (scene->HasLights()) {
-	// 	for (unsigned int x = 0; x < scene->mNumLights; x++) {
-	// 		this->initLight(scene->mLights[x], x);
-	// 	}
-	// }
+	//
+	//
+	//
+	//
+	//
 
 	this->initNoodeRoot(scene->mRootNode);
 }
@@ -163,6 +176,7 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 				pobject->geometryObjectIndex.push_back(nodes->mChildren[x]->mMeshes[y]);
 			}
 		}
+
 		this->nodes.push_back(pobject);
 
 		/*	*/
@@ -301,15 +315,15 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	char *data;
 	aiString name;
 	aiString path;
+
 	aiTextureMapping mapping;
 	unsigned int uvindex;
 	float blend;
 	aiTextureOp op;
 	aiTextureMapMode mapmode = aiTextureMapMode::aiTextureMapMode_Wrap;
-	aiShadingMode model;
 
 	float specular;
-	float blendfunc;
+
 	glm::vec4 color;
 	float shininessStrength;
 
@@ -321,7 +335,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 
 	const bool isTextureEmpty = this->textures.size() == 0;
 
-	/**/
+	/*	*/
 	pmaterial->Get(AI_MATKEY_NAME, name);
 	material->name = name.C_Str();
 
@@ -335,69 +349,89 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 
 			/*	*/
 			aiString textureName;
-			int ret = pmaterial->Get(AI_MATKEY_TEXTURE(textureType, textureIndex), textureName);
+			if (pmaterial->Get(AI_MATKEY_TEXTURE(textureType, textureIndex), textureName) ==
+				aiReturn::aiReturn_SUCCESS) {
+			}
+
+			aiTextureFlags textureFlag;
+			if (pmaterial->Get(AI_MATKEY_TEXFLAGS(textureType, textureIndex), textureFlag) ==
+				aiReturn::aiReturn_SUCCESS) {
+			}
+
 			/*	*/
 			auto *embeededTexture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
 
-			if (pmaterial->GetTexture((aiTextureType)textureType, textureIndex, &path, nullptr, nullptr, nullptr,
-									  nullptr, &mapmode) == aiReturn::aiReturn_SUCCESS) {
+			if (pmaterial->GetTexture((aiTextureType)textureType, textureIndex, &path, &mapping, &uvindex, &blend, &op,
+									  &mapmode) == aiReturn::aiReturn_SUCCESS) {
 
+				/*	If embeeded.	*/
+				int texIndex = 0;
 				if (path.data[0] == '*' && embeededTexture) {
-
-					const int idIndex = atoi(&path.data[1]);
-
-					switch (textureType) {
-					case aiTextureType::aiTextureType_DIFFUSE:
-						material->diffuseIndex = idIndex;
-						break;
-					case aiTextureType::aiTextureType_NORMALS:
-						material->normalIndex = idIndex;
-						break;
-					default:
-						break;
-					}
-
+					texIndex = atoi(&path.data[1]);
 				} else {
 					TextureAssetObject *textureObj = this->textureMapping[path.C_Str()];
-
 					if (textureObj) {
-						const int texIndex = this->textureIndexMapping[path.C_Str()];
-						switch (textureType) {
-						case aiTextureType::aiTextureType_DIFFUSE:
-							material->diffuseIndex = texIndex;
-							break;
-						case aiTextureType::aiTextureType_NORMALS:
-							material->normalIndex = texIndex;
-							break;
-						default:
-							break;
-						}
+						texIndex = this->textureIndexMapping[path.C_Str()];
 					}
 				}
+
+				switch (textureType) {
+				case aiTextureType::aiTextureType_DIFFUSE:
+					material->diffuseIndex = texIndex;
+					break;
+				case aiTextureType::aiTextureType_NORMALS:
+					material->normalIndex = texIndex;
+					break;
+				case aiTextureType::aiTextureType_OPACITY:
+					material->maskTextureIndex = texIndex;
+					break;
+				default:
+					break;
+				}
+
+				/*	Texture property.	*/
 			}
 
 		} /**/
 	}	  /**/
 
 	/*	Assign shader attributes.	*/
-	pmaterial->Get(AI_MATKEY_COLOR_AMBIENT, color[0]);
-	material->ambient = color;
-	pmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]);
-	material->diffuse = color;
-	pmaterial->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]);
-	material->emission = color;
-	pmaterial->Get(AI_MATKEY_COLOR_SPECULAR, color[0]);
-	material->specular = color;
-	pmaterial->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]);
-	material->transparent = color;
-	pmaterial->Get(AI_MATKEY_REFLECTIVITY, color[0]);
-	material->reflectivity = color;
-	pmaterial->Get(AI_MATKEY_SHININESS, shininessStrength);
-	material->shinininessStrength = shininessStrength;
-	pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, color[0]);
+	if (pmaterial->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+		material->ambient = color;
+	}
+	if (pmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+		material->diffuse = color;
+	}
+	if (pmaterial->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+		material->emission = color;
+	}
+	if (pmaterial->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
+		material->specular = color;
+	}
+	if (pmaterial->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+		material->transparent = color;
+	}
+	if (pmaterial->Get(AI_MATKEY_REFLECTIVITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
+		material->reflectivity = color;
+	}
+	if (pmaterial->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
+		material->shinininessStrength = shininessStrength;
+	}
+	if (pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, color[0]) == aiReturn::aiReturn_SUCCESS) {
+	}
 
-	pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc);
-	pmaterial->Get(AI_MATKEY_TWOSIDED, blendfunc);
+	aiBlendMode blendfunc;
+	if (pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc) == aiReturn::aiReturn_SUCCESS) {
+	}
+
+	int twosided;
+	if (pmaterial->Get(AI_MATKEY_TWOSIDED, twosided) == aiReturn::aiReturn_SUCCESS) {
+	}
+
+	aiShadingMode model;
+	if (pmaterial->Get(AI_MATKEY_SHADING_MODEL, model) == aiReturn::aiReturn_SUCCESS) {
+		material->shade_model = model;
+	}
 
 	return material;
 }
@@ -431,6 +465,7 @@ void ModelImporter::loadTexturesFromMaterials(aiMaterial *pmaterial) {
 
 						TextureAssetObject textureUp;
 						textureUp.filepath = fmt::format("{0}/{1}", this->filepath, path.C_Str());
+						std::replace(textureUp.filepath.begin(), textureUp.filepath.end(), '\\', '/');
 
 						/*	add texture.	*/
 						this->textures.push_back(textureUp);
@@ -443,6 +478,67 @@ void ModelImporter::loadTexturesFromMaterials(aiMaterial *pmaterial) {
 
 		} /**/
 	}	  /**/
+}
+AnimationObject *ModelImporter::initAnimation(const aiAnimation *panimation, unsigned int index) {
+
+	AnimationObject clip = AnimationObject();
+
+	clip.name = panimation->mName.C_Str();
+
+	unsigned int channel_index = 0;
+
+	// for (unsigned int x = 0; x < panimation->mNumChannels; x++) {
+	//	this->initAnimationPosition(panimation->mChannels[x], clip);
+	//	this->initAnimationRotation(panimation->mChannels[x], clip);
+	//	this->initAnimationScale(panimation->mChannels[x], clip);
+	//}
+
+	this->animations.push_back(clip);
+
+	return &this->animations.back();
+}
+
+void ModelImporter::loadCurve(aiNodeAnim *nodeAnimation, Curve *curve) {
+
+	if (nodeAnimation->mNumPositionKeys <= 0) {
+		return;
+	}
+
+	curve->keyframes.resize(nodeAnimation->mNumPositionKeys);
+
+	// curve->addCurve(VDCurve(position->mNumPositionKeys));
+	// curve->addCurve(VDCurve(position->mNumPositionKeys));
+	// curve->addCurve(VDCurve(position->mNumPositionKeys));
+	//
+	// curve->getCurve(curve->getNumCurves() - 3).setCurveFlag(VDCurve::eTransformPosX);
+	// curve->getCurve(curve->getNumCurves() - 2).setCurveFlag(VDCurve::eTransformPosY);
+	// animationClip->getCurve(animationClip->getNumCurves() - 1).setCurveFlag(VDCurve::eTransformPosZ);
+	//
+	// animationClip->getCurve(animationClip->getNumCurves() - 3).setName(position->mNodeName.data);
+	// animationClip->getCurve(animationClip->getNumCurves() - 2).setName(position->mNodeName.data);
+	// animationClip->getCurve(animationClip->getNumCurves() - 1).setName(position->mNodeName.data);
+	//
+	// for (unsigned int x = 0; x < position->mNumPositionKeys; x++) {
+	//	// curve Position X
+	//	animationClip->getCurve(animationClip->getNumCurves() - 3)
+	//		.getKey(x)
+	//		.setValue(position->mPositionKeys[x].mValue.x);
+	//	animationClip->getCurve(animationClip->getNumCurves() -
+	// 3).getKey(x).setTime(position->mPositionKeys[x].mTime);
+	//
+	//	// curve Position Y
+	//	animationClip->getCurve(animationClip->getNumCurves() - 2)
+	//		.getKey(x)
+	//		.setValue(position->mPositionKeys[x].mValue.y);
+	//	animationClip->getCurve(animationClip->getNumCurves() -
+	// 2).getKey(x).setTime(position->mPositionKeys[x].mTime);
+	//	// curve Position Z
+	//	animationClip->getCurve(animationClip->getNumCurves() - 1)
+	//		.getKey(x)
+	//		.setValue(position->mPositionKeys[x].mValue.z);
+	//	animationClip->getCurve(animationClip->getNumCurves() -
+	// 1).getKey(x).setTime(position->mPositionKeys[x].mTime);
+	//}
 }
 
 TextureAssetObject *ModelImporter::initTexture(aiTexture *texture, unsigned int index) {

@@ -13,7 +13,7 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec4 lightSpace;
 
-layout(binding = 1) uniform sampler2D DiffuseTexture;
+layout(binding = 0) uniform sampler2D DiffuseTexture;
 layout(binding = 1) uniform sampler2DShadow ShadowTexture;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {

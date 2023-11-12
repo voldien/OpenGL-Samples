@@ -1,11 +1,19 @@
 #pragma once
+#include "GLSampleSession.h"
 #include "ModelImporter.h"
 
 namespace glsample {
+	
+	/**
+	 * @brief
+	 *
+	 */
 	class Scene {
 	  public:
 		Scene() {}
 		virtual ~Scene();
+
+		virtual void release();
 
 		virtual void update(const float deltaTime);
 		virtual void render();
@@ -19,6 +27,7 @@ namespace glsample {
 		std::vector<MaterialObject> materials;
 
 	  public:
+		// Template
 		static Scene loadFrom(ModelImporter &importer);
 		static void RenderUI(Scene &scene);
 	};

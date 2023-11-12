@@ -82,9 +82,11 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+
 			}
 
 			bool showWireFrame = false;
+
 
 		  private:
 			struct UniformBufferBlock &uniform;

@@ -8,10 +8,14 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class VariableRateShading : public GLSampleWindow {
 	  public:
 		VariableRateShading() : GLSampleWindow() {
-			this->setTitle("Variable Rate Shading");
+			this->setTitle("Variable Rate Shading (VRS)");
 
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
@@ -37,6 +41,8 @@ namespace glsample {
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
 		unsigned int normal_texture;
+
+		unsigned int vrs_lookup_texture;
 
 		/*	*/
 		unsigned int normalMapping_program;
@@ -149,6 +155,20 @@ namespace glsample {
 									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
+
+			glGenTextures(1, &this->vrs_lookup_texture);
+			this->onResize(this->width(), this->height());
+		}
+
+		void onResize(int width, int height) override {
+
+			const int vrs_width = 0;
+			const int vrs_height = 0;
+
+			/*	Setup VRS Lookup image.	*/
+			glBindTexture(GL_TEXTURE_2D, this->vrs_lookup_texture);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, vrs_width, vrs_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		void draw() override {
@@ -168,6 +188,8 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			// glBindShadingRateImageNV(0);
 
 			{
 				glUseProgram(this->normalMapping_program);
@@ -212,11 +234,11 @@ namespace glsample {
 	};
 	class VariableRateShadingGLSample : public GLSample<VariableRateShading> {
 	  public:
-		VariableRateShadingGLSample(int argc, const char **argv) : GLSample<VariableRateShading>(argc, argv) {}
-		virtual void commandline(cxxopts::OptionAdder &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+		VariableRateShadingGLSample() : GLSample<VariableRateShading>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
+				"S,skybox", "Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};
 
@@ -224,12 +246,11 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 
-	std::vector<const char *> required_extensions = {"GL_NV_shading_rate_image"};
+	const std::vector<const char *> required_extensions = {"GL_NV_shading_rate_image"};
 
 	try {
-		glsample::VariableRateShadingGLSample sample(argc, argv);
-
-		sample.run();
+		glsample::VariableRateShadingGLSample sample;
+		sample.run(argc, argv, required_extensions);
 
 	} catch (const std::exception &ex) {
 

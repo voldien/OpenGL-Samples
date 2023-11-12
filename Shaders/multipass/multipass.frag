@@ -12,13 +12,19 @@ layout(location = 0) in vec4 vertex;
 layout(location = 1) in vec2 uv;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
+layout(location = 4) in vec3 bitangent;
 
 layout(binding = 2) uniform sampler2D DiffuseTexture;
+layout(binding = 3) uniform sampler2D NormalTexture;
 
 void main() {
 
 	Diffuse = texture(DiffuseTexture, uv).rgb;
 	WorldSpace = vertex.xyz;
 	TextureCoord = vec4(uv, 0, 0);
-	Normal = normalize(normal);
+
+	/*	Convert normal map texture to a vector.	*/
+	const vec3 NormalMapBump = 2.0 * texture(NormalTexture, uv).xyz - vec3(1.0, 1.0, 1.0);
+	/*	Compute the new normal vector on the specific surface normal.	*/
+	Normal = normalize(mat3(tangent, bitangent, normal) * NormalMapBump);
 }

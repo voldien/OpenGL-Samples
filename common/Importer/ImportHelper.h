@@ -1,4 +1,5 @@
 #pragma once
+#include "GLSampleSession.h"
 #include "ModelImporter.h"
 
 namespace glsample {

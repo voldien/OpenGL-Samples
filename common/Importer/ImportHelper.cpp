@@ -99,7 +99,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 	textures.resize(Reftextures.size());
 
-	glsample::TextureImporter textureImporter(modelLoader.fileSystem);
+	glsample::TextureImporter textureImporter(modelLoader.getFileSystem());
 
 	for (size_t i = 0; i < Reftextures.size(); i++) {
 		TextureAssetObject &tex = Reftextures[i];

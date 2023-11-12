@@ -6,3 +6,6 @@ TARGET_LINK_LIBRARIES(VariableRateShading glCommon gl-sample-common-asset-import
 ADD_DEPENDENCIES(VariableRateShading glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(VariableRateShading PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+
+INSTALL(TARGETS VariableRateShading DESTINATION bin)

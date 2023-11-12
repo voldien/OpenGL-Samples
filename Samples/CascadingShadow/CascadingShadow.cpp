@@ -14,6 +14,7 @@ namespace glsample {
 	  public:
 		CascadingShadowMapping() : GLSampleWindow() {
 			this->setTitle("CascadingShadowMapping");
+			
 			this->shadowSettingComponent =
 				std::make_shared<BasicShadowMapSettingComponent>(this->uniformStageBuffer, this->shadowTexture);
 			this->addUIComponent(this->shadowSettingComponent);

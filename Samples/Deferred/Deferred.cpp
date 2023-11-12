@@ -1,3 +1,4 @@
+#include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -59,45 +60,47 @@ namespace glsample {
 		/*	*/
 		GeometryObject plan;   /*	Directional light.	*/
 		GeometryObject sphere; /*	Point Light.*/
-
-		std::vector<GeometryObject> refObj;
-
-		/*	*/
-		unsigned int diffuse_texture;
-		unsigned int normal_texture;
+		Scene scene;		   /*	World Scene.	*/
 
 		/*	*/
 		unsigned int deferred_framebuffer;
-
 		unsigned int deferred_texture_width;
 		unsigned int deferred_texture_height;
 		std::vector<unsigned int> deferred_textures; /*	Albedo, WorldSpace, Normal, */
 		unsigned int depthTexture;
 
+		/*	*/
 		unsigned int deferred_program;
 		unsigned int multipass_program;
+		unsigned int skybox_program;
 
 		/*	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
+		unsigned int uniform_pointlight_buffer_binding = 1;
 		unsigned int uniform_buffer;
+		unsigned int uniform_pointlight_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformLightBufferSize = sizeof(UniformBufferBlock);
 
+		/*	*/
 		CameraController camera;
 
 		/*	Multipass Shader Source.	*/
-		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
-		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
+		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
+		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
 
 		/*	Deferred Rendering Path.	*/
-		const std::string vertexShaderPath = "Shaders/deferred/deferred.vert";
-		const std::string fragmentShaderPath = "Shaders/deferred/deferred.frag";
+		const std::string vertexShaderPath = "Shaders/deferred/deferred.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/deferred/deferred.frag.spv";
+
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 		class FogSettingComponent : public nekomimi::UIComponent {
 		  public:
 			FogSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Fog Settings");
+				this->setName("Deferred Settings");
 			}
 
 			void draw() override {
@@ -120,9 +123,9 @@ namespace glsample {
 		void Release() override {
 			glDeleteProgram(this->deferred_program);
 			glDeleteProgram(this->multipass_program);
+			glDeleteProgram(this->skybox_program);
 
 			/*	*/
-			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, &this->depthTexture);
 			glDeleteTextures(this->deferred_textures.size(), this->deferred_textures.data());
 
@@ -136,11 +139,11 @@ namespace glsample {
 		}
 
 		void Initialize() override {
+
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
-			const std::string panoramicPath = "asset/panoramic.jpg";
+			const std::string panoramicPath = this->getResult()["skybox"].as<std::string>();
 
 			{
-
 				/*	*/
 				const std::vector<uint32_t> vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
@@ -156,6 +159,20 @@ namespace glsample {
 				const std::vector<uint32_t> fragment_source =
 					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
 
+				/*	Load shader binaries.	*/
+				std::vector<uint32_t> vertex_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+
+				/*	*/
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
+
+				/*	Create skybox graphic pipeline program.	*/
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+
 				/*	Load shader	*/
 				this->deferred_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
@@ -166,10 +183,19 @@ namespace glsample {
 			}
 
 			/*	Setup graphic pipeline.	*/
+			glUseProgram(this->multipass_program);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
+			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->deferred_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->deferred_program, "UniformBufferBlock");
+			uniform_buffer_index = glGetUniformBlockIndex(this->deferred_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->deferred_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->deferred_program, "NormalTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->deferred_program, "WorldTexture"), 2);
 			glUniformBlockBinding(this->deferred_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -184,18 +210,17 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
+			/*	*/
+			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(modelLoader);
+
+			/*	Load Light geometry.	*/
 			{
 				std::vector<ProceduralGeometry::Vertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generateSphere(1, vertices, indices);
 				ProceduralGeometry::generatePlan(1, vertices, indices);
-
-				/*	*/
-				ModelImporter modelLoader(FileSystem::getFileSystem());
-				modelLoader.loadContent(modelPath, 0);
-
-				const ModelSystemObject &modelRef = modelLoader.getModels()[0];
 
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenVertexArrays(1, &this->plan.vao);
@@ -235,6 +260,7 @@ namespace glsample {
 
 				glBindVertexArray(0);
 			}
+
 			{
 				/*	Create deferred framebuffer.	*/
 				glGenFramebuffers(1, &this->deferred_framebuffer);
@@ -244,6 +270,18 @@ namespace glsample {
 				glGenTextures(this->deferred_textures.size(), this->deferred_textures.data());
 				this->onResize(this->width(), this->height());
 			}
+
+			/*	Setup lights.	*/
+			this->pointLights.resize(64);
+			for (size_t i = 0; i < this->pointLights.size(); i++) {
+				this->pointLights[i].range = 25.0f;
+				this->pointLights[i].position = glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(2.0f);
+				this->pointLights[i].color = glm::vec4(1, 1, 1, 1);
+				this->pointLights[i].constant_attenuation = 1.7f;
+				this->pointLights[i].linear_attenuation = 1.5f;
+				this->pointLights[i].qudratic_attenuation = 0.19f;
+				this->pointLights[i].intensity = 1.0f;
+			}
 		}
 
 		void onResize(int width, int height) override {
@@ -251,13 +289,15 @@ namespace glsample {
 			this->deferred_texture_width = width;
 			this->deferred_texture_height = height;
 
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
+
 			/*	Resize the image.	*/
 			std::vector<GLenum> drawAttach(deferred_textures.size());
-			for (size_t i = 0; i < deferred_textures.size(); i++) {
+			for (size_t i = 0; i < this->deferred_textures.size(); i++) {
 
 				glBindTexture(GL_TEXTURE_2D, this->deferred_textures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, this->width(), this->height(), 0, GL_RGB, GL_UNSIGNED_BYTE,
-							 nullptr);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->deferred_texture_width, this->deferred_texture_height,
+							 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D,
@@ -265,12 +305,13 @@ namespace glsample {
 				drawAttach[i] = GL_COLOR_ATTACHMENT0 + i;
 			}
 
+			/*	*/
 			glGenTextures(1, &this->depthTexture);
 			glBindTexture(GL_TEXTURE_2D, depthTexture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, this->width(), this->height(), 0, GL_DEPTH_COMPONENT,
-						 GL_FLOAT, NULL);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->deferred_texture_width,
+						 this->deferred_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 			glBindTexture(GL_TEXTURE_2D, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
 
 			glDrawBuffers(drawAttach.size(), drawAttach.data());
 
@@ -287,16 +328,16 @@ namespace glsample {
 
 			/*	*/
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
-			this->uniformBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
-							  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformBufferSize);
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
+							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
+			/*	Multipass */
 			{
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
 				/*	*/
@@ -305,37 +346,45 @@ namespace glsample {
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				/*	*/
-				glUseProgram(this->deferred_program);
+				glUseProgram(this->multipass_program);
 
+				glDepthMask(GL_TRUE);
 				glDisable(GL_CULL_FACE);
 
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->refObj[0].vao);
-				for (size_t i = 0; i < this->refObj.size(); i++) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
-											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
-											 this->refObj[i].vertex_offset);
-				}
-				glBindVertexArray(0);
+				this->scene.render();
 
 				glUseProgram(0);
 			}
 
-			// Draw Lights
+			/* Draw Lights.	*/
 			{
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_pointlight_buffer_binding, uniform_pointlight_buffer,
+								  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				glViewport(0, 0, width, height);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 				glUseProgram(this->deferred_program);
+
 				// Enable blend.
+				glEnable(GL_BLEND);
+				glBlendEquation(GL_FUNC_ADD);
+				glBlendFunc(GL_ONE, GL_ONE);
+
+				glDepthMask(GL_FALSE);
+				glDisable(GL_DEPTH_TEST);
 
 				glDisable(GL_CULL_FACE);
-				for (size_t i = 0; i < deferred_textures.size(); i++) {
+				for (size_t i = 0; i < this->deferred_textures.size(); i++) {
 					glActiveTexture(GL_TEXTURE0 + i);
 					glBindTexture(GL_TEXTURE_2D, this->deferred_textures[i]);
 				}
+
 				/*	*/
-				glBindVertexArray(this->sphere.vao);
-				glDrawElementsInstanced(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				glBindVertexArray(this->plan.vao);
+				glDrawElementsInstanced(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
 										this->pointLights.size());
 				glBindVertexArray(0);
 			}
@@ -348,20 +397,25 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+			{
+				this->uniformBuffer.proj = this->camera.getProjectionMatrix();
+				this->uniformBuffer.model = glm::mat4(1.0f);
+				this->uniformBuffer.model = glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f),
+														glm::vec3(0.0f, 1.0f, 0.0f));
+				this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(1.95f));
+				this->uniformBuffer.view = this->camera.getViewMatrix();
+				this->uniformBuffer.modelViewProjection =
+					this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+			}
 
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
+			{
+				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+				void *uniformPointer = glMapBufferRange(
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+					this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+				glUnmapBuffer(GL_UNIFORM_BUFFER);
+			}
 		}
 	};
 
@@ -369,8 +423,9 @@ namespace glsample {
 	  public:
 		DeferredGLSample() : GLSample<Deferred>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
+				"S,skybox", "Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};
 

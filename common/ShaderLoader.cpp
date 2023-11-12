@@ -26,6 +26,7 @@ int ShaderLoader::loadGraphicProgram(const fragcore::ShaderCompiler::CompilerCon
 									 const std::vector<uint32_t> *tesselatione) {
 
 	if (glSpecializeShaderARB) {
+		/*	Load SPIRV.	*/
 	} else {
 	}
 

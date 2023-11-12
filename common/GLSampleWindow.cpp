@@ -1,10 +1,10 @@
 #include "GLSampleWindow.h"
 #include <GLRendererInterface.h>
 #include <ImageLoader.h>
-#include <iostream>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_mouse.h>
+#include <iostream>
 
 // TODO add supprt for renderdoc
 unsigned int pboBuffer;
@@ -41,6 +41,7 @@ void GLSampleWindow::displayMenuBar() {}
 void GLSampleWindow::renderUI() {
 
 	if (this->preWidth != this->width() || this->preHeight != this->height()) {
+		glFinish();
 		this->onResize(this->width(), this->height());
 	}
 	this->preWidth = this->width();
@@ -49,24 +50,28 @@ void GLSampleWindow::renderUI() {
 	this->update();
 
 	/*	*/
-	glBeginQuery(GL_TIME_ELAPSED, this->queries[0]);
-	glBeginQuery(GL_SAMPLES_PASSED, this->queries[1]);
-	glBeginQuery(GL_PRIMITIVES_GENERATED, this->queries[2]);
+	if (this->debugGL) {
+		glBeginQuery(GL_TIME_ELAPSED, this->queries[0]);
+		glBeginQuery(GL_SAMPLES_PASSED, this->queries[1]);
+		glBeginQuery(GL_PRIMITIVES_GENERATED, this->queries[2]);
+	}
 
 	/*	*/
 	this->draw();
 
 	/*	*/
-	glEndQuery(GL_TIME_ELAPSED);
-	glEndQuery(GL_SAMPLES_PASSED);
-	glEndQuery(GL_PRIMITIVES_GENERATED);
+	if (this->debugGL) {
+		glEndQuery(GL_TIME_ELAPSED);
+		glEndQuery(GL_SAMPLES_PASSED);
+		glEndQuery(GL_PRIMITIVES_GENERATED);
 
-	int nrPrimitives;
-	int nrSamples;
-	int time_elasped;
-	glGetQueryObjectiv(this->queries[0], GL_QUERY_RESULT, &nrSamples);
-	// glGetQueryObjectiv(this->queries[0], GL_QUERY_RESULT, &nrSamples);
-	// glGetQueryObjectiv(this->queries[1], GL_QUERY_RESULT, &nrPrimitives);
+		int nrPrimitives, nrSamples, time_elasped;
+		glGetQueryObjectiv(this->queries[0], GL_QUERY_RESULT, &time_elasped);
+		glGetQueryObjectiv(this->queries[1], GL_QUERY_RESULT, &nrSamples);
+		glGetQueryObjectiv(this->queries[2], GL_QUERY_RESULT, &nrPrimitives);
+
+		std::cout << "Samples: " << nrSamples << " Primitives: " << nrPrimitives << std::endl;
+	}
 
 	/*	*/
 	this->frameCount++;
@@ -79,6 +84,8 @@ void GLSampleWindow::renderUI() {
 
 	/*	*/
 	const Uint8 *state = SDL_GetKeyboardState(nullptr);
+
+	/*	Check if screenshot button pressed.	*/
 	if (state[SDL_SCANCODE_F12]) {
 		this->captureScreenShot();
 	}

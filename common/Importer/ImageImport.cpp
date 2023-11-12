@@ -10,7 +10,7 @@ using namespace fragcore;
 using namespace glsample;
 TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesystem) {}
 
-int TextureImporter::loadImage2D(const std::string &path) {
+int TextureImporter::loadImage2D(const std::string &path, const ColorSpace colorSpace) {
 
 	ImageLoader imageLoader;
 	Ref<IO> io = Ref<IO>(this->filesystem->openFile(path.c_str(), IO::IOMode::READ));
@@ -20,7 +20,10 @@ int TextureImporter::loadImage2D(const std::string &path) {
 	return loadImage2DRaw(image);
 }
 
-int TextureImporter::loadImage2DRaw(const Image &image) {
+int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace) {
+	// TODO add PBO support.
+	// TODO add srgb
+
 	GLenum target = GL_TEXTURE_2D;
 	GLuint texture;
 

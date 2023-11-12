@@ -8,9 +8,23 @@ namespace glsample {
 
 	Scene::~Scene() {}
 
-	void Scene::update(const float deltaTime) {}
+	void Scene::release() {
+		for (size_t i = 0; i < this->refObj.size(); i++) {
+		}
+
+		for (size_t i = 0; i < this->refTexture.size(); i++) {
+			glDeleteTextures(1, &this->refTexture[i].texture);
+		}
+	}
+
+	void Scene::update(const float deltaTime) {
+		// Animation.
+	}
 
 	void Scene::render() {
+
+		// TODO sort materials and geomtry.
+
 		for (size_t x = 0; x < this->nodes.size(); x++) {
 
 			/*	*/

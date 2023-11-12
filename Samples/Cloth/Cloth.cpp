@@ -13,16 +13,21 @@
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class ClothSimulation : public GLSampleWindow {
 	  public:
-	  
 		ClothSimulation() : GLSampleWindow() {
 			this->setTitle("Cloth Simulation");
+
+			/*	*/
 			this->vectorFieldSettingComponent = std::make_shared<ParticleSystemSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->vectorFieldSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		/*	*/
@@ -157,41 +162,46 @@ namespace glsample {
 		}
 
 		void Initialize() override {
+			const std::string texturePath = this->getResult()["texture"].as<std::string>();
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+			{
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	*/
-			std::vector<char> vertex_source =
-				glsample::IOUtil::readFileString(this->particleVertexShaderPath, this->getFileSystem());
-			std::vector<char> geometry_source =
-				glsample::IOUtil::readFileString(this->particleGeometryShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
-				glsample::IOUtil::readFileString(this->particleFragmentShaderPath, this->getFileSystem());
+				/*	*/
+				std::vector<char> vertex_source =
+					glsample::IOUtil::readFileString(this->particleVertexShaderPath, this->getFileSystem());
+				std::vector<char> geometry_source =
+					glsample::IOUtil::readFileString(this->particleGeometryShaderPath, this->getFileSystem());
+				std::vector<char> fragment_source =
+					glsample::IOUtil::readFileString(this->particleFragmentShaderPath, this->getFileSystem());
 
-			/*	*/
-			std::vector<char> compute_source =
-				glsample::IOUtil::readFileString(this->particleComputeShaderPath, this->getFileSystem());
+				/*	*/
+				std::vector<char> compute_source =
+					glsample::IOUtil::readFileString(this->particleComputeShaderPath, this->getFileSystem());
 
-			/*	Load Graphic Program.	*/
-			this->particle_graphic_program =
-				ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, &geometry_source);
-			/*	Load Compute.	*/
-			this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
+				/*	Load Graphic Program.	*/
+				this->particle_graphic_program =
+					ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, &geometry_source);
+				/*	Load Compute.	*/
+				this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
 
-			/*	*/
-			vertex_source = glsample::IOUtil::readFileString(this->vectorFieldVertexShaderPath, this->getFileSystem());
-			geometry_source =
-				glsample::IOUtil::readFileString(this->vectorFieldGeometryShaderPath, this->getFileSystem());
-			fragment_source = glsample::IOUtil::readFileString(this->vectorFieldFragmentPath, this->getFileSystem());
+				/*	*/
+				vertex_source =
+					glsample::IOUtil::readFileString(this->vectorFieldVertexShaderPath, this->getFileSystem());
+				geometry_source =
+					glsample::IOUtil::readFileString(this->vectorFieldGeometryShaderPath, this->getFileSystem());
+				fragment_source =
+					glsample::IOUtil::readFileString(this->vectorFieldFragmentPath, this->getFileSystem());
 
-			this->vector_field_graphic_program =
-				ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, &geometry_source);
+				this->vector_field_graphic_program =
+					ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, &geometry_source);
+			}
 
 			/*	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->particle_texture = textureImporter.loadImage2D(particleTexturePath);
+			this->particle_texture = textureImporter.loadImage2D(texturePath);
 
 			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->particle_graphic_program);

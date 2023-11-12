@@ -287,6 +287,8 @@ namespace glsample {
 			}
 		}
 
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+
 		void draw() override {
 
 			int width, height;

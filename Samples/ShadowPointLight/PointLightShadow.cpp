@@ -6,11 +6,16 @@
 #include <ImportHelper.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
+#include <cstring>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class PointLightShadow : public GLSampleWindow {
 	  public:
 		PointLightShadow() : GLSampleWindow() {
@@ -54,6 +59,8 @@ namespace glsample {
 			glm::vec4 lightPosition;
 
 			PointLight pointLights[nrPointLights];
+			/*	*/
+			glm::vec4 pcfFilters[20];
 		} uniform;
 
 		/*	Point light shadow maps.	*/
@@ -65,7 +72,6 @@ namespace glsample {
 		unsigned int shadowHeight = 1024;
 
 		Scene scene;
-		std::vector<GeometryObject> refObj;
 
 		/*	*/
 		unsigned int graphic_program;
@@ -144,10 +150,6 @@ namespace glsample {
 			glDeleteTextures(this->pointShadowTextures.size(), this->pointShadowTextures.data());
 
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			glDeleteVertexArrays(1, &this->refObj[0].vao);
-			glDeleteBuffers(1, &this->refObj[0].vbo);
-			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
 		void Initialize() override {
@@ -188,7 +190,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 
-			/*	*/
+			/*	Setup shadow graphic pipeline.	*/
 			glUseProgram(this->shadow_program);
 			int uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->shadow_program, uniform_buffer_shadow_index, this->uniform_buffer_binding);
@@ -201,6 +203,14 @@ namespace glsample {
 			const int shadows[4] = {2, 3, 4, 5};
 			glUniform1iv(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 4, shadows);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	*/
+			glUseProgram(this->graphic_pfc_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), 0);
+			glUniform1iv(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), 4, shadows);
+			glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -231,6 +241,7 @@ namespace glsample {
 
 					/*	Setup each face.	*/
 					for (size_t i = 0; i < 6; i++) {
+
 						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, this->shadowWidth,
 									 this->shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 					}
@@ -278,8 +289,6 @@ namespace glsample {
 			modelLoader.loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom(modelLoader);
 
-			ImportHelper::loadModelBuffer(modelLoader, refObj);
-
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
@@ -295,7 +304,18 @@ namespace glsample {
 				this->uniform.pointLights[i].shadowStrength = 1.0f;
 				this->uniform.pointLights[i].bias = 0.01f;
 			}
+
+			/*	Copy PCF Filters	*/
+			const glm::vec4 samples[20] = {
+				glm::vec4(1, 1, 1, 0),	glm::vec4(1, -1, 1, 0),	 glm::vec4(-1, -1, 1, 0),  glm::vec4(-1, 1, 1, 0),
+				glm::vec4(1, 1, -1, 0), glm::vec4(1, -1, -1, 0), glm::vec4(-1, -1, -1, 0), glm::vec4(-1, 1, -1, 0),
+				glm::vec4(1, 1, 0, 0),	glm::vec4(1, -1, 0, 0),	 glm::vec4(-1, -1, 0, 0),  glm::vec4(-1, 1, 0, 0),
+				glm::vec4(1, 0, 1, 0),	glm::vec4(-1, 0, 1, 0),	 glm::vec4(1, 0, -1, 0),   glm::vec4(-1, 0, -1, 0),
+				glm::vec4(0, 1, 1, 0),	glm::vec4(0, -1, 1, 0),	 glm::vec4(0, -1, -1, 0),  glm::vec4(0, 1, -1, 0)};
+			memcpy(&this->uniform.pcfFilters[0][0], &samples[0][0], sizeof(samples));
 		}
+
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
 
@@ -363,13 +383,13 @@ namespace glsample {
 				}
 
 				this->scene.render();
-
 			}
 		}
 
 		void update() override {
+
 			/*	Update Camera.	*/
-			this->scene.update(getTimer().deltaTime());
+			this->scene.update(this->getTimer().deltaTime());
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
@@ -382,7 +402,7 @@ namespace glsample {
 			}
 
 			/*	*/
-			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width() / (float)height(), 1.0f, 1000.0f);
+			this->uniform.proj = this->camera.getProjectionMatrix();
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
