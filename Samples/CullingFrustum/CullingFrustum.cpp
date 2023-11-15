@@ -1,3 +1,4 @@
+#include "Core/Math3D.h"
 #include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -11,16 +12,16 @@
 namespace glsample {
 
 	/**
-	 * Deferred Rendering Path Sample.
+	 * FrustumCulling Rendering Path Sample.
 	 **/
-	class Deferred : public GLSampleWindow {
+	class FrustumCulling : public GLSampleWindow {
 	  public:
-		Deferred() : GLSampleWindow() {
-			this->setTitle("Deferred Rendering");
+		FrustumCulling() : GLSampleWindow() {
+			this->setTitle("FrustumCulling Rendering");
 
 			/*	Setting Window.	*/
-			this->deferredSettingComponent = std::make_shared<DeferredSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->deferredSettingComponent);
+			this->fogSettingComponent = std::make_shared<FrustumCullingSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->fogSettingComponent);
 
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
@@ -41,6 +42,10 @@ namespace glsample {
 
 		} uniformBuffer;
 
+		typedef struct material_t {
+
+		} Material;
+
 		typedef struct point_light_t {
 			glm::vec3 position;
 			float range;
@@ -54,9 +59,9 @@ namespace glsample {
 		std::vector<PointLight> pointLights;
 
 		/*	*/
-		GeometryObject plan;   /*	Directional light.	*/
-		GeometryObject sphere; /*	Point Light.*/
-		Scene scene;		   /*	World Scene.	*/
+		GeometryObject boundingBox;
+		GeometryObject frustum;
+		Scene scene; /*	World Scene.	*/
 
 		/*	*/
 		unsigned int deferred_framebuffer;
@@ -86,42 +91,39 @@ namespace glsample {
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
 
-		/*	Deferred Rendering Shader Path.	*/
+		/*	FrustumCulling Rendering Path.	*/
 		const std::string vertexShaderPath = "Shaders/deferred/deferred.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/deferred/deferred.frag.spv";
 
-		/*	Skybox Shader Path.	*/
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
-		class DeferredSettingComponent : public nekomimi::UIComponent {
+		class FrustumCullingSettingComponent : public nekomimi::UIComponent {
 		  public:
-			DeferredSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Deferred Settings");
+			FrustumCullingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("FrustumCulling Settings");
 			}
 
 			void draw() override {
-
-				ImGui::TextUnformatted("Direction Light Settings");
+				ImGui::TextUnformatted("Light Settings");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
-				int tmp;
-				if (ImGui::DragInt("Number of Lights", &tmp)) {
-					// TODO add
-				}
-
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("Show Frustum", &this->showFrustum);
+				ImGui::Checkbox("Show Bounds", &this->showBounds);
 			}
 
 			bool showWireFrame = false;
+			bool showFrustum = true;
+			bool showBounds = true;
 
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<DeferredSettingComponent> deferredSettingComponent;
+		std::shared_ptr<FrustumCullingSettingComponent> fogSettingComponent;
 
 		void Release() override {
 			glDeleteProgram(this->deferred_program);
@@ -136,9 +138,9 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_buffer);
 
 			/*	*/
-			glDeleteVertexArrays(1, &this->plan.vao);
-			glDeleteBuffers(1, &this->plan.vbo);
-			glDeleteBuffers(1, &this->plan.ibo);
+			glDeleteVertexArrays(1, &this->frustum.vao);
+			glDeleteBuffers(1, &this->frustum.vbo);
+			glDeleteBuffers(1, &this->frustum.ibo);
 		}
 
 		void Initialize() override {
@@ -202,8 +204,6 @@ namespace glsample {
 			glUniformBlockBinding(this->deferred_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			// TODO setup skybox.
-
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -225,26 +225,24 @@ namespace glsample {
 				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generateSphere(1, vertices, indices);
-				// Compute offset.
 				ProceduralGeometry::generatePlan(1, vertices, indices);
 
 				/*	Create array buffer, for rendering static geometry.	*/
-				glGenVertexArrays(1, &this->plan.vao);
-				glBindVertexArray(this->plan.vao);
+				glGenVertexArrays(1, &this->frustum.vao);
+				glBindVertexArray(this->frustum.vao);
 
 				/*	Create array buffer, for rendering static geometry.	*/
-				glGenBuffers(1, &this->plan.vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
+				glGenBuffers(1, &this->frustum.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, this->frustum.vbo);
 				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
 							 vertices.data(), GL_STATIC_DRAW);
 
 				/*	*/
-				glGenBuffers(1, &this->plan.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
+				glGenBuffers(1, &this->frustum.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->frustum.ibo);
 				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
 							 GL_STATIC_DRAW);
-				this->plan.nrIndicesElements = indices.size();
-				this->sphere.nrIndicesElements = 0;
+				this->frustum.nrIndicesElements = indices.size();
 
 				/*	Vertex.	*/
 				glEnableVertexAttribArray(0);
@@ -329,6 +327,12 @@ namespace glsample {
 			}
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+			/*	Update camera	*/
+			this->camera.setAspect((float)width / (float)height);
+			Matrix4x4 proj = Matrix4x4();
+			camera.getProjectionMatrix();
+			std::vector<Vector3> frustumVertices = ProceduralGeometry::createFrustum(proj);
 		}
 
 		void draw() override {
@@ -390,8 +394,8 @@ namespace glsample {
 				}
 
 				/*	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElementsInstanced(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				glBindVertexArray(this->frustum.vao);
+				glDrawElementsInstanced(GL_TRIANGLES, this->frustum.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
 										this->pointLights.size());
 				glBindVertexArray(0);
 			}
@@ -426,9 +430,9 @@ namespace glsample {
 		}
 	};
 
-	class DeferredGLSample : public GLSample<Deferred> {
+	class DeferredGLSample : public GLSample<FrustumCulling> {
 	  public:
-		DeferredGLSample() : GLSample<Deferred>() {}
+		DeferredGLSample() : GLSample<FrustumCulling>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
 				"S,skybox", "Texture Path",

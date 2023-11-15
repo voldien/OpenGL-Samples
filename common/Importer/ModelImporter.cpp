@@ -1,4 +1,7 @@
 #include "ModelImporter.h"
+#include "Core/Math3D.h"
+#include "Core/math3D/AABB.h"
+#include "GeometryUtil.h"
 #include "IOUtil.h"
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
@@ -113,6 +116,18 @@ void ModelImporter::initScene(const aiScene *scene) {
 	process_textures_thread.join();
 	process_animation_thread.join();
 
+	/*	Compute bonding box.	*/
+	std::thread process_bounding_boxes([&]() {
+		if (scene->HasMeshes()) {
+
+			for (size_t x = 0; x < scene->mNumMeshes; x++) {
+				// Compute bounding box.
+				this->models[x].boundingBox = GeometryUtility::computeBoundingBox(
+					(const Vector3 *)scene->mMeshes[x]->mVertices, scene->mMeshes[x]->mNumVertices);
+			}
+		}
+	});
+
 	// /*	*/
 	if (scene->HasMaterials()) {
 		/*	Extract additional texture */
@@ -131,6 +146,8 @@ void ModelImporter::initScene(const aiScene *scene) {
 	//
 
 	this->initNoodeRoot(scene->mRootNode);
+
+	process_bounding_boxes.join();
 }
 
 void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
@@ -385,6 +402,23 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 				case aiTextureType::aiTextureType_OPACITY:
 					material->maskTextureIndex = texIndex;
 					break;
+				case aiTextureType::aiTextureType_SPECULAR:
+				case aiTextureType::aiTextureType_HEIGHT:
+				case aiTextureType::aiTextureType_AMBIENT:
+				case aiTextureType::aiTextureType_EMISSIVE:
+				case aiTextureType::aiTextureType_SHININESS:
+				case aiTextureType::aiTextureType_DISPLACEMENT:
+				case aiTextureType::aiTextureType_LIGHTMAP:
+				case aiTextureType::aiTextureType_REFLECTION:
+				case aiTextureType::aiTextureType_BASE_COLOR:
+				case aiTextureType::aiTextureType_NORMAL_CAMERA:
+				case aiTextureType::aiTextureType_EMISSION_COLOR:
+				case aiTextureType::aiTextureType_METALNESS:
+				case aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS:
+				case aiTextureType::aiTextureType_AMBIENT_OCCLUSION:
+					break;
+				case aiTextureType_UNKNOWN:
+					break;
 				default:
 					break;
 				}
@@ -417,7 +451,12 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	if (pmaterial->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
 		material->shinininessStrength = shininessStrength;
 	}
-	if (pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, color[0]) == aiReturn::aiReturn_SUCCESS) {
+	float tmp;
+	if (pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
+		//	material->shinininessStrength = tmp;
+	}
+	if (pmaterial->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+		material->opacity = tmp;
 	}
 
 	aiBlendMode blendfunc;
@@ -426,11 +465,17 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 
 	int twosided;
 	if (pmaterial->Get(AI_MATKEY_TWOSIDED, twosided) == aiReturn::aiReturn_SUCCESS) {
+		material->culling_mode = twosided;
 	}
 
 	aiShadingMode model;
 	if (pmaterial->Get(AI_MATKEY_SHADING_MODEL, model) == aiReturn::aiReturn_SUCCESS) {
 		material->shade_model = model;
+	}
+
+	int use_wireframe;
+	if (pmaterial->Get(AI_MATKEY_ENABLE_WIREFRAME, use_wireframe) == aiReturn::aiReturn_SUCCESS) {
+		material->wireframe_mode = model;
 	}
 
 	return material;

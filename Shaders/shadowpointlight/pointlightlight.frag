@@ -45,10 +45,11 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 cameraPosition;
 
 	point_light point_light[4];
+	vec4 PCFFilters[20];
+	float diskRadius;
 }
 ubo;
 
-// TODO PCF
 float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube ShadowTexture, int index) {
 
 	const vec3 frag2Light = (fragPosLightSpace - ubo.point_light[index].position);

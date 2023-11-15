@@ -209,7 +209,6 @@ static void checkShaderError(int shader) {
 		char log[maxLength];
 		glGetShaderInfoLog(shader, sizeof(log), &maxLength, log);
 		fragcore::checkError();
-		//		throw RuntimeException(fmt::format("Shader compilation error\n{}", log));
 	}
 }
 
@@ -222,7 +221,9 @@ int ShaderLoader::loadShader(const std::vector<char> &source, int type) {
 	std::vector<const GLchar **> source_refs;
 
 	unsigned int shader = glCreateShader(type);
+
 	fragcore::checkError();
+	/*	Load as Spirv if data is spirv file and supported.	*/
 	if (spirv_magic_number == magic_number && glSpecializeShaderARB) {
 		glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, source.data(), source.size());
 		glSpecializeShaderARB(shader, "main", 0, 0, 0);

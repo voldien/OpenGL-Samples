@@ -25,7 +25,6 @@
 #include <SDLDisplay.h>
 #include <cxxopts.hpp>
 
-
 /**
  * @brief
  *
@@ -33,7 +32,9 @@
  */
 template <class T> class GLSample : public glsample::GLSampleSession {
   public:
-	GLSample() {}
+	GLSample() {
+		// TODO set working directory to exec path.
+	}
 
 	~GLSample() { this->sampleRef->Release(); }
 
@@ -55,7 +56,10 @@ template <class T> class GLSample : public glsample::GLSampleSession {
 				"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
 				"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
 				"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."))(
-				"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"));
+				"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"))(
+				"G,gamma-correction", "Enable Gamma Correction", cxxopts::value<bool>()->default_value("false"))(
+				"W,width", "Set Window Width", cxxopts::value<int>()->default_value("-1"))(
+				"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);
@@ -73,12 +77,14 @@ template <class T> class GLSample : public glsample::GLSampleSession {
 		const bool debug = result["debug"].as<bool>();
 		const bool fullscreen = result["fullscreen"].as<bool>();
 		const bool vsync = result["vsync"].as<bool>();
+		const bool gammacorrection = result["gamma-correction"].as<bool>();
 
 		if (result.count("time") > 0) {
-			/*	Create seperate thread that count down.*/
+			/*	Create seperate thread that count down.	*/
 			if (result["time"].as<float>() > 0) {
-				int64_t timeout_mili = (int64_t)(result["time"].as<float>() * 1000.0f);
-				std::thread timeout_thread = std::thread([&]() {
+
+				const int64_t timeout_mili = (int64_t)(result["time"].as<float>() * 1000.0f);
+				std::thread timeout_thread = std::thread([timeout_mili]() {
 					std::this_thread::sleep_for(std::chrono::milliseconds(timeout_mili));
 					exit(EXIT_SUCCESS);
 				});
@@ -87,12 +93,12 @@ template <class T> class GLSample : public glsample::GLSampleSession {
 		}
 
 		/*	Default window size.	*/
-		int width = -1;
-		int height = -1;
+		int width = result["width"].as<int>();
+		int height = result["height"].as<int>();
 
 		/*	Create filesystem that the asset will be read from.	*/
 		this->activeFileSystem = FileSystem::createFileSystem();
-		std::string filesystemPath = result["filesystem"].as<std::string>();
+		const std::string filesystemPath = result["filesystem"].as<std::string>();
 		if (!this->activeFileSystem->isDirectory(filesystemPath.c_str())) {
 
 			const std::string extension = this->activeFileSystem->getFileExtension(filesystemPath.c_str());
@@ -113,6 +119,7 @@ template <class T> class GLSample : public glsample::GLSampleSession {
 			// Check all extension.
 			const std::shared_ptr<fragcore::IRenderer> &renderer = this->sampleRef->getRenderInterface();
 			for (size_t i = 0; i < requiredExtension.size(); i++) {
+				
 				//((GLRendererInterface*)*renderer);
 			}
 		}

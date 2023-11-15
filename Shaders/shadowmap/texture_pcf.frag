@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
+#extension GL_EXT_control_flow_attributes : enable
 
 layout(early_fragment_tests) in;
 
@@ -13,7 +14,7 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec4 lightSpace;
 
-layout(binding = 1) uniform sampler2D DiffuseTexture;
+layout(binding = 0) uniform sampler2D DiffuseTexture;
 layout(binding = 1) uniform sampler2DShadow ShadowTexture;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
@@ -48,21 +49,23 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 	projCoords.z *= (1 - bias);
 
 	float shadowFactor = 0;
+	const ivec2 gMapSize = textureSize(ShadowTexture, 0);
 
-	float xOffset = 1.0 / gMapSize.x;
-	float yOffset = 1.0 / gMapSize.y;
+	const float xOffset = 1.0 / gMapSize.x;
+	const float yOffset = 1.0 / gMapSize.y;
 
 	const float nrSamples = 3 * 3;
 
 	[[unroll]] for (int y = -1; y <= 1; y++) {
 		[[unroll]] for (int x = -1; x <= 1; x++) {
+			
 			vec2 Offsets = vec2(x * xOffset, y * yOffset);
-			vec3 UVC = vec3(projCoords.xy + Offsets, z + EPSILON);
-			shadowFactor += texture(gShadowMap, UVC);
+			vec3 UVC = vec3(projCoords.xy + Offsets, projCoords.z + EPSILON);
+			shadowFactor += texture(ShadowTexture, UVC);
 		}
 	}
 
-	return shadowFactor / nrSamples;
+	return (1.0 - ( shadowFactor / nrSamples));
 }
 
 void main() {

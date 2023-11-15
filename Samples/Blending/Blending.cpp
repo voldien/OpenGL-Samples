@@ -1,3 +1,4 @@
+#include "GLSampleSession.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -11,7 +12,6 @@ namespace glsample {
 
 	class Blending : public GLSampleWindow {
 	  public:
-	  
 		Blending() : GLSampleWindow() {
 			this->setTitle("Blending");
 
@@ -48,10 +48,12 @@ namespace glsample {
 
 		/*	*/
 		GeometryObject geometry;
+		GeometryObject plan;
 		InstanceSubBuffer instanceBuffer;
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
+		unsigned int ground_diffuse_texture;
 
 		/*	*/
 		unsigned int blending_program;
@@ -82,11 +84,9 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
-
 			}
 
 			bool showWireFrame = false;
-
 
 		  private:
 			struct UniformBufferBlock &uniform;
@@ -115,6 +115,8 @@ namespace glsample {
 		void Initialize() override {
 
 			const std::string diffuseTexturePath = getResult()["texture"].as<std::string>();
+			const std::string diffuseGroundTexturePath = this->getResult()["ground-texture"].as<std::string>();
+
 			{
 				/*	Load shader source.	*/
 				const std::vector<uint32_t> vertex_blending_binary_data =
@@ -127,8 +129,8 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Create graphic pipeline program.	*/
-				this->blending_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_blending_binary_data, &fragment_blending_binary_data);
+				this->blending_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_blending_binary_data,
+																		  &fragment_blending_binary_data);
 			}
 
 			/*	Setup graphic pipeline.	*/
@@ -136,7 +138,6 @@ namespace glsample {
 			int uniform_buffer_index = glGetUniformBlockIndex(this->blending_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->blending_program, "DiffuseTexture"), 0);
 			glUniformBlockBinding(this->blending_program, uniform_buffer_index, this->uniform_buffer_binding);
-
 			/*	*/
 			int uniform_instance_buffer_index = glGetUniformBlockIndex(this->blending_program, "UniformInstanceBlock");
 			glUniformBlockBinding(this->blending_program, uniform_instance_buffer_index,
@@ -146,6 +147,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
+			this->ground_diffuse_texture = textureImporter.loadImage2D(diffuseGroundTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
@@ -167,7 +169,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 			std::vector<unsigned int> indices;
 			ProceduralGeometry::generateCube(1, vertices, indices);
 
@@ -178,7 +180,7 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->geometry.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, geometry.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
 			/*	*/
@@ -189,38 +191,37 @@ namespace glsample {
 
 			/*	Vertex.	*/
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 			/*	UV.	*/
 			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 								  reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 								  reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 								  reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);
 
+			/*	*/
 			for (size_t i = 0; i < 4; i++) {
 				instanceBuffer.color[i] = glm::vec4(i / 3.0f, (i + 1) / 4.0f, 1.0f, 0.5f);
 			}
 		}
 
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+
 		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);
-
-			/*	*/
-			this->uniformBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			// TODO draw multiple instance with various position and color to show the blending.
 
@@ -239,6 +240,39 @@ namespace glsample {
 			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	Draw plan.	*/
+			{
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_share_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
+				glUseProgram(this->blending_program);
+
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+				glFrontFace(GL_CCW);
+
+				glEnable(GL_DEPTH_TEST);
+				glDepthMask(GL_TRUE);
+
+				/*	Blending.	*/
+				glDisable(GL_BLEND);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->ground_diffuse_texture);
+
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, this->blendingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->plan.vao);
+				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
+			}
+
+			/*	Draw blending objects.	*/
 			{
 				glUseProgram(this->blending_program);
 
@@ -266,33 +300,39 @@ namespace glsample {
 		}
 
 		void update() override {
-			/*	Update Camera.	*/
-			float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
 
-			/*	Update instance model matrix.	*/
-			for (size_t i = 0; i < rows; i++) {
-				for (size_t j = 0; j < cols; j++) {
-					const size_t index = i * cols + j;
+			{
+				/*	Update Camera.	*/
+				const float elapsedTime = this->getTimer().getElapsed();
+				this->camera.update(this->getTimer().deltaTime());
 
-					glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(i * 10.0f, 0, j * 10.0f));
-					model = glm::rotate(model, glm::radians(elapsedTime * 45.0f + index * 11.5f),
-										glm::vec3(0.0f, 1.0f, 0.0f));
-					model = glm::scale(model, glm::vec3(1.95f));
+				/*	Update instance model matrix.	*/
+				for (size_t i = 0; i < rows; i++) {
+					for (size_t j = 0; j < cols; j++) {
 
-					this->instanceBuffer.model[index] = model;
+						const size_t index = i * cols + j;
+
+						glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(i * 10.0f, 0, j * 10.0f));
+						model = glm::rotate(model, glm::radians(elapsedTime * 45.0f + index * 11.5f),
+											glm::vec3(0.0f, 1.0f, 0.0f));
+						model = glm::scale(model, glm::vec3(1.95f));
+
+						this->instanceBuffer.model[index] = model;
+					}
 				}
-			}
 
-			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
+				/*	*/
+				/*	*/
+				this->uniformBuffer.proj = this->camera.getProjectionMatrix();
+				this->uniformBuffer.model = glm::mat4(1.0f);
+				this->uniformBuffer.model = glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f),
+														glm::vec3(0.0f, 1.0f, 0.0f));
+				this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
+				this->uniformBuffer.view = this->camera.getViewMatrix();
+				this->uniformBuffer.modelViewProjection =
+					this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+				this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
+			}
 
 			/*	Update uniform.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_share_buffer);
@@ -316,7 +356,9 @@ namespace glsample {
 	  public:
 		BlendingGLSample() : GLSample<Blending>() {}
 		virtual void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
+				"G,ground-texture", "Ground Texture",
+				cxxopts::value<std::string>()->default_value("asset/stylized-ground.png"));
 		}
 	};
 

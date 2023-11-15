@@ -203,7 +203,7 @@ namespace glsample {
 			/*	Plan.	*/
 			{
 				/*	Load geometry.	*/
-				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generatePlan(1, vertices, indices, 2, 2);
 
@@ -214,7 +214,7 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->plan.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
 							 GL_STATIC_DRAW);
 
 				/*  Create index buffer.    */
@@ -226,28 +226,28 @@ namespace glsample {
 
 				/*	Vertex.	*/
 				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 				/*	UV.	*/
 				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(12));
 
 				/*	Normal.	*/
 				glEnableVertexAttribArray(2);
-				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(20));
 
 				/*	Tangent.	*/
 				glEnableVertexAttribArray(3);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(32));
 
 				glBindVertexArray(0);
 			}
 			/*	Cube.	*/
 			{
-				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generateCube(1, vertices, indices);
 				/*	Create array buffer, for rendering static geometry.	*/
@@ -264,16 +264,16 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->skybox.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
 							 GL_STATIC_DRAW);
 
 				/*	*/
 				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 				/*	*/
 				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(12));
 
 				glBindVertexArray(0);

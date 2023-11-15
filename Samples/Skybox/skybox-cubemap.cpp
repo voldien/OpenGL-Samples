@@ -1,3 +1,4 @@
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -31,6 +32,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor;
 			float exposure = 1.0f;
+			float gamma = 2.2f;
 		} uniform_stage_buffer;
 
 		CameraController camera;
@@ -55,6 +57,8 @@ namespace glsample {
 				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Exposure", &this->uniform.exposure);
+				ImGui::DragFloat("Gamma", &this->uniform.gamma);
+				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -113,7 +117,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 			std::vector<unsigned int> indices;
 			ProceduralGeometry::generateCube(1.0f, vertices, indices);
 
@@ -130,12 +134,12 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->SkyboxCube.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, SkyboxCube.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
+						 vertices.data(), GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 			glBindVertexArray(0);
 		}

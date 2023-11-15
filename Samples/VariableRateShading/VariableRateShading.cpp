@@ -115,7 +115,7 @@ namespace glsample {
 			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 			std::vector<unsigned int> indices;
 			ProceduralGeometry::generateCube(1, vertices, indices);
 
@@ -126,7 +126,7 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->plan.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
 			/*	*/
@@ -137,21 +137,21 @@ namespace glsample {
 
 			/*	Vertex.	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 			/*	UV.	*/
 			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									 reinterpret_cast<void *>(12));
 
 			/*	Normal.	*/
 			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									 reinterpret_cast<void *>(20));
 
 			/*	Tangent.	*/
 			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									 reinterpret_cast<void *>(32));
 
 			glBindVertexArray(0);

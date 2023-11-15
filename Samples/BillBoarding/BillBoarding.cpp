@@ -138,6 +138,9 @@ namespace glsample {
 			glDeleteVertexArrays(1, &this->terrain.vao);
 			glDeleteBuffers(1, &this->terrain.vbo);
 			glDeleteBuffers(1, &this->terrain.ibo);
+
+			glDeleteVertexArrays(1, &this->billboard.vao);
+			glDeleteBuffers(1, &this->billboard.vbo);
 		}
 
 		void Initialize() override {
@@ -187,14 +190,14 @@ namespace glsample {
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
 
-			/*	Setup graphic pipeline.	*/
+			/*	Setup Billboard graphic pipeline.	*/
 			glUseProgram(this->billboarding_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->billboarding_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->billboarding_program, "DiffuseTexture"), 0);
 			glUniformBlockBinding(this->billboarding_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	Create Terrain Shader.	*/
+			/*	Setup Terrain graphic pipeline.	*/
 			glUseProgram(this->terrain_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->terrain_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->terrain_program, "DiffuseTexture"), 0);
@@ -211,9 +214,10 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->billboard_diffuse_texture = textureImporter.loadImage2D(diffuseBillboardTexturePath);
-			this->ground_diffuse_texture = textureImporter.loadImage2D(diffuseGroundTexturePath);
-			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
+			this->billboard_diffuse_texture =
+				textureImporter.loadImage2D(diffuseBillboardTexturePath, ColorSpace::SRGB);
+			this->ground_diffuse_texture = textureImporter.loadImage2D(diffuseGroundTexturePath, ColorSpace::SRGB);
+			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath, ColorSpace::SRGB);
 			skybox.Init(skytexture, this->skybox_program);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -230,7 +234,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			{
 				/*	Load geometry.	*/
-				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generatePlan(10, vertices, indices, 512, 512);
 
@@ -257,8 +261,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->terrain.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, terrain.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-							 GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
+							 vertices.data(), GL_STATIC_DRAW);
 
 				/*	*/
 				glGenBuffers(1, &this->terrain.ibo);
@@ -269,21 +273,21 @@ namespace glsample {
 
 				/*	Vertex.	*/
 				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 				/*	UV.	*/
 				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(12));
 
 				/*	Normal.	*/
 				glEnableVertexAttribArray(2);
-				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(20));
 
 				/*	Tangent.	*/
 				glEnableVertexAttribArray(3);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(32));
 
 				glBindVertexArray(0);
@@ -309,7 +313,7 @@ namespace glsample {
 				this->billboard.nrIndicesElements = billboardIndices.size();
 				/*	Vertex.	*/
 				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 				glBindVertexArray(0);
 			}
@@ -330,7 +334,8 @@ namespace glsample {
 			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			/*	Draw plan.	*/
+			// TODO fix terrain.
+			/*	Draw terrain.	*/
 			{
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -364,38 +369,37 @@ namespace glsample {
 
 			if (this->billboardSettingComponent->showBillBoards) {
 				/*	Draw billboard.	*/
-				{
-					/*	*/
-					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-									  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-									  this->uniformBufferSize);
 
-					glUseProgram(this->billboarding_program);
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
 
-					glDisable(GL_CULL_FACE);
-					glCullFace(GL_BACK);
-					glFrontFace(GL_CCW);
+				glUseProgram(this->billboarding_program);
 
-					glEnable(GL_DEPTH_TEST);
-					glDepthMask(GL_TRUE);
+				glDisable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+				glFrontFace(GL_CCW);
 
-					/*	Blending.	*/
-					glEnable(GL_BLEND);
-					glBlendEquation(GL_FUNC_ADD);
-					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glEnable(GL_DEPTH_TEST);
+				glDepthMask(GL_TRUE);
 
-					/*	*/
-					glActiveTexture(GL_TEXTURE0);
-					glBindTexture(GL_TEXTURE_2D, this->billboard_diffuse_texture);
+				/*	Blending.	*/
+				glEnable(GL_BLEND);
+				glBlendEquation(GL_FUNC_ADD);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-					/*	Optional - to display wireframe.	*/
-					glPolygonMode(GL_FRONT_AND_BACK, billboardSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				/*	*/
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->billboard_diffuse_texture);
 
-					/*	Draw triangle.	*/
-					glBindVertexArray(this->billboard.vao);
-					glDrawElements(GL_POINTS, this->billboard.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-					glBindVertexArray(0);
-				}
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, billboardSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->billboard.vao);
+				glDrawElements(GL_POINTS, this->billboard.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
 			}
 
 			/*	*/

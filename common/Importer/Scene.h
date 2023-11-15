@@ -3,7 +3,7 @@
 #include "ModelImporter.h"
 
 namespace glsample {
-	
+
 	/**
 	 * @brief
 	 *
@@ -16,15 +16,23 @@ namespace glsample {
 		virtual void release();
 
 		virtual void update(const float deltaTime);
+
+		// virtual void updateBuffers();
+
 		virtual void render();
 
 		virtual void renderNode(const NodeObject *node);
 
+		virtual void sortRenderQueue();
+
 	  private:
+		/*	TODO add queue structure.	*/
+
 		std::vector<NodeObject *> nodes;
 		std::vector<GeometryObject> refObj;
 		std::vector<TextureAssetObject> refTexture;
 		std::vector<MaterialObject> materials;
+		std::vector<animation_object_t> animations;
 
 	  public:
 		// Template

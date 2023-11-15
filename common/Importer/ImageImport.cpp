@@ -48,7 +48,6 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		type = GL_UNSIGNED_BYTE;
 		break;
 	case TextureFormat::RGBA32:
-
 		format = GL_RGBA;
 		internalformat = GL_RGBA8;
 		type = GL_UNSIGNED_BYTE;
@@ -70,6 +69,22 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		break;
 	default:
 		throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));
+	}
+
+	if (colorSpace == ColorSpace::SRGB) {
+		switch (internalformat) {
+		case GL_RGBA8:
+			internalformat = GL_SRGB8;
+			break;
+		// case GL_RGBA16F:
+		// 	internalformat = GL_SRGBA16F;
+		// 	break;
+		case GL_R8:
+			internalformat = GL_SR8_EXT;
+			break;
+		default:
+			break;
+		}
 	}
 
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));

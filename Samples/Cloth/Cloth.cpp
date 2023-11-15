@@ -1,3 +1,4 @@
+#include "GLSampleSession.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -22,8 +23,8 @@ namespace glsample {
 			this->setTitle("Cloth Simulation");
 
 			/*	*/
-			this->vectorFieldSettingComponent = std::make_shared<ParticleSystemSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->vectorFieldSettingComponent);
+			this->clothSettingComponent = std::make_shared<ClothSimulationSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->clothSettingComponent);
 
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
@@ -37,12 +38,8 @@ namespace glsample {
 		size_t VectorFieldMemorySize = 0;
 
 		/*	*/
-		GeometryObject particles;
+		GeometryObject cloth;
 		GeometryObject grid;
-		GeometryObject vectorField;
-
-		unsigned int vao_particle;
-		unsigned int vbo_particle;
 
 		/*	*/
 		unsigned int particle_texture;
@@ -51,16 +48,13 @@ namespace glsample {
 		int localWorkGroupSize[3];
 
 		/*	*/
-		unsigned int particle_graphic_program;
-		unsigned int particle_compute_program;
-		unsigned int grid_graphic_program;
-		unsigned int vector_field_graphic_program;
+		unsigned int cloth_graphic_program;
+		unsigned int cloth_compute_program;
 
-		typedef struct motion_t {
-			glm::vec2 pos; /*  Position in pixel space.    */
-			glm::vec2 velocity /*  direction and magnitude of mouse movement.  */;
-			float radius; /*  Radius of incluense, also the pressure of input.    */
-		} Motion;
+		typedef struct wind_settings_t {
+			glm::vec4 direction;
+			glm::vec4 noise;
+		} WindSettings;
 
 		typedef struct particle_setting_t {
 			glm::uvec3 particleBox = glm::uvec3(16, 16, 16);
@@ -69,7 +63,8 @@ namespace glsample {
 			float gravity = 9.82f;
 			float strength = 1.0f;
 			float density = 1.0f;
-		} ParticleSetting;
+
+		} ClothSetting;
 
 		struct UniformBufferBlock {
 			alignas(16) glm::mat4 model;
@@ -79,28 +74,31 @@ namespace glsample {
 			alignas(16) glm::mat4 modelViewProjection;
 
 			/*	*/
-			float delta;
+			ClothSetting clothSetting;
+			WindSettings windSettings;
+
+			struct light_settings_t {
+				/*	light source.	*/
+				glm::vec4 lookDirection;
+				glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
+				glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+				glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+				glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+				glm::vec4 position;
+			} light;
 
 			/*	*/
-			ParticleSetting particleSetting;
-			Motion motion;
-
-			glm::vec4 ambientColor;
-			glm::vec4 color;
+			float delta;
 
 		} uniformBuffer;
 
 		typedef struct particle_t {
-			glm::vec4 position; /*	Position, time	*/
-			glm::vec4 velocity; /*	Velocity, mass	*/
-		} Particle;
+			ProceduralGeometry::ProceduralVertex vertex; /*	Position, time	*/
+			glm::vec4 velocity;				   /*	Velocity, mass	*/
+			float pinnedWeight;
+		} ClothVertex;
 
 		CameraController camera;
-
-		/*	*/
-		unsigned int uniform_buffer_particle_graphic_index;
-		unsigned int uniform_buffer_particle_compute_index;
-		unsigned int uniform_buffer_vector_field_index;
 
 		/*	*/
 		int particle_buffer_vector_field_index;
@@ -115,53 +113,69 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 
-		class ParticleSystemSettingComponent : public nekomimi::UIComponent {
+		class ClothSimulationSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			ParticleSystemSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Particle Settings");
+			ClothSimulationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Cloth Simulation Settings");
 			}
 			void draw() override {
-				ImGui::DragFloat("Speed", &this->uniform.particleSetting.speed, 1, 0.0f, 100.0f);
-				ImGui::DragFloat("Strength", &this->uniform.particleSetting.strength, 1, 0.0f, 100.0f);
-				ImGui::DragFloat("LifeTime", &this->uniform.particleSetting.lifetime, 1, 0.0f, 10.0f);
+				ImGui::TextUnformatted("Light Setting");
+				{
+					ImGui::ColorEdit4("Color", &this->uniform.light.lightColor[0],
+									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+					ImGui::ColorEdit4("Ambient", &this->uniform.light.ambientLight[0],
+									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+					// ImGui::ColorEdit4("Specular Color", &this->uniform.ocean.specularColor[0],
+					//				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+					//
+					if (ImGui::DragFloat3("Light Direction", &this->uniform.light.lightDirection[0])) {
+						this->uniform.light.lightDirection = glm::normalize(this->uniform.light.lightDirection);
+					}
+				}
+
+				/*	Wind Settings.	*/
+				ImGui::TextUnformatted("Wind Settings");
+				{
+					ImGui::DragFloat3("Direction", &this->uniform.windSettings.direction[0]);
+					ImGui::DragFloat3("Noise", &this->uniform.windSettings.noise[0]);
+				}
+				ImGui::Checkbox("WireFrame", &this->selfCollision);
+
+				/*	*/
+				ImGui::TextUnformatted("Debug");
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
+
+			bool simulateCloth = false;
+			bool showWireFrame = false;
+			bool selfCollision = false;
 
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<ParticleSystemSettingComponent> vectorFieldSettingComponent;
+		std::shared_ptr<ClothSimulationSettingComponent> clothSettingComponent;
 
 		/*	*/
-		const std::string particleVertexShaderPath = "Shaders/vectorfield/particle.vert.spv";
-		const std::string particleGeometryShaderPath = "Shaders/vectorfield/particle.geom.spv";
-		const std::string particleFragmentShaderPath = "Shaders/vectorfield/particle.frag.spv";
+		const std::string clothVertexShaderPath = "Shaders/cloth/cloth.vert.spv";
+		const std::string clothFragmentShaderPath = "Shaders/cloth/cloth.frag.spv";
 
 		/*	*/
-		const std::string particleComputeShaderPath = "Shaders/vectorfield/particle.comp.spv";
-
-		/*	*/
-		const std::string vectorFieldVertexShaderPath = "Shaders/vectorfield/vectorField.vert.spv";
-		const std::string vectorFieldGeometryShaderPath = "Shaders/vectorfield/vectorField.geom.spv";
-		const std::string vectorFieldFragmentPath = "Shaders/vectorfield/vectorField.frag.spv";
-
-		/*	*/
-		const std::string particleTexturePath = "asset/particle.png";
+		const std::string particleComputeShaderPath = "Shaders/cloth/cloth.comp.spv";
 
 		void Release() override {
 			/*	*/
-			glDeleteProgram(this->particle_graphic_program);
-			glDeleteProgram(this->particle_compute_program);
+			glDeleteProgram(this->cloth_graphic_program);
+			glDeleteProgram(this->cloth_compute_program);
 
 			glDeleteTextures(1, &this->particle_texture);
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
-			glDeleteVertexArrays(1, &this->vao_particle);
-			glDeleteBuffers(1, &this->vbo_particle);
 		}
 
 		void Initialize() override {
+
 			const std::string texturePath = this->getResult()["texture"].as<std::string>();
 
 			{
@@ -171,32 +185,18 @@ namespace glsample {
 
 				/*	*/
 				std::vector<char> vertex_source =
-					glsample::IOUtil::readFileString(this->particleVertexShaderPath, this->getFileSystem());
-				std::vector<char> geometry_source =
-					glsample::IOUtil::readFileString(this->particleGeometryShaderPath, this->getFileSystem());
+					glsample::IOUtil::readFileString(this->clothVertexShaderPath, this->getFileSystem());
 				std::vector<char> fragment_source =
-					glsample::IOUtil::readFileString(this->particleFragmentShaderPath, this->getFileSystem());
+					glsample::IOUtil::readFileString(this->clothFragmentShaderPath, this->getFileSystem());
 
 				/*	*/
 				std::vector<char> compute_source =
 					glsample::IOUtil::readFileString(this->particleComputeShaderPath, this->getFileSystem());
 
 				/*	Load Graphic Program.	*/
-				this->particle_graphic_program =
-					ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, &geometry_source);
+				this->cloth_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 				/*	Load Compute.	*/
-				this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
-
-				/*	*/
-				vertex_source =
-					glsample::IOUtil::readFileString(this->vectorFieldVertexShaderPath, this->getFileSystem());
-				geometry_source =
-					glsample::IOUtil::readFileString(this->vectorFieldGeometryShaderPath, this->getFileSystem());
-				fragment_source =
-					glsample::IOUtil::readFileString(this->vectorFieldFragmentPath, this->getFileSystem());
-
-				this->vector_field_graphic_program =
-					ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, &geometry_source);
+				this->cloth_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
 			}
 
 			/*	*/
@@ -204,50 +204,42 @@ namespace glsample {
 			this->particle_texture = textureImporter.loadImage2D(texturePath);
 
 			/*	Setup graphic render pipeline.	*/
-			glUseProgram(this->particle_graphic_program);
-			glUniform1i(glGetUniformLocation(this->particle_graphic_program, "spriteTexture"), 0);
-			this->uniform_buffer_particle_graphic_index =
-				glGetUniformBlockIndex(this->particle_graphic_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->particle_graphic_program, this->uniform_buffer_particle_graphic_index,
+			glUseProgram(this->cloth_graphic_program);
+			glUniform1i(glGetUniformLocation(this->cloth_graphic_program, "spriteTexture"), 0);
+			int uniform_buffer_particle_graphic_index =
+				glGetUniformBlockIndex(this->cloth_graphic_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->cloth_graphic_program, uniform_buffer_particle_graphic_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup particle simulation pipeline.	*/
-			glUseProgram(this->particle_compute_program);
-			this->uniform_buffer_particle_compute_index =
-				glGetUniformBlockIndex(this->particle_compute_program, "UniformBufferBlock");
+			glUseProgram(this->cloth_compute_program);
+			int uniform_buffer_particle_compute_index =
+				glGetUniformBlockIndex(this->cloth_compute_program, "UniformBufferBlock");
 			this->particle_buffer_vector_field_index =
-				glGetUniformBlockIndex(this->particle_compute_program, "VectorField");
-			this->particle_buffer_read_index = glGetUniformBlockIndex(this->particle_compute_program, "ReadBuffer");
-			this->particle_buffer_write_index = glGetUniformBlockIndex(this->particle_compute_program, "WriteBuffer");
-			glGetProgramiv(this->particle_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+				glGetUniformBlockIndex(this->cloth_compute_program, "VectorField");
+			this->particle_buffer_read_index = glGetUniformBlockIndex(this->cloth_compute_program, "ReadBuffer");
+			this->particle_buffer_write_index = glGetUniformBlockIndex(this->cloth_compute_program, "WriteBuffer");
+			glGetProgramiv(this->cloth_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 			// TODO fix
 			this->particle_buffer_read_index = 1;
 			this->particle_buffer_write_index = 2;
 
-			glUniformBlockBinding(this->particle_compute_program, this->uniform_buffer_particle_compute_index,
+			glUniformBlockBinding(this->cloth_compute_program, uniform_buffer_particle_compute_index,
 								  this->uniform_buffer_binding);
 			/*	*/
-			glShaderStorageBlockBinding(this->particle_compute_program, this->particle_buffer_read_index,
+			glShaderStorageBlockBinding(this->cloth_compute_program, this->particle_buffer_read_index,
 										this->particle_read_buffer_binding);
-			glShaderStorageBlockBinding(this->particle_compute_program, this->particle_buffer_write_index,
+			glShaderStorageBlockBinding(this->cloth_compute_program, this->particle_buffer_write_index,
 										this->particle_write_buffer_binding);
 
-			glUseProgram(0);
-
-			/*	Setup graphic render pipeline.	*/
-			glUseProgram(this->vector_field_graphic_program);
-			this->uniform_buffer_vector_field_index =
-				glGetUniformBlockIndex(this->vector_field_graphic_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->vector_field_graphic_program, this->uniform_buffer_vector_field_index,
-								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = fragcore::Math::align<size_t>(uniformBufferSize, minMapBufferSize);
-
+			this->uniformBufferSize = fragcore::Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
+			
 			// GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT
 
 			/*	*/
@@ -256,102 +248,79 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Compute number of particles and memory size.	*/
-			this->nrParticles =
-				(size_t)(uniformBuffer.particleSetting.particleBox.x * uniformBuffer.particleSetting.particleBox.y *
-						 uniformBuffer.particleSetting.particleBox.z);
-			this->ParticleMemorySize = this->nrParticles * sizeof(Particle);
+			/*	Load geometry.	*/
+			{
+				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
+				std::vector<unsigned int> indices;
+				ProceduralGeometry::generatePlan(1, vertices, indices, 2048, 2048);
+				std::vector<ClothVertex> ClothVertex(vertices.size());
 
-			/*	Create buffer.	*/
-			glGenBuffers(1, &this->vbo_particle);
-			glBindBuffer(GL_SHADER_STORAGE_BUFFER, vbo_particle);
-			glBufferData(GL_SHADER_STORAGE_BUFFER, this->ParticleMemorySize * this->nrParticleBuffers, nullptr,
-						 GL_DYNAMIC_DRAW);
+				for (size_t i = 0; i < this->nrParticles * this->nrParticleBuffers; i++) {
+				}
 
-			/*	*/
-			Particle *particle_buffer = static_cast<Particle *>(
-				glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, this->ParticleMemorySize * this->nrParticleBuffers,
-								 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
-			for (size_t i = 0; i < this->nrParticles * this->nrParticleBuffers; i++) {
-				particle_buffer[i].position =
-					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
-							  Random::normalizeRand<float>() * 100.0f,
-							  Random::normalizeRand<float>() * this->uniformBuffer.particleSetting.lifetime);
-				particle_buffer[i].velocity = glm::vec4(
-					Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
-					Random::normalizeRand<float>() * 100.0f, 1.0f / (Random::normalizeRand<float>() * 100.0f));
+				/*	Vertex.	*/
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ClothVertex), nullptr);
+
+				/*	UV.	*/
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ClothVertex), reinterpret_cast<void *>(12));
+
+				/*	Normal.	*/
+				glEnableVertexAttribArray(2);
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ClothVertex), reinterpret_cast<void *>(20));
+
+				/*	Tangent.	*/
+				glEnableVertexAttribArray(3);
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ClothVertex), reinterpret_cast<void *>(32));
+
+				glBindVertexArray(0);
 			}
-			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->vao_particle);
-			glBindVertexArray(this->vao_particle);
-
-			glBindBuffer(GL_ARRAY_BUFFER, vbo_particle);
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), nullptr);
-
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle),
-								  reinterpret_cast<void *>(sizeof(float) * 4));
-
-			glBindVertexArray(0);
-
-			this->VectorFieldMemorySize = this->nrParticles * sizeof(glm::vec3);
-
-			glGenVertexArrays(1, &this->vectorField.vao);
-			glBindVertexArray(this->vectorField.vao);
-
-			glGenBuffers(1, &this->vectorField.vbo);
-			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->vectorField.vbo);
-			glBufferData(GL_SHADER_STORAGE_BUFFER, this->VectorFieldMemorySize, nullptr, GL_STATIC_DRAW);
-
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
-
-			glBindVertexArray(0);
 
 			fragcore::resetErrorFlag();
 		}
 
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+
 		void draw() override {
 
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
-			/*	Compute particles in vector field.	*/
-			{
-				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+			/*	Compute cloth.	*/
+			if (this->clothSettingComponent->simulateCloth) {
+				{
+					glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
-				/*	Bind uniform buffer.	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_particle_compute_index, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-								  this->uniformBufferSize);
+					/*	Bind uniform buffer.	*/
+					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+									  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+									  this->uniformBufferSize);
+					/*	*/
+					// glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_vector_field_index,
+					//				  this->vectorField.vbo, 0, this->VectorFieldMemorySize);
 
-				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_vector_field_index,
-								  this->vectorField.vbo, 0, this->VectorFieldMemorySize);
+					///*	Bind read particle buffer.	*/
+					// glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_read_index, this->vbo_particle,
+					//				  ((this->getFrameCount()) % nrParticleBuffers) * ParticleMemorySize,
+					//				  this->ParticleMemorySize);
+					//
+					///*	Bind write particle buffer.	*/
+					// glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_write_index,
+					// this->vbo_particle,
+					//				  ((this->getFrameCount() + 1) % this->nrParticleBuffers) *
+					//					  this->ParticleMemorySize,
+					//				  this->ParticleMemorySize);
 
-				/*	Bind read particle buffer.	*/
-				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_read_index, this->vbo_particle,
-								  ((this->getFrameCount()) % nrParticleBuffers) * ParticleMemorySize,
-								  this->ParticleMemorySize);
+					/*	Compute.	*/
+					glUseProgram(this->cloth_compute_program);
+					glDispatchCompute(cloth.nrVertices / this->localWorkGroupSize[0],
+									  cloth.nrVertices / this->localWorkGroupSize[1], 1);
 
-				/*	Bind write particle buffer.	*/
-				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_buffer_write_index, this->vbo_particle,
-								  ((this->getFrameCount() + 1) % this->nrParticleBuffers) * this->ParticleMemorySize,
-								  this->ParticleMemorySize);
+					glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
-				/*	Compute.	*/
-				glUseProgram(this->particle_compute_program);
-				glDispatchCompute(this->uniformBuffer.particleSetting.particleBox.x / this->localWorkGroupSize[0],
-								  this->uniformBuffer.particleSetting.particleBox.y / this->localWorkGroupSize[1],
-								  this->uniformBuffer.particleSetting.particleBox.z / this->localWorkGroupSize[2]);
-
-				glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
-
-				glUseProgram(0);
+					glUseProgram(0);
+				}
 			}
 
 			/*	*/
@@ -360,62 +329,27 @@ namespace glsample {
 			/*	*/
 			glViewport(0, 0, width, height);
 
-			/*	Draw Vector field.	*/
+			/*	Cloth.	*/
 			{
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_vector_field_index, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+
+				/*	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
+								  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
-				/*  Draw grid.  */
-				glDisable(GL_BLEND);
+				/*	Draw Skybox.	*/
+
 				glDisable(GL_CULL_FACE);
 
-				glUseProgram(this->vector_field_graphic_program);
+				/*	Draw terrain.	*/
+				glUseProgram(this->cloth_graphic_program);
 
-				glLineWidth(3.0f);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->particle_texture);
 
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->vectorField.vao);
-				glDrawArrays(GL_POINTS, 0, this->nrParticles);
+				glBindVertexArray(this->cloth.vao);
+				glDrawElements(GL_TRIANGLES, cloth.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
-
-				glUseProgram(0);
-			}
-
-			/*	Draw Particles.	*/
-			{
-
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_particle_graphic_index, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-								  this->uniformBufferSize);
-
-				glActiveTexture(GL_TEXTURE0 + 0);
-				glBindTexture(GL_TEXTURE_2D, particle_texture);
-
-				glUseProgram(this->particle_graphic_program);
-				glEnable(GL_BLEND);
-				glBlendEquation(GL_FUNC_ADD);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				glDisable(GL_DEPTH_TEST);
-
-				glEnable(GL_PROGRAM_POINT_SIZE_ARB);
-				glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
-				glPointParameteri(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
-				glPointParameterf(GL_POINT_SIZE_MIN_ARB, 1.0f);
-				glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 1.0f);
-
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->vao_particle);
-				/*	Bind.	*/
-				glBindVertexBuffer(0, this->vbo_particle,
-								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * ParticleMemorySize, 0);
-				glBindVertexBuffer(1, this->vbo_particle,
-								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * ParticleMemorySize,
-								   sizeof(glm::vec4));
-				glDrawArrays(GL_POINTS, 0, this->nrParticles);
-				glBindVertexArray(0);
-
-				glUseProgram(0);
 			}
 		}
 
@@ -449,7 +383,9 @@ namespace glsample {
 	class ClothSimulationSample : public GLSample<ClothSimulation> {
 	  public:
 		ClothSimulationSample() : GLSample<ClothSimulation>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Cloth Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+		}
 	};
 } // namespace glsample
 

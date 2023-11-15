@@ -31,9 +31,9 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 	this->preHeight = this->height();
 
 	/*	*/
-	// glEnable(GL_FRAMEBUFFER_SRGB);
 
-	// glGetIntegerv( FRAMEBUFFER ,  &frameBufferCount);
+	// glGetIntegerv( GL_FRAMEBUFFER ,  &frameBufferCount);
+	glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
 void GLSampleWindow::displayMenuBar() {}
@@ -57,6 +57,7 @@ void GLSampleWindow::renderUI() {
 	}
 
 	/*	*/
+
 	this->draw();
 
 	/*	*/
@@ -98,7 +99,7 @@ void GLSampleWindow::renderUI() {
 
 void GLSampleWindow::setTitle(const std::string &title) {
 
-	nekomimi::MIMIWindow::setTitle(title + " - OpenGL version " + getRenderInterface()->getAPIVersion());
+	nekomimi::MIMIWindow::setTitle(title + " - OpenGL version " + this->getRenderInterface()->getAPIVersion());
 }
 
 void GLSampleWindow::debug(bool enable) {
@@ -154,6 +155,8 @@ void GLSampleWindow::captureScreenShot() {
 	});
 	process_thread.detach();
 }
+
+void GLSampleWindow::setColorSpace(bool srgb) {}
 
 unsigned int GLSampleWindow::getShaderVersion() const {
 	const fragcore::GLRendererInterface *interface =

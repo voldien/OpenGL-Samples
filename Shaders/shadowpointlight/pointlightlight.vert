@@ -43,6 +43,8 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 cameraPosition;
 
 	point_light point_light[4];
+	vec4 PCFFilters[20];
+	float diskRadius;
 }
 ubo;
 

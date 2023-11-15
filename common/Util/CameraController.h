@@ -5,6 +5,8 @@
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #define FLYTHROUGH_CAMERA_IMPLEMENTATION 1
 #include "flythrough_camera.h"
@@ -12,6 +14,7 @@
 
 class Camera {
   public:
+  
 };
 
 class CameraController : public Camera {
@@ -47,16 +50,14 @@ class CameraController : public Camera {
 		}
 
 		/*	*/
-		float speed = this->speed;
-
-		/*	*/
+		float current_speed = this->speed;
 		if (shift) {
-			speed *= 2.5f;
+			current_speed *= 2.5f;
 		}
 
 		/*	*/
 		if (!alt) {
-			flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime, speed,
+			flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime, current_speed,
 									 0.5f * activated, fov, xDiff, yDiff, w, a, s, d, 0, 0, 0);
 		}
 
@@ -66,7 +67,8 @@ class CameraController : public Camera {
 
 	const glm::mat4 &getViewMatrix() const noexcept { return this->view; }
 	const glm::mat4 getRotationMatrix() const noexcept {
-		return glm::orientation(glm::normalize(this->getLookDirection()), this->getUp());
+		glm::quat rotation = glm::quatLookAt(glm::normalize(this->getLookDirection()), glm::normalize(this->getUp()));
+		return glm::toMat4(rotation);
 	}
 
 	const glm::vec3 &getLookDirection() const noexcept { return this->look; }

@@ -35,7 +35,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			float exposure = 1.0f;
-			float gamma = 1.0;
+			float gamma = 2.2;
 		};
 
 		struct UniformTerrainBufferBlock {
@@ -228,7 +228,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 			{
 				/*	Load geometry.	*/
-				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generatePlan(1, vertices, indices, 2048, 2048);
 
@@ -253,7 +253,7 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->terrain.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, terrain.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
 							 GL_STATIC_DRAW);
 
 				/*	*/
@@ -265,28 +265,28 @@ namespace glsample {
 
 				/*	Vertex.	*/
 				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 				/*	UV.	*/
 				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(12));
 
 				/*	Normal.	*/
 				glEnableVertexAttribArray(2);
-				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(20));
 
 				/*	Tangent.	*/
 				glEnableVertexAttribArray(3);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(32));
 
 				glBindVertexArray(0);
 			}
 			/*	Load geometry.	*/
 			{ /*	Load geometry.	*/
-				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generatePlan(1, vertices, indices, 1, 1);
 			}

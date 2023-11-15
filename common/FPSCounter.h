@@ -23,7 +23,7 @@
  */
 template <typename T = double> class FPSCounter {
   public:
-	FPSCounter(int nrFPSSample = 50, long int timeResolution = 1000000000) {
+	FPSCounter(const int nrFPSSample = 50, const long int timeResolution = 1000000000) {
 		this->fpsSample = nrFPSSample;
 		this->timeResolution = timeResolution;
 
@@ -31,9 +31,9 @@ template <typename T = double> class FPSCounter {
 		this->totalFPS = 0;
 	}
 
-	void enabled(bool status) {}
+	void enabled(const bool status) noexcept {}
 
-	void incrementFPS(long int timeSample) noexcept {
+	void incrementFPS(const long int timeSample) noexcept {
 
 		if (totalFPS % fpsSample == 0) {
 			/*  Compute number average FPS.  */
@@ -45,7 +45,7 @@ template <typename T = double> class FPSCounter {
 		totalFPS++;
 	}
 
-	void update(float elapsedTime) {
+	void update(const float elapsedTime) noexcept {
 		if (totalFPS % fpsSample == 0) {
 		}
 		totalFPS++;
@@ -54,7 +54,7 @@ template <typename T = double> class FPSCounter {
 	unsigned int getFPS() const noexcept { return averageFPS; }
 
   protected:
-	void internal_update(long int timeSample) {
+	void internal_update(long int timeSample) noexcept {
 		if (totalFPS % fpsSample == 0) {
 			/*  Compute number average FPS.  */
 			long int deltaTime = timeSample - prevTimeSample;

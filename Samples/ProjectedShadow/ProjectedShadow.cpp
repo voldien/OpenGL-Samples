@@ -258,7 +258,7 @@ namespace glsample {
 
 			{
 				/*	Load plane geometry.	*/
-				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generatePlan(1, vertices, indices);
 
@@ -276,16 +276,16 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->plan.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
 							 GL_STATIC_DRAW);
 
 				/*	*/
 				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(0));
 
 				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 									  reinterpret_cast<void *>(12));
 
 				glBindVertexArray(0);

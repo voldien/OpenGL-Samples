@@ -132,6 +132,8 @@ namespace glsample {
 			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), 2);
+			
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 

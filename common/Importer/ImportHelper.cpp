@@ -14,6 +14,9 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<Geome
 	unsigned int tmp_ibo;
 	unsigned int tmp_vbo;
 	unsigned int tmp_vao;
+
+	//TODO compute number of buffer required to fill.
+
 	/*	Create array buffer, for rendering static geometry.	*/
 	glGenVertexArrays(1, &tmp_vao);
 	glBindVertexArray(tmp_vao);
@@ -50,21 +53,21 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<Geome
 	// TODO add proper stride.
 	/*	Vertex.	*/
 	glEnableVertexAttribArrayARB(0);
-	glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+	glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 	/*	UV.	*/
 	glEnableVertexAttribArrayARB(1);
-	glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+	glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 							 reinterpret_cast<void *>(12));
 
 	/*	Normal.	*/
 	glEnableVertexAttribArrayARB(2);
-	glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+	glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 							 reinterpret_cast<void *>(20));
 
 	/*	Tangent.	*/
 	glEnableVertexAttribArrayARB(3);
-	glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+	glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 							 reinterpret_cast<void *>(32));
 
 	glBindVertexArray(0);
@@ -100,6 +103,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 	textures.resize(Reftextures.size());
 
 	glsample::TextureImporter textureImporter(modelLoader.getFileSystem());
+	ColorSpace colorSpace;
 
 	for (size_t i = 0; i < Reftextures.size(); i++) {
 		TextureAssetObject &tex = Reftextures[i];
@@ -111,6 +115,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 			} catch (const std::exception &ex) {
 				std::cerr << "Failed to load: " << tex.filepath << " " << ex.what() << std::endl;
 			}
+
 		} else {
 
 			/*	Compressed data.	*/

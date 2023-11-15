@@ -22,7 +22,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			float exposure = 1.0f;
-			float gamma = 0;
+			float gamma = 2.2;
 		} uniform_stage_buffer;
 
 		Skybox();

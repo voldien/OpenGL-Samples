@@ -3,7 +3,7 @@
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
 
-layout(location = 0) out vec4 fragColor;
+layout(location = 0) out float fragColor;
 
 layout(location = 0) in vec2 uv;
 
@@ -18,17 +18,16 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	float radius;
 	float intensity;
 	float bias;
-	vec2 screen;
 
 	vec4 kernel[64];
-
 	vec4 color;
+	vec2 screen;
 }
 ubo;
 
 void main() {
 
-	const vec2 noiseScale = ubo.screen / 4; // screen = 800x600
+	const vec2 noiseScale = ubo.screen / 4;
 
 	/*	*/
 	const vec3 srcPosition = texture(WorldTexture, uv).xyz;
@@ -63,11 +62,11 @@ void main() {
 		const float sampleDepth = texture(WorldTexture, offset.xy).z;
 
 		/*	*/
-		float rangeCheck = smoothstep(0.0, 1.0, kernelRadius / abs(srcPosition.z - sampleDepth));
+		const float rangeCheck = smoothstep(0.0, 1.0, kernelRadius / abs(srcPosition.z - sampleDepth));
 		occlusion += ((sampleDepth >= srcPosition.z + ubo.bias ? 1.0 : 0.0) * rangeCheck);
 	}
 
 	/* Average and clamp ambient occlusion	*/
 	occlusion = 1.0 - (occlusion / float(samples)) * ubo.intensity;
-	fragColor = vec4(occlusion.xxx, 1.0);
+	fragColor = occlusion;
 }

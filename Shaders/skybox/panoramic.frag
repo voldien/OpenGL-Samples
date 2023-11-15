@@ -40,5 +40,5 @@ void main() {
 	fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
 
 	const float gamma = 2.2;
-	fragColor = pow(fragColor, vec4(1.0 / gamma));
+	fragColor = pow(fragColor, vec4(1.0 / ubo.gamma));
 }

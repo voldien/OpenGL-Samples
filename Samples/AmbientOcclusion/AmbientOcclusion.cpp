@@ -32,7 +32,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 		static const int maxKernels = 64;
-		
+
 		// TODO combine uniform buffer stage.
 		struct UniformBufferBlock {
 			glm::mat4 model;
@@ -40,7 +40,6 @@ namespace glsample {
 			glm::mat4 proj;
 			glm::mat4 modelView;
 			glm::mat4 modelViewProjection;
-
 		} uniformBlock;
 
 		struct UniformSSAOBufferBlock {
@@ -261,7 +260,7 @@ namespace glsample {
 
 			{
 				/*	Load geometry.	*/
-				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generatePlan(1, vertices, indices, 1, 1);
 
@@ -272,8 +271,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->plan.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-							 GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
+							 vertices.data(), GL_STATIC_DRAW);
 
 				/*	*/
 				glGenBuffers(1, &this->plan.ibo);
@@ -284,27 +283,28 @@ namespace glsample {
 
 				/*	Vertex.	*/
 				glEnableVertexAttribArrayARB(0);
-				glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
+										 nullptr);
 
 				/*	UV.	*/
 				glEnableVertexAttribArrayARB(1);
-				glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 										 reinterpret_cast<void *>(12));
 
 				/*	Normal.	*/
 				glEnableVertexAttribArrayARB(2);
-				glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 										 reinterpret_cast<void *>(20));
 
 				/*	Tangent.	*/
 				glEnableVertexAttribArrayARB(3);
-				glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+				glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
 										 reinterpret_cast<void *>(32));
 
 				glBindVertexArray(0);
 			}
 
-			/*	FIXME:	*/
+			/*	FIXME: improve vectors.		*/
 			{
 				/*	Create random vector.	*/
 				std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
@@ -469,6 +469,10 @@ namespace glsample {
 							 GL_RED, GL_FLOAT, nullptr);
 				GLint swizzleMask[] = {GL_RED, GL_RED, GL_RED, GL_ONE};
 				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
+
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 4));
+				FVALIDATE_GL_CALL(GL_TEXTURE_2D);
+
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->ssaoTexture, 0);
@@ -476,6 +480,7 @@ namespace glsample {
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			}
 
+			/*	Update camera aspect.	*/
 			this->camera.setAspect((float)width / (float)height);
 		}
 
@@ -562,40 +567,61 @@ namespace glsample {
 				glUseProgram(0);
 
 				/*	Downscale for creating blurred version.	*/
+				// TODO fix downscale.
 				if (this->ambientOcclusionSettingComponent->downScale) {
 					/*	Downscale the image.	*/
+					glBindFramebuffer(GL_FRAMEBUFFER, this->ssao_framebuffer);
+					glReadBuffer(GL_COLOR_ATTACHMENT0);
+
+					glBindTexture(GL_TEXTURE_2D, this->ssaoTexture);
+
 					for (size_t i = 0; i < 4; i++) {
-						glReadBuffer(GL_NONE);
 						const size_t w = ((float)width / (std::pow(2.0f, i) + 1));
 						const size_t h = ((float)height / (std::pow(2.0f, i) + 1));
-						// glBindTexture(GL_TEXTURE_2D, this->)
-						// glCopyTexImage2D(GL_TEXTURE_2D, i + 1, GL_RGB8, 0, 0, w, h, 0);
+
+						/*	*/
+						glCopyTexImage2D(GL_TEXTURE_2D, i + 1, GL_R8, 0, 0, w, h, 0);
 					}
 				}
 			}
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			glViewport(0, 0, width, height);
 
-			if (this->ambientOcclusionSettingComponent->showAOOnly) {
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->ssao_framebuffer);
+			/*	Render final result.	*/
+			{
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glViewport(0, 0, width, height);
 
-				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
-								  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-			} else {
+				/*	Show only ambient Occlusion.	*/
+				if (this->ambientOcclusionSettingComponent->showAOOnly) {
+					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+					glBindFramebuffer(GL_READ_FRAMEBUFFER, this->ssao_framebuffer);
 
-				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+					glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
+									  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+				} else { /*	Blend with final result.	*/
+						 // TODO fix blend AO with color result.
 
-				// Blend to color layer.
+					/*	*/
+					glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+					glClear(GL_COLOR_BUFFER_BIT);
 
-				glUseProgram(0);
-				/*	Draw.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
+					// Blend to color layer.
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, this->ssaoTexture);
 
-				glUseProgram(0);
+					// Blend to color layer.
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, this->multipass_textures[0]);
+
+					// TODO add graphic pipeline. - texture
+					glUseProgram(0);
+
+					/*	Draw.	*/
+					glBindVertexArray(this->plan.vao);
+					glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+					glBindVertexArray(0);
+
+					glUseProgram(0);
+				}
 			}
 
 			/*	Blit image targets to screen.	*/

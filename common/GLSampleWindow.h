@@ -64,7 +64,6 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void captureScreenShot();
 
 	fragcore::IFileSystem *getFileSystem() const noexcept { return this->filesystem; }
-
 	void setFileSystem(fragcore::IFileSystem *filesystem) { this->filesystem = filesystem; }
 
 	unsigned int getShaderVersion() const;
@@ -75,6 +74,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void setCommandResult(cxxopts::ParseResult &result) { this->parseResult = result; }
 
 	// const fragcore::GLRendererInterface *getRenderInterface();
+
+	void setColorSpace(bool srgb);
 
   protected:
 	virtual void displayMenuBar() override;

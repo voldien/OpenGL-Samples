@@ -48,13 +48,17 @@ namespace glsample {
 		} Motion;
 
 		typedef struct particle_setting_t {
-			glm::uvec3 particleBox = glm::uvec3(16, 16, 16);
-			glm::uvec3 vectorfieldbox = glm::uvec3(16, 16, 16);
+			glm::uvec4 particleBox = glm::uvec4(16, 16, 16, 0);
+			glm::uvec4 vectorfieldbox = glm::uvec4(16, 16, 16, 0);
+
 			float speed = 1.0f;
 			float lifetime = 5.0f;
 			float gravity = 9.82f;
 			float strength = 1.0f;
 			float density = 1.0f;
+			float padd0;
+			float padd1;
+			float padd2;
 		} ParticleSetting;
 
 		struct UniformBufferBlock {
@@ -65,13 +69,13 @@ namespace glsample {
 			alignas(16) glm::mat4 modelViewProjection;
 
 			/*	*/
-			float delta;
-
-			/*	*/
 			ParticleSetting particleSetting;
 			Motion motion;
 
 			glm::vec4 color = glm::vec4(1);
+
+			/*	*/
+			float delta;
 
 		} uniformStageBuffer;
 
@@ -110,19 +114,27 @@ namespace glsample {
 				ImGui::DragFloat("LifeTime", &this->uniform.particleSetting.lifetime, 1, 0.0f, 10.0f);
 				ImGui::ColorEdit4("LifeTime", &this->uniform.color[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
+				ImGui::Checkbox("Simulate Particles", &this->simulateParticles);
+				/*	*/
+				ImGui::TextUnformatted("Debug");
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
+
+			bool simulateParticles;
+			bool showWireFrame = false;
 
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
 		std::shared_ptr<ParticleSystemSettingComponent> vectorFieldSettingComponent;
 
-		/*	*/
+		/*	Particle.	*/
 		const std::string particleVertexShaderPath = "Shaders/vectorfield/particle.vert.spv";
 		const std::string particleGeometryShaderPath = "Shaders/vectorfield/particle.geom.spv";
 		const std::string particleFragmentShaderPath = "Shaders/vectorfield/particle.frag.spv";
 
-		/*	*/
+		/*	Particle Simulation in Vector Field.	*/
 		const std::string particleComputeShaderPath = "Shaders/vectorfield/particle.comp.spv";
 
 		/*	*/
@@ -146,44 +158,46 @@ namespace glsample {
 		void Initialize() override {
 
 			/*	*/
-			const std::string particleTexturePath = "asset/particle.png";
+			const std::string particleTexturePath = this->getResult()["texture"].as<std::string>();
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+			{
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	*/
-			std::vector<uint32_t> vertex_source =
-				glsample::IOUtil::readFileData<uint32_t>(this->particleVertexShaderPath, this->getFileSystem());
-			std::vector<uint32_t> geometry_source =
-				glsample::IOUtil::readFileData<uint32_t>(this->particleGeometryShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
-				glsample::IOUtil::readFileData<uint32_t>(this->particleFragmentShaderPath, this->getFileSystem());
+				/*	*/
+				std::vector<uint32_t> vertex_source =
+					glsample::IOUtil::readFileData<uint32_t>(this->particleVertexShaderPath, this->getFileSystem());
+				std::vector<uint32_t> geometry_source =
+					glsample::IOUtil::readFileData<uint32_t>(this->particleGeometryShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_source =
+					glsample::IOUtil::readFileData<uint32_t>(this->particleFragmentShaderPath, this->getFileSystem());
 
-			/*	Load Graphic Program.	*/
-			this->particle_graphic_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source, &geometry_source);
+				/*	Load Graphic Program.	*/
+				this->particle_graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source,
+																				  &fragment_source, &geometry_source);
 
-			/*	*/
-			std::vector<uint32_t> compute_source_binary =
-				IOUtil::readFileData<uint32_t>(this->particleComputeShaderPath, this->getFileSystem());
+				/*	*/
+				std::vector<uint32_t> compute_source_binary =
+					IOUtil::readFileData<uint32_t>(this->particleComputeShaderPath, this->getFileSystem());
 
-			std::vector<char> compute_source =
-				fragcore::ShaderCompiler::convertSPIRV(compute_source_binary, compilerOptions);
+				std::vector<char> compute_source =
+					fragcore::ShaderCompiler::convertSPIRV(compute_source_binary, compilerOptions);
 
-			/*	Load Compute.	*/
-			this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
+				/*	Load Compute.	*/
+				this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
 
-			/*	*/
-			vertex_source =
-				glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldVertexShaderPath, this->getFileSystem());
-			geometry_source =
-				glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldGeometryShaderPath, this->getFileSystem());
-			fragment_source =
-				glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldFragmentPath, this->getFileSystem());
+				/*	*/
+				vertex_source =
+					glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldVertexShaderPath, this->getFileSystem());
+				geometry_source = glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldGeometryShaderPath,
+																		   this->getFileSystem());
+				fragment_source =
+					glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldFragmentPath, this->getFileSystem());
 
-			this->vector_field_graphic_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source, &geometry_source);
+				this->vector_field_graphic_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_source, &fragment_source, &geometry_source);
+			}
 
 			/*	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -236,7 +250,7 @@ namespace glsample {
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = Math::align<size_t>(uniformBufferSize, minMapBufferSize);
+			this->uniformBufferSize = Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -247,7 +261,7 @@ namespace glsample {
 			GLint minStorageMapBufferSize;
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageMapBufferSize);
 
-			/*	Compute number of particles and memory size.	*/
+			/*	Compute number of particles and memory size required, aligned to hardware min alignment.	*/
 			this->nrParticles = (size_t)(uniformStageBuffer.particleSetting.particleBox.x *
 										 uniformStageBuffer.particleSetting.particleBox.y *
 										 uniformStageBuffer.particleSetting.particleBox.z);
@@ -329,6 +343,7 @@ namespace glsample {
 
 			fragcore::resetErrorFlag();
 		}
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
 
@@ -336,7 +351,7 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	Compute particles in vector field.	*/
-			{
+			if (this->vectorFieldSettingComponent->simulateParticles) {
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 				/*	Bind uniform buffer.	*/
@@ -448,21 +463,24 @@ namespace glsample {
 		}
 
 		void update() override {
-			/*	*/
-			this->uniformStageBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
-			float elapsedTime = this->getTimer().getElapsed();
+			const float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 
-			this->uniformStageBuffer.delta = this->getTimer().deltaTime();
-
-			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.view = this->camera.getViewMatrix();
-			this->uniformStageBuffer.modelViewProjection =
-				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
-
 			/*	*/
+			{
+				/*	*/
+				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
+
+				this->uniformStageBuffer.delta = this->getTimer().deltaTime();
+
+				this->uniformStageBuffer.model = glm::mat4(1.0f);
+				this->uniformStageBuffer.view = this->camera.getViewMatrix();
+				this->uniformStageBuffer.modelViewProjection =
+					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+			}
+
+			/*	Bind buffer and update region with new data.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer = glMapBufferRange(
@@ -473,11 +491,20 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+
+	/*	*/
+	class VectorFieldSample : public GLSample<VectorField> {
+	  public:
+		VectorFieldSample() : GLSample<VectorField>() {}
+		virtual void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Cloth Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+		}
+	};
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::VectorField> sample;
+		glsample::VectorFieldSample sample;
 
 		sample.run(argc, argv);
 

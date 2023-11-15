@@ -10,6 +10,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class GameOfLife : public GLSampleWindow {
 	  public:
 		GameOfLife() : GLSampleWindow() { this->setTitle("GameOfLife - Compute"); }

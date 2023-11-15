@@ -24,7 +24,15 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	/*  */
 	vec4 cameraPosition;
 	vec2 scale;
+
+	//Cutout
 }
 ubo;
 
-void main() { fragColor = texture(DiffuseTexture, FUV); }
+void main() {
+
+	fragColor = texture(DiffuseTexture, FUV);
+	if (fragColor.a < 0.5) {
+		discard;
+	}
+}

@@ -31,7 +31,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			float exposure = 1.0f;
-			float gamma = 0;
+			float gamma = 2.2;
 		} uniform_stage_buffer;
 
 		GeometryObject SkyboxCube;
@@ -61,6 +61,8 @@ namespace glsample {
 				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Exposure", &this->uniform.exposure);
+				ImGui::DragFloat("Gamma", &this->uniform.gamma);
+				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -81,22 +83,22 @@ namespace glsample {
 
 		void Initialize() override {
 			const std::string panoramicPath = this->getResult()["texture"].as<std::string>();
+			{
+				/*	Load shader binaries.	*/
+				const std::vector<uint32_t> vertex_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
-			/*	Load shader binaries.	*/
-			std::vector<uint32_t> vertex_skybox_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_skybox_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
-
-			/*	Create skybox graphic pipeline program.	*/
-			this->skybox_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
-
+				/*	Create skybox graphic pipeline program.	*/
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+			}
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
 			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
@@ -106,7 +108,7 @@ namespace glsample {
 
 			/*	Load panoramic texture.	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->skybox_texture_panoramic = textureImporter.loadImage2D(panoramicPath);
+			this->skybox_texture_panoramic = textureImporter.loadImage2D(panoramicPath, ColorSpace::SRGB);
 
 			/*	*/
 			GLint minMapBufferSize;
@@ -120,7 +122,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
+			std::vector<ProceduralGeometry::ProceduralVertex> vertices;
 			std::vector<unsigned int> indices;
 			ProceduralGeometry::generateCube(1.0f, vertices, indices);
 
@@ -137,20 +139,22 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->SkyboxCube.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, SkyboxCube.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
+						 vertices.data(), GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
 
 			glBindVertexArray(0);
 		}
 
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+
 		void draw() override {
 
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -170,6 +174,10 @@ namespace glsample {
 				/*	*/
 				glUseProgram(this->skybox_program);
 
+				glDisable(GL_CULL_FACE);
+				glDepthFunc(GL_LEQUAL);
+				glEnable(GL_DEPTH_TEST);
+
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
@@ -186,8 +194,7 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniform_stage_buffer.proj =
-				glm::perspective(glm::radians(55.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
 			this->uniform_stage_buffer.modelViewProjection =
 				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix());
 

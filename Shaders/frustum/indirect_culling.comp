@@ -3,7 +3,32 @@
 #extension GL_ARB_compute_shader : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
+struct aabb {
+	vec3 _min;
+	vec3 _max;
+};
 
-void main() {}
+// Contains all the bounding boxes.
+layout(set = 0, binding = 0, std430) readonly buffer bound_buffer { aabb AABB[]; }
+BoundingBox;
+
+layout(set = 0, binding = 1, std430) writeonly buffer result_buffer { int result[]; }
+OcclusionResult;
+
+layout(set = 0, binding = 3) uniform UniformBufferBlock {
+	mat4 proj;
+	mat4 frustum;
+}
+ubo;
+
+void main() {
+	const ivec2 bound_index = ivec2(gl_GlobalInvocationID.xy);
+	const uint index = bound_index.x * gl_WorkGroupSize.x + bound_index.y;
+
+	// Compute bounds.
+	BoundingBox.AABB[index]._min;
+
+	OcclusionResult.result[index] = 0;
+}

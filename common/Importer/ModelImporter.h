@@ -1,5 +1,6 @@
 #pragma once
-#include "Core/IO/IFileSystem.h"
+#include <Core/IO/IFileSystem.h>
+#include <Core/math3D/AABB.h>
 #include <assimp/Importer.hpp>
 #include <assimp/anim.h>
 #include <assimp/camera.h>
@@ -17,7 +18,6 @@
 #include <cstddef>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-
 
 typedef struct vertex_bone_data_t {
 	static const int NUM_BONES_PER_VERTEX = 4;
@@ -54,13 +54,17 @@ typedef struct material_object_t {
 	glm::vec4 reflectivity;
 	float shinininess;
 	float shinininessStrength;
-
+	float opacity;
 	int blend_mode;
+	int wireframe_mode;
+	int culling_mode;
+
+	// TODO add texture
 
 	unsigned int shade_model;
 } MaterialObject;
 
-typedef struct model_object {
+typedef struct node_object_t {
 
 	glm::vec3 position;
 	glm::quat rotation;
@@ -72,7 +76,9 @@ typedef struct model_object {
 	std::vector<unsigned int> geometryObjectIndex;
 	std::vector<unsigned int> materialIndex;
 
-	struct model_object *parent = nullptr;
+
+
+	struct node_object_t *parent = nullptr;
 	std::string name;
 } NodeObject;
 
@@ -86,6 +92,7 @@ typedef struct model_system_object {
 
 	unsigned int material_index;
 
+	fragcore::AABB boundingBox;
 	/*	*/
 	unsigned int vertexOffset;
 	unsigned int normalOffset;
@@ -94,7 +101,7 @@ typedef struct model_system_object {
 	unsigned int boneOffset;
 
 	// Bounding box.
-	//ColorSpace colorSpace;
+	// ColorSpace colorSpace;
 } ModelSystemObject;
 
 typedef struct texture_asset_object_t {

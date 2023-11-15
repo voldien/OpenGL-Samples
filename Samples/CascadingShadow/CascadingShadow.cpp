@@ -1,3 +1,4 @@
+#include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -10,13 +11,17 @@
 
 namespace glsample {
 
+	/**
+	 * @brief Cascading
+	 *
+	 */
 	class CascadingShadowMapping : public GLSampleWindow {
 	  public:
 		CascadingShadowMapping() : GLSampleWindow() {
 			this->setTitle("CascadingShadowMapping");
-			
+
 			this->shadowSettingComponent =
-				std::make_shared<BasicShadowMapSettingComponent>(this->uniformStageBuffer, this->shadowTexture);
+				std::make_shared<CascadingShadowMapSettingComponent>(this->uniformStageBuffer, this->shadowTexture);
 			this->addUIComponent(this->shadowSettingComponent);
 
 			/*	*/
@@ -51,6 +56,7 @@ namespace glsample {
 		unsigned int diffuse_texture;
 
 		std::vector<GeometryObject> refObj;
+		Scene scene;
 
 		/*	*/
 		unsigned int graphic_program;
@@ -65,9 +71,9 @@ namespace glsample {
 
 		CameraController camera;
 
-		class BasicShadowMapSettingComponent : public nekomimi::UIComponent {
+		class CascadingShadowMapSettingComponent : public nekomimi::UIComponent {
 		  public:
-			BasicShadowMapSettingComponent(struct UniformBufferBlock &uniform, unsigned int &depth)
+			CascadingShadowMapSettingComponent(struct UniformBufferBlock &uniform, unsigned int &depth)
 				: uniform(uniform), depth(depth) {
 				this->setName("Basic Shadow Mapping Settings");
 			}
@@ -93,7 +99,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<BasicShadowMapSettingComponent> shadowSettingComponent;
+		std::shared_ptr<CascadingShadowMapSettingComponent> shadowSettingComponent;
 
 		/*	*/
 		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";

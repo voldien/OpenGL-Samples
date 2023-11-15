@@ -61,6 +61,7 @@ namespace glsample {
 			PointLight pointLights[nrPointLights];
 			/*	*/
 			glm::vec4 pcfFilters[20];
+			float diskRadius = 25.0f;
 		} uniform;
 
 		/*	Point light shadow maps.	*/
@@ -98,6 +99,8 @@ namespace glsample {
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
+
+				ImGui::DragFloat("Disk Radius", &this->uniform.diskRadius, 1, 0.0f, 1000.0f);
 				ImGui::TextUnformatted("Depth Texture");
 
 				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
