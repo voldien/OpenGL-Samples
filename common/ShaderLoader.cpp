@@ -158,7 +158,20 @@ finished:
 	return program;
 }
 
-int ShaderLoader::loadComputeProgram(const std::vector<std::vector<char> *> &computePaths) {
+int ShaderLoader::loadComputeProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
+									 const std::vector<uint32_t> *compute) {
+
+	std::vector<char> compute_source;
+	if (compute) {
+
+		const std::vector<char> vertex_source_code = fragcore::ShaderCompiler::convertSPIRV(*compute, compilerOptions);
+		compute_source.insert(compute_source.end(), vertex_source_code.begin(), vertex_source_code.end());
+	}
+
+	return ShaderLoader::loadComputeProgram({&compute_source});
+}
+
+int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *> &computePaths) {
 
 	fragcore::resetErrorFlag();
 

@@ -319,7 +319,7 @@ namespace glsample {
 	class NormalGLSample : public GLSample<Normal> {
 	  public:
 		NormalGLSample() : GLSample<Normal>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}

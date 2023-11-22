@@ -26,27 +26,25 @@ layout(set = 0, binding = 3) uniform UniformBufferBlock {
 }
 ubo;
 
-float computeDiffuseRateA(float A, float B, float diverage, float killRate, float feedRate, float diffuseRate,
-						  float delta) {
+float computeDiffuseRateA(const float A, const float B, const float diverage, const float killRate,
+						  const float feedRate, const float diffuseRate, const float delta) {
 	return A + (diffuseRate * diverage - A * pow(B, 2) + feedRate * (1 - A)) * delta;
 }
 
-float computeDiffuseRateB(float A, float B, float diverage, float killRate, float feedRate, float diffuseRate,
-						  float delta) {
+float computeDiffuseRateB(const float A, const float B, const float diverage, const float killRate,
+						  const float feedRate, const float diffuseRate, const float delta) {
 	return B + (diffuseRate * diverage + A * pow(B, 2) - (killRate - feedRate) * B) * delta;
 }
 
-int memoryAddress(ivec2 invokedPixelCoord, ivec2 imageSize, ivec2 offset) {
-	ivec2 pixelCoord = (invokedPixelCoord + offset) % imageSize;
+int memoryAddress(const ivec2 invokedPixelCoord, const ivec2 imageSize, const ivec2 offset) {
+	const ivec2 pixelCoord = (invokedPixelCoord + offset) % imageSize;
 	return pixelCoord.y * imageSize.y + pixelCoord.x;
 }
 
-float lapacianA(ivec2 pixelCord, ivec2 imageSize, mat4 convolutionKernel) {
+float lapacianA(const ivec2 pixelCord, const ivec2 imageSize, const mat4 convolutionKernel) {
 	float result = 0;
-	[[unroll]]
-	for (int y = 0; y < 3; y++) {
-		[[unroll]]
-		for (int x = 0; x < 3; x++) {
+	[[unroll]] for (int y = 0; y < 3; y++) {
+		[[unroll]] for (int x = 0; x < 3; x++) {
 			result += convolutionKernel[x][2 - y] *
 					  PreviousAB.AB[memoryAddress(pixelCord, imageSize, ivec2(-1 + x, -1 + y))].x;
 		}
@@ -54,12 +52,10 @@ float lapacianA(ivec2 pixelCord, ivec2 imageSize, mat4 convolutionKernel) {
 	return result;
 }
 
-float lapacianB(ivec2 pixelCord, ivec2 imageSize, mat4 convolutionKernel) {
+float lapacianB(const ivec2 pixelCord, const ivec2 imageSize, const mat4 convolutionKernel) {
 	float result = 0;
-	[[unroll]]
-	for (int y = 0; y < 3; y++) {
-		[[unroll]]
-		for (int x = 0; x < 3; x++) {
+	[[unroll]] for (int y = 0; y < 3; y++) {
+		[[unroll]] for (int x = 0; x < 3; x++) {
 			result += convolutionKernel[x][2 - y] *
 					  PreviousAB.AB[memoryAddress(pixelCord, imageSize, ivec2(-1 + x, -1 + y))].y;
 		}
@@ -76,20 +72,22 @@ void main() {
 	const vec2 uv = vec2(pixel_coords) / vec2(cellCellImageSize);
 
 	/*	*/
-	vec2 AB = PreviousAB.AB[memory_index];
+	const vec2 AB = PreviousAB.AB[memory_index];
 
 	/*	*/
-	float diverageA = lapacianA(pixel_coords, cellCellImageSize, ubo.kernelA);
-	float diverageB = lapacianB(pixel_coords, cellCellImageSize, ubo.kernelB);
+	const float diverageA = lapacianA(pixel_coords, cellCellImageSize, ubo.kernelA);
+	const float diverageB = lapacianB(pixel_coords, cellCellImageSize, ubo.kernelB);
 
 	/*	*/
-	float pA = computeDiffuseRateA(AB.x, AB.y, diverageA, ubo.killRate, ubo.feedRate, ubo.diffuseRateA, ubo.delta * ubo.speed);
-	float pB = computeDiffuseRateB(AB.x, AB.y, diverageB, ubo.killRate, ubo.feedRate, ubo.diffuseRateB, ubo.delta * ubo.speed);
+	const float pA =
+		computeDiffuseRateA(AB.x, AB.y, diverageA, ubo.killRate, ubo.feedRate, ubo.diffuseRateA, ubo.delta * ubo.speed);
+	const float pB =
+		computeDiffuseRateB(AB.x, AB.y, diverageB, ubo.killRate, ubo.feedRate, ubo.diffuseRateB, ubo.delta * ubo.speed);
 
 	CurrentAB.AB[memory_index] = vec2(pA, pB);
 
 	/*	Display the color.	*/
-	vec4 pixel = vec4(diverageA, 0, diverageB, 1);
+	const vec4 pixel = vec4(diverageA, 0, diverageB, 1);
 
 	// TODO forward the diverage to a buffer to be drawn
 	imageStore(img_output, pixel_coords, pixel);

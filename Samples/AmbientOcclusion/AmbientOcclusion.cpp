@@ -690,7 +690,7 @@ namespace glsample {
 	class AmbientOcclusionGLSample : public GLSample<ScreenSpaceAmbientOcclusion> {
 	  public:
 		AmbientOcclusionGLSample() : GLSample<ScreenSpaceAmbientOcclusion>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Texture Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));

@@ -32,10 +32,9 @@ namespace glsample {
 									  const std::vector<char> *tesselationc = nullptr,
 									  const std::vector<char> *tesselatione = nullptr);
 
-		// TODO add support.
-		// static int loadComputeProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,const
-		// std::vector<std::vector<char> *> &computePaths);
-		static int loadComputeProgram(const std::vector<std::vector<char> *> &computePaths);
+
+		static int loadComputeProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions, const std::vector<uint32_t> * compute);
+		static int loadComputeProgram(const std::vector<const std::vector<char> *> &computePaths);
 		static int loadComputeProgram(const std::vector<char> &compute);
 
 	  private:

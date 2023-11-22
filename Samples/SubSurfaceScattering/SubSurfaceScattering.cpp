@@ -331,7 +331,7 @@ namespace glsample {
 	class SubSurfaceScatteringGLSample : public GLSample<SubSurfaceScattering> {
 	  public:
 		SubSurfaceScatteringGLSample() : GLSample<SubSurfaceScattering>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}

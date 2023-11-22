@@ -402,7 +402,7 @@ namespace glsample {
 	class TerrainGLSample : public GLSample<SimpleTerrain> {
 	  public:
 		TerrainGLSample() : GLSample<SimpleTerrain>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};

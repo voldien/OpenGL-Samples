@@ -244,7 +244,7 @@ namespace glsample {
 	  public:
 		AlphaClippingGLSample() : GLSample<AlphaClipping>() {}
 
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			// TODO fix asset default path.
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
 				"C,clipping", "Default Clipping Threshold", cxxopts::value<float>()->default_value("0.5"));

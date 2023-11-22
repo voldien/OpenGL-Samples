@@ -122,20 +122,21 @@ namespace glsample {
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
-			/*	Load shader source.	*/
-			std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexSpotlightShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentSpotlightShaderPath, this->getFileSystem());
+			{
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexSpotlightShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentSpotlightShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load graphic pipeline.	*/
-			this->pointLight_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
-
+				/*	Load graphic pipeline.	*/
+				this->pointLight_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			}
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->pointLight_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->pointLight_program, "UniformBufferBlock");
@@ -170,8 +171,8 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->plan.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
-						 GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
+						 vertices.data(), GL_STATIC_DRAW);
 
 			/*	*/
 			glGenBuffers(1, &this->plan.ibo);
@@ -280,7 +281,7 @@ namespace glsample {
 	class SpotLightGLSample : public GLSample<SpotLight> {
 	  public:
 		SpotLightGLSample() : GLSample<SpotLight>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}

@@ -300,7 +300,7 @@ namespace glsample {
 	class ParticleSystemGLSample : public GLSample<ParticleSystem> {
 	  public:
 		ParticleSystemGLSample() : GLSample<ParticleSystem>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));
 		}

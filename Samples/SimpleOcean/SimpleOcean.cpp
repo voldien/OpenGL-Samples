@@ -466,7 +466,7 @@ namespace glsample {
 	class SimpleOceanGLSample : public GLSample<SimpleOcean> {
 	  public:
 		SimpleOceanGLSample() : GLSample<SimpleOcean>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,skybox-texture", "Skybox Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/skybox-animestyle.png"));
 		}

@@ -437,7 +437,7 @@ namespace glsample {
 	class BillBoardingGLSample : public GLSample<BillBoarding> {
 	  public:
 		BillBoardingGLSample() : GLSample<BillBoarding>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("G,ground-texture", "Ground Texture",
 					cxxopts::value<std::string>()->default_value("asset/stylized-ground.png"))(
 				"T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/stylized-tree.png"))(

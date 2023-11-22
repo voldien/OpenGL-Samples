@@ -262,7 +262,7 @@ namespace glsample {
 	  public:
 		CloudsGLSample() : GLSample<Clouds>() {}
 
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}

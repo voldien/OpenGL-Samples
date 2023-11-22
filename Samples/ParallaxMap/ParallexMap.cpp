@@ -268,7 +268,7 @@ namespace glsample {
 	class ParallaxMapGLSample : public GLSample<ParallaxMap> {
 	  public:
 		ParallaxMapGLSample() : GLSample<ParallaxMap>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/Brick/Brick_Wall_010_COLOR.jpg"))(
 				"P,parallax-texture", "Parallax Texture Path",

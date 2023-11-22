@@ -59,6 +59,7 @@ namespace glsample {
 			glm::vec4 lightPosition;
 
 			PointLight pointLights[nrPointLights];
+
 			/*	*/
 			glm::vec4 pcfFilters[20];
 			float diskRadius = 25.0f;
@@ -245,7 +246,7 @@ namespace glsample {
 					/*	Setup each face.	*/
 					for (size_t i = 0; i < 6; i++) {
 
-						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, this->shadowWidth,
+						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT16, this->shadowWidth,
 									 this->shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 					}
 
@@ -462,7 +463,7 @@ namespace glsample {
 	class PointLightShadowGLSample : public GLSample<PointLightShadow> {
 	  public:
 		PointLightShadowGLSample() : GLSample<PointLightShadow>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}

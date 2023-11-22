@@ -429,7 +429,7 @@ namespace glsample {
 	class DeferredGLSample : public GLSample<Deferred> {
 	  public:
 		DeferredGLSample() : GLSample<Deferred>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
 				"S,skybox", "Texture Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));

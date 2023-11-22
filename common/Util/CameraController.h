@@ -14,7 +14,45 @@
 
 class Camera {
   public:
-  
+	Camera() { this->updateProjectionMatrix(); }
+
+	void setAspect(const float aspect) noexcept {
+		this->aspect = aspect;
+		this->updateProjectionMatrix();
+	}
+	float getAspect() const noexcept { return this->aspect; }
+
+	void setNear(const float near) noexcept {
+		this->near = near;
+		this->updateProjectionMatrix();
+	}
+	float getNear() const noexcept { return this->near; }
+
+	void setFar(const float far) noexcept {
+		this->far = far;
+		this->updateProjectionMatrix();
+	}
+	float getFar() const noexcept { return this->far; }
+
+	float getFOV() const noexcept { return this->fov; }
+	void setFOV(float FOV) noexcept {
+		this->fov = FOV;
+		this->updateProjectionMatrix();
+	}
+
+	const glm::mat4 &getProjectionMatrix() const noexcept { return this->proj; }
+
+  protected:
+	void updateProjectionMatrix() noexcept {
+		this->proj = glm::perspective(glm::radians(this->getFOV() * 0.5f), this->aspect, this->near, this->far);
+	}
+
+  protected:
+	float fov = 80.0f;
+	float aspect = 16.0f / 9.0f;
+	float near = 0.15f;
+	float far = 1000.0f;
+	glm::mat4 proj;
 };
 
 class CameraController : public Camera {
@@ -57,13 +95,11 @@ class CameraController : public Camera {
 
 		/*	*/
 		if (!alt) {
-			flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime, current_speed,
-									 0.5f * activated, fov, xDiff, yDiff, w, a, s, d, 0, 0, 0);
+			flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime,
+									 current_speed, 0.5f * activated, this->fov, xDiff, yDiff, w, a, s, d, 0, 0, 0);
 		}
-
-		this->updateProjectionMatrix();
 	}
-	void enableNavigation(bool enable) { this->enable_Navigation = enable; }
+	void enableNavigation(const bool enable)noexcept { this->enable_Navigation = enable; }
 
 	const glm::mat4 &getViewMatrix() const noexcept { return this->view; }
 	const glm::mat4 getRotationMatrix() const noexcept {
@@ -79,40 +115,7 @@ class CameraController : public Camera {
 
 	void lookAt(const glm::vec3 &position) noexcept { this->look = glm::normalize(position - this->getPosition()); }
 
-	void setAspect(const float aspect) noexcept { this->updateProjectionMatrix(); }
-	float getAspect() const { return this->aspect; }
-
-	void setNear(const float near) noexcept {
-		this->near = near;
-		this->updateProjectionMatrix();
-	}
-	float getNear() const noexcept { return this->near; }
-
-	void setFar(const float far) noexcept {
-		this->far = far;
-		this->updateProjectionMatrix();
-	}
-	float getFar() const noexcept { return this->far; }
-
-	float getFOV() const noexcept { return this->fov; }
-	void setFOV(float FOV) noexcept {
-		this->fov = FOV;
-		this->updateProjectionMatrix();
-	}
-
-	const glm::mat4 &getProjectionMatrix() const noexcept { return this->proj; }
-
-  protected:
-	void updateProjectionMatrix() noexcept {
-		this->proj = glm::perspective(glm::radians(this->getFOV() * 0.5f), this->aspect, this->near, this->far);
-	}
-
   private:
-	float fov = 80.0f;
-	float aspect = 16.0f / 9.0f;
-	float near = 0.15f;
-	float far = 1000.0f;
-
 	float speed = 100;
 	float activated = 1.0f;
 	float xspeed = 0.5f;
@@ -123,7 +126,7 @@ class CameraController : public Camera {
 	int x, y, xprev, yprev;
 
 	glm::mat4 view;
-	glm::mat4 proj;
+
 	glm::vec3 pos = {0.0f, 1.0f, 0.0f};
 	glm::vec3 look = {0.0f, 0.0f, 1.0f};
 	glm::vec3 up = {0.0f, 1.0f, 0.0f};

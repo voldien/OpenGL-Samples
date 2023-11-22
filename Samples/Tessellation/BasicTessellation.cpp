@@ -265,7 +265,7 @@ namespace glsample {
 	  public:
 		BasicTessellationGLSample() : GLSample<BasicTessellation>() {}
 
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/tessellation_diffusemap.png"))(
 				"H,heightmap", "Height Map Texture Path",

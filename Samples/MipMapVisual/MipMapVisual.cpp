@@ -1,3 +1,4 @@
+#include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -10,10 +11,31 @@
 
 namespace glsample {
 
+	class MipMapScene : public Scene {
+	  public:
+		MipMapScene() : Scene() {}
+
+		void renderNode(const NodeObject *node) override {
+
+			for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
+
+				glBindVertexArray(this->refGeometry[0].vao);
+
+				/*	*/
+				glDrawElementsBaseVertex(
+					GL_TRIANGLES, this->refGeometry[node->geometryObjectIndex[i]].nrIndicesElements, GL_UNSIGNED_INT,
+					(void *)(sizeof(unsigned int) * this->refGeometry[node->geometryObjectIndex[i]].indices_offset),
+					this->refGeometry[node->geometryObjectIndex[i]].vertex_offset);
+
+				glBindVertexArray(0);
+			}
+		}
+	};
+
 	class MipMapVisual : public GLSampleWindow {
 	  public:
 		MipMapVisual() : GLSampleWindow() {
-			this->setTitle("MipMap Visual");
+			this->setTitle("MipMap Visualization");
 			this->mipmapvisualSettingComponent =
 				std::make_shared<MipMapVisualSettingComponent>(this->uniformStageBuffer, this->mipmapbias);
 			this->addUIComponent(this->mipmapvisualSettingComponent);
@@ -24,29 +46,20 @@ namespace glsample {
 		}
 
 		struct UniformBufferBlock {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
+
 			alignas(16) glm::mat4 modelViewProjection;
-			alignas(16) glm::mat4 lightModelProject;
 
-			/*	light source.	*/
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec3 cameraPosition;
-
-			float bias = 0.01f;
-			float shadowStrength = 1.0f;
 		} uniformStageBuffer;
 
 		unsigned int mipmap_texture;
+		unsigned int mipmap_sampler;
 
-		std::vector<GeometryObject> refObj;
+		unsigned int mip_levels = 6;
+
+		MipMapScene scene;
 
 		/*	*/
-		unsigned int graphic_program;
+		unsigned int mipmap_graphic_program;
 		float mipmapbias;
 
 		/*	Uniform buffer.	*/
@@ -61,7 +74,7 @@ namespace glsample {
 		  public:
 			MipMapVisualSettingComponent(struct UniformBufferBlock &uniform, float &mipmapbias)
 				: uniform(uniform), mipmapbias(mipmapbias) {
-				this->setName("Basic Shadow Mapping Settings");
+				this->setName("MipMap Visualization");
 			}
 
 			void draw() override {
@@ -78,17 +91,15 @@ namespace glsample {
 		std::shared_ptr<MipMapVisualSettingComponent> mipmapvisualSettingComponent;
 
 		/*	*/
-		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";
-		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
+		const std::string vertexGraphicShaderPath = "Shaders/mipmap/mipmap_visual.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/mipmap/mipmap_visual.frag.spv";
 
 		void Release() override {
-			glDeleteProgram(this->graphic_program);
+			glDeleteProgram(this->mipmap_graphic_program);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			glDeleteVertexArrays(1, &this->refObj[0].vao);
-			glDeleteBuffers(1, &this->refObj[0].vbo);
-			glDeleteBuffers(1, &this->refObj[0].ibo);
+			glDeleteTextures(1, &this->mipmap_texture);
+			glDeleteSamplers(1, &this->mipmap_sampler);
 		}
 
 		void Initialize() override {
@@ -107,46 +118,16 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shaders	*/
-				this->graphic_program =
+				this->mipmap_graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 			}
 
-			// TODO create color for each mip map level.
-			{
-				/*	Create noise vector.	*/
-				const size_t noiseW = 4;
-				const size_t noiseH = 4;
-				std::vector<glm::vec3> randomNoise(noiseW * noiseH);
-				for (size_t i = 0; i < randomNoise.size(); i++) {
-					randomNoise[i].r = Random::normalizeRand<float>() * 2.0 - 1.0;
-					randomNoise[i].g = Random::normalizeRand<float>() * 2.0 - 1.0;
-					randomNoise[i].b = 0.0f;
-				}
-
-				/*	Create random texture.	*/
-				glGenTextures(1, &this->mipmap_texture);
-				glBindTexture(GL_TEXTURE_2D, this->mipmap_texture);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseW, noiseH, 0, GL_RGB, GL_FLOAT, randomNoise.data());
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 6));
-
-				FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
-
-				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
-				glBindTexture(GL_TEXTURE_2D, 0);
-			}
-
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->graphic_program);
-			int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_graphic_buffer_binding);
+			glUseProgram(this->mipmap_graphic_program);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->mipmap_graphic_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->mipmap_graphic_program, "MipMapTexture"), 0);
+			glUniformBlockBinding(this->mipmap_graphic_program, uniform_buffer_index,
+								  this->uniform_graphic_buffer_binding);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -160,13 +141,49 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	*/
 			{
-				ModelImporter modelLoader(FileSystem::getFileSystem());
-				modelLoader.loadContent(modelPath, 0);
+				/*	Create mipmap vector.	*/
+				const size_t noiseW = 1 << (mip_levels + 1);
+				const size_t noiseH = 1 << (mip_levels + 1);
 
-				ImportHelper::loadModelBuffer(modelLoader, refObj);
+				/*	Create mipmap texture.	*/
+				glGenTextures(1, &this->mipmap_texture);
+				glBindTexture(GL_TEXTURE_2D, this->mipmap_texture);
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, this->mip_levels - 1));
+
+				const std::vector<glm::vec3> mip_colors = {{1, 1, 0}, {0, 1, 0}, {0, 1, 1},
+														   {1, 1, 1}, {1, 0, 0}, {1, 0, 1}};
+				for (size_t i = 0; i < this->mip_levels; i++) {
+
+					const size_t mip_level_width = noiseW >> i;
+					const size_t mip_level_height = noiseH >> i;
+
+					std::vector<glm::vec3> miplevelColorData(mip_level_width * mip_level_height);
+
+					for (size_t x = 0; x < miplevelColorData.size(); x++) {
+						miplevelColorData[x] = mip_colors[i];
+					}
+
+					glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA8, mip_level_width, mip_level_height, 0, GL_RGB, GL_FLOAT,
+								 miplevelColorData.data());
+				}
+
+				glBindTexture(GL_TEXTURE_2D, 0);
 			}
+
+			glCreateSamplers(1, &this->mipmap_sampler);
+			glSamplerParameteri(this->mipmap_sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glSamplerParameteri(this->mipmap_sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glSamplerParameteri(this->mipmap_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glSamplerParameteri(this->mipmap_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glSamplerParameterf(this->mipmap_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
+			glSamplerParameteri(this->mipmap_sampler, GL_TEXTURE_MAX_LOD, this->mip_levels);
+			glSamplerParameteri(this->mipmap_sampler, GL_TEXTURE_MIN_LOD, 0);
+
+			/*	*/
+			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom<MipMapScene>(modelLoader);
 		}
 
 		void draw() override {
@@ -174,11 +191,7 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			this->uniformStageBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-			glBindTexture(GL_TEXTURE_2D, this->mipmap_texture);
-			FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, this->mipmapbias));
-			glBindTexture(GL_TEXTURE_2D, 0);
+			glSamplerParameterf(this->mipmap_sampler, GL_TEXTURE_LOD_BIAS, this->mipmapbias);
 
 			{
 				/*	*/
@@ -192,7 +205,9 @@ namespace glsample {
 
 				/*	*/
 				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-				glUseProgram(this->graphic_program);
+				glClearColor(0.1f, 0.1f, 0.1f, 1);
+
+				glUseProgram(this->mipmap_graphic_program);
 
 				glCullFace(GL_BACK);
 				/*	Optional - to display wireframe.	*/
@@ -201,15 +216,10 @@ namespace glsample {
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->mipmap_texture);
+				glBindSampler(0, this->mipmap_sampler);
 
-				glBindVertexArray(this->refObj[0].vao);
-				for (size_t i = 0; i < this->refObj.size(); i++) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
-											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
-											 this->refObj[i].vertex_offset);
-				}
-				glBindVertexArray(0);
-				glUseProgram(0);
+				// TODO: override render.
+				this->scene.render();
 			}
 		}
 
@@ -218,12 +228,11 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
-			this->uniformStageBuffer.view = this->camera.getViewMatrix();
-			this->uniformStageBuffer.modelViewProjection =
-				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
-			this->uniformStageBuffer.cameraPosition = this->camera.getPosition();
+			const glm::mat4 proj = this->camera.getProjectionMatrix();
+			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::scale(model, glm::vec3(1.95f));
+			const glm::mat4 view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection = proj * view * model;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -238,7 +247,7 @@ namespace glsample {
 	class MipMapVisualGLSample : public GLSample<MipMapVisual> {
 	  public:
 		MipMapVisualGLSample() : GLSample<MipMapVisual>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};

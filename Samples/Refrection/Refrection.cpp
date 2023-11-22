@@ -9,6 +9,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class Refrection : public GLSampleWindow {
 	  public:
 		Refrection() : GLSampleWindow() {
@@ -374,7 +378,7 @@ namespace glsample {
 	class RefrectionGLSample : public GLSample<Refrection> {
 	  public:
 		RefrectionGLSample() : GLSample<Refrection>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}

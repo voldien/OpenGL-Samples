@@ -264,7 +264,7 @@ namespace glsample {
 	  public:
 		ConditionalDrawGLSample() : GLSample<ConditionalDraw>() {}
 
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
 				"N,normal-texture", "NormalMap Path",
 				cxxopts::value<std::string>()->default_value("asset/normalmap.png"))(

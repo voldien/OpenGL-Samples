@@ -281,7 +281,7 @@ namespace glsample {
 	class PhongBlinnGLSample : public GLSample<PhongBlinn> {
 	  public:
 		PhongBlinnGLSample() : GLSample<PhongBlinn>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}

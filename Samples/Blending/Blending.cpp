@@ -355,7 +355,7 @@ namespace glsample {
 	class BlendingGLSample : public GLSample<Blending> {
 	  public:
 		BlendingGLSample() : GLSample<Blending>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
 				"G,ground-texture", "Ground Texture",
 				cxxopts::value<std::string>()->default_value("asset/stylized-ground.png"));

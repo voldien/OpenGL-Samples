@@ -156,6 +156,9 @@ namespace glsample {
 			/*	*/
 			glDeleteBuffers(1, &videoStagingTextureBuffer);
 			glDeleteTextures(this->videoFrameTextures.size(), this->videoFrameTextures.data());
+
+			/*	Release Video Data.	*/
+
 		}
 
 		void loadVideo(const char *path) {
@@ -459,7 +462,7 @@ namespace glsample {
 				glBindVertexArray(0);
 
 			} else {
-				/*	Blit mandelbrot framebuffer to default framebuffer.	*/
+				/*	Blit video framebuffer to default framebuffer.	*/
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->videoFramebuffer);
 				glReadBuffer(GL_COLOR_ATTACHMENT0 + this->nthVideoFrame);
@@ -472,11 +475,13 @@ namespace glsample {
 		void update() override {
 
 			/*  */
+			AVPacket pkt = { 0 };
 			AVPacket *packet = av_packet_alloc();
 			if (!packet) {
 				throw cxxexcept::RuntimeException("failed to allocated memory for AVPacket");
 			}
 
+			//TODO fix update rate.
 			int res, result;
 
 			res = av_read_frame(this->pformatCtx, packet);
@@ -623,7 +628,7 @@ namespace glsample {
 	class VideoPlaybackGLSample : public GLSample<VideoPlayback> {
 	  public:
 		VideoPlaybackGLSample() : GLSample<VideoPlayback>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("V,video", "Video Path", cxxopts::value<std::string>()->default_value("assets/video.mp4"));
 		}
 	};

@@ -1,4 +1,7 @@
 #include "Core/Math.h"
+#include "ModelImporter.h"
+#include "Scene.h"
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -9,21 +12,18 @@
 
 namespace glsample {
 
+	/**
+	 * @brief Stencil buffer simple sample.
+	 *
+	 */
 	class SimpleReflection : public GLSampleWindow {
 	  public:
 		SimpleReflection() : GLSampleWindow() {
 			this->setTitle("Simple Reflection");
 			this->simpleReflectionSettingComponent =
-				std::make_shared<SimpleOceanSettingComponent>(this->uniformBuffer, this->depthstencil_texture);
+				std::make_shared<SimpleOceanSettingComponent>(this->uniform_stage_buffer, this->depthstencil_texture);
 			this->addUIComponent(this->simpleReflectionSettingComponent);
 		}
-
-		struct UniformSkyboxBufferBlock {
-			glm::mat4 proj;
-			glm::mat4 modelViewProjection;
-			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			float exposure = 1.0f;
-		} uniform_stage_buffer;
 
 		struct UniformObjectBufferBlock {
 			typedef struct point_light_t {
@@ -53,12 +53,15 @@ namespace glsample {
 			float shininess = 8;
 			bool useBlinn = true;
 
-		} uniformBuffer;
+		} uniform_stage_buffer;
 		const size_t nrPointLights = 4;
+
 		/*	*/
 		GeometryObject plan;
 		GeometryObject obj;
 		GeometryObject skybox;
+		Skybox skybox_;
+		Scene scene;
 
 		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer;
@@ -69,7 +72,6 @@ namespace glsample {
 		unsigned int depthstencil_texture;
 
 		/*	*/
-		unsigned int normal_texture;
 		unsigned int skybox_texture;
 
 		/*	*/
@@ -82,7 +84,6 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformObjectBufferBlock);
 		size_t phong_offset = 0;
-		size_t skybox_offset = 0;
 
 		class SimpleOceanSettingComponent : public nekomimi::UIComponent {
 
@@ -126,7 +127,6 @@ namespace glsample {
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->skybox_texture);
-			glDeleteTextures(1, (const GLuint *)&this->normal_texture);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
 
@@ -143,30 +143,33 @@ namespace glsample {
 		void Initialize() override {
 
 			const std::string panoramicPath = this->getResult()["skybox"].as<std::string>();
-			const std::string normalTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
-			/*	Load shader source data.	*/
-			const std::vector<uint32_t> vertex_simple_ocean_source =
-				IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_simple_ocean_source =
-				IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+			{
+				/*	Load shader source data.	*/
+				const std::vector<uint32_t> vertex_simple_ocean_source =
+					IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_simple_ocean_source =
+					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader programs.	*/
-			this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_simple_ocean_source,
-																	 &fragment_simple_ocean_source);
-			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				/*	Load shader programs.	*/
+				this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_simple_ocean_source,
+																		 &fragment_simple_ocean_source);
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			}
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->graphic_program);
-			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->graphic_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -181,24 +184,24 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->normal_texture = textureImporter.loadImage2D(normalTexturePath);
 			this->skybox_texture = textureImporter.loadImage2D(panoramicPath);
 
-			/*	Create Normal texture.	*/
+			this->skybox_.Init(this->skybox_texture, this->skybox_program);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->phong_offset = Math::align(sizeof(UniformObjectBufferBlock), (size_t)minMapBufferSize);
-			this->skybox_offset = Math::align(sizeof(UniformSkyboxBufferBlock), (size_t)minMapBufferSize);
-
-			this->uniformBufferSize = skybox_offset + phong_offset;
-
+			this->uniformBufferSize = fragcore::Math::align(sizeof(UniformObjectBufferBlock), (size_t)minMapBufferSize);
 			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+			/*	*/
+			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(modelLoader);
 
 			/*	Plan.	*/
 			{
@@ -214,8 +217,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->plan.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
-							 GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
+							 vertices.data(), GL_STATIC_DRAW);
 
 				/*  Create index buffer.    */
 				glGenBuffers(1, &this->plan.ibo);
@@ -264,8 +267,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->skybox.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
-							 GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
+							 vertices.data(), GL_STATIC_DRAW);
 
 				/*	*/
 				glEnableVertexAttribArray(0);
@@ -291,14 +294,14 @@ namespace glsample {
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
 			for (size_t i = 0; i < this->nrPointLights; i++) {
-				uniformBuffer.pointLights[i].range = 25.0f;
-				uniformBuffer.pointLights[i].position =
+				uniform_stage_buffer.pointLights[i].range = 25.0f;
+				uniform_stage_buffer.pointLights[i].position =
 					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(1.0f, 1.0f, 1.0f);
-				uniformBuffer.pointLights[i].color = colors[i];
-				uniformBuffer.pointLights[i].constant_attenuation = 1.0f;
-				uniformBuffer.pointLights[i].linear_attenuation = 0.1f;
-				uniformBuffer.pointLights[i].qudratic_attenuation = 0.05f;
-				uniformBuffer.pointLights[i].intensity = 2.0f;
+				uniform_stage_buffer.pointLights[i].color = colors[i];
+				uniform_stage_buffer.pointLights[i].constant_attenuation = 1.0f;
+				uniform_stage_buffer.pointLights[i].linear_attenuation = 0.1f;
+				uniform_stage_buffer.pointLights[i].qudratic_attenuation = 0.05f;
+				uniform_stage_buffer.pointLights[i].intensity = 2.0f;
 			}
 		}
 
@@ -350,15 +353,14 @@ namespace glsample {
 			}
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			this->camera.setAspect((float)width / (float)height);
 		}
 
 		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);
-
-			this->uniformBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -385,10 +387,6 @@ namespace glsample {
 				glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
 				glStencilMask(0xFF);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
-
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
 				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
@@ -397,7 +395,7 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			/*	Plane reflected objects.		*/
+			/*	Normal Object		*/
 			{
 				glUseProgram(this->graphic_program);
 				glDisable(GL_CULL_FACE);
@@ -410,87 +408,31 @@ namespace glsample {
 				glStencilFunc(GL_EQUAL, 255, 0xff);
 				glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 				glStencilMask(0x0);
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
 
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->skybox.vao);
-				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
+				this->scene.render();
 
 				glUseProgram(0);
 			}
 			glDisable(GL_STENCIL_TEST);
+
 			/*	Render reflected objects.		*/
-			//{
-			//	glUseProgram(this->graphic_program);
-			//	glDisable(GL_CULL_FACE);
-			//	glEnable(GL_DEPTH_TEST);
-			//	// glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
-			//	// glDepthMask(GL_TRUE);
-			//	// glStencilFunc(GL_EQUAL, 1, 0xFF);
-			//	// glStencilMask(0);
-			//
-			//	/*	*/
-			//	glActiveTexture(GL_TEXTURE0);
-			//	glBindTexture(GL_TEXTURE_2D, this->normal_texture);
-			//
-			//	/*	Draw triangle.	*/
-			//	glBindVertexArray(this->skybox.vao);
-			//	glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-			//	glBindVertexArray(0);
-			//
-			//	glUseProgram(0);
-			//}
-
-			///*	Render reflected objects.		*/
-			//{
-			//	glUseProgram(this->graphic_program);
-			//	glDisable(GL_CULL_FACE);
-			//	glEnable(GL_DEPTH_TEST);
-			//	// glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
-			//	// glDepthMask(GL_TRUE);
-			//	// glStencilFunc(GL_EQUAL, 1, 0xFF);
-			//	// glStencilMask(0);
-			//
-			//	/*	*/
-			//	glActiveTexture(GL_TEXTURE0);
-			//	glBindTexture(GL_TEXTURE_2D, this->normal_texture);
-			//
-			//	/*	Draw triangle.	*/
-			//	glBindVertexArray(this->skybox.vao);
-			//	glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-			//	glBindVertexArray(0);
-			//
-			//	glUseProgram(0);
-			//}
-			//
-			///*	Skybox	*/
 			{
-				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-								  this->uniformBufferSize);
-
-				glUseProgram(this->skybox_program);
-
+				glUseProgram(this->graphic_program);
 				glDisable(GL_CULL_FACE);
-				glDisable(GL_BLEND);
-				glDisable(GL_DEPTH_TEST);
-
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, simpleReflectionSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glEnable(GL_DEPTH_TEST);
+				// glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
+				// glDepthMask(GL_TRUE);
+				// glStencilFunc(GL_EQUAL, 1, 0xFF);
+				// glStencilMask(0);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->skybox_texture);
 
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->skybox.vao);
-				// glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
+				this->scene.render();
+
+				glUseProgram(0);
 			}
+
+			this->skybox_.Render(this->camera);
 
 			// Transfer the result.
 			{
@@ -507,20 +449,22 @@ namespace glsample {
 		}
 
 		void update() override {
+
 			/*	Update Camera.	*/
-			float elapsedTime = this->getTimer().getElapsed();
+			const float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
+			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
+			this->uniform_stage_buffer.model = glm::mat4(1.0f);
+			this->uniform_stage_buffer.model =
+				glm::rotate(this->uniform_stage_buffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniform_stage_buffer.model = glm::scale(this->uniform_stage_buffer.model, glm::vec3(10.95f));
+			this->uniform_stage_buffer.view = this->camera.getViewMatrix();
 
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.viewPos = glm::vec4(this->camera.getPosition(), 0);
+			this->uniform_stage_buffer.modelViewProjection =
+				this->uniform_stage_buffer.proj * this->uniform_stage_buffer.view * this->uniform_stage_buffer.model;
+			this->uniform_stage_buffer.viewPos = glm::vec4(this->camera.getPosition(), 0);
 
 			/*  */
 			{
@@ -529,7 +473,7 @@ namespace glsample {
 					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 					this->uniformBufferSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-				memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+				memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}
 		}
@@ -538,16 +482,16 @@ namespace glsample {
 	class SimpleReflectionGLSample : public GLSample<SimpleReflection> {
 	  public:
 		SimpleReflectionGLSample() : GLSample<SimpleReflection>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
-				"S,skybox", "SkyboxPath", cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+			options("S,skybox", "SkyboxPath",
+					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"))(
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/rungholt/house.obj"));
 		}
 	};
 
 } // namespace glsample
 
-// TODO add custom options.
 int main(int argc, const char **argv) {
 	try {
 		glsample::SimpleReflectionGLSample sample;

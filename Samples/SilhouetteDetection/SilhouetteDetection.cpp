@@ -156,7 +156,7 @@ namespace glsample {
 	class SilhouetteDetectionGLSample : public GLSample<SilhouetteDetection> {
 	  public:
 		SilhouetteDetectionGLSample() : GLSample<SilhouetteDetection>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};

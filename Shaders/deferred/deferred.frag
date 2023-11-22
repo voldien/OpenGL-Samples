@@ -9,7 +9,6 @@ layout(location = 1) in flat int InstanceID;
 layout(binding = 1) uniform sampler2D WorldTexture;
 layout(binding = 2) uniform sampler2D DepthTexture;
 layout(binding = 3) uniform sampler2D NormalTexture;
-layout(binding = 4) uniform sampler2D NormalRandomize;
 
 struct point_light {
 	vec3 position;
@@ -27,6 +26,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 void main() {
+
 	vec4 world = texture(WorldTexture, uv);
 	vec3 normal = texture(NormalTexture, uv).rgb;
 

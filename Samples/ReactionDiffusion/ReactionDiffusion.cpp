@@ -10,13 +10,18 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class ReactionDiffusion : public GLSampleWindow {
 	  public:
 		ReactionDiffusion() : GLSampleWindow() {
 			this->setTitle("ReactionDiffusion - Compute");
 
-			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->normalMapSettingComponent);
+			this->reactionDiffusionSettingComponent =
+				std::make_shared<ReactionDiffusionSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->reactionDiffusionSettingComponent);
 		}
 
 		struct reaction_diffusion_param_t {
@@ -52,9 +57,9 @@ namespace glsample {
 
 		unsigned int nthTexture = 0;
 
-		class NormalMapSettingComponent : public nekomimi::UIComponent {
+		class ReactionDiffusionSettingComponent : public nekomimi::UIComponent {
 		  public:
-			NormalMapSettingComponent(struct reaction_diffusion_param_t &uniform) : uniform(uniform) {
+			ReactionDiffusionSettingComponent(struct reaction_diffusion_param_t &uniform) : uniform(uniform) {
 				this->setName("Reaction Diffusion Settings");
 			}
 
@@ -70,7 +75,7 @@ namespace glsample {
 		  private:
 			struct reaction_diffusion_param_t &uniform;
 		};
-		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
+		std::shared_ptr<ReactionDiffusionSettingComponent> reactionDiffusionSettingComponent;
 
 		/*	*/
 		const std::string computeShaderPath = "Shaders/reactiondiffusion/reactiondiffusion.comp.spv";
@@ -89,7 +94,7 @@ namespace glsample {
 
 			{
 				/*	Load shader binaries.	*/
-				const std::vector<uint32_t> gameoflife_source =
+				const std::vector<uint32_t> reactiondiffusion_compute_binary =
 					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
 				/*	*/
@@ -97,11 +102,9 @@ namespace glsample {
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				std::vector<char> gameoflife_source_T =
-					fragcore::ShaderCompiler::convertSPIRV(gameoflife_source, compilerOptions);
-
 				/*	Create compute pipeline.	*/
-				this->reactiondiffusion_program = ShaderLoader::loadComputeProgram({&gameoflife_source_T});
+				this->reactiondiffusion_program =
+					ShaderLoader::loadComputeProgram(compilerOptions, &reactiondiffusion_compute_binary);
 			}
 
 			/*	Setup compute pipeline.	*/
@@ -131,12 +134,15 @@ namespace glsample {
 				this->reactiondiffusion_buffer.resize(2);
 				glGenBuffers(this->reactiondiffusion_buffer.size(), this->reactiondiffusion_buffer.data());
 				glGenTextures(1, &this->reactiondiffusion_render_texture);
+
 				/*	Create init framebuffers.	*/
 				this->onResize(this->width(), this->height());
 			}
 		}
 
 		void onResize(int width, int height) override {
+
+			glFinish();
 
 			this->reactiondiffusion_texture_width = width;
 			this->reactiondiffusion_texture_height = height;
@@ -150,6 +156,7 @@ namespace glsample {
 			Random random;
 			for (size_t j = 0; j < this->reactiondiffusion_texture_height; j++) {
 				for (size_t i = 0; i < this->reactiondiffusion_texture_width; i++) {
+
 					textureData[this->reactiondiffusion_texture_width * j + i] =
 						glm::vec2(fragcore::Math::PerlinNoise((float)j * 0.05f + 0, (float)i * 0.05f + 0, 1) * 1.0f,
 								  fragcore::Math::PerlinNoise((float)i * 0.05f + 1, (float)j * 0.05f + 1, 1) * 1.0f);
@@ -165,7 +172,6 @@ namespace glsample {
 			}
 
 			/*	Create render target texture to show the result.	*/
-
 			glBindTexture(GL_TEXTURE_2D, this->reactiondiffusion_render_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, this->reactiondiffusion_texture_width,
 						 this->reactiondiffusion_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -205,9 +211,11 @@ namespace glsample {
 
 				glUseProgram(this->reactiondiffusion_program);
 
+				/*	Bind current cell state buffer.	*/
 				glBindBufferBase(
 					GL_SHADER_STORAGE_BUFFER, this->current_cells_buffer_binding,
 					this->reactiondiffusion_buffer[this->nthTexture % this->reactiondiffusion_buffer.size()]);
+				/*	Bind previous cell state buffer.	*/
 				glBindBufferBase(
 					GL_SHADER_STORAGE_BUFFER, this->previous_cells_buffer_binding,
 					this->reactiondiffusion_buffer[(this->nthTexture + 1) % this->reactiondiffusion_buffer.size()]);
@@ -237,13 +245,10 @@ namespace glsample {
 
 		void update() override {
 
-			/*	Update Camera.	*/
-			float elapsedTime = this->getTimer().getElapsed();
-
 			/*	*/
 			this->uniformBuffer.delta = this->getTimer().deltaTime();
 
-			/*	*/
+			/*	Update uniform.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,

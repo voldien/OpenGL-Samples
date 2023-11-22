@@ -251,7 +251,7 @@ namespace glsample {
 	class PhysicalBasedRenderingGLSample : public GLSample<PhysicalBasedRendering> {
 	  public:
 		PhysicalBasedRenderingGLSample() : GLSample<PhysicalBasedRendering>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"T,skybox-texture", "Skybox Texture Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));

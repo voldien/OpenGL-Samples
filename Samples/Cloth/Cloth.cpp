@@ -383,7 +383,7 @@ namespace glsample {
 	class ClothSimulationSample : public GLSample<ClothSimulation> {
 	  public:
 		ClothSimulationSample() : GLSample<ClothSimulation>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Cloth Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};

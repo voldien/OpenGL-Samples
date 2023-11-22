@@ -367,7 +367,7 @@ namespace glsample {
 	class ShadowMappingGLSample : public GLSample<BasicShadowMapping> {
 	  public:
 		ShadowMappingGLSample() : GLSample<BasicShadowMapping>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}

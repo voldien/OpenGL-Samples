@@ -10,6 +10,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class VarianceShadow : public GLSampleWindow {
 	  public:
 		VarianceShadow() : GLSampleWindow() {

@@ -343,7 +343,7 @@ namespace glsample {
 	class CascadingShadowMappingGLSample : public GLSample<CascadingShadowMapping> {
 	  public:
 		CascadingShadowMappingGLSample() : GLSample<CascadingShadowMapping>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}

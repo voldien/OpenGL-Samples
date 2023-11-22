@@ -441,7 +441,7 @@ namespace glsample {
 	class HDRGLSample : public GLSample<HDR> {
 	  public:
 		HDRGLSample() : GLSample<HDR>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/panoramic.jpg"));
 		}
 	};

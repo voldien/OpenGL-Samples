@@ -227,7 +227,7 @@ namespace glsample {
 	class FogGLSample : public GLSample<Fog> {
 	  public:
 		FogGLSample() : GLSample<Fog>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};

@@ -12,6 +12,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class VolumeShadow : public GLSampleWindow {
 	  public:
 		VolumeShadow() : GLSampleWindow() {
@@ -432,7 +436,7 @@ namespace glsample {
 	class VolumeShadowGLSample : public GLSample<VolumeShadow> {
 	  public:
 		VolumeShadowGLSample() : GLSample<VolumeShadow>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
 				"S,skybox", "SkyboxPath", cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));

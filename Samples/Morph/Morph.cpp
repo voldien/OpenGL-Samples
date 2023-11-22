@@ -260,7 +260,7 @@ namespace glsample {
 	class MorphTargetGLSample : public GLSample<MorphTarget> {
 	  public:
 		MorphTargetGLSample() : GLSample<MorphTarget>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};

@@ -368,7 +368,7 @@ namespace glsample {
 	  public:
 		GrassGLSample() : GLSample<StylizedLandscape>() {}
 
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			// 			const std::string diffuseTexturePath = "asset/tessellation_diffusemap.png";
 			// const std::string heightTexturePath = "asset/tessellation_heightmap.png";
 			// const std::string reflectionTexturePath = "asset/tessellation_heightmap.png";

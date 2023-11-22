@@ -258,7 +258,7 @@ namespace glsample {
 	class ParallaxOcclusionMappingGLSample : public GLSample<ParallaxOcclusionMapping> {
 	  public:
 		ParallaxOcclusionMappingGLSample() : GLSample<ParallaxOcclusionMapping>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
 				"P,parallax-texture", "Parallax Texture Path",
 				cxxopts::value<std::string>()->default_value("asset/diffuse.png"));

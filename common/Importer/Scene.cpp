@@ -9,7 +9,7 @@ namespace glsample {
 	Scene::~Scene() {}
 
 	void Scene::release() {
-		for (size_t i = 0; i < this->refObj.size(); i++) {
+		for (size_t i = 0; i < this->refGeometry.size(); i++) {
 		}
 
 		for (size_t i = 0; i < this->refTexture.size(); i++) {
@@ -59,6 +59,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, diffuseTexture.texture);
 			} else {
+
 			}
 
 			/*	*/
@@ -99,13 +100,13 @@ namespace glsample {
 			}
 			glDisable(GL_CULL_FACE);
 
-			glBindVertexArray(this->refObj[0].vao);
+			glBindVertexArray(this->refGeometry[0].vao);
 
 			/*	*/
 			glDrawElementsBaseVertex(
-				GL_TRIANGLES, this->refObj[node->geometryObjectIndex[i]].nrIndicesElements, GL_UNSIGNED_INT,
-				(void *)(sizeof(unsigned int) * this->refObj[node->geometryObjectIndex[i]].indices_offset),
-				this->refObj[node->geometryObjectIndex[i]].vertex_offset);
+				GL_TRIANGLES, this->refGeometry[node->geometryObjectIndex[i]].nrIndicesElements, GL_UNSIGNED_INT,
+				(void *)(sizeof(unsigned int) * this->refGeometry[node->geometryObjectIndex[i]].indices_offset),
+				this->refGeometry[node->geometryObjectIndex[i]].vertex_offset);
 
 			glBindVertexArray(0);
 		}
@@ -113,16 +114,16 @@ namespace glsample {
 
 	void Scene::sortRenderQueue() {}
 
-	Scene Scene::loadFrom(ModelImporter &importer) {
+	// Scene Scene::loadFrom(ModelImporter &importer) {
 
-		Scene scene;
+	// 	Scene scene;
 
-		/*	*/
-		scene.nodes = importer.getNodes();
-		ImportHelper::loadModelBuffer(importer, scene.refObj);
-		ImportHelper::loadTextures(importer, scene.refTexture);
-		scene.materials = importer.getMaterials();
+	// 	/*	*/
+	// 	scene.nodes = importer.getNodes();
+	// 	ImportHelper::loadModelBuffer(importer, scene.refGeometry);
+	// 	ImportHelper::loadTextures(importer, scene.refTexture);
+	// 	scene.materials = importer.getMaterials();
 
-		return scene;
-	}
+	// 	return scene;
+	// }
 } // namespace glsample

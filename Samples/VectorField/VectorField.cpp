@@ -496,7 +496,7 @@ namespace glsample {
 	class VectorFieldSample : public GLSample<VectorField> {
 	  public:
 		VectorFieldSample() : GLSample<VectorField>() {}
-		virtual void customOptions(cxxopts::OptionAdder &options) override {
+		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Cloth Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
