@@ -9,6 +9,7 @@
 #include <fmt/core.h>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <thread>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,23 +34,16 @@ extern "C" {
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class VideoPlayback : public GLSampleWindow {
 	  public:
 		VideoPlayback() : GLSampleWindow() {
 
 			this->videoplaybackSettingComponent = std::make_shared<VideoPlaybackSettingComponent>();
 			this->addUIComponent(this->videoplaybackSettingComponent);
-		}
-
-		virtual ~VideoPlayback() {
-			if (this->frame) {
-				av_frame_free(&this->frame);
-			}
-			avcodec_free_context(&this->pAudioCtx);
-			avcodec_free_context(&this->pVideoCtx);
-
-			avformat_close_input(&this->pformatCtx);
-			avformat_free_context(this->pformatCtx);
 		}
 
 		typedef struct _vertex_t {
@@ -144,7 +138,15 @@ namespace glsample {
 		// TODO add support to toggle between quad and blit.
 
 		void Release() override {
+			/*	Release Video Data.	*/
+			if (this->frame) {
+				av_frame_free(&this->frame);
+			}
+			avcodec_free_context(&this->pAudioCtx);
+			avcodec_free_context(&this->pVideoCtx);
 
+			avformat_close_input(&this->pformatCtx);
+			avformat_free_context(this->pformatCtx);
 			/*	*/
 			glDeleteProgram(this->videoplayback_program);
 			glDeleteVertexArrays(1, &this->vao);
@@ -156,9 +158,6 @@ namespace glsample {
 			/*	*/
 			glDeleteBuffers(1, &videoStagingTextureBuffer);
 			glDeleteTextures(this->videoFrameTextures.size(), this->videoFrameTextures.data());
-
-			/*	Release Video Data.	*/
-
 		}
 
 		void loadVideo(const char *path) {
@@ -271,8 +270,8 @@ namespace glsample {
 				throw cxxexcept::RuntimeException("Failed to retrieve info from stream info : {}", buf);
 			}
 
-			video_width = this->pVideoCtx->width;
-			video_height = this->pVideoCtx->height;
+			this->video_width = this->pVideoCtx->width;
+			this->video_height = this->pVideoCtx->height;
 
 			this->frame = av_frame_alloc();
 			this->frameoutput = av_frame_alloc();
@@ -282,7 +281,7 @@ namespace glsample {
 			}
 
 			/*	*/
-			size_t m_bufferSize =
+			const size_t m_bufferSize =
 				av_image_get_buffer_size(AV_PIX_FMT_RGBA, this->pVideoCtx->width, this->pVideoCtx->height, 4);
 			av_image_alloc(this->frameoutput->data, this->frameoutput->linesize, this->pVideoCtx->width,
 						   this->pVideoCtx->height, AV_PIX_FMT_RGBA, 4);
@@ -343,22 +342,24 @@ namespace glsample {
 				FAOPAL_VALIDATE(alGenBuffers(5, this->mAudioBuffers.data()));
 			}
 
-			loadVideo(videoPath.c_str());
+			this->loadVideo(videoPath.c_str());
 
-			/*	Load shader	*/
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+			{
+				/*	Load shader	*/
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*  */
-			this->videoplayback_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				/*  */
+				this->videoplayback_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			}
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->videoplayback_program);
@@ -429,10 +430,6 @@ namespace glsample {
 			}
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			/*	*/
-			// alSourcePlay(this->mSource);
-			// this->audioSource->play();
 		}
 
 		void onResize(int width, int height) override {}
@@ -475,18 +472,25 @@ namespace glsample {
 		void update() override {
 
 			/*  */
-			AVPacket pkt = { 0 };
+			AVPacket pkt = {0};
 			AVPacket *packet = av_packet_alloc();
 			if (!packet) {
 				throw cxxexcept::RuntimeException("failed to allocated memory for AVPacket");
 			}
 
-			//TODO fix update rate.
+			// TODO fix update rate.
 			int res, result;
+
+			//  seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q,
+			//        pFormatCtx->streams[stream_index]->time_base);
+
+			// res = av_seek_frame(this->pformatCtx, this->videoStream,
+			//					this->getTimer().getElapsed() * AV_TIME_BASE * 2, 0);
 
 			res = av_read_frame(this->pformatCtx, packet);
 
 			if (res == 0) {
+				
 				/*	*/
 				if (packet->stream_index == this->videoStream) {
 					result = avcodec_send_packet(this->pVideoCtx, packet);

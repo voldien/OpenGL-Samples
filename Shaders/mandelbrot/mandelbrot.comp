@@ -27,7 +27,7 @@ vec4 computeMandel(vec2 uv) {
 	const int samples = u_pushConstants.nrSamples;
 	const float lthreadhold = 2.0;
 
-	vec2 mouseOffset = u_pushConstants.mousePos / imageSize(img_output);
+	const vec2 mouseOffset = u_pushConstants.mousePos / imageSize(img_output);
 	uv += mouseOffset;
 	uv *= u_pushConstants.zoom;
 
@@ -45,25 +45,29 @@ vec4 computeMandel(vec2 uv) {
 		n += 1.0;
 	}
 
-	float t = float(n) / float(samples);
-	vec3 d = vec3(0.3, 0.3, 0.5);
-	vec3 e = vec3(-0.2, -0.3, -0.5);
-	vec3 f = vec3(2.1, 2.0, 3.0);
-	vec3 g = vec3(0.0, 0.1, 0.0);
+	const float t = float(n) / float(samples);
+	const vec3 d = vec3(0.3, 0.3, 0.5);
+	const vec3 e = vec3(-0.2, -0.3, -0.5);
+	const vec3 f = vec3(2.1, 2.0, 3.0);
+	const vec3 g = vec3(0.0, 0.1, 0.0);
 	return vec4(d + e * cos(6.28318 * (f * t + g)), 1.0);
 }
 
 void main() {
 
+	/*	*/
 	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(img_output)))) {
 		return;
 	}
 
-	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+	/*	*/
+	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
-	vec2 uv = vec2(pixel_coords) / imageSize(img_output);
+	const vec2 uv = vec2(pixel_coords) / imageSize(img_output);
 
-	vec4 pixel = computeMandel(uv);
+	const vec4 pixel = computeMandel(uv);
 
-	imageStore(img_output, pixel_coords, pixel);
+	/*	Apply gamma correction.	*/
+	const float gamma = 2.2;
+	imageStore(img_output, pixel_coords, pow(pixel, vec4(1.0 / gamma)));
 }

@@ -10,7 +10,7 @@
 #include <iostream>
 
 namespace glsample {
-
+	
 	/**
 	 * Simple Fog Sample.
 	 */

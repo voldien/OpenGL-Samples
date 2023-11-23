@@ -21,15 +21,13 @@ namespace glsample {
 			/*	*/
 			this->mandelbrotSettingComponent = std::make_shared<MandelBrotSettingComponent>(this->params);
 			this->addUIComponent(this->mandelbrotSettingComponent);
-
-			/*	*/
 		}
 
 		struct UniformBufferBlock {
 			float posX, posY;
 			float mousePosX, mousePosY;
-			float zoom; /*  */
-			float c;	/*  */
+			float zoom = 1.0f; /*  */
+			float c;		   /*  */
 			int nrSamples = 128;
 		} params;
 
@@ -57,8 +55,9 @@ namespace glsample {
 				this->setName("Mandelbrot Settings");
 			}
 			void draw() override {
-				ImGui::DragInt("Number of Samples", &this->uniform.nrSamples, 1, 0, 128);
+				ImGui::DragInt("Number of Samples", &this->uniform.nrSamples, 1, 0, 256);
 				ImGui::DragFloat("C", &this->uniform.c);
+				ImGui::DragFloat("Zoom", &this->uniform.zoom, 1.0f, 0.1, 100.0f);
 			}
 
 			bool showWireFrame = false;
@@ -81,32 +80,34 @@ namespace glsample {
 
 		void Initialize() override {
 
-			/*	Load shader binaries.	*/
-			const std::vector<uint32_t> mandelbrot_source =
-				IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
+			{
+				/*	Load shader binaries.	*/
+				const std::vector<uint32_t> mandelbrot_source =
+					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			const std::vector<char> mandelbrot_source_T =
-				fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, compilerOptions);
+				const std::vector<char> mandelbrot_source_T =
+					fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, compilerOptions);
 
-			/*	Load shader	*/
-			this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_source_T});
+				/*	Load shader	*/
+				this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_source_T});
+			}
 
 			glUseProgram(this->mandelbrot_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->mandelbrot_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUniform1i(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
-			glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+			glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			glUseProgram(0);
 
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = Math::align<size_t>(uniformBufferSize, minMapBufferSize);
+			this->uniformBufferSize = Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -114,13 +115,17 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
-			glGenFramebuffers(1, &this->mandelbrot_framebuffer);
+			{
+				glGenFramebuffers(1, &this->mandelbrot_framebuffer);
 
-			glGenTextures(1, &this->mandelbrot_texture);
-			onResize(this->width(), this->height());
+				glGenTextures(1, &this->mandelbrot_texture);
+				this->onResize(this->width(), this->height());
+			}
 		}
 
 		void onResize(int width, int height) override {
+
+			glFinish();
 
 			this->mandelbrot_texture_width = width;
 			this->mandelbrot_texture_height = height;
@@ -132,7 +137,7 @@ namespace glsample {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
 
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->mandelbrot_texture, 0);
 
@@ -160,6 +165,7 @@ namespace glsample {
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
+
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			{
 
@@ -173,6 +179,7 @@ namespace glsample {
 				glDispatchCompute(std::ceil(this->mandelbrot_texture_width / (float)localWorkGroupSize[0]),
 								  std::ceil(this->mandelbrot_texture_height / (float)localWorkGroupSize[1]), 1);
 
+				/*	*/
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
 			}
 
@@ -182,10 +189,13 @@ namespace glsample {
 
 			glBlitFramebuffer(0, 0, this->mandelbrot_texture_width, this->mandelbrot_texture_height, 0, 0, width,
 							  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		void update() override {
 
+			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount()) % nrUniformBuffer) * uniformBufferSize,
@@ -200,7 +210,6 @@ namespace glsample {
 			params.mousePosY = y;
 			params.posX = 0;
 			params.posY = 0;
-			params.zoom = 1.0f;
 		}
 	};
 

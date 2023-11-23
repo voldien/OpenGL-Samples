@@ -93,7 +93,7 @@ namespace glsample {
 		} uniformBuffer;
 
 		typedef struct particle_t {
-			ProceduralGeometry::ProceduralVertex vertex; /*	Position, time	*/
+			ProceduralGeometry::Vertex vertex; /*	Position, time	*/
 			glm::vec4 velocity;				   /*	Velocity, mass	*/
 			float pinnedWeight;
 		} ClothVertex;
@@ -250,7 +250,7 @@ namespace glsample {
 
 			/*	Load geometry.	*/
 			{
-				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
+				std::vector<ProceduralGeometry::Vertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generatePlan(1, vertices, indices, 2048, 2048);
 				std::vector<ClothVertex> ClothVertex(vertices.size());

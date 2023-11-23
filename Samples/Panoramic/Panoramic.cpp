@@ -1,3 +1,5 @@
+#include "Scene.h"
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -10,10 +12,14 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class Panoramic : public GLSampleWindow {
 	  public:
 		Panoramic() : GLSampleWindow() {
-			this->setTitle("Panoramic");
+			this->setTitle("Panoramic View");
 			this->panoramicSettingComponent = std::make_shared<PanoramicSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->panoramicSettingComponent);
 
@@ -52,6 +58,7 @@ namespace glsample {
 		/*	Point light shadow maps.	*/
 		std::vector<unsigned int> pointShadowFrameBuffers;
 		std::vector<unsigned int> pointShadowTextures;
+		std::vector<unsigned int> pointShadowDepthTextures;
 
 		/*	*/
 		unsigned int panoramicWidth = 1024;
@@ -62,6 +69,8 @@ namespace glsample {
 
 		std::vector<GeometryObject> refObj;
 		GeometryObject skybox;
+		Scene scene;
+		Skybox skybox_;
 
 		/*	*/
 		unsigned int graphic_program;
@@ -147,28 +156,31 @@ namespace glsample {
 			const std::string diffuseTexturePath = "asset/diffuse.png";
 			const std::string modelPath = "asset/sponza/sponza.obj";
 
-			/*	*/
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexPanoramicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentPanoramicShaderPath, this->getFileSystem());
+			{
+				/*	*/
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexPanoramicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentPanoramicShaderPath, this->getFileSystem());
 
-			/*	*/
-			const std::vector<uint32_t> vertex_shadow_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> geometry_shadow_source =
-				IOUtil::readFileData<uint32_t>(this->geomtryShadowShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_shadow_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
+				/*	*/
+				const std::vector<uint32_t> vertex_shadow_source =
+					IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> geometry_shadow_source =
+					IOUtil::readFileData<uint32_t>(this->geomtryShadowShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_shadow_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shaders	*/
-			this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
-			this->panoramic_program = ShaderLoader::loadGraphicProgram(
-				compilerOptions, &vertex_shadow_source, &fragment_shadow_source, &geometry_shadow_source);
+				/*	Load shaders	*/
+				this->graphic_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				this->panoramic_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_shadow_source, &fragment_shadow_source, &geometry_shadow_source);
+			}
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());

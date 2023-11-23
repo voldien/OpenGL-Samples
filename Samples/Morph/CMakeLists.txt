@@ -6,3 +6,5 @@ TARGET_LINK_LIBRARIES(Morph glCommon gl-sample-common-asset-importer)
 ADD_DEPENDENCIES(Morph glCommon gl-sample-common-asset-importer)
 
 TARGET_INCLUDE_DIRECTORIES(Morph PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} )
+
+INSTALL(TARGETS Morph DESTINATION bin)

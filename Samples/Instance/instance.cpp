@@ -4,12 +4,16 @@
 #include <ImageImport.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
+#include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace glsample {
 
-	// TODO add support for batching.
+	/**
+	 * @brief
+	 *
+	 */
 	class Instance : public GLSampleWindow {
 	  public:
 		Instance() : GLSampleWindow() {
@@ -38,11 +42,11 @@ namespace glsample {
 			float shininess = 16.0f;
 		} uniformData;
 
-		/*  */
-		size_t rows = 8;
-		size_t cols = 8;
+		/*  */ // TODO: pass as arguments.
+		size_t rows = 16;
+		size_t cols = 16;
 
-		size_t instanceBatch = 64;
+		size_t instanceBatch = 0;
 		const size_t nrInstances = (rows * cols);
 		std::vector<glm::mat4> instance_model_matrices;
 
@@ -64,7 +68,7 @@ namespace glsample {
 		unsigned int uniform_instance_buffer;
 		const size_t nrUniformBuffers = 3;
 
-		size_t uniformSize = sizeof(UniformBufferBlock);
+		size_t uniformSharedBufferSize = sizeof(UniformBufferBlock);
 		size_t uniformInstanceSize = 0;
 
 		CameraController camera;
@@ -143,23 +147,25 @@ namespace glsample {
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformSize = fragcore::Math::align(this->uniformSize, (size_t)minMapBufferSize);
+			this->uniformSharedBufferSize =
+				fragcore::Math::align(this->uniformSharedBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_mvp_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffers, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformSharedBufferSize * this->nrUniformBuffers, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
 			GLint uniformMaxSize;
 			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
-			this->instanceBatch = 64; ////:; uniformMaxSize / sizeof(glm::mat4);
+			this->instanceBatch = uniformMaxSize / sizeof(glm::mat4);
 
 			/*	*/
 			this->uniformInstanceSize =
-				fragcore::Math::align(this->instanceBatch * sizeof(glm::mat4), (size_t)minMapBufferSize);
-			this->instance_model_matrices.resize(this->instanceBatch);
+				fragcore::Math::align(this->nrInstances * sizeof(glm::mat4), (size_t)minMapBufferSize);
+			this->instance_model_matrices.resize(this->nrInstances);
 			glGenBuffers(1, &this->uniform_instance_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * this->nrUniformBuffers, nullptr,
@@ -215,11 +221,7 @@ namespace glsample {
 		void draw() override {
 
 			int width, height;
-			getSize(&width, &height);
-
-			/*	*/
-			this->uniformData.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->getSize(&width, &height);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -230,14 +232,8 @@ namespace glsample {
 
 			/*	Bind MVP Uniform Buffer.	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_mvp_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformSize, this->uniformSize);
-
-			/*	Bind Model Instance Uniform Buffer.	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_binding, this->uniform_instance_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize,
-							  this->uniformInstanceSize);
-
-			// TODO add support for batching for limit amount of uniform buffers.
+							  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformSharedBufferSize,
+							  this->uniformSharedBufferSize);
 
 			/*	Optional - to display wireframe.	*/
 			glPolygonMode(GL_FRONT_AND_BACK, this->instanceSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
@@ -251,14 +247,29 @@ namespace glsample {
 
 			/*	Draw Instances.	*/
 			glBindVertexArray(this->instanceGeometry.vao);
-			glDrawElementsInstanced(GL_TRIANGLES, this->instanceGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-									this->nrInstances);
+
+			for (size_t i = 0; i < this->nrInstances; i += this->instanceBatch) {
+
+				const size_t nrDrawInstances = std::min(this->nrInstances - i, this->instanceBatch);
+				/*	Bind Model Instance Uniform Buffer.	*/
+
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_binding,
+								  this->uniform_instance_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize +
+									  i * (instanceBatch * sizeof(glm::mat4)),
+								  nrDrawInstances * sizeof(glm::mat4));
+
+				glDrawElementsInstanced(GL_TRIANGLES, this->instanceGeometry.nrIndicesElements, GL_UNSIGNED_INT,
+										nullptr, nrDrawInstances);
+			}
+
 			glBindVertexArray(0);
 		}
 
 		void update() override {
+
 			/*	*/
-			float elapsedTime = this->getTimer().getElapsed();
+			const float elapsedTime = this->getTimer().getElapsed();
 			this->camera.update(this->getTimer().deltaTime());
 
 			/*	Update instance model matrix.	*/
@@ -275,17 +286,19 @@ namespace glsample {
 				}
 			}
 
-			/*	*/
+			/*	*/ /*	*/
+			this->uniformData.proj = this->camera.getProjectionMatrix();
 			this->uniformData.model = glm::mat4(1.0f);
-			this->uniformData.view = camera.getViewMatrix();
-			this->uniformData.modelViewProjection = this->uniformData.model * camera.getViewMatrix();
+			this->uniformData.view = this->camera.getViewMatrix();
+			this->uniformData.modelViewProjection = this->uniformData.model * this->camera.getViewMatrix();
 			this->uniformData.viewPos = glm::vec4(this->camera.getPosition(), 0);
 
 			/*	Update uniform.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
-			void *uniformMVP = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformSize,
-				this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			void *uniformMVP =
+				glMapBufferRange(GL_UNIFORM_BUFFER,
+								 ((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformSharedBufferSize,
+								 this->uniformSharedBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformMVP, &this->uniformData, sizeof(this->uniformData));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
@@ -307,8 +320,7 @@ namespace glsample {
 
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"))(
-				"B,batch", "Bath Size", cxxopts::value<int>()->default_value("64"));
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}
 	};
 

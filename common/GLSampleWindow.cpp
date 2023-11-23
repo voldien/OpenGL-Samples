@@ -31,8 +31,6 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 	this->preHeight = this->height();
 
 	/*	*/
-
-	// glGetIntegerv( GL_FRAMEBUFFER ,  &frameBufferCount);
 	glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
@@ -41,9 +39,12 @@ void GLSampleWindow::displayMenuBar() {}
 void GLSampleWindow::renderUI() {
 
 	if (this->preWidth != this->width() || this->preHeight != this->height()) {
+		/*	Finish all commands before starting resizing buffers and etc.	*/
 		glFinish();
+
 		this->onResize(this->width(), this->height());
 	}
+
 	this->preWidth = this->width();
 	this->preHeight = this->height();
 
@@ -57,10 +58,9 @@ void GLSampleWindow::renderUI() {
 	}
 
 	/*	*/
-
 	this->draw();
 
-	/*	*/
+	/*	Extract debugging information.	*/
 	if (this->debugGL) {
 		glEndQuery(GL_TIME_ELAPSED);
 		glEndQuery(GL_SAMPLES_PASSED);
@@ -109,24 +109,20 @@ void GLSampleWindow::debug(bool enable) {
 }
 
 void GLSampleWindow::captureScreenShot() {
-	int screen_grab_width_size = this->width();
-	int screen_grab_height_size = this->height();
-
-	// Sync and fence.
+	const int screen_grab_width_size = this->width();
+	const int screen_grab_height_size = this->height();
 
 	/*	Make sure the frame is completed before extracing pixel data.	*/
 	glFinish();
 
-	// unsigned int pboBuffer;
-	// glGenBuffers(1, &pboBuffer);
+	const size_t imageSizeInBytes = screen_grab_width_size * screen_grab_height_size * 3;
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, pboBuffer);
-	glBufferData(GL_PIXEL_PACK_BUFFER, screen_grab_width_size * screen_grab_height_size * 4, nullptr, GL_STREAM_READ);
-	// glBufferData(GL_PIXEL_PACK_BUFFER, screen_grab_width_size * screen_grab_height_size * 4, nullptr,
-	// GL_STREAM_READ);
+	glBufferData(GL_PIXEL_PACK_BUFFER, imageSizeInBytes, nullptr, GL_STREAM_READ);
 
 	// FIXME: make sure that the image format is used correctly.
+	/*	Read framebuffer, and transfer the result to PBO, to allow DMA and less sync between frames.	*/
 	glReadBuffer(GL_FRONT);
-	glReadPixels(0, 0, screen_grab_width_size, screen_grab_height_size, GL_BGRA, GL_UNSIGNED_BYTE, nullptr);
+	glReadPixels(0, 0, screen_grab_width_size, screen_grab_height_size, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
 
 	void *pixelData = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
 
@@ -134,11 +130,10 @@ void GLSampleWindow::captureScreenShot() {
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 	/*	offload the image process and saving to filesystem.	*/
-	std::thread process_thread([screen_grab_width_size, screen_grab_height_size, pixelData]() {
+	std::thread process_thread([imageSizeInBytes, screen_grab_width_size, screen_grab_height_size, pixelData]() {
 		/*	*/
-		Image image(screen_grab_width_size, screen_grab_height_size, TextureFormat::RGBA32);
-		image.setPixelData(pixelData, screen_grab_width_size * screen_grab_height_size * 4);
-		ImageLoader loader;
+		Image image(screen_grab_width_size, screen_grab_height_size, TextureFormat::RGB24);
+		image.setPixelData(pixelData, imageSizeInBytes);
 
 		// Application and time
 		time_t rawtime;
@@ -151,8 +146,12 @@ void GLSampleWindow::captureScreenShot() {
 		strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", timeinfo);
 		std::string str(buffer);
 
-		loader.saveImage(SystemInfo::getApplicationName() + "-screenshot-" + str + ".png", image);
+		ImageLoader loader;
+		loader.saveImage(SystemInfo::getApplicationName() + "-screenshot-" + str + ".jpg", image,
+						 ImageLoader::FileFormat::Jpeg);
 	});
+
+	/*	Allow to process indepdent from the main program.	*/
 	process_thread.detach();
 }
 

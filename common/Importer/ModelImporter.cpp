@@ -10,6 +10,7 @@
 namespace fs = std::filesystem;
 using namespace fragcore;
 
+
 void ModelImporter::loadContent(const std::string &path, unsigned long int supportFlag) {
 	Importer importer;
 
@@ -19,12 +20,8 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	io->close();
 	bufferIO.clear();
 	this->filepath = fs::path(fileSystem->getAbsolutePath(path.c_str())).parent_path();
-
-	/*  */
-	//	const aiScene *pScene = importer.ReadFileFromMemory(
-	//		bufferIO.data(), bufferIO.size(), aiProcessPreset_TargetRealtime_Quality);
-	//		aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_ValidateDataStructure |
-	//			aiProcess_SplitLargeMeshes | aiProcess_FindInstances | aiProcess_EmbedTextures);
+	
+	/*	*/
 	const aiScene *pScene = importer.ReadFile(path.c_str(), aiProcessPreset_TargetRealtime_Quality);
 
 	if (pScene == nullptr) {

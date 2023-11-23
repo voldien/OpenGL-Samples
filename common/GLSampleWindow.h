@@ -31,11 +31,13 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	 *
 	 */
 	virtual void Initialize() = 0;
+
 	/**
 	 * @brief
 	 *
 	 */
 	virtual void Release() = 0;
+
 	/**
 	 * @brief
 	 *
@@ -54,10 +56,10 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	const glsample::Time &getTimer() const noexcept { return this->time; }
 	glsample::Time &getTimer() noexcept { return this->time; }
-	size_t getFrameCount() noexcept { return this->frameCount; }
+	size_t getFrameCount() const noexcept { return this->frameCount; }
 
-	size_t getFrameBufferIndex() noexcept { return this->frameCount; }
-	size_t getFrameBufferCount() noexcept { return this->getNumberFrameBuffers(); }
+	size_t getFrameBufferIndex() const noexcept { return this->frameCount; }
+	size_t getFrameBufferCount() const noexcept { return this->getNumberFrameBuffers(); }
 
 	void debug(bool enable);
 
@@ -69,13 +71,16 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	unsigned int getShaderVersion() const;
 
 	bool supportSPIRV() const;
-
+	
+	/*	*/
 	cxxopts::ParseResult &getResult() { return this->parseResult; }
 	void setCommandResult(cxxopts::ParseResult &result) { this->parseResult = result; }
 
 	// const fragcore::GLRendererInterface *getRenderInterface();
 
 	void setColorSpace(bool srgb);
+
+	void enableRenderDoc(bool status);
 
   protected:
 	virtual void displayMenuBar() override;

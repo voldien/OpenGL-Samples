@@ -9,6 +9,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class VectorField : public GLSampleWindow {
 	  public:
 		VectorField() : GLSampleWindow() {

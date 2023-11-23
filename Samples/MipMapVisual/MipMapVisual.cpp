@@ -32,6 +32,10 @@ namespace glsample {
 		}
 	};
 
+	/**
+	 * @brief
+	 *
+	 */
 	class MipMapVisual : public GLSampleWindow {
 	  public:
 		MipMapVisual() : GLSampleWindow() {
@@ -218,7 +222,6 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->mipmap_texture);
 				glBindSampler(0, this->mipmap_sampler);
 
-				// TODO: override render.
 				this->scene.render();
 			}
 		}

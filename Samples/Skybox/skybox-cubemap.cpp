@@ -11,6 +11,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class SkyBoxPanoramic : public GLSampleWindow {
 	  public:
 		SkyBoxPanoramic() : GLSampleWindow() {
@@ -117,7 +121,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::ProceduralVertex> vertices;
+			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
 			ProceduralGeometry::generateCube(1.0f, vertices, indices);
 
@@ -134,12 +138,12 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->SkyboxCube.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, SkyboxCube.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
 						 vertices.data(), GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 			glBindVertexArray(0);
 		}

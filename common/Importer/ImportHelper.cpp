@@ -53,21 +53,21 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<Geome
 	// TODO add proper stride.
 	/*	Vertex.	*/
 	glEnableVertexAttribArrayARB(0);
-	glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
+	glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 	/*	UV.	*/
 	glEnableVertexAttribArrayARB(1);
-	glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
+	glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 							 reinterpret_cast<void *>(12));
 
 	/*	Normal.	*/
 	glEnableVertexAttribArrayARB(2);
-	glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
+	glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 							 reinterpret_cast<void *>(20));
 
 	/*	Tangent.	*/
 	glEnableVertexAttribArrayARB(3);
-	glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
+	glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 							 reinterpret_cast<void *>(32));
 
 	glBindVertexArray(0);

@@ -260,7 +260,7 @@ namespace glsample {
 
 			{
 				/*	Load geometry.	*/
-				std::vector<ProceduralGeometry::ProceduralVertex> vertices;
+				std::vector<ProceduralGeometry::Vertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generatePlan(1, vertices, indices, 1, 1);
 
@@ -271,7 +271,7 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->plan.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex),
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
 							 vertices.data(), GL_STATIC_DRAW);
 
 				/*	*/
@@ -283,22 +283,22 @@ namespace glsample {
 
 				/*	Vertex.	*/
 				glEnableVertexAttribArrayARB(0);
-				glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
+				glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 										 nullptr);
 
 				/*	UV.	*/
 				glEnableVertexAttribArrayARB(1);
-				glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
+				glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 										 reinterpret_cast<void *>(12));
 
 				/*	Normal.	*/
 				glEnableVertexAttribArrayARB(2);
-				glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
+				glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 										 reinterpret_cast<void *>(20));
 
 				/*	Tangent.	*/
 				glEnableVertexAttribArrayARB(3);
-				glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
+				glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
 										 reinterpret_cast<void *>(32));
 
 				glBindVertexArray(0);
@@ -447,7 +447,7 @@ namespace glsample {
 			/*	Border clamped to max value, it makes the outside area.	*/
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-			float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+			const float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};//FIXME:
 			glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
 			glBindTexture(GL_TEXTURE_2D, 0);

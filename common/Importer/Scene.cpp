@@ -1,6 +1,5 @@
 #include "Scene.h"
 #include "GLSampleSession.h"
-#include "ImportHelper.h"
 #include "ModelImporter.h"
 #include <GL/glew.h>
 
@@ -59,7 +58,6 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, diffuseTexture.texture);
 			} else {
-
 			}
 
 			/*	*/
@@ -114,16 +112,4 @@ namespace glsample {
 
 	void Scene::sortRenderQueue() {}
 
-	// Scene Scene::loadFrom(ModelImporter &importer) {
-
-	// 	Scene scene;
-
-	// 	/*	*/
-	// 	scene.nodes = importer.getNodes();
-	// 	ImportHelper::loadModelBuffer(importer, scene.refGeometry);
-	// 	ImportHelper::loadTextures(importer, scene.refTexture);
-	// 	scene.materials = importer.getMaterials();
-
-	// 	return scene;
-	// }
 } // namespace glsample

@@ -50,7 +50,7 @@ namespace glsample {
 
 		  public:
 			MorphTargetSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Tessellation Settings");
+				this->setName("Morph Settings");
 			}
 			void draw() override {
 				int nrMorphTargets = 3;
