@@ -1,5 +1,5 @@
 #pragma once
-
+#include "Core/UIDObject.h"
 #include "GLSampleSession.h"
 #include "Util/CameraController.h"
 #include <Core/IO/FileSystem.h>
@@ -15,7 +15,7 @@ using namespace fragcore;
 
 namespace glsample {
 
-	class Skybox {
+	class Skybox : public UIDObject {
 	  public:
 		struct UniformBufferBlock {
 			glm::mat4 proj;

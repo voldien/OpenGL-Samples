@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "GLHelper.h"
 #include "GLSampleSession.h"
 #include "ModelImporter.h"
 #include <GL/glew.h>
@@ -17,6 +18,27 @@ namespace glsample {
 	}
 
 	void Scene::update(const float deltaTime) {
+
+		if (normalDefault == 0) {
+			/*	Create white texture.	*/
+			glGenTextures(1, &this->normalDefault);
+			glBindTexture(GL_TEXTURE_2D, this->normalDefault);
+			const unsigned char white[] = {127, 127, 255, 255};
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, white);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			/*	Border clamped to max value, it makes the outside area.	*/
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+			/*	No Mipmap.	*/
+			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+
+			FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
 
 		/*	Update animations.	*/
 		for (size_t x = 0; x < this->animations.size(); x++) {
@@ -62,9 +84,18 @@ namespace glsample {
 
 			/*	*/
 			if (material.normalIndex >= 0 && material.normalIndex < refTexture.size()) {
-				const TextureAssetObject &tex = this->refTexture[material.normalIndex];
+				const TextureAssetObject *tex = &this->refTexture[material.normalIndex];
+				
+				if (tex && tex->texture > 0) {
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, tex->texture);
+				} else {
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, this->normalDefault);
+				}
+			} else {
 				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, tex.texture);
+				glBindTexture(GL_TEXTURE_2D, this->normalDefault);
 			}
 
 			/*	*/
@@ -72,6 +103,9 @@ namespace glsample {
 				const TextureAssetObject &tex = this->refTexture[material.maskTextureIndex];
 				glActiveTexture(GL_TEXTURE2);
 				glBindTexture(GL_TEXTURE_2D, tex.texture);
+			} else {
+				glActiveTexture(GL_TEXTURE2);
+				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 
 			glPolygonMode(GL_FRONT_AND_BACK, material.wireframe_mode ? GL_LINE : GL_FILL);
@@ -82,7 +116,8 @@ namespace glsample {
 			if (useBlending) {
 				glEnable(GL_BLEND);
 				/*	*/
-				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+				glBlendFuncSeparatei(0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+				// glBlendEquation(GL_FUNC_ADD);
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_FALSE);
 

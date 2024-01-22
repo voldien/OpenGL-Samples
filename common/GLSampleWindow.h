@@ -16,8 +16,8 @@
 #pragma once
 #include "FPSCounter.h"
 #include "IOUtil.h"
-#include "Util/Time.hpp"
 #include <Core/IO/IFileSystem.h>
+#include <Core/Time.h>
 #include <MIMIWindow.h>
 #include <ProceduralGeometry.h>
 #include <cxxopts.hpp>
@@ -51,11 +51,11 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	virtual void setTitle(const std::string &title) override;
 
   public:
-	FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }
-	const FPSCounter<float> &getFPSCounter() const noexcept { return this->fpsCounter; }
+	glsample::FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }
+	const glsample::FPSCounter<float> &getFPSCounter() const noexcept { return this->fpsCounter; }
 
-	const glsample::Time &getTimer() const noexcept { return this->time; }
-	glsample::Time &getTimer() noexcept { return this->time; }
+	const fragcore::Time &getTimer() const noexcept { return this->time; }
+	fragcore::Time &getTimer() noexcept { return this->time; }
 	size_t getFrameCount() const noexcept { return this->frameCount; }
 
 	size_t getFrameBufferIndex() const noexcept { return this->frameCount; }
@@ -71,7 +71,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	unsigned int getShaderVersion() const;
 
 	bool supportSPIRV() const;
-	
+
 	/*	*/
 	cxxopts::ParseResult &getResult() { return this->parseResult; }
 	void setCommandResult(cxxopts::ParseResult &result) { this->parseResult = result; }
@@ -88,8 +88,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
   private:
 	cxxopts::ParseResult parseResult;
-	FPSCounter<float> fpsCounter;
-	glsample::Time time;
+	glsample::FPSCounter<float> fpsCounter;
+	fragcore::Time time;
 	bool debugGL = true;
 
 	/*	*/

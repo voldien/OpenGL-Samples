@@ -228,7 +228,7 @@ namespace glsample {
 
 		void update() override {
 			/*	Update Camera.	*/
-			this->camera.update(this->getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			const glm::mat4 proj = this->camera.getProjectionMatrix();

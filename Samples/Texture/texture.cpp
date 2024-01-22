@@ -173,7 +173,7 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			this->camera.update(this->getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniform_stage_buffer.proj =

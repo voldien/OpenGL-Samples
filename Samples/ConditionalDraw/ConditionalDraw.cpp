@@ -2,17 +2,24 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
+#include <Scene.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace glsample {
 
+	class ConditionalScene : public Scene {
+	  public:
+	};
+
 	class ConditionalDraw : public GLSampleWindow {
 	  public:
 		ConditionalDraw() : GLSampleWindow() {
 			this->setTitle("Conditional Draw");
-			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformStageBuffer);
+			this->normalMapSettingComponent =
+				std::make_shared<ConditionalDrawSettingComponent>(this->uniformStageBuffer);
+
 			this->addUIComponent(this->normalMapSettingComponent);
 		}
 
@@ -55,10 +62,10 @@ namespace glsample {
 
 		CameraController camera;
 
-		class NormalMapSettingComponent : public nekomimi::UIComponent {
+		class ConditionalDrawSettingComponent : public nekomimi::UIComponent {
 		  public:
-			NormalMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
-				this->setName("NormalMap Settings");
+			ConditionalDrawSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+				this->setName("Conditional Draw");
 			}
 
 			void draw() override {
@@ -81,7 +88,7 @@ namespace glsample {
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
+		std::shared_ptr<ConditionalDrawSettingComponent> normalMapSettingComponent;
 
 		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag.spv";
@@ -141,55 +148,7 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
-
-			/*	Create uniform buffer.	*/
-			glGenBuffers(1, &this->uniform_buffer);
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::ProceduralVertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateTorus(1, vertices, indices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::ProceduralVertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
-
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex), nullptr);
-
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
-								  reinterpret_cast<void *>(12));
-
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
-								  reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::ProceduralVertex),
-								  reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 		}
 
 		void draw() override {
@@ -237,8 +196,8 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);

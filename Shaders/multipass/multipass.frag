@@ -27,8 +27,8 @@ void main() {
 	TextureCoord = vec4(uv, 0, 0);
 
 	/*	Convert normal map texture to a vector.	*/
-	const vec3 NormalMapBump = 2.0 * texture(NormalTexture, uv).xyz - 1;
+	const vec3 NormalMap = normalize((2.0 * texture(NormalTexture, uv).xyz) - 1);
 
 	/*	Compute the new normal vector on the specific surface normal.	*/
-	Normal = normalize(mat3(tangent, bitangent, normal) * NormalMapBump);
+	Normal = normalize(mat3(tangent, bitangent, normal) * NormalMap);
 }

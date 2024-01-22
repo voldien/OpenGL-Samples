@@ -10,7 +10,6 @@
 namespace fs = std::filesystem;
 using namespace fragcore;
 
-
 void ModelImporter::loadContent(const std::string &path, unsigned long int supportFlag) {
 	Importer importer;
 
@@ -20,7 +19,7 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	io->close();
 	bufferIO.clear();
 	this->filepath = fs::path(fileSystem->getAbsolutePath(path.c_str())).parent_path();
-	
+
 	/*	*/
 	const aiScene *pScene = importer.ReadFile(path.c_str(), aiProcessPreset_TargetRealtime_Quality);
 
@@ -82,8 +81,13 @@ void ModelImporter::initScene(const aiScene *scene) {
 		/*	 */
 		if (scene->HasMeshes()) {
 			this->models.resize(scene->mNumMeshes);
+
 			for (size_t x = 0; x < scene->mNumMeshes; x++) {
 				this->initMesh(scene->mMeshes[x], x);
+			}
+
+			for (size_t x = 0; x < scene->mNumMeshes; x++) {
+				this->initBoneSkeleton(scene->mMeshes[x], x);
 			}
 		}
 	});
@@ -198,20 +202,39 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 	}
 }
 
+SkeletonSystem *ModelImporter::initBoneSkeleton(const aiMesh *mesh, unsigned int index) {
+	// ModelSystemObject *pmesh = &this->models[index];
+	/*	Load bones.	*/
+	if (mesh->HasBones()) {
+	}
+	return nullptr;
+}
+
 ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int index) {
 	ModelSystemObject *pmesh = &this->models[index];
 
 	size_t z;
 
-	/*	*/
-	size_t vertexSize = (3 + 2 + 3 + 3) * sizeof(float);
-	size_t indicesSize = 4;
+	/*	*/ // TODO: compute vertexSize
+	const size_t vertexSize = sizeof(float) * 3;
+	const size_t uvSize = sizeof(float) * 2;
+	const size_t normalSize = sizeof(float) * 3;
+	const size_t tangentSize = sizeof(float) * 3;
+
+	const size_t boudWeightCount = 4;
+	size_t boneSize = 0;
+	if (aimesh->HasBones()) {
+		boneSize = sizeof(float) * boudWeightCount + sizeof(unsigned int) * boudWeightCount;
+	}
+
+	const size_t StrideSize = vertexSize + uvSize + normalSize + tangentSize + boneSize;
+	const size_t indicesSize = 4;
 
 	/*	*/
 	unsigned int VertexIndex = 0, IndicesIndex = 0, bonecount = 0, initilzebone = 0;
 
 	/*	*/
-	float *vertices = (float *)malloc(aimesh->mNumVertices * vertexSize);
+	float *vertices = (float *)malloc(aimesh->mNumVertices * StrideSize);
 	unsigned char *Indice = (unsigned char *)malloc(indicesSize * aimesh->mNumFaces * 3);
 
 	/*	*/
@@ -228,7 +251,6 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		aiVector3D *pNormal = &(aimesh->mNormals[x]);
 
 		const aiVector3D *pTexCoord = aimesh->HasTextureCoords(0) ? &(aimesh->mTextureCoords[0][x]) : &Zero;
-		glm::vec3 mtangent;
 
 		/*	*/
 		*vertices++ = Pos->x;
@@ -242,25 +264,21 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		// uvs[x] = pTexCoord->y;
 
 		/*	*/
-
 		pNormal->Normalize();
 		*vertices++ = pNormal->x;
 		*vertices++ = pNormal->y;
 		*vertices++ = pNormal->z;
 
-		// mtangent = tangent(VDVector3(pNormal->x, pNormal->y, pNormal->z));
-		// mtangent.makeUnitVector();
+		/*	*/
+		*vertices++ = aimesh->mTangents->x;
+		*vertices++ = aimesh->mTangents->y;
+		*vertices++ = aimesh->mTangents->z;
 
 		/*	*/
-		*vertices++ = mtangent.x;
-		*vertices++ = mtangent.y;
-		*vertices++ = mtangent.z;
-
-		/*	*/
-		// for (size_t joint = 0; joint < bonecount; joint++) {
-		//	*vertices++ = 0; /*	Bone ID.	*/
-		//	*vertices++ = 0; /*	Vertex Weight.	*/
-		//}
+		if (boneSize > 0) {
+			*vertices += bonecount; /*	Bone ID.	*/
+			*vertices += bonecount; /*	Vertex Weight.	*/
+		}
 
 	} /**/
 
@@ -268,33 +286,20 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 	/*	Load bones.	*/
 	if (aimesh->HasBones()) {
-		bonecount = 4; /*	TODO */
-		// vertexSize += bonecount * sizeof(float);
 
-		// TODO add bone support.
 		for (uint i = 0; i < aimesh->mNumBones; i++) {
-			uint BoneIndex = 0;
+			const uint BoneIndex = 0;
 
 			std::string BoneName(aimesh->mBones[i]->mName.data);
 
-			/*	*/
-			// if (vertexBoneData.find(BoneName) == vertexBoneData.end()) {
-			//	BoneIndex = m_NumBones;
-			//	m_NumBones++;
-			//	BoneInfo bi;
-			//	m_BoneInfo.push_back(bi);
-			//} else {
-			//	BoneIndex = vertexBoneData[BoneName];
-			//}
+			for (uint j = 0; j < aimesh->mBones[i]->mNumWeights; j++) {
 
-			// m_BoneMapping[BoneName] = BoneIndex;
-			// m_BoneInfo[BoneIndex].BoneOffset = aimesh->mBones[i]->mOffsetMatrix;
-			//
-			// for (uint j = 0; j < aimesh->mBones[i]->mNumWeights; j++) {
-			//	uint VertexID = m_Entries[index].BaseVertex + pMesh->mBones[i]->mWeights[j].mVertexId;
-			//	float Weight = pMesh->mBones[i]->mWeights[j].mWeight;
-			//	Bones[VertexID].AddBoneData(BoneIndex, Weight);
-			//}
+				const uint VertexID = aimesh->mBones[i]->mWeights[j].mVertexId;
+				const float Weight = aimesh->mBones[i]->mWeights[j].mWeight;
+
+				vertices[VertexID * (StrideSize / sizeof(float))] = BoneIndex;
+				vertices[VertexID * (StrideSize / sizeof(float)) + 1] = Weight;
+			}
 		}
 	}
 
@@ -302,6 +307,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	for (size_t x = 0; x < aimesh->mNumFaces; x++) {
 		const aiFace &face = aimesh->mFaces[x];
 		assert(face.mNumIndices == 3); // Check if Indices Count is 3 other case error
+		// TODO: fix old code.
 		memcpy(Indice, &face.mIndices[0], indicesSize);
 		Indice += indicesSize;
 		memcpy(Indice, &face.mIndices[1], indicesSize);
@@ -317,7 +323,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	pmesh->nrIndices = aimesh->mNumFaces * 3;
 	pmesh->nrVertices = aimesh->mNumVertices;
 	pmesh->vertexData = vertices;
-	pmesh->vertexStride = vertexSize;
+	pmesh->vertexStride = StrideSize;
 
 	return pmesh;
 }
@@ -383,7 +389,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 				if (path.data[0] == '*' && embeededTexture) {
 					texIndex = atoi(&path.data[1]);
 				} else {
-					TextureAssetObject *textureObj = this->textureMapping[path.C_Str()];
+					const TextureAssetObject *textureObj = this->textureMapping[path.C_Str()];
 					if (textureObj) {
 						texIndex = this->textureIndexMapping[path.C_Str()];
 					}
@@ -400,18 +406,32 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 					material->maskTextureIndex = texIndex;
 					break;
 				case aiTextureType::aiTextureType_SPECULAR:
+					break;
 				case aiTextureType::aiTextureType_HEIGHT:
+					material->heightIndex = texIndex;
+					break;
 				case aiTextureType::aiTextureType_AMBIENT:
+					break;
 				case aiTextureType::aiTextureType_EMISSIVE:
+					break;
 				case aiTextureType::aiTextureType_SHININESS:
+					break;
 				case aiTextureType::aiTextureType_DISPLACEMENT:
+					break;
 				case aiTextureType::aiTextureType_LIGHTMAP:
+					break;
 				case aiTextureType::aiTextureType_REFLECTION:
+					break;
 				case aiTextureType::aiTextureType_BASE_COLOR:
+					break;
 				case aiTextureType::aiTextureType_NORMAL_CAMERA:
+					break;
 				case aiTextureType::aiTextureType_EMISSION_COLOR:
+					break;
 				case aiTextureType::aiTextureType_METALNESS:
+					break;
 				case aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS:
+					break;
 				case aiTextureType::aiTextureType_AMBIENT_OCCLUSION:
 					break;
 				case aiTextureType_UNKNOWN:

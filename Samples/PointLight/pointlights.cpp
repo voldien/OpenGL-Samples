@@ -257,15 +257,15 @@ namespace glsample {
 
 		void update() override {
 			/*	Update Camera.	*/
-			this->camera.update(this->getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	Animate the point lights.	*/
 			if (this->pointLightSettingComponent->animate) {
 				for (size_t i = 0;
 					 i < sizeof(uniformStageBuffer.pointLights) / sizeof(uniformStageBuffer.pointLights[0]); i++) {
 					this->uniformStageBuffer.pointLights[i].position =
-						glm::vec3(10.0f * std::cos(this->getTimer().getElapsed() * 3.1415 + 1.3 * i), 10,
-								  10.0f * std::sin(this->getTimer().getElapsed() * 3.1415 + 1.3 * i));
+						glm::vec3(10.0f * std::cos(this->getTimer().getElapsed<float>() * 3.1415 + 1.3 * i), 10,
+								  10.0f * std::sin(this->getTimer().getElapsed<float>() * 3.1415 + 1.3 * i));
 				}
 			}
 

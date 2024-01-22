@@ -15,7 +15,8 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<Geome
 	unsigned int tmp_vbo;
 	unsigned int tmp_vao;
 
-	//TODO compute number of buffer required to fill.
+	// TODO compute number of buffer required to fill.
+	// TODO: use mapping instead.
 
 	/*	Create array buffer, for rendering static geometry.	*/
 	glGenVertexArrays(1, &tmp_vao);
@@ -112,6 +113,8 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 			try {
 				std::cout << "Loading " << tex.filepath << std::endl;
 				tex.texture = textureImporter.loadImage2D(tex.filepath);
+				glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
+
 			} catch (const std::exception &ex) {
 				std::cerr << "Failed to load: " << tex.filepath << " " << ex.what() << std::endl;
 			}
@@ -134,6 +137,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				} catch (std::exception &ex) {
 					std::cerr << "Failed to load: " << ex.what() << std::endl;
 				}
+
 				refIO->close();
 			} else {
 

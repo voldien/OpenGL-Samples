@@ -76,8 +76,6 @@ typedef struct node_object_t {
 	std::vector<unsigned int> geometryObjectIndex;
 	std::vector<unsigned int> materialIndex;
 
-
-
 	struct node_object_t *parent = nullptr;
 	std::string name;
 } NodeObject;
@@ -103,6 +101,19 @@ typedef struct model_system_object {
 	// Bounding box.
 	// ColorSpace colorSpace;
 } ModelSystemObject;
+
+typedef struct model_skeleton {
+
+	/*	*/
+	unsigned int vertexOffset;
+	unsigned int normalOffset;
+	unsigned int tangentOffset;
+	unsigned int uvOffset;
+	unsigned int boneOffset;
+
+	// Bounding box.
+	// ColorSpace colorSpace;
+} SkeletonSystem;
 
 typedef struct texture_asset_object_t {
 	unsigned int texture = 0;
@@ -158,6 +169,8 @@ class FVDECLSPEC ModelImporter {
 	MaterialObject *initMaterial(aiMaterial *material, size_t index);
 
 	ModelSystemObject *initMesh(const aiMesh *mesh, unsigned int index);
+
+	SkeletonSystem *initBoneSkeleton(const aiMesh *mesh, unsigned int index);
 
 	TextureAssetObject *initTexture(aiTexture *texture, unsigned int index);
 

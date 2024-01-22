@@ -28,10 +28,10 @@ void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
 
 	vertex = (ubo.modelView * vec4(Vertex, 1.0));
-	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
-	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
-	
-	//const vec3 Ttangent = normalize(tangent - dot(tangent, normal) * normal);
+	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
+	tangent = normalize((ubo.model * vec4(Tangent, 0.0)).xyz);
+
+	// const vec3 Ttangent = normalize(tangent - dot(tangent, normal) * normal);
 	bitangent = cross(tangent, normal);
 
 	uv = TextureCoord;

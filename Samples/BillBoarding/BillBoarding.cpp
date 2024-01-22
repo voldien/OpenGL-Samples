@@ -261,8 +261,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->terrain.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, terrain.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-							 vertices.data(), GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
 				/*	*/
 				glGenBuffers(1, &this->terrain.ibo);
@@ -409,8 +409,8 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			const float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniformBuffer.proj = this->camera.getProjectionMatrix();
@@ -438,7 +438,7 @@ namespace glsample {
 	  public:
 		BillBoardingGLSample() : GLSample<BillBoarding>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("G,ground-texture", "Ground Texture",
+			options("P,ground-texture", "Ground Texture",
 					cxxopts::value<std::string>()->default_value("asset/stylized-ground.png"))(
 				"T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/stylized-tree.png"))(
 				"S,skybox", "Skybox Texture Path (Panoramic)",

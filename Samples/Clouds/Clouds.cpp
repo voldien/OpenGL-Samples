@@ -240,7 +240,7 @@ namespace glsample {
 
 		void update() override {
 			/*	*/
-			this->camera.update(this->getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniform_stage_buffer.skybox.proj =

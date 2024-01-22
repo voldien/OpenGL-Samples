@@ -11,6 +11,7 @@
 
 namespace glsample {
 
+	class SceneFrustum : Scene {};
 	/**
 	 * FrustumCulling Rendering Path Sample.
 	 **/
@@ -20,8 +21,9 @@ namespace glsample {
 			this->setTitle("FrustumCulling Rendering");
 
 			/*	Setting Window.	*/
-			this->fogSettingComponent = std::make_shared<FrustumCullingSettingComponent>(this->uniformBuffer);
-			this->addUIComponent(this->fogSettingComponent);
+			this->frustumCullingSettingComponent =
+				std::make_shared<FrustumCullingSettingComponent>(this->uniformBuffer);
+			this->addUIComponent(this->frustumCullingSettingComponent);
 
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
@@ -64,32 +66,20 @@ namespace glsample {
 		Scene scene; /*	World Scene.	*/
 
 		/*	*/
-		unsigned int deferred_framebuffer;
-		unsigned int deferred_texture_width;
-		unsigned int deferred_texture_height;
-		std::vector<unsigned int> deferred_textures; /*	Albedo, WorldSpace, Normal, */
-		unsigned int depthTexture;
-
-		/*	*/
 		unsigned int deferred_program;
-		unsigned int multipass_program;
 		unsigned int skybox_program;
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_pointlight_buffer_binding = 1;
 		unsigned int uniform_buffer;
-		unsigned int uniform_pointlight_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(UniformBufferBlock);
 		size_t uniformLightBufferSize = sizeof(UniformBufferBlock);
 
 		/*	*/
 		CameraController camera;
-
-		/*	Multipass Shader Source.	*/
-		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
-		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
+		CameraController camera2;
 
 		/*	FrustumCulling Rendering Path.	*/
 		const std::string vertexShaderPath = "Shaders/deferred/deferred.vert.spv";
@@ -114,25 +104,22 @@ namespace glsample {
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Show Frustum", &this->showFrustum);
 				ImGui::Checkbox("Show Bounds", &this->showBounds);
+				ImGui::Checkbox("Show Frustum View", &this->showFrustumView);
 			}
 
 			bool showWireFrame = false;
 			bool showFrustum = true;
 			bool showBounds = true;
+			bool showFrustumView = true;
 
 		  private:
 			struct UniformBufferBlock &uniform;
 		};
-		std::shared_ptr<FrustumCullingSettingComponent> fogSettingComponent;
+		std::shared_ptr<FrustumCullingSettingComponent> frustumCullingSettingComponent;
 
 		void Release() override {
 			glDeleteProgram(this->deferred_program);
-			glDeleteProgram(this->multipass_program);
 			glDeleteProgram(this->skybox_program);
-
-			/*	*/
-			glDeleteTextures(1, &this->depthTexture);
-			glDeleteTextures(this->deferred_textures.size(), this->deferred_textures.data());
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -149,11 +136,6 @@ namespace glsample {
 			const std::string panoramicPath = this->getResult()["skybox"].as<std::string>();
 
 			{
-				/*	*/
-				const std::vector<uint32_t> vertex_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -181,23 +163,11 @@ namespace glsample {
 				/*	Load shader	*/
 				this->deferred_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
-
-				/*	Load shader	*/
-				this->multipass_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 			}
 
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->multipass_program);
-			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
-			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
-			glUseProgram(0);
-
-			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->deferred_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->deferred_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->deferred_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->deferred_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->deferred_program, "NormalTexture"), 1);
 			glUniform1i(glGetUniformLocation(this->deferred_program, "WorldTexture"), 2);
@@ -234,8 +204,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->frustum.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, this->frustum.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-							 vertices.data(), GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
 				/*	*/
 				glGenBuffers(1, &this->frustum.ibo);
@@ -265,74 +235,16 @@ namespace glsample {
 
 				glBindVertexArray(0);
 			}
-
-			{
-				/*	Create deferred framebuffer.	*/
-				glGenFramebuffers(1, &this->deferred_framebuffer);
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
-
-				this->deferred_textures.resize(4);
-				glGenTextures(this->deferred_textures.size(), this->deferred_textures.data());
-				this->onResize(this->width(), this->height());
-			}
-
-			/*	Setup lights.	*/
-			this->pointLights.resize(64);
-			for (size_t i = 0; i < this->pointLights.size(); i++) {
-				this->pointLights[i].range = 25.0f;
-				this->pointLights[i].position = glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(2.0f);
-				this->pointLights[i].color = glm::vec4(1, 1, 1, 1);
-				this->pointLights[i].constant_attenuation = 1.7f;
-				this->pointLights[i].linear_attenuation = 1.5f;
-				this->pointLights[i].qudratic_attenuation = 0.19f;
-				this->pointLights[i].intensity = 1.0f;
-			}
 		}
 
 		void onResize(int width, int height) override {
-
-			this->deferred_texture_width = width;
-			this->deferred_texture_height = height;
-
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
-
-			/*	Resize the image.	*/
-			std::vector<GLenum> drawAttach(deferred_textures.size());
-			for (size_t i = 0; i < this->deferred_textures.size(); i++) {
-
-				glBindTexture(GL_TEXTURE_2D, this->deferred_textures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->deferred_texture_width, this->deferred_texture_height,
-							 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-				glBindTexture(GL_TEXTURE_2D, 0);
-
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D,
-									   this->deferred_textures[i], 0);
-				drawAttach[i] = GL_COLOR_ATTACHMENT0 + i;
-			}
-
-			/*	*/
-			glGenTextures(1, &this->depthTexture);
-			glBindTexture(GL_TEXTURE_2D, depthTexture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->deferred_texture_width,
-						 this->deferred_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
-
-			glDrawBuffers(drawAttach.size(), drawAttach.data());
-
-			/*  Validate if created properly.*/
-			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
-				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
-			}
-
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 			/*	Update camera	*/
 			this->camera.setAspect((float)width / (float)height);
 			Matrix4x4 proj = Matrix4x4();
 			camera.getProjectionMatrix();
-			std::vector<Vector3> frustumVertices = ProceduralGeometry::createFrustum(proj);
+			std::vector<ProceduralGeometry::Vertex> frustumVertices;
+			ProceduralGeometry::createFrustum(frustumVertices, proj);
 		}
 
 		void draw() override {
@@ -342,22 +254,17 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	*/
-
-			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
-			/*	Multipass */
+			/*	Draw from main camera */
 			{
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				/*	*/
-				glViewport(0, 0, this->deferred_texture_width, this->deferred_texture_height);
+				glViewport(0, 0, width, height);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-				/*	*/
-				glUseProgram(this->multipass_program);
 
 				glDepthMask(GL_TRUE);
 				glDisable(GL_CULL_FACE);
@@ -367,45 +274,33 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			/* Draw Lights.	*/
-			{
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_pointlight_buffer_binding, uniform_pointlight_buffer,
-								  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
-								  this->uniformBufferSize);
+			/*	*/
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
+							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
+			/*	Draw from second camera */
+			{
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
-				glViewport(0, 0, width, height);
+				/*	*/
+				glViewport(width * 0.7, height * 0.7, width * 0.3, height * 0.3);
+				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				glUseProgram(this->deferred_program);
-
-				// Enable blend.
-				glEnable(GL_BLEND);
-				glBlendEquation(GL_FUNC_ADD);
-				glBlendFunc(GL_ONE, GL_ONE);
-
-				glDepthMask(GL_FALSE);
-				glDisable(GL_DEPTH_TEST);
-
+				glDepthMask(GL_TRUE);
 				glDisable(GL_CULL_FACE);
-				for (size_t i = 0; i < this->deferred_textures.size(); i++) {
-					glActiveTexture(GL_TEXTURE0 + i);
-					glBindTexture(GL_TEXTURE_2D, this->deferred_textures[i]);
-				}
 
-				/*	*/
-				glBindVertexArray(this->frustum.vao);
-				glDrawElementsInstanced(GL_TRIANGLES, this->frustum.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-										this->pointLights.size());
-				glBindVertexArray(0);
+				this->scene.render();
+
+				glUseProgram(0);
 			}
 		}
 
 		void update() override {
 
 			/*	Update Camera.	*/
-			float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			{
@@ -430,9 +325,9 @@ namespace glsample {
 		}
 	};
 
-	class DeferredGLSample : public GLSample<FrustumCulling> {
+	class FrustumCullingGLSample : public GLSample<FrustumCulling> {
 	  public:
-		DeferredGLSample() : GLSample<FrustumCulling>() {}
+		FrustumCullingGLSample() : GLSample<FrustumCulling>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
 				"S,skybox", "Texture Path",
@@ -444,7 +339,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::DeferredGLSample sample;
+		glsample::FrustumCullingGLSample sample;
 
 		sample.run(argc, argv);
 

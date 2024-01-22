@@ -291,8 +291,8 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	Update Camera.	*/
-			float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniformBuffer.model = glm::mat4(1.0f);

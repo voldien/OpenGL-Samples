@@ -242,7 +242,7 @@ namespace glsample {
 
 		void update() override {
 			/*	Update Camera.	*/
-			this->camera.update(getTimer().deltaTime());
+			this->camera.update(getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);

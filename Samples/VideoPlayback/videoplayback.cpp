@@ -485,7 +485,7 @@ namespace glsample {
 			//        pFormatCtx->streams[stream_index]->time_base);
 
 			// res = av_seek_frame(this->pformatCtx, this->videoStream,
-			//					this->getTimer().getElapsed() * AV_TIME_BASE * 2, 0);
+			//					this->getTimer().getElapsed<float>() * AV_TIME_BASE * 2, 0);
 
 			res = av_read_frame(this->pformatCtx, packet);
 

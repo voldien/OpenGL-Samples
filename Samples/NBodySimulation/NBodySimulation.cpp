@@ -271,10 +271,10 @@ namespace glsample {
 
 		void update() override {
 			/*	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = getTimer().getElapsed<float>();
+			camera.update(getTimer().deltaTime<float>());
 
-			this->uniform_stage.settings._DeltaTime = getTimer().deltaTime();
+			this->uniform_stage.settings._DeltaTime = getTimer().deltaTime<float>();
 
 			this->uniform_stage.model = glm::mat4(1.0f);
 			this->uniform_stage.view = camera.getViewMatrix();

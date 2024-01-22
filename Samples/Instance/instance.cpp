@@ -269,8 +269,8 @@ namespace glsample {
 		void update() override {
 
 			/*	*/
-			const float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	Update instance model matrix.	*/
 			for (size_t i = 0; i < rows; i++) {

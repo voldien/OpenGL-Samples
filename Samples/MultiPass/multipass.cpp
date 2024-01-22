@@ -133,7 +133,6 @@ namespace glsample {
 			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
 			glUniform1i(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), 2);
-			
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -189,6 +188,17 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->multipass_texture_width,
 							 this->multipass_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				/*	Border clamped to max value, it makes the outside area.	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+				
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D,
@@ -213,6 +223,8 @@ namespace glsample {
 			}
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+			this->camera.setAspect((float)width / (float)height);
 		}
 
 		void draw() override {
@@ -220,10 +232,6 @@ namespace glsample {
 			/*	*/
 			int width, height;
 			getSize(&width, &height);
-
-			/*	*/
-			this->uniformBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 5000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -271,8 +279,8 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			const float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniformBuffer.model = glm::mat4(1.0f);
@@ -280,6 +288,7 @@ namespace glsample {
 				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(2.95f));
 			this->uniformBuffer.view = this->camera.getViewMatrix();
+			this->uniformBuffer.proj = this->camera.getProjectionMatrix();
 			this->uniformBuffer.modelViewProjection =
 				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
 

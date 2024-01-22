@@ -1,4 +1,6 @@
 #include "GLSampleWindow.h"
+#include "FPSCounter.h"
+#include "IOUtil.h"
 #include <GLRendererInterface.h>
 #include <ImageLoader.h>
 #include <SDL2/SDL_events.h>
@@ -6,27 +8,35 @@
 #include <SDL2/SDL_mouse.h>
 #include <iostream>
 
-// TODO add supprt for renderdoc
+using namespace glsample;
+
+// TODO add support for renderdoc
 unsigned int pboBuffer;
 
 GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::GfxBackEnd::ImGUI_OpenGL) {
+	/*	*/
 	this->enableDocking(false);
 
+	/*	*/
+	this->fpsCounter = FPSCounter<float>(50, this->getTimer().getTimeResolution());
 	this->getTimer().start();
 
 	this->getRenderInterface()->setDebug(true);
 	// this->set
 
-	int screen_grab_width_size = this->width();
-	int screen_grab_height_size = this->height();
+	const int screen_grab_width_size = this->width();
+	const int screen_grab_height_size = this->height();
 
+	/*	*/
 	glGenBuffers(1, &pboBuffer);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, pboBuffer);
 	glBufferData(GL_PIXEL_PACK_BUFFER, screen_grab_width_size * screen_grab_height_size * 4, nullptr, GL_STREAM_READ);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
+	/*	*/
 	glGenQueries(sizeof(this->queries) / sizeof(this->queries[0]), &this->queries[0]);
 
+	/*	*/
 	this->preWidth = this->width();
 	this->preHeight = this->height();
 
@@ -38,6 +48,7 @@ void GLSampleWindow::displayMenuBar() {}
 
 void GLSampleWindow::renderUI() {
 
+	/*	*/
 	if (this->preWidth != this->width() || this->preHeight != this->height()) {
 		/*	Finish all commands before starting resizing buffers and etc.	*/
 		glFinish();
@@ -45,6 +56,7 @@ void GLSampleWindow::renderUI() {
 		this->onResize(this->width(), this->height());
 	}
 
+	/*	*/
 	this->preWidth = this->width();
 	this->preHeight = this->height();
 
@@ -78,10 +90,11 @@ void GLSampleWindow::renderUI() {
 	this->frameCount++;
 	this->frameBufferIndex = (this->frameBufferIndex + 1) % this->getFrameBufferCount();
 	this->getTimer().update();
-	this->fpsCounter.incrementFPS(SDL_GetPerformanceCounter());
+	// this->fpsCounter.incrementFPS(SDL_GetPerformanceCounter());
 
 	/*	*/
-	std::cout << "FPS " << this->getFPSCounter().getFPS() << " Elapsed Time: " << getTimer().getElapsed() << std::endl;
+	std::cout << "FPS " << this->getFPSCounter().getFPS() << " Elapsed Time: " << this->getTimer().getElapsed<float>()
+			  << std::endl;
 
 	/*	*/
 	const Uint8 *state = SDL_GetKeyboardState(nullptr);
@@ -109,12 +122,14 @@ void GLSampleWindow::debug(bool enable) {
 }
 
 void GLSampleWindow::captureScreenShot() {
+	/*	*/
 	const int screen_grab_width_size = this->width();
 	const int screen_grab_height_size = this->height();
 
 	/*	Make sure the frame is completed before extracing pixel data.	*/
 	glFinish();
 
+	/*	*/
 	const size_t imageSizeInBytes = screen_grab_width_size * screen_grab_height_size * 3;
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, pboBuffer);
 	glBufferData(GL_PIXEL_PACK_BUFFER, imageSizeInBytes, nullptr, GL_STREAM_READ);
@@ -160,8 +175,10 @@ void GLSampleWindow::setColorSpace(bool srgb) {}
 unsigned int GLSampleWindow::getShaderVersion() const {
 	const fragcore::GLRendererInterface *interface =
 		dynamic_cast<const fragcore::GLRendererInterface *>(this->getRenderInterface().get());
+
 	const char *shaderVersion = interface->getShaderVersion(fragcore::ShaderLanguage::GLSL);
-	unsigned int version = std::stoi(shaderVersion);
+
+	const unsigned int version = std::stoi(shaderVersion);
 	return version;
 }
 

@@ -206,7 +206,7 @@ namespace glsample {
 
 		void update() override {
 			/*	Update Camera.	*/
-			this->camera.update(this->getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniform.model = glm::mat4(1.0f);

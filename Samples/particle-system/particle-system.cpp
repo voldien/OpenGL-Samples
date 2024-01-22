@@ -276,10 +276,10 @@ namespace glsample {
 			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = getTimer().getElapsed<float>();
+			camera.update(getTimer().deltaTime<float>());
 
-			this->uniformStageBuffer.delta = this->getTimer().deltaTime();
+			this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
 
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
 			this->uniformStageBuffer.view = camera.getViewMatrix();

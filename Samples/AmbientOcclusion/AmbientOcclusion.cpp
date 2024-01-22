@@ -646,10 +646,10 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
-			this->scene.update(this->getTimer().deltaTime());
+			this->scene.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			{

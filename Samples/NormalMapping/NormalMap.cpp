@@ -237,8 +237,8 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);

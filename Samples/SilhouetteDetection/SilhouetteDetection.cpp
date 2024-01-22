@@ -150,7 +150,7 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
-		void update() override { camera.update(getTimer().deltaTime()); }
+		void update() override { camera.update(getTimer().deltaTime<float>()); }
 	};
 
 	class SilhouetteDetectionGLSample : public GLSample<SilhouetteDetection> {

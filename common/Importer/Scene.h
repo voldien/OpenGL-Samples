@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/UIDObject.h"
 #include "GLSampleSession.h"
 #include "ImportHelper.h"
 #include "ModelImporter.h"
@@ -9,8 +10,9 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class Scene {
+	class Scene : public fragcore::UIDObject {
 	  public:
+		unsigned int normalDefault = 0;
 		Scene() {}
 		virtual ~Scene();
 

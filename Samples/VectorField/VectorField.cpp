@@ -468,15 +468,15 @@ namespace glsample {
 
 		void update() override {
 
-			const float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			{
 				/*	*/
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 
-				this->uniformStageBuffer.delta = this->getTimer().deltaTime();
+				this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
 
 				this->uniformStageBuffer.model = glm::mat4(1.0f);
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();

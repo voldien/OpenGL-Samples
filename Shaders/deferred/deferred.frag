@@ -3,9 +3,9 @@
 
 layout(location = 0) out vec4 fragColor;
 
-layout(location = 0) in vec2 uv;
 layout(location = 1) in flat int InstanceID;
 
+layout(binding = 0) uniform sampler2D AlbedoTexture;
 layout(binding = 1) uniform sampler2D WorldTexture;
 layout(binding = 2) uniform sampler2D DepthTexture;
 layout(binding = 3) uniform sampler2D NormalTexture;
@@ -20,26 +20,31 @@ struct point_light {
 	float qudratic_attenuation;
 };
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
-	point_light point_light[64];
-}
-ubo;
+layout(binding = 1, std140) uniform UniformBufferLight { point_light point_light[64]; }
+pointlightUBO;
+
+vec2 CalcTexCoord() { return gl_FragCoord.xy / vec2(1920, 1080); }
 
 void main() {
 
-	vec4 world = texture(WorldTexture, uv);
-	vec3 normal = texture(NormalTexture, uv).rgb;
+	const vec2 uv = CalcTexCoord();
 
-	vec3 diffVertex = (ubo.point_light[InstanceID].position - world.xyz);
-	float dist = length(diffVertex);
+	const vec4 color = vec4(texture(AlbedoTexture, uv).rgb, 1);
+	const vec3 world = texture(WorldTexture, uv).xyz;
+	const vec3 normal = texture(NormalTexture, uv).xyz;
 
-	float attenuation = 1.0 / (ubo.point_light[InstanceID].constant_attenuation + ubo.point_light[InstanceID].linear_attenuation * dist +
-							   ubo.point_light[InstanceID].qudratic_attenuation * (dist * dist));
+	const vec3 diffVertex = (pointlightUBO.point_light[InstanceID].position - world.xyz);
+	const float dist = length(diffVertex);
 
-	float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
+	const float attenuation = 1.0 / (pointlightUBO.point_light[InstanceID].constant_attenuation +
+							   pointlightUBO.point_light[InstanceID].linear_attenuation * dist +
+							   pointlightUBO.point_light[InstanceID].qudratic_attenuation * (dist * dist));
 
-	vec4 pointLightColors =
-		attenuation * ubo.point_light[InstanceID].color * contribution * ubo.point_light[InstanceID].range * ubo.point_light[InstanceID].intensity;
+	const float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
 
-	fragColor = pointLightColors;
+	const vec4 pointLightColors = attenuation * pointlightUBO.point_light[InstanceID].color * contribution *
+							pointlightUBO.point_light[InstanceID].range *
+							pointlightUBO.point_light[InstanceID].intensity;
+
+	fragColor = color * pointLightColors;
 }

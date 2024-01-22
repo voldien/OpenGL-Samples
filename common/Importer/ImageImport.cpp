@@ -1,13 +1,12 @@
 #include "Importer/ImageImport.h"
-#include "IOUtil.h"
 #include <GL/glew.h>
 #include <GLHelper.h>
 #include <ImageLoader.h>
 #include <magic_enum.hpp>
-#include <stdexcept>
 
 using namespace fragcore;
 using namespace glsample;
+
 TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesystem) {}
 
 int TextureImporter::loadImage2D(const std::string &path, const ColorSpace colorSpace) {

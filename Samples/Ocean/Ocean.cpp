@@ -338,8 +338,8 @@ namespace glsample {
 
 		void update() override {
 			/*	*/
-			float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			float elapsedTime = getTimer().getElapsed<float>();
+			camera.update(getTimer().deltaTime<float>());
 
 			/*	*/
 			this->mvp.model = glm::mat4(1.0f);

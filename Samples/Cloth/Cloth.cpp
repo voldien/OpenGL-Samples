@@ -358,10 +358,10 @@ namespace glsample {
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
-			float elapsedTime = this->getTimer().getElapsed();
-			this->camera.update(this->getTimer().deltaTime());
+			const float elapsedTime = this->getTimer().getElapsed<float>();
+			this->camera.update(this->getTimer().deltaTime<float>());
 
-			this->uniformBuffer.delta = this->getTimer().deltaTime();
+			this->uniformBuffer.delta = this->getTimer().deltaTime<float>();
 
 			this->uniformBuffer.model = glm::mat4(1.0f);
 			this->uniformBuffer.view = this->camera.getViewMatrix();

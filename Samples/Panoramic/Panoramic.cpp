@@ -404,14 +404,14 @@ namespace glsample {
 
 		void update() override {
 			/*	Update Camera.	*/
-			this->camera.update(this->getTimer().deltaTime());
+			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			if (this->panoramicSettingComponent->animate) {
 				for (size_t i = 0; i < this->nrPointLights; i++) {
 					this->uniformStageBuffer.pointLights[i].position =
-						glm::vec3(5.0f * std::cos(this->getTimer().getElapsed() * 0.51415 + 1.3 * i), 10,
-								  5.0f * std::sin(this->getTimer().getElapsed() * 0.51415 + 1.3 * i));
+						glm::vec3(5.0f * std::cos(this->getTimer().getElapsed<float>() * 0.51415 + 1.3 * i), 10,
+								  5.0f * std::sin(this->getTimer().getElapsed<float>() * 0.51415 + 1.3 * i));
 				}
 			}
 

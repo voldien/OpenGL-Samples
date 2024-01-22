@@ -246,7 +246,7 @@ namespace glsample {
 		void update() override {
 
 			/*	*/
-			this->uniformBuffer.delta = this->getTimer().deltaTime();
+			this->uniformBuffer.delta = this->getTimer().deltaTime<float>();
 
 			/*	Update uniform.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

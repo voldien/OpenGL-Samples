@@ -375,8 +375,8 @@ namespace glsample {
 
 		void update() override {
 			/*	Update Camera.	*/
-			const float elapsedTime = getTimer().getElapsed();
-			camera.update(getTimer().deltaTime());
+			const float elapsedTime = getTimer().getElapsed<float>();
+			camera.update(getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniform_stage_buffer.terrain.model = glm::mat4(1.0f);

@@ -234,7 +234,7 @@ namespace glsample {
 
 		void update() override {
 			/*	*/
-			camera.update(getTimer().deltaTime());
+			camera.update(getTimer().deltaTime<float>());
 
 			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
 			this->uniform_stage_buffer.modelViewProjection = (this->uniform_stage_buffer.proj * camera.getViewMatrix());
