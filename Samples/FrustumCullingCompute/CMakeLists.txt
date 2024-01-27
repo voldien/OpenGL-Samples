@@ -1,10 +1,10 @@
 FILE(GLOB FRUSTUM_CULLING_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 FILE(GLOB FRUSTUM_CULLING_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
-ADD_EXECUTABLE(ComputeFrustumCulling ${FRUSTUM_CULLING_SOURCE_FILES} ${FRUSTUM_CULLING_HEADER_FILES} )
-TARGET_LINK_LIBRARIES(ComputeFrustumCulling glCommon gl-sample-common-asset-importer)
-ADD_DEPENDENCIES(ComputeFrustumCulling glCommon gl-sample-common-asset-importer)
+ADD_EXECUTABLE(FrustumCullingCompute ${FRUSTUM_CULLING_SOURCE_FILES} ${FRUSTUM_CULLING_HEADER_FILES} )
+TARGET_LINK_LIBRARIES(FrustumCullingCompute glCommon gl-sample-common-asset-importer)
+ADD_DEPENDENCIES(FrustumCullingCompute glCommon gl-sample-common-asset-importer)
 
-TARGET_INCLUDE_DIRECTORIES(ComputeFrustumCulling PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} )
+TARGET_INCLUDE_DIRECTORIES(FrustumCullingCompute PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} )
 
-INSTALL(TARGETS ComputeFrustumCulling DESTINATION bin)
+INSTALL(TARGETS FrustumCullingCompute DESTINATION bin)

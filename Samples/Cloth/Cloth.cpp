@@ -66,7 +66,7 @@ namespace glsample {
 
 		} ClothSetting;
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -111,12 +111,12 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		class ClothSimulationSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			ClothSimulationSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			ClothSimulationSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Cloth Simulation Settings");
 			}
 			void draw() override {
@@ -152,7 +152,7 @@ namespace glsample {
 			bool selfCollision = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<ClothSimulationSettingComponent> clothSettingComponent;
 

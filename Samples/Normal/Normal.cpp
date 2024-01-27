@@ -8,15 +8,19 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class Normal : public GLSampleWindow {
 	  public:
 		Normal() : GLSampleWindow() {
 			this->setTitle("Normal");
-			this->normalSettingComponent = std::make_shared<NormalSettingComponent>(this->uniformBuffer);
+			this->normalSettingComponent = std::make_shared<NormalSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->normalSettingComponent);
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -25,7 +29,6 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 
 			/*	light source.	*/
-
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
@@ -33,7 +36,7 @@ namespace glsample {
 			/*	*/
 			float normalLength = 1.0f;
 
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		/*	*/
 		GeometryObject plan;
@@ -50,14 +53,14 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
 		class NormalSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			NormalSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			NormalSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Normal Settings");
 			}
 			void draw() override {
@@ -78,7 +81,7 @@ namespace glsample {
 			bool showTriangleNormal = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<NormalSettingComponent> normalSettingComponent;
 
@@ -295,23 +298,23 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.proj =
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model =
+				glm::rotate(this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
+			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+			this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

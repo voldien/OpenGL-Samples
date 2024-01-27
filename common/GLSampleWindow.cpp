@@ -1,6 +1,5 @@
 #include "GLSampleWindow.h"
 #include "FPSCounter.h"
-#include "IOUtil.h"
 #include <GLRendererInterface.h>
 #include <ImageLoader.h>
 #include <SDL2/SDL_events.h>
@@ -147,7 +146,7 @@ void GLSampleWindow::captureScreenShot() {
 	/*	offload the image process and saving to filesystem.	*/
 	std::thread process_thread([imageSizeInBytes, screen_grab_width_size, screen_grab_height_size, pixelData]() {
 		/*	*/
-		Image image(screen_grab_width_size, screen_grab_height_size, TextureFormat::RGB24);
+		fragcore::Image image(screen_grab_width_size, screen_grab_height_size, fragcore::TextureFormat::RGB24);
 		image.setPixelData(pixelData, imageSizeInBytes);
 
 		// Application and time
@@ -161,9 +160,9 @@ void GLSampleWindow::captureScreenShot() {
 		strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", timeinfo);
 		std::string str(buffer);
 
-		ImageLoader loader;
-		loader.saveImage(SystemInfo::getApplicationName() + "-screenshot-" + str + ".jpg", image,
-						 ImageLoader::FileFormat::Jpeg);
+		fragcore::ImageLoader loader;
+		loader.saveImage(fragcore::SystemInfo::getApplicationName() + "-screenshot-" + str + ".jpg", image,
+						 fragcore::ImageLoader::FileFormat::Jpeg);
 	});
 
 	/*	Allow to process indepdent from the main program.	*/

@@ -20,7 +20,7 @@ namespace glsample {
 			this->setTitle("Deferred Rendering");
 
 			/*	Setting Window.	*/
-			this->deferredSettingComponent = std::make_shared<DeferredSettingComponent>(this->uniformBuffer);
+			this->deferredSettingComponent = std::make_shared<DeferredSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->deferredSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -28,7 +28,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -40,7 +40,7 @@ namespace glsample {
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		typedef struct point_light_t {
 			glm::vec3 position;
@@ -86,7 +86,7 @@ namespace glsample {
 		unsigned int uniform_buffer;
 		unsigned int uniform_pointlight_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformLightBufferSize = 0;
 
 		/*	*/
@@ -108,7 +108,7 @@ namespace glsample {
 
 		class DeferredSettingComponent : public nekomimi::UIComponent {
 		  public:
-			DeferredSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			DeferredSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Deferred Settings");
 			}
 
@@ -133,7 +133,7 @@ namespace glsample {
 			bool showLight = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<DeferredSettingComponent> deferredSettingComponent;
 
@@ -437,7 +437,7 @@ namespace glsample {
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
-			/*	Multipass */
+			/*	Multipass.	*/
 			{
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
 				/*	*/
@@ -464,17 +464,19 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			/* Draw Lights.	*/
+			/*	Draw Lights.	*/
 			{
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
+				/*	*/
 				glBindBufferRange(
 					GL_UNIFORM_BUFFER, this->uniform_pointlight_buffer_binding, this->uniform_pointlight_buffer,
 					(this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize, this->uniformLightBufferSize);
 
+				/*	*/
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 				glViewport(0, 0, width, height);
 				glClear(GL_COLOR_BUFFER_BIT);
@@ -524,15 +526,14 @@ namespace glsample {
 
 			/*	*/
 			{
-
-				this->uniformBuffer.model = glm::mat4(1.0f);
-				this->uniformBuffer.model = glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f),
-														glm::vec3(0.0f, 1.0f, 0.0f));
-				this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(1.95f));
-				this->uniformBuffer.view = this->camera.getViewMatrix();
-				this->uniformBuffer.proj = this->camera.getProjectionMatrix();
-				this->uniformBuffer.modelViewProjection =
-					this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
+				this->uniformStageBuffer.model = glm::mat4(1.0f);
+				this->uniformStageBuffer.model = glm::rotate(
+					this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.95f));
+				this->uniformStageBuffer.view = this->camera.getViewMatrix();
+				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
+				this->uniformStageBuffer.modelViewProjection =
+					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			}
 
 			/*	*/
@@ -541,7 +542,7 @@ namespace glsample {
 				void *uniformPointer = glMapBufferRange(
 					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 					this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-				memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}
 			/*	*/
@@ -563,7 +564,7 @@ namespace glsample {
 		DeferredGLSample() : GLSample<Deferred>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
-				"S,skybox", "Texture Path",
+				"S,skybox", "Skybox Texture File Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};

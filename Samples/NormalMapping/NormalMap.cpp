@@ -8,15 +8,20 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class NormalMapping : public GLSampleWindow {
 	  public:
+	  
 		NormalMapping() : GLSampleWindow() {
 			this->setTitle("NormalMapping");
 			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->normalMapSettingComponent);
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -32,7 +37,7 @@ namespace glsample {
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
-			/*	Normal attirbutes.	*/
+			/*	Normal attributes.	*/
 			float normalStrength = 1.0f;
 
 		} uniformStageBuffer;
@@ -51,13 +56,13 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
 		class NormalMapSettingComponent : public nekomimi::UIComponent {
 		  public:
-			NormalMapSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			NormalMapSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("NormalMap Settings");
 			}
 
@@ -79,7 +84,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<NormalMapSettingComponent> normalMapSettingComponent;
 

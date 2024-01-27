@@ -25,7 +25,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(1));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -68,7 +68,7 @@ namespace glsample {
 		unsigned int uniform_instance_buffer;
 		const size_t nrUniformBuffers = 3;
 
-		size_t uniformSharedBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformSharedBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceSize = 0;
 
 		CameraController camera;
@@ -76,9 +76,10 @@ namespace glsample {
 		class InstanceSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			InstanceSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			InstanceSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Instance Settings");
 			}
+			
 			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
@@ -92,7 +93,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<InstanceSettingComponent> instanceSettingComponent;
 

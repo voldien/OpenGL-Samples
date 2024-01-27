@@ -21,7 +21,7 @@
 
 typedef struct vertex_bone_data_t {
 	static const int NUM_BONES_PER_VERTEX = 4;
-	uint IDs[NUM_BONES_PER_VERTEX];
+	uint32_t IDs[NUM_BONES_PER_VERTEX];
 	float Weights[NUM_BONES_PER_VERTEX];
 } VertexBoneData;
 
@@ -91,6 +91,7 @@ typedef struct model_system_object {
 	unsigned int material_index;
 
 	fragcore::AABB boundingBox;
+
 	/*	*/
 	unsigned int vertexOffset;
 	unsigned int normalOffset;
@@ -98,21 +99,19 @@ typedef struct model_system_object {
 	unsigned int uvOffset;
 	unsigned int boneOffset;
 
-	// Bounding box.
-	// ColorSpace colorSpace;
 } ModelSystemObject;
 
-typedef struct model_skeleton {
+typedef struct bone_t {
+	std::string name;
+	glm::mat4 inverseBoneMatrix;
+	size_t boneIndex;
+} Bone;
 
-	/*	*/
-	unsigned int vertexOffset;
-	unsigned int normalOffset;
-	unsigned int tangentOffset;
-	unsigned int uvOffset;
-	unsigned int boneOffset;
+typedef struct model_skeleton_t {
 
-	// Bounding box.
-	// ColorSpace colorSpace;
+	std::string name;
+	std::map<std::string, Bone> bones;
+
 } SkeletonSystem;
 
 typedef struct texture_asset_object_t {
@@ -196,6 +195,8 @@ class FVDECLSPEC ModelImporter {
 
 	const std::string &getDirectoryPath() const { return this->filepath; }
 
+	glm::mat4 &globalTransform() const noexcept;
+
   private:
 	fragcore::IFileSystem *fileSystem;
 
@@ -210,10 +211,11 @@ class FVDECLSPEC ModelImporter {
 	std::map<std::string, TextureAssetObject *> textureMapping;
 	std::map<std::string, unsigned int> textureIndexMapping;
 
+	std::vector<SkeletonSystem> skeletons;
+
 	std::vector<AnimationObject> animations;
 	std::map<std::string, VertexBoneData> vertexBoneData;
 
 	NodeObject *rootNode;
+	glm::mat4 global;
 };
-
-static void drawScene(NodeObject *node) {}

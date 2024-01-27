@@ -1,6 +1,5 @@
 #include "Scene.h"
 #include "GLHelper.h"
-#include "GLSampleSession.h"
 #include "ModelImporter.h"
 #include <GL/glew.h>
 
@@ -10,6 +9,15 @@ namespace glsample {
 
 	void Scene::release() {
 		for (size_t i = 0; i < this->refGeometry.size(); i++) {
+			if (glIsVertexArray(this->refGeometry[i].vao)) {
+				glDeleteVertexArrays(1, &this->refGeometry[i].vao);
+			}
+			if (glIsBuffer(this->refGeometry[i].ibo)) {
+				glDeleteBuffers(1, &this->refGeometry[i].ibo);
+			}
+			if (glIsBuffer(this->refGeometry[i].vbo)) {
+				glDeleteBuffers(1, &this->refGeometry[i].vao);
+			}
 		}
 
 		for (size_t i = 0; i < this->refTexture.size(); i++) {
@@ -85,7 +93,7 @@ namespace glsample {
 			/*	*/
 			if (material.normalIndex >= 0 && material.normalIndex < refTexture.size()) {
 				const TextureAssetObject *tex = &this->refTexture[material.normalIndex];
-				
+
 				if (tex && tex->texture > 0) {
 					glActiveTexture(GL_TEXTURE1);
 					glBindTexture(GL_TEXTURE_2D, tex->texture);
@@ -117,7 +125,7 @@ namespace glsample {
 				glEnable(GL_BLEND);
 				/*	*/
 				glBlendFuncSeparatei(0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-				// glBlendEquation(GL_FUNC_ADD);
+				glBlendEquation(GL_FUNC_ADD);
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_FALSE);
 

@@ -40,7 +40,7 @@ namespace glsample {
 			float gravity = 9.82f;
 		} ParticleSetting;
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -69,12 +69,12 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		class SimpleParticleSystemSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			SimpleParticleSystemSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			SimpleParticleSystemSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Simple Particle System Settings");
 			}
 			void draw() override {
@@ -83,7 +83,7 @@ namespace glsample {
 			}
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<SimpleParticleSystemSettingComponent> simpleParticleSettingComponent;
 

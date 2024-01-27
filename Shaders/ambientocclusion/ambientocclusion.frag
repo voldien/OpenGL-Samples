@@ -7,10 +7,10 @@ layout(location = 0) out float fragColor;
 
 layout(location = 0) in vec2 uv;
 
-layout(binding = 1) uniform sampler2D WorldTexture;
-layout(binding = 2) uniform sampler2D DepthTexture;
-layout(binding = 3) uniform sampler2D NormalTexture;
-layout(binding = 4) uniform sampler2D NormalRandomize;
+layout(binding = 1) uniform sampler2D WorldTexture;	   /*	*/
+layout(binding = 2) uniform sampler2D DepthTexture;	   /*	*/
+layout(binding = 3) uniform sampler2D NormalTexture;   /*	*/
+layout(binding = 4) uniform sampler2D NormalRandomize; /*	*/
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
@@ -27,7 +27,8 @@ ubo;
 
 void main() {
 
-	const vec2 noiseScale = ubo.screen / 4;
+	/*	*/
+	const vec2 noiseScale = ubo.screen / vec2(textureSize(NormalRandomize, 0).xy);
 
 	/*	*/
 	const vec3 srcPosition = texture(WorldTexture, uv).xyz;
@@ -53,7 +54,7 @@ void main() {
 		/*	*/
 		const vec3 samplePos = srcPosition + (sampleWorldDir * kernelRadius);
 
-		/*	From view to clip-space*/
+		/*	From view to clip-space.	*/
 		vec4 offset = vec4(samplePos, 1.0);
 		offset = ubo.proj * offset;
 		offset.xyz /= offset.w;				 // perspective divide
@@ -63,6 +64,7 @@ void main() {
 
 		/*	*/
 		const float rangeCheck = smoothstep(0.0, 1.0, kernelRadius / abs(srcPosition.z - sampleDepth));
+
 		occlusion += ((sampleDepth >= srcPosition.z + ubo.bias ? 1.0 : 0.0) * rangeCheck);
 	}
 

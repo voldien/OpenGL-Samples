@@ -30,7 +30,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -54,7 +54,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		/*	G-Buffer	*/
 		unsigned int graphic_framebuffer;
@@ -70,7 +70,7 @@ namespace glsample {
 		CameraController camera;
 		class StencilVolumeShadowSettingComponent : public nekomimi::UIComponent {
 		  public:
-			StencilVolumeShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			StencilVolumeShadowSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Point Light Shadow Settings");
 			}
 			void draw() override {
@@ -89,7 +89,7 @@ namespace glsample {
 			bool showVolume = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<StencilVolumeShadowSettingComponent> shadowSettingComponent;
 

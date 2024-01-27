@@ -23,7 +23,7 @@ namespace glsample {
 			// this->addUIComponent(this->ambientOcclusionSettingComponent);
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -87,7 +87,7 @@ namespace glsample {
 		unsigned int uniform_ssao_buffer;
 		const size_t nrUniformBuffer = 3;
 
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformBlurBufferSize = sizeof(UniformBlurBufferBlock);
 
 		CameraController camera;

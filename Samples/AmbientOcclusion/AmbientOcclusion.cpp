@@ -24,7 +24,7 @@ namespace glsample {
 
 			/*	Setting Window.	*/
 			this->ambientOcclusionSettingComponent =
-				std::make_shared<AmbientOcclusionSettingComponent>(this->uniformBlockSSAO);
+				std::make_shared<AmbientOcclusionSettingComponent>(this->uniformStageBlockSSAO);
 			this->addUIComponent(this->ambientOcclusionSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -34,20 +34,20 @@ namespace glsample {
 		static const int maxKernels = 64;
 
 		// TODO combine uniform buffer stage.
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
 			glm::mat4 modelView;
 			glm::mat4 modelViewProjection;
-		} uniformBlock;
+		} uniformStageBlock;
 
 		struct UniformSSAOBufferBlock {
 			glm::mat4 proj;
 			/*	*/
-			int samples = 4;
-			float radius = 1.5f;
-			float intensity = 1.0f;
+			int samples = 64;
+			float radius = 25.5f;
+			float intensity = 0.8f;
 			float bias = 0.025;
 
 			glm::vec4 kernel[maxKernels];
@@ -55,7 +55,7 @@ namespace glsample {
 			glm::vec4 color;
 			glm::vec2 screen;
 
-		} uniformBlockSSAO;
+		} uniformStageBlockSSAO;
 
 		/*	*/
 		GeometryObject plan;
@@ -63,7 +63,6 @@ namespace glsample {
 
 		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer;
-		unsigned int multipass_program;
 		unsigned int multipass_texture_width;
 		unsigned int multipass_texture_height;
 		std::vector<unsigned int> multipass_textures;
@@ -78,8 +77,10 @@ namespace glsample {
 		unsigned int random_texture;
 
 		/*	*/
+		unsigned int multipass_program;
 		unsigned int ssao_world_program;
 		unsigned int ssao_depth_program;
+		unsigned int texture_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
@@ -89,7 +90,7 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 
 		/*	*/
-		size_t uniformBufferAlignedSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferAlignedSize = sizeof(uniform_buffer_block);
 		size_t uniformSSAOBufferAlignSize = sizeof(UniformSSAOBufferBlock);
 
 		CameraController camera;
@@ -112,6 +113,7 @@ namespace glsample {
 				ImGui::Checkbox("Show Only AO", &this->showAOOnly);
 				ImGui::Checkbox("Show GBuffer", &this->showGBuffers);
 				ImGui::Checkbox("Show Wireframe", &this->showWireframe);
+				ImGui::Checkbox("Use AO", &this->useAO);
 			}
 
 			bool showWireframe = false;
@@ -119,6 +121,7 @@ namespace glsample {
 			bool useDepthOnly = false;
 			bool showAOOnly = true;
 			bool showGBuffers = false;
+			bool useAO = true;
 
 		  private:
 			struct UniformSSAOBufferBlock &uniform;
@@ -133,16 +136,24 @@ namespace glsample {
 		const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert.spv";
 		const std::string fragmentSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
 
+		/*	*/
 		const std::string vertexSSAODepthOnlyShaderPath =
 			"Shaders/ambientocclusion/ambientocclusion_depthonly.vert.spv";
 		const std::string fragmentSSAODepthOnlyShaderPath =
 			"Shaders/ambientocclusion/ambientocclusion_depthonly.frag.spv";
 
+		/*	*/
+		const std::string vertexTextureShaderPath = "Shaders/postprocessingeffects/overlay.vert.spv";
+		const std::string fragmentTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
+
 		void Release() override {
+			this->scene.release();
+
 			/*	Delete graphic pipelines.	*/
 			glDeleteProgram(this->ssao_world_program);
 			glDeleteProgram(this->ssao_depth_program);
 			glDeleteProgram(this->multipass_program);
+			glDeleteProgram(this->texture_program);
 
 			/*	*/
 			glDeleteFramebuffers(1, &this->multipass_framebuffer);
@@ -162,8 +173,6 @@ namespace glsample {
 			glDeleteVertexArrays(1, &this->plan.vao);
 			glDeleteBuffers(1, &this->plan.vbo);
 			glDeleteBuffers(1, &this->plan.ibo);
-
-			this->scene.release();
 		}
 
 		void Initialize() override {
@@ -181,10 +190,22 @@ namespace glsample {
 				const std::vector<uint32_t> fragment_ssao_source =
 					IOUtil::readFileData<uint32_t>(this->fragmentSSAOShaderPath, this->getFileSystem());
 
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_ssao_depth_only_source =
+					IOUtil::readFileData<uint32_t>(this->vertexSSAOShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_ssao_depth_onlysource =
+					IOUtil::readFileData<uint32_t>(this->fragmentSSAOShaderPath, this->getFileSystem());
+
 				const std::vector<uint32_t> vertex_multi_pass_source =
 					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_multi_pass_source =
 					IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
+
+				/*	*/
+				const std::vector<uint32_t> texture_vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexTextureShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> texture_fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentTextureShaderPath, this->getFileSystem());
 
 				/*	Load shader	*/
 				this->ssao_world_program =
@@ -192,12 +213,17 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->ssao_depth_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_source, &fragment_ssao_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_depth_only_source, &fragment_ssao_depth_onlysource);
 
 				/*	Load shader	*/
 				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_multi_pass_source,
 																		   &fragment_multi_pass_source);
+
+				/*	Load shader	*/
+				this->texture_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
 			}
+
 			/*	Setup graphic ambient occlusion pipeline.	*/
 			glUseProgram(this->ssao_world_program);
 			int uniform_ssao_world_buffer_index =
@@ -230,6 +256,11 @@ namespace glsample {
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
+			/*	Setup graphic program.	*/
+			glUseProgram(this->texture_program);
+			glUniform1i(glGetUniformLocation(this->texture_program, "diffuse"), 0);
+			glUseProgram(0);
+
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -258,8 +289,9 @@ namespace glsample {
 
 			this->scene = Scene::loadFrom(modelLoader);
 
+			/*	Load geometry.	*/
 			{
-				/*	Load geometry.	*/
+
 				std::vector<ProceduralGeometry::Vertex> vertices;
 				std::vector<unsigned int> indices;
 				ProceduralGeometry::generatePlan(1, vertices, indices, 1, 1);
@@ -271,8 +303,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->plan.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-							 vertices.data(), GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
 				/*	*/
 				glGenBuffers(1, &this->plan.ibo);
@@ -283,8 +315,7 @@ namespace glsample {
 
 				/*	Vertex.	*/
 				glEnableVertexAttribArrayARB(0);
-				glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-										 nullptr);
+				glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
 				/*	UV.	*/
 				glEnableVertexAttribArrayARB(1);
@@ -321,7 +352,7 @@ namespace glsample {
 					scale = fragcore::Math::lerp(0.1f, 1.0f, scale * scale);
 
 					sample *= scale;
-					uniformBlockSSAO.kernel[i] = glm::vec4(sample, 0);
+					uniformStageBlockSSAO.kernel[i] = glm::vec4(sample, 0);
 				}
 
 				/*	Create white texture.	*/
@@ -400,12 +431,11 @@ namespace glsample {
 
 			/*	Resize the image.	*/
 			std::vector<GLenum> drawAttach(multipass_textures.size());
-			// TODO add 16 bit for normal,
 			for (size_t i = 0; i < multipass_textures.size(); i++) {
 
 				/*	*/
 				glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, this->multipass_texture_width,
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->multipass_texture_width,
 							 this->multipass_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -429,7 +459,6 @@ namespace glsample {
 			}
 
 			/*	Create depth buffer texture.	*/
-
 			glBindTexture(GL_TEXTURE_2D, this->depthTexture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
 						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
@@ -447,7 +476,7 @@ namespace glsample {
 			/*	Border clamped to max value, it makes the outside area.	*/
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-			const float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};//FIXME:
+			const float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f}; // FIXME:
 			glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
 			glBindTexture(GL_TEXTURE_2D, 0);
@@ -467,11 +496,17 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->ssaoTexture);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, this->multipass_texture_width, this->multipass_texture_height, 0,
 							 GL_RED, GL_FLOAT, nullptr);
+
 				GLint swizzleMask[] = {GL_RED, GL_RED, GL_RED, GL_ONE};
 				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
 
-				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 4));
-				FVALIDATE_GL_CALL(GL_TEXTURE_2D);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+				FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
 
 				glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -491,10 +526,7 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	*/
-			this->uniformBlockSSAO.screen = glm::vec2(width, height);
-
-			this->uniformBlock.proj = this->camera.getProjectionMatrix();
-			this->uniformBlockSSAO.proj = this->camera.getProjectionMatrix();
+			this->uniformStageBlockSSAO.screen = glm::vec2(width, height);
 
 			/*	G-Buffer extraction.	*/
 			{
@@ -529,7 +561,7 @@ namespace glsample {
 			}
 
 			/*	Draw post processing effect - Screen Space Ambient Occlusion.	*/
-			{
+			if (this->ambientOcclusionSettingComponent->useAO) {
 
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_binding, this->uniform_ssao_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSSAOBufferAlignSize,
@@ -587,37 +619,48 @@ namespace glsample {
 
 			/*	Render final result.	*/
 			{
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
-				glViewport(0, 0, width, height);
+				// glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 				/*	Show only ambient Occlusion.	*/
 				if (this->ambientOcclusionSettingComponent->showAOOnly) {
 					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 					glBindFramebuffer(GL_READ_FRAMEBUFFER, this->ssao_framebuffer);
+					glViewport(0, 0, width, height);
 
 					glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
 									  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 				} else { /*	Blend with final result.	*/
-						 // TODO fix blend AO with color result.
 
-					/*	*/
-					glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-					glClear(GL_COLOR_BUFFER_BIT);
+					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+					glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
+					glReadBuffer(GL_COLOR_ATTACHMENT0);
 
-					// Blend to color layer.
-					glActiveTexture(GL_TEXTURE0);
-					glBindTexture(GL_TEXTURE_2D, this->ssaoTexture);
+					glViewport(0, 0, width, height);
 
-					// Blend to color layer.
-					glActiveTexture(GL_TEXTURE1);
-					glBindTexture(GL_TEXTURE_2D, this->multipass_textures[0]);
+					glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
+									  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-					// TODO add graphic pipeline. - texture
-					glUseProgram(0);
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					glDisable(GL_CULL_FACE);
+					glCullFace(GL_FRONT_AND_BACK);
+					glDisable(GL_DEPTH_TEST);
+
+					/* graphic pipeline. - texture	*/
+					glUseProgram(this->texture_program);
 
 					/*	Draw.	*/
 					glBindVertexArray(this->plan.vao);
-					glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+
+					glEnable(GL_BLEND);
+					glBlendEquation(GL_FUNC_ADD);
+					glBlendFunc(GL_DST_COLOR, GL_ZERO);
+
+					// Blend to color layer.
+					if (this->ambientOcclusionSettingComponent->useAO) {
+						glActiveTexture(GL_TEXTURE0);
+						glBindTexture(GL_TEXTURE_2D, this->ssaoTexture);
+						glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+					}
 					glBindVertexArray(0);
 
 					glUseProgram(0);
@@ -651,16 +694,19 @@ namespace glsample {
 
 			this->scene.update(this->getTimer().deltaTime<float>());
 
+			this->uniformStageBlock.proj = this->camera.getProjectionMatrix();
+			this->uniformStageBlockSSAO.proj = this->camera.getProjectionMatrix();
 			/*	*/
 			{
-				this->uniformBlock.model = glm::mat4(1.0f);
-				this->uniformBlock.model = glm::rotate(this->uniformBlock.model, glm::radians(elapsedTime * 0.0f),
+
+				this->uniformStageBlock.model = glm::mat4(1.0f);
+				this->uniformStageBlock.model = glm::rotate(this->uniformStageBlock.model, glm::radians(elapsedTime * 0.0f),
 													   glm::vec3(0.0f, 1.0f, 0.0f));
-				this->uniformBlock.model = glm::scale(this->uniformBlock.model, glm::vec3(10.95f));
-				this->uniformBlock.view = this->camera.getViewMatrix();
-				this->uniformBlock.modelView = (this->uniformBlock.view * this->uniformBlock.model);
-				this->uniformBlock.modelViewProjection =
-					this->uniformBlock.proj * this->uniformBlock.view * this->uniformBlock.model;
+				this->uniformStageBlock.model = glm::scale(this->uniformStageBlock.model, glm::vec3(10.95f));
+				this->uniformStageBlock.view = this->camera.getViewMatrix();
+				this->uniformStageBlock.modelView = (this->uniformStageBlock.view * this->uniformStageBlock.model);
+				this->uniformStageBlock.modelViewProjection =
+					this->uniformStageBlock.proj * this->uniformStageBlock.view * this->uniformStageBlock.model;
 			}
 
 			/*	Update uniform buffers.	*/
@@ -670,7 +716,7 @@ namespace glsample {
 					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferAlignedSize,
 					this->uniformBufferAlignedSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-				memcpy(uniformPointer, &this->uniformBlock, sizeof(uniformBlock));
+				memcpy(uniformPointer, &this->uniformStageBlock, sizeof(uniformStageBlock));
 				glUnmapBufferARB(GL_UNIFORM_BUFFER);
 
 				/*	*/
@@ -680,7 +726,7 @@ namespace glsample {
 					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSSAOBufferAlignSize,
 					this->uniformSSAOBufferAlignSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-				memcpy(uniformSSAOPointer, &this->uniformBlockSSAO, sizeof(uniformBlockSSAO));
+				memcpy(uniformSSAOPointer, &this->uniformStageBlockSSAO, sizeof(uniformStageBlockSSAO));
 				glUnmapBufferARB(GL_UNIFORM_BUFFER);
 			}
 		}
@@ -692,7 +738,7 @@ namespace glsample {
 		AmbientOcclusionGLSample() : GLSample<ScreenSpaceAmbientOcclusion>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
-				"S,skybox", "Texture Path",
+				"S,skybox", "Skybox Texture File Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};

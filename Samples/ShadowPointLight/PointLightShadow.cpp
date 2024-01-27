@@ -44,7 +44,7 @@ namespace glsample {
 		} PointLight;
 
 		static const size_t nrPointLights = 4;
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -84,13 +84,13 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
 		class PointLightShadowSettingComponent : public nekomimi::UIComponent {
 		  public:
-			PointLightShadowSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			PointLightShadowSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Point Light Shadow Settings");
 			}
 			void draw() override {
@@ -131,7 +131,7 @@ namespace glsample {
 			bool lightvisible[4] = {true, true, true, true};
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<PointLightShadowSettingComponent> shadowSettingComponent;
 
@@ -355,6 +355,7 @@ namespace glsample {
 					glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				}
 			}
+
 			{
 
 				/*	*/
@@ -420,8 +421,8 @@ namespace glsample {
 			for (size_t i = 0; i < this->nrPointLights; i++) {
 				const glm::vec3 lightPosition = this->uniform.pointLights[i].position;
 				/*	*/
-				glm::mat4 model = glm::mat4(1.0f);
-				glm::mat4 translation = glm::translate(model, this->uniform.pointLights[i].position);
+				const glm::mat4 model = glm::mat4(1.0f);
+				const glm::mat4 translation = glm::translate(model, this->uniform.pointLights[i].position);
 
 				PointView[0] =
 					glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
@@ -437,7 +438,7 @@ namespace glsample {
 					glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0));
 
 				/*	Compute light matrices.	*/
-				glm::mat4 pointPer =
+				const glm::mat4 pointPer =
 					glm::perspective(glm::radians(90.0f), (float)this->shadowWidth / (float)this->shadowHeight, 0.15f,
 									 this->uniform.pointLights[i].range);
 

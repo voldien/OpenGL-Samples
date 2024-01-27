@@ -16,7 +16,7 @@ namespace glsample {
 			this->addUIComponent(this->hdrSettingComponent);
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -64,12 +64,12 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		class HDRSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			HDRSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			HDRSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Refrection Settings");
 			}
 
@@ -85,7 +85,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<HDRSettingComponent> hdrSettingComponent;
 

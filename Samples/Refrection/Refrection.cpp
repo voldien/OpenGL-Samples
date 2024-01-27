@@ -49,7 +49,7 @@ namespace glsample {
 			float IOR = 0.8f;
 		};
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			UniformSkyBoxBufferBlock skybox;
 			UniformRefrectionBufferBlock refractionObject;
 		} uniform_stage_buffer;
@@ -70,14 +70,14 @@ namespace glsample {
 		unsigned int uniform_skybox_buffer_binding = 1;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 		size_t skyboxUniformSize = 0;
 		size_t oceanUniformSize = 0;
 
 		class RefrectionSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			RefrectionSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			RefrectionSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Refrection Settings");
 			}
 
@@ -93,7 +93,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<RefrectionSettingComponent> refrectionSettingComponent;
 

@@ -75,7 +75,7 @@ namespace glsample {
 		};
 
 		/*	Pack all uniform in single buffer.	*/
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			UniformTerrainBufferBlock terrain;
 			UniformSkyBoxBufferBlock skybox;
 			UniformSkyBoxBufferBlock ocean;
@@ -96,7 +96,7 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 
 		/*	Uniform align buffer sizes.	*/
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 		size_t skyboxUniformSize = 0;
 		size_t terrainUniformSize = 0;
 		size_t oceanUniformSize = 0;
@@ -133,7 +133,7 @@ namespace glsample {
 
 		class SimpleOceanSettingComponent : public nekomimi::UIComponent {
 		  public:
-			SimpleOceanSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			SimpleOceanSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Terrain Settings");
 			}
 
@@ -177,7 +177,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<SimpleOceanSettingComponent> simpleOceanSettingComponent;
 

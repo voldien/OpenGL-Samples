@@ -28,7 +28,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -43,7 +43,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(UniformBufferBlock);
+		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		GeometryObject planGeometry;
 
@@ -56,7 +56,7 @@ namespace glsample {
 
 		class AlphaClippingSettingComponent : public nekomimi::UIComponent {
 		  public:
-			AlphaClippingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			AlphaClippingSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Alpha Clipping Settings");
 			}
 
@@ -72,7 +72,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<AlphaClippingSettingComponent> alphaClippingSettingComponent;
 
@@ -161,8 +161,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->planGeometry.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, planGeometry.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-							 vertices.data(), GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
 				/*	Set Vertex attribute location and size.	*/
 				glEnableVertexAttribArray(0);
@@ -245,8 +245,7 @@ namespace glsample {
 		AlphaClippingGLSample() : GLSample<AlphaClipping>() {}
 
 		void customOptions(cxxopts::OptionAdder &options) override {
-			// TODO fix asset default path.
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/alpha-clipping.png"))(
 				"C,clipping", "Default Clipping Threshold", cxxopts::value<float>()->default_value("0.5"));
 		}
 	};

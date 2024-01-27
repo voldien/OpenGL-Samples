@@ -15,13 +15,17 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class ProjectedShadow : public GLSampleWindow {
 	  public:
 		ProjectedShadow() : GLSampleWindow() {
 			this->setTitle("Projected Shadow");
 
 			this->shadowProjectedSettingComponent =
-				std::make_shared<AlphaClippingSettingComponent>(this->uniformBuffer);
+				std::make_shared<AlphaClippingSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->shadowProjectedSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -29,7 +33,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -48,7 +52,7 @@ namespace glsample {
 			/*	*/
 			float shininess = 8;
 
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		struct UniformProjectShadow {
 			glm::mat4 model;
@@ -77,7 +81,7 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignSize;
 		size_t uniformProjectShadowAlignSize;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
@@ -91,7 +95,7 @@ namespace glsample {
 
 		class AlphaClippingSettingComponent : public nekomimi::UIComponent {
 		  public:
-			AlphaClippingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			AlphaClippingSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("NormalMap Settings");
 			}
 
@@ -120,7 +124,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<AlphaClippingSettingComponent> shadowProjectedSettingComponent;
 
@@ -197,7 +201,7 @@ namespace glsample {
 			/*	Align the uniform buffer size to hardware specific.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignSize = fragcore::Math::align(sizeof(this->uniformBuffer), (size_t)minMapBufferSize);
+			this->uniformAlignSize = fragcore::Math::align(sizeof(this->uniformStageBuffer), (size_t)minMapBufferSize);
 			this->uniformProjectShadowAlignSize =
 				fragcore::Math::align(sizeof(this->projectShadowUniformBuffer), (size_t)minMapBufferSize);
 
@@ -297,7 +301,7 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			this->uniformBuffer.proj =
+			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
@@ -348,7 +352,7 @@ namespace glsample {
 					glBindVertexArray(0);
 				}
 
-				/*	Draw Shadow.	*/
+				/*	Draw Shadow, projected onto the plane.	*/
 				{
 					/*	*/
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -359,6 +363,7 @@ namespace glsample {
 					glUseProgram(this->shadow_program);
 
 					glDisable(GL_CULL_FACE);
+
 					/*	Offset */
 					// glEnable(GL_POLYGON_OFFSET_FILL);
 					// glPolygonOffset(1.0, 1.0);
@@ -378,24 +383,25 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(45.0f * elapsedTime), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(2.95f));
-			this->uniformBuffer.proj =
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model = glm::rotate(
+				this->uniformStageBuffer.model, glm::radians(45.0f * elapsedTime), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(2.95f));
+			this->uniformStageBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
-			this->uniformBuffer.modelViewProjection =
-				(this->uniformBuffer.proj * this->camera.getViewMatrix() * this->uniformBuffer.model);
-			this->uniformBuffer.viewPos = glm::vec4(this->camera.getPosition(), 0.0f);
-			this->uniformBuffer.lightDirection =
+			this->uniformStageBuffer.modelViewProjection =
+				(this->uniformStageBuffer.proj * this->camera.getViewMatrix() * this->uniformStageBuffer.model);
+			this->uniformStageBuffer.viewPos = glm::vec4(this->camera.getPosition(), 0.0f);
+			this->uniformStageBuffer.lightDirection =
 				glm::vec4(-glm::normalize(this->projectShadowUniformBuffer.lightPosition), 0);
 
 			/*	Compute project matrix.	*/
-			glm::mat4 projectedMatrix = this->computeProjectShadow();
+			const glm::mat4 projectedMatrix = this->computeProjectShadow();
 
 			this->projectShadowUniformBuffer.shadowProjectMatrix = projectedMatrix;
-			this->projectShadowUniformBuffer.model = uniformBuffer.model;
-			this->projectShadowUniformBuffer.viewProjection = (this->uniformBuffer.proj * this->camera.getViewMatrix());
+			this->projectShadowUniformBuffer.model = uniformStageBuffer.model;
+			this->projectShadowUniformBuffer.viewProjection =
+				(this->uniformStageBuffer.proj * this->camera.getViewMatrix());
 
 			/*	Update next uniform buffer region.	*/
 			{
@@ -405,7 +411,7 @@ namespace glsample {
 					this->uniformBufferSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				/*	*/
-				memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 				/*	*/
 				memcpy(&uniformPointer[uniformAlignSize], &this->projectShadowUniformBuffer,
 					   sizeof(this->projectShadowUniformBuffer));
@@ -414,11 +420,12 @@ namespace glsample {
 		}
 
 		/*	Create projection matrix from light point and the plane surface orientation.	*/
-		glm::mat4 computeProjectShadow() const {
+		glm::mat4 computeProjectShadow() const noexcept {
 			glm::mat4 projectedMatrix;
 			const glm::vec3 planeNormal = glm::normalize(this->projectShadowUniformBuffer.planeNormal);
 			const glm::vec3 &lightPosition = glm::vec4(this->projectShadowUniformBuffer.lightPosition, 0);
-			float d = 1;
+			const float d = 1;
+
 			projectedMatrix[0][0] = glm::dot(planeNormal, lightPosition) - planeNormal.x * lightPosition.x;
 			projectedMatrix[0][1] = -planeNormal.x * lightPosition.y;
 			projectedMatrix[0][2] = -planeNormal.x * lightPosition.z;
@@ -438,6 +445,7 @@ namespace glsample {
 			projectedMatrix[3][1] = -d * lightPosition.y;
 			projectedMatrix[3][2] = -d * lightPosition.z;
 			projectedMatrix[3][3] = glm::dot(planeNormal, lightPosition);
+
 			return projectedMatrix;
 		}
 	};

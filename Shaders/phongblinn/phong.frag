@@ -32,15 +32,12 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	point_light point_light[4];
 
 	float shininess;
-	bool phong;
 }
 ubo;
 
 layout(binding = 1) uniform sampler2D DiffuseTexture;
 
 void main() {
-
-	float spec = 0.0;
 
 	vec3 viewDir = normalize(ubo.viewPos.xyz - vertex);
 
@@ -50,27 +47,22 @@ void main() {
 
 	for (int i = 0; i < 4; i++) {
 
-		vec3 diffVertex = (ubo.point_light[i].position - vertex);
-		vec3 lightDir = normalize(diffVertex);
-		float dist = length(diffVertex);
+		const vec3 diffVertex = (ubo.point_light[i].position - vertex);
+		const vec3 lightDir = normalize(diffVertex);
+		const float dist = length(diffVertex);
 
-		float attenuation =
+		const float attenuation =
 			1.0 / (ubo.point_light[i].constant_attenuation + ubo.point_light[i].linear_attenuation * dist +
 				   ubo.point_light[i].qudratic_attenuation * (dist * dist));
 
-		float contribution = max(dot(normalize(normal), lightDir), 0.0);
+		const float contribution = max(dot(normalize(normal), lightDir), 0.0);
 
 		pointLightColors += attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range *
 							ubo.point_light[i].intensity;
 
-		/*  */
-		if (ubo.phong == true) {
-			vec3 halfwayDir = normalize(lightDir + viewDir);
-			spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), ubo.shininess);
-		} else {
-			vec3 reflectDir = reflect(-lightDir, normalize(normal));
-			spec = pow(max(dot(viewDir, reflectDir), 0.0), ubo.shininess);
-		}
+
+		const vec3 halfwayDir = normalize(lightDir + viewDir);
+		const float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), ubo.shininess);
 
 		pointLightSpecular += (ubo.specularColor * spec);
 	}

@@ -30,7 +30,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -70,13 +70,13 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
 		class BillBoardSettingComponent : public nekomimi::UIComponent {
 		  public:
-			BillBoardSettingComponent(struct UniformBufferBlock &uniform, Skybox &skybox)
+			BillBoardSettingComponent(struct uniform_buffer_block &uniform, Skybox &skybox)
 				: uniform(uniform), skybox(skybox) {
 				this->setName("BillBoarding Setting");
 			}
@@ -103,7 +103,7 @@ namespace glsample {
 			bool showBillBoards = true;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 			Skybox &skybox;
 		};
 		std::shared_ptr<BillBoardSettingComponent> billboardSettingComponent;

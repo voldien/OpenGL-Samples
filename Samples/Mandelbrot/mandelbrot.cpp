@@ -23,7 +23,7 @@ namespace glsample {
 			this->addUIComponent(this->mandelbrotSettingComponent);
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			float posX, posY;
 			float mousePosX, mousePosY;
 			float zoom = 1.0f; /*  */
@@ -46,12 +46,12 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		class MandelBrotSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			MandelBrotSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			MandelBrotSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Mandelbrot Settings");
 			}
 			void draw() override {
@@ -63,7 +63,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<MandelBrotSettingComponent> mandelbrotSettingComponent;
 

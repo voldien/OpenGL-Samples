@@ -38,7 +38,7 @@ namespace glsample {
 		unsigned int particle_graphic_program;
 		unsigned int particle_compute_program;
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -66,7 +66,7 @@ namespace glsample {
 		class NBodySimulationSettingView : public nekomimi::UIComponent {
 		  private:
 		  public:
-			NBodySimulationSettingView(UniformBufferBlock::particle_setting_t &settings) : settings(settings) {
+			NBodySimulationSettingView(uniform_buffer_block::particle_setting_t &settings) : settings(settings) {
 				this->setName("NBodySimulation Setting");
 			}
 			void draw() override {
@@ -74,7 +74,7 @@ namespace glsample {
 				ImGui::DragFloat("Damping", &this->settings._Damping, 1.0f, 0.0f);
 				ImGui::DragFloat("Speed", &this->settings.speed, 1.0f, 0.0f);
 			}
-			UniformBufferBlock::particle_setting_t &settings;
+			uniform_buffer_block::particle_setting_t &settings;
 		};
 		std::shared_ptr<NBodySimulationSettingView> com;
 
@@ -95,7 +95,7 @@ namespace glsample {
 
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		const std::string vertexShaderPath = "Shaders/nbodysimulation/nbodysimulation.vert";
 		const std::string fragmentShaderPath = "Shaders/nbodysimulation/nbodysimulation.frag";

@@ -46,7 +46,7 @@ namespace glsample {
 			float height;
 		};
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			UniformSkyBoxBufferBlock skybox;
 			UniformCloudsBufferBlock clouds;
 		} uniform_stage_buffer;
@@ -65,7 +65,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(UniformBufferBlock);
+		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
@@ -77,7 +77,7 @@ namespace glsample {
 		class CloudsSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			CloudsSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			CloudsSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Clouds Settings");
 			}
 			void draw() override {
@@ -93,7 +93,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<CloudsSettingComponent> cloudsSettingComponent;
 
@@ -145,8 +145,8 @@ namespace glsample {
 			/*	Setup clouds graphic pipeline.	*/
 			glUseProgram(this->clouds_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUniformBlockBinding(this->clouds_program, uniform_buffer_index, 0);
+			glUniform1i(glGetUniformLocation(this->clouds_program, "panorama"), 0);
 			glUseProgram(0);
 
 			/*	Load panoramic texture.	*/

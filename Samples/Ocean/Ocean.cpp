@@ -35,7 +35,7 @@ namespace glsample {
 		unsigned int ocean_width = 128;
 		unsigned int ocean_height = 128;
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -56,7 +56,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(UniformBufferBlock);
+		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		unsigned int ssbo_ocean_buffer_binding = 1;
 

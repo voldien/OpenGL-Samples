@@ -107,10 +107,8 @@ void main() {
 
 	/*  Get vector of incluense. - Bilinear   */
 	const vec3 forceInf = computeInfluence(position);
-	const vec3 motionInf = vec3(0); // computeMotionInfluence(position, &motion);
-
 	/*  Compute total force.  */
-	vec3 force = (velocity + forceInf + motionInf);
+	vec3 force = (velocity + forceInf);
 
 	/*  Add force to particle position. */
 	velocity = force * invMass;

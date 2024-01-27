@@ -4,19 +4,22 @@
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
-#include <array>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class Blending : public GLSampleWindow {
 	  public:
 		Blending() : GLSampleWindow() {
 			this->setTitle("Blending");
 
 			/*	Setting Window.	*/
-			this->blendingSettingComponent = std::make_shared<BlendingSettingComponent>(this->uniformBuffer);
+			this->blendingSettingComponent = std::make_shared<BlendingSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->blendingSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -24,7 +27,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -36,15 +39,15 @@ namespace glsample {
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		struct InstanceSubBuffer {
 			glm::vec4 color[4];
 			glm::mat4 model[4];
 		};
 
-		size_t rows = 2;
-		size_t cols = 2;
+		const size_t rows = 2;
+		const size_t cols = 2;
 
 		/*	*/
 		GeometryObject geometry;
@@ -64,14 +67,14 @@ namespace glsample {
 		unsigned int uniform_share_buffer;
 		unsigned int uniform_instance_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceSize = 0;
 
 		CameraController camera;
 
 		class BlendingSettingComponent : public nekomimi::UIComponent {
 		  public:
-			BlendingSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			BlendingSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("NormalMap Settings");
 			}
 
@@ -89,7 +92,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<BlendingSettingComponent> blendingSettingComponent;
 
@@ -322,16 +325,15 @@ namespace glsample {
 				}
 
 				/*	*/
-				/*	*/
-				this->uniformBuffer.proj = this->camera.getProjectionMatrix();
-				this->uniformBuffer.model = glm::mat4(1.0f);
-				this->uniformBuffer.model = glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 45.0f),
-														glm::vec3(0.0f, 1.0f, 0.0f));
-				this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-				this->uniformBuffer.view = this->camera.getViewMatrix();
-				this->uniformBuffer.modelViewProjection =
-					this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-				this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
+				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
+				this->uniformStageBuffer.model = glm::mat4(1.0f);
+				this->uniformStageBuffer.model = glm::rotate(
+					this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
+				this->uniformStageBuffer.view = this->camera.getViewMatrix();
+				this->uniformStageBuffer.modelViewProjection =
+					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+				this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
 			}
 
 			/*	Update uniform.	*/
@@ -339,7 +341,7 @@ namespace glsample {
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
 			/*	Update instance buffer.	*/

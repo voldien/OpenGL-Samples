@@ -15,7 +15,6 @@
  */
 #pragma once
 #include "FPSCounter.h"
-#include "IOUtil.h"
 #include <Core/IO/IFileSystem.h>
 #include <Core/Time.h>
 #include <MIMIWindow.h>
@@ -73,8 +72,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	bool supportSPIRV() const;
 
 	/*	*/
-	cxxopts::ParseResult &getResult() { return this->parseResult; }
-	void setCommandResult(cxxopts::ParseResult &result) { this->parseResult = result; }
+	cxxopts::ParseResult &getResult() noexcept { return this->parseResult; }
+	void setCommandResult(cxxopts::ParseResult &result) noexcept { this->parseResult = result; }
 
 	// const fragcore::GLRendererInterface *getRenderInterface();
 

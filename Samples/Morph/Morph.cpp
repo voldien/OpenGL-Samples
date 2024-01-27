@@ -27,7 +27,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -49,7 +49,7 @@ namespace glsample {
 		class MorphTargetSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			MorphTargetSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			MorphTargetSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Morph Settings");
 			}
 			void draw() override {
@@ -71,7 +71,7 @@ namespace glsample {
 			bool useComputeShader;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<MorphTargetSettingComponent> morphSettingComponent;
 
@@ -79,7 +79,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(UniformBufferBlock);
+		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		/*	*/
 		unsigned int vbo;

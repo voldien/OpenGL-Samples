@@ -48,7 +48,7 @@ namespace glsample {
 
 		struct UniformTerrainBufferBlock {};
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			UniformSkyBoxBufferBlock skybox;
 			UniformGrassBufferBlock grass;
 			UniformTerrainBufferBlock terrain;

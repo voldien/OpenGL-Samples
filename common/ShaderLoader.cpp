@@ -77,8 +77,9 @@ int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std:
 									 const std::vector<char> *tesselatione) {
 	fragcore::resetErrorFlag();
 
-	int program = glCreateProgram();
+	const int program = glCreateProgram();
 	fragcore::checkError();
+
 	int shader_vertex = 0;
 	int shader_fragment = 0;
 	int shader_geometry = 0;
@@ -86,8 +87,9 @@ int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std:
 	int shader_tesc = 0;
 	int lstatus;
 
-	if (program < 0)
+	if (program < 0) {
 		return 0;
+	}
 
 	if (vertex && vertex->size() > 0) {
 		shader_vertex = loadShader(*vertex, GL_VERTEX_SHADER_ARB);
@@ -175,9 +177,9 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 
 	fragcore::resetErrorFlag();
 
-	int program = glCreateProgram();
+	const int program = glCreateProgram();
 	int lstatus;
-	int shader_vcompute = loadShader(*computePaths[0], GL_COMPUTE_SHADER);
+	const int shader_vcompute = loadShader(*computePaths[0], GL_COMPUTE_SHADER);
 
 	/*	*/
 	glAttachShader(program, shader_vcompute);
@@ -233,7 +235,7 @@ int ShaderLoader::loadShader(const std::vector<char> &source, int type) {
 	const char *source_data = source.data();
 	std::vector<const GLchar **> source_refs;
 
-	unsigned int shader = glCreateShader(type);
+	const unsigned int shader = glCreateShader(type);
 
 	fragcore::checkError();
 	/*	Load as Spirv if data is spirv file and supported.	*/

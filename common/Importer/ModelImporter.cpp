@@ -2,13 +2,39 @@
 #include "Core/Math3D.h"
 #include "Core/math3D/AABB.h"
 #include "GeometryUtil.h"
-#include "IOUtil.h"
+#include <Core/IO/IOUtil.h>
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
 #include <assimp/types.h>
+#include <cstdint>
 #include <filesystem>
+#include <glm/fwd.hpp>
+
 namespace fs = std::filesystem;
 using namespace fragcore;
+
+static inline glm::mat4 aiMatrix4x4ToGlm(const aiMatrix4x4 *from) {
+	glm::mat4 to;
+
+	to[0][0] = (float)from->a1;
+	to[0][1] = (float)from->b1;
+	to[0][2] = (float)from->c1;
+	to[0][3] = (float)from->d1;
+	to[1][0] = (float)from->a2;
+	to[1][1] = (float)from->b2;
+	to[1][2] = (float)from->c2;
+	to[1][3] = (float)from->d2;
+	to[2][0] = (float)from->a3;
+	to[2][1] = (float)from->b3;
+	to[2][2] = (float)from->c3;
+	to[2][3] = (float)from->d3;
+	to[3][0] = (float)from->a4;
+	to[3][1] = (float)from->b4;
+	to[3][2] = (float)from->c4;
+	to[3][3] = (float)from->d4;
+
+	return to;
+}
 
 void ModelImporter::loadContent(const std::string &path, unsigned long int supportFlag) {
 	Importer importer;
@@ -203,9 +229,26 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 }
 
 SkeletonSystem *ModelImporter::initBoneSkeleton(const aiMesh *mesh, unsigned int index) {
-	// ModelSystemObject *pmesh = &this->models[index];
+
+	SkeletonSystem skeleton;
+
 	/*	Load bones.	*/
 	if (mesh->HasBones()) {
+		for (uint32_t i = 0; i < mesh->mNumBones; i++) {
+			const uint32_t BoneIndex = 0;
+			const std::string BoneName(mesh->mBones[i]->mName.data);
+
+			glm::mat4 to = aiMatrix4x4ToGlm(&mesh->mBones[i]->mOffsetMatrix);
+
+			Bone bone;
+			bone.inverseBoneMatrix = to;
+			bone.name = BoneName;
+			bone.boneIndex = i;
+
+			skeleton.bones[BoneName] = bone;
+		}
+		this->skeletons.push_back(skeleton);
+		return &this->skeletons.back();
 	}
 	return nullptr;
 }
@@ -287,6 +330,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	/*	Load bones.	*/
 	if (aimesh->HasBones()) {
 
+		pmesh->boneOffset = 32; // TODO:Fix.
 		for (uint i = 0; i < aimesh->mNumBones; i++) {
 			const uint BoneIndex = 0;
 
@@ -303,17 +347,20 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		}
 	}
 
-	/*	some issues with this I thing? */
 	for (size_t x = 0; x < aimesh->mNumFaces; x++) {
 		const aiFace &face = aimesh->mFaces[x];
-		assert(face.mNumIndices == 3); // Check if Indices Count is 3 other case error
-		// TODO: fix old code.
-		memcpy(Indice, &face.mIndices[0], indicesSize);
-		Indice += indicesSize;
-		memcpy(Indice, &face.mIndices[1], indicesSize);
-		Indice += indicesSize;
-		memcpy(Indice, &face.mIndices[2], indicesSize);
-		Indice += indicesSize;
+		if (face.mNumIndices == 3) {
+			// TODO: fix old code.
+			memcpy(Indice, &face.mIndices[0], indicesSize);
+			Indice += indicesSize;
+			memcpy(Indice, &face.mIndices[1], indicesSize);
+			Indice += indicesSize;
+			memcpy(Indice, &face.mIndices[2], indicesSize);
+			Indice += indicesSize;
+
+		} else if (face.mNumIndices == 2) {
+		
+		}
 	}
 
 	Indice = Itemp;

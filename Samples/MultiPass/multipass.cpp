@@ -12,6 +12,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class MultiPass : public GLSampleWindow {
 	  public:
 		MultiPass() : GLSampleWindow() {
@@ -22,7 +26,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -36,7 +40,7 @@ namespace glsample {
 
 		/*	*/
 
-		enum GBuffer {
+		enum GBuffer : unsigned int {
 
 			WorldSpace = 1,
 			TextureCoordinate = 2,
@@ -63,7 +67,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
@@ -198,7 +202,7 @@ namespace glsample {
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-				
+
 				glBindTexture(GL_TEXTURE_2D, 0);
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D,
@@ -307,7 +311,7 @@ namespace glsample {
 		MultiPassGLSample() : GLSample<MultiPass>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
-				"S,skybox", "Texture Path",
+				"S,skybox", "Skybox Texture File Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};

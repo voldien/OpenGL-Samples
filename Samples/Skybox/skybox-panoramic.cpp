@@ -30,7 +30,7 @@ namespace glsample {
 			this->camera.enableNavigation(false);
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 proj;
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -49,7 +49,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(UniformBufferBlock);
+		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
@@ -58,7 +58,7 @@ namespace glsample {
 		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			SkyboxPanoramicSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			SkyboxPanoramicSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("SkyBox Settings");
 			}
 			void draw() override {
@@ -73,7 +73,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<SkyboxPanoramicSettingComponent> skyboxSettingComponent;
 

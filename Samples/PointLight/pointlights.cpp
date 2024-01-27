@@ -34,7 +34,7 @@ namespace glsample {
 		} PointLightSource;
 
 		static const size_t nrPointLights = 4;
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -61,14 +61,14 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
 		class PointLightSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			PointLightSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			PointLightSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Point Light Settings");
 			}
 
@@ -97,7 +97,7 @@ namespace glsample {
 			bool animate = true;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 
 			bool lightvisible[4] = {true, true, true, true};
 		};

@@ -10,8 +10,8 @@
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class VectorField : public GLSampleWindow {
 	  public:
@@ -42,6 +42,7 @@ namespace glsample {
 		/*	Shader pipeline programs.	*/
 		unsigned int particle_graphic_program;
 		unsigned int particle_compute_program;
+		unsigned int particle_motion_force_compute_program;
 		unsigned int grid_graphic_program;
 		unsigned int vector_field_graphic_program;
 
@@ -65,7 +66,7 @@ namespace glsample {
 			float padd2;
 		} ParticleSetting;
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -104,12 +105,12 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		class ParticleSystemSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			ParticleSystemSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			ParticleSystemSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Particle Settings");
 			}
 			void draw() override {
@@ -123,13 +124,15 @@ namespace glsample {
 				/*	*/
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("Draw VectorField", &this->drawVectorField);
 			}
 
 			bool simulateParticles;
+			bool drawVectorField = false;
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<ParticleSystemSettingComponent> vectorFieldSettingComponent;
 
@@ -140,6 +143,8 @@ namespace glsample {
 
 		/*	Particle Simulation in Vector Field.	*/
 		const std::string particleComputeShaderPath = "Shaders/vectorfield/particle.comp.spv";
+		/*	Particle Simulation in Vector Field.	*/
+		const std::string particleMotionForceComputeShaderPath = "Shaders/vectorfield/apply_force.comp.spv";
 
 		/*	*/
 		const std::string vectorFieldVertexShaderPath = "Shaders/vectorfield/vectorField.vert.spv";
@@ -182,14 +187,17 @@ namespace glsample {
 																				  &fragment_source, &geometry_source);
 
 				/*	*/
-				std::vector<uint32_t> compute_source_binary =
+				std::vector<uint32_t> compute_particle_source_binary =
 					IOUtil::readFileData<uint32_t>(this->particleComputeShaderPath, this->getFileSystem());
 
-				std::vector<char> compute_source =
-					fragcore::ShaderCompiler::convertSPIRV(compute_source_binary, compilerOptions);
+				std::vector<uint32_t> compute_motion_source_binary =
+					IOUtil::readFileData<uint32_t>(this->particleMotionForceComputeShaderPath, this->getFileSystem());
 
 				/*	Load Compute.	*/
-				this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
+				this->particle_compute_program =
+					ShaderLoader::loadComputeProgram(compilerOptions, &compute_particle_source_binary);
+				this->particle_motion_force_compute_program =
+					ShaderLoader::loadComputeProgram(compilerOptions, &compute_motion_source_binary);
 
 				/*	*/
 				vertex_source =
@@ -242,6 +250,18 @@ namespace glsample {
 										this->particle_vectorfield_buffer_binding);
 
 			glUseProgram(0);
+
+			{
+				glUseProgram(this->particle_motion_force_compute_program);
+				int uniform_buffer_particle_compute_index =
+					glGetUniformBlockIndex(this->particle_motion_force_compute_program, "UniformBufferBlock");
+				int particle_buffer_vector_field_index = glGetProgramResourceIndex(
+					this->particle_motion_force_compute_program, GL_SHADER_STORAGE_BLOCK, "VectorField");
+				int particle_buffer_read_index = glGetProgramResourceIndex(this->particle_motion_force_compute_program,
+																		   GL_SHADER_STORAGE_BLOCK, "ReadBuffer");
+
+				glUseProgram(0);
+			}
 
 			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->vector_field_graphic_program);
@@ -383,9 +403,19 @@ namespace glsample {
 								  this->uniformStageBuffer.particleSetting.particleBox.y / this->localWorkGroupSize[1],
 								  this->uniformStageBuffer.particleSetting.particleBox.z / this->localWorkGroupSize[2]);
 
+				glUseProgram(0);
+
 				glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
-				glUseProgram(0);
+				/*	Check if mouse pressed down.	*/
+				if (false) {
+					glUseProgram(this->particle_motion_force_compute_program);
+
+					glDispatchCompute(
+						this->uniformStageBuffer.particleSetting.particleBox.x / this->localWorkGroupSize[0],
+						this->uniformStageBuffer.particleSetting.particleBox.y / this->localWorkGroupSize[1],
+						this->uniformStageBuffer.particleSetting.particleBox.z / this->localWorkGroupSize[2]);
+				}
 			}
 
 			/*	*/
@@ -501,7 +531,8 @@ namespace glsample {
 	  public:
 		VectorFieldSample() : GLSample<VectorField>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Cloth Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,texture", "Cloth Texture Path",
+					cxxopts::value<std::string>()->default_value("asset/texture.png"));
 		}
 	};
 } // namespace glsample

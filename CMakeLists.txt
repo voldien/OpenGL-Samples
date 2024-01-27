@@ -7,7 +7,6 @@ SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib CACHE INTERNAL "" FORCE)
 FIND_PACKAGE(PkgConfig QUIET)
 SET(OpenGL_GL_PREFERENCE "GLVND")
 FIND_PACKAGE(OpenGL)
-FIND_PACKAGE(GLEW)
 
 #
 IF(PKG_CONFIG_FOUND)
@@ -19,9 +18,6 @@ ELSE()
 	# TODO add logic for handling if pkg-config not available.
 ENDIF()
 
-IF(GLEW_FOUND)
-	MESSAGE(STATUS "Glew found: ${GLEW_LIBRARIES}.")
-ENDIF()
 
 IF(OPENGL_FOUND)
 	MESSAGE(STATUS "OpenGL found: ${OPENGL_LIBRARIES}.")
@@ -44,7 +40,9 @@ ENDIF()
 # ###########################################
 # Backend libraries
 # ###########################################
+#ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/glew EXCLUDE_FROM_ALL)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/cxxopts EXCLUDE_FROM_ALL)
+# 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi EXCLUDE_FROM_ALL)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/image/imageloader EXCLUDE_FROM_ALL)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/taskscheduler/TaskSch EXCLUDE_FROM_ALL)
@@ -121,6 +119,9 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/GameOfLife)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SkinnedMesh)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VariableRateShading)
 
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/RayTracing)
+
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ConditionalDraw)
 
 
 # ###################################

@@ -51,25 +51,35 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<Geome
 		offset += indicesSize;
 	}
 
+	const size_t vertexStride = modelLoader.getModels()[0].vertexStride;
+	const size_t IndicesStride = modelLoader.getModels()[0].indicesStride;
+
 	// TODO add proper stride.
 	/*	Vertex.	*/
 	glEnableVertexAttribArrayARB(0);
-	glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+	glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(0));
 
 	/*	UV.	*/
 	glEnableVertexAttribArrayARB(1);
-	glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-							 reinterpret_cast<void *>(12));
+	glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(12));
 
 	/*	Normal.	*/
 	glEnableVertexAttribArrayARB(2);
-	glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-							 reinterpret_cast<void *>(20));
+	glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(20));
 
 	/*	Tangent.	*/
 	glEnableVertexAttribArrayARB(3);
-	glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-							 reinterpret_cast<void *>(32));
+	glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(32));
+
+	/*	BoneID.	*/
+	if (modelLoader.getModels()[0].boneOffset > 0) {
+		glEnableVertexAttribArrayARB(4);
+		glVertexAttribPointerARB(4, 4, GL_INT, GL_FALSE, vertexStride, reinterpret_cast<void *>(32));
+
+		/*	BoneID.	*/
+		glEnableVertexAttribArrayARB(5);
+		glVertexAttribPointerARB(5, 4, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(32));
+	}
 
 	glBindVertexArray(0);
 

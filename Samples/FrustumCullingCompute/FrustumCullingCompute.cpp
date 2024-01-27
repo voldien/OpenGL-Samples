@@ -25,7 +25,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
 			alignas(16) glm::mat4 proj;
@@ -63,13 +63,13 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
 		class FrustumCullingSettingComponent : public nekomimi::UIComponent {
 		  public:
-			FrustumCullingSettingComponent(struct UniformBufferBlock &uniform, unsigned int &depth)
+			FrustumCullingSettingComponent(struct uniform_buffer_block &uniform, unsigned int &depth)
 				: uniform(uniform), depth(depth) {
 				this->setName("Frustum Culling Settings");
 			}
@@ -92,7 +92,7 @@ namespace glsample {
 			bool showWireFrame = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<FrustumCullingSettingComponent> shadowSettingComponent;
 
@@ -105,6 +105,7 @@ namespace glsample {
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
 
 		void Release() override {
+
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->shadow_program);
 
@@ -119,7 +120,6 @@ namespace glsample {
 		}
 
 		void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
 			/*	*/
 			const std::vector<uint32_t> vertex_source =

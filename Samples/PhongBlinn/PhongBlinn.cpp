@@ -8,11 +8,16 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class PhongBlinn : public GLSampleWindow {
 	  public:
 		PhongBlinn() : GLSampleWindow() {
-			this->setTitle("PhongBlinn");
-			this->phongblinnSettingComponent = std::make_shared<PhongBlinnSettingComponent>(this->uniform);
+			this->setTitle("Phong & Blinn");
+
+			this->phongblinnSettingComponent = std::make_shared<PhongBlinnSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->phongblinnSettingComponent);
 
 			this->camera.setPosition(glm::vec3(-2.5f));
@@ -29,7 +34,7 @@ namespace glsample {
 			float qudratic_attenuation;
 		} PointLight;
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -46,7 +51,7 @@ namespace glsample {
 
 			float shininess = 8;
 			bool useBlinn = true;
-		} uniform;
+		} uniformStageBuffer;
 
 		/*	*/
 		GeometryObject plan;
@@ -56,20 +61,21 @@ namespace glsample {
 		unsigned int diffuse_texture;
 
 		/*	*/
-		unsigned int phongblinn_program;
+		unsigned int phong_program;
+		unsigned int blinn_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
 		class PhongBlinnSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			PhongBlinnSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			PhongBlinnSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Phong-Blinn Settings");
 			}
 			void draw() override {
@@ -89,28 +95,32 @@ namespace glsample {
 					}
 					ImGui::PopID();
 				}
-				ImGui::TextUnformatted("Directional Light Setting");
+				/*	*/
+				ImGui::TextUnformatted("Ambient Light Setting");
 				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Specular Color", &this->uniform.specularColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
 				ImGui::TextUnformatted("Material Setting");
 				ImGui::DragFloat("Shinnes", &this->uniform.shininess);
 				ImGui::Checkbox("Blinn", &this->uniform.useBlinn);
 			}
+			bool useBlinn = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 			bool lightVisible[4] = {true, true, true, true};
 		};
 		std::shared_ptr<PhongBlinnSettingComponent> phongblinnSettingComponent;
 
 		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/phongblinn/phongblinn.frag.spv";
+		const std::string fragmentPhongShaderPath = "Shaders/phongblinn/phong.frag.spv";
+		const std::string fragmentBlinnShaderPath = "Shaders/phongblinn/blinn.frag.spv";
 
 		void Release() override {
 			/*	*/
-			glDeleteProgram(this->phongblinn_program);
+			glDeleteProgram(this->phong_program);
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
@@ -129,25 +139,39 @@ namespace glsample {
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
-			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_source_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+			{
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_phongblinn_source_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_phong_source_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentPhongShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_blinn_source_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentBlinnShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
-			this->phongblinn_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source_binary, &fragment_source_binary);
+				/*	Load shader	*/
+				this->phong_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_phongblinn_source_binary,
+																	   &fragment_phong_source_binary);
+
+				this->blinn_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_phongblinn_source_binary,
+																	   &fragment_blinn_source_binary);
+			}
 
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->phongblinn_program);
-			int uniform_buffer_index = glGetUniformBlockIndex(this->phongblinn_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->phongblinn_program, "DiffuseTexture"), 0);
-			glUniformBlockBinding(this->phongblinn_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(this->phong_program);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->phong_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->phong_program, "DiffuseTexture"), 0);
+			glUniformBlockBinding(this->phong_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	Setup graphic pipeline.	*/
+			glUseProgram(this->blinn_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->blinn_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->blinn_program, "DiffuseTexture"), 0);
+			glUniformBlockBinding(this->blinn_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
@@ -211,23 +235,23 @@ namespace glsample {
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
 			for (size_t i = 0; i < this->nrPointLights; i++) {
-				uniform.pointLights[i].range = 25.0f;
-				uniform.pointLights[i].position =
+				uniformStageBuffer.pointLights[i].range = 25.0f;
+				uniformStageBuffer.pointLights[i].position =
 					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(1.0f, 1.0f, 1.0f);
-				uniform.pointLights[i].color = colors[i];
-				uniform.pointLights[i].constant_attenuation = 1.0f;
-				uniform.pointLights[i].linear_attenuation = 0.1f;
-				uniform.pointLights[i].qudratic_attenuation = 0.05f;
-				uniform.pointLights[i].intensity = 2.0f;
+				uniformStageBuffer.pointLights[i].color = colors[i];
+				uniformStageBuffer.pointLights[i].constant_attenuation = 1.0f;
+				uniformStageBuffer.pointLights[i].linear_attenuation = 0.1f;
+				uniformStageBuffer.pointLights[i].qudratic_attenuation = 0.05f;
+				uniformStageBuffer.pointLights[i].intensity = 2.0f;
 			}
 		}
+
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);
-
-			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -240,7 +264,12 @@ namespace glsample {
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
-				glUseProgram(this->phongblinn_program);
+
+				if (this->phongblinnSettingComponent->useBlinn) {
+					glUseProgram(this->blinn_program);
+				} else {
+					glUseProgram(this->phong_program);
+				}
 
 				glDisable(GL_CULL_FACE);
 
@@ -261,23 +290,30 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
-			this->uniform.model = glm::mat4(1.0f);
-			this->uniform.model =
-				glm::rotate(this->uniform.model, glm::radians(45.0f * elapsedTime), glm::vec3(1.0f, 1.0f, 0.0f));
-			this->uniform.model = glm::scale(this->uniform.model, glm::vec3(45.95f));
-			this->uniform.view = this->camera.getViewMatrix();
-			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
-			this->uniform.viewPos = glm::vec4(this->camera.getPosition(), 0.0);
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model = glm::rotate(
+				this->uniformStageBuffer.model, glm::radians(45.0f * elapsedTime), glm::vec3(1.0f, 1.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(45.95f));
+			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 
-			/*	*/
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniform, sizeof(this->uniform));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+			this->uniformStageBuffer.viewPos = glm::vec4(this->camera.getPosition(), 0.0);
+
+			{
+				/*	*/
+				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+				void *uniformPointer = glMapBufferRange(
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+					this->uniformBufferSize,
+					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
+				glUnmapBuffer(GL_UNIFORM_BUFFER);
+			}
 		}
 	};
+
 	class PhongBlinnGLSample : public GLSample<PhongBlinn> {
 	  public:
 		PhongBlinnGLSample() : GLSample<PhongBlinn>() {}

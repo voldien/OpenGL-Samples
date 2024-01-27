@@ -34,7 +34,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	point_light point_light[4];
 
 	float shininess;
-	bool phong;
 }
 ubo;
 

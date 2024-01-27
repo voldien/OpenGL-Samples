@@ -9,21 +9,29 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class ConditionalScene : public Scene {
 	  public:
 	};
 
+	/**
+	 * @brief
+	 *
+	 */
 	class ConditionalDraw : public GLSampleWindow {
 	  public:
 		ConditionalDraw() : GLSampleWindow() {
 			this->setTitle("Conditional Draw");
-			this->normalMapSettingComponent =
+			this->conditionalSettingComponent =
 				std::make_shared<ConditionalDrawSettingComponent>(this->uniformStageBuffer);
 
-			this->addUIComponent(this->normalMapSettingComponent);
+			this->addUIComponent(this->conditionalSettingComponent);
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -46,6 +54,7 @@ namespace glsample {
 
 		/*	*/
 		GeometryObject plan;
+		ConditionalScene scene;
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
@@ -58,13 +67,13 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
 		class ConditionalDrawSettingComponent : public nekomimi::UIComponent {
 		  public:
-			ConditionalDrawSettingComponent(struct UniformBufferBlock &uniform) : uniform(uniform) {
+			ConditionalDrawSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Conditional Draw");
 			}
 
@@ -84,16 +93,20 @@ namespace glsample {
 			}
 
 			bool showWireFrame = false;
+			bool showBoundingBoxes = false;
+			bool showOverlapping = false;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
-		std::shared_ptr<ConditionalDrawSettingComponent> normalMapSettingComponent;
+		std::shared_ptr<ConditionalDrawSettingComponent> conditionalSettingComponent;
 
 		const std::string vertexShaderPath = "Shaders/normalmap/normalmap.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/normalmap/normalmap.frag.spv";
 
 		void Release() override {
+			this->scene.release();
+
 			/*	*/
 			glDeleteProgram(this->normalMapping_program);
 
@@ -112,24 +125,28 @@ namespace glsample {
 
 		void Initialize() override {
 
+			/*	*/
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string normalTexturePath = this->getResult()["normal-texture"].as<std::string>();
 
-			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
-
 			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+			{
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
-			/*	Load shader	*/
-			this->normalMapping_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
+
+				/*	Load shader	*/
+				this->normalMapping_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			}
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normalMapping_program);
@@ -184,7 +201,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, conditionalSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
@@ -199,23 +216,28 @@ namespace glsample {
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
-			/*	*/
-			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model = glm::rotate(
-				this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
-			this->uniformStageBuffer.view = this->camera.getViewMatrix();
-			this->uniformStageBuffer.modelViewProjection =
-				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
-			this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
+			{
+				/*	*/
+				this->uniformStageBuffer.model = glm::mat4(1.0f);
+				this->uniformStageBuffer.model = glm::rotate(
+					this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
+				this->uniformStageBuffer.view = this->camera.getViewMatrix();
+				this->uniformStageBuffer.modelViewProjection =
+					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+				this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
+			}
 
-			/*	*/
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
+			{
+				/*	*/
+				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+				void *uniformPointer = glMapBufferRange(
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+					this->uniformBufferSize,
+					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
+				glUnmapBuffer(GL_UNIFORM_BUFFER);
+			}
 		}
 	};
 
@@ -227,7 +249,7 @@ namespace glsample {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
 				"N,normal-texture", "NormalMap Path",
 				cxxopts::value<std::string>()->default_value("asset/normalmap.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};
 

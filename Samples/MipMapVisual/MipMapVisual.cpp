@@ -49,7 +49,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformBufferBlock {
+		struct uniform_buffer_block {
 
 			alignas(16) glm::mat4 modelViewProjection;
 
@@ -70,13 +70,13 @@ namespace glsample {
 		unsigned int uniform_graphic_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(UniformBufferBlock);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
 		class MipMapVisualSettingComponent : public nekomimi::UIComponent {
 		  public:
-			MipMapVisualSettingComponent(struct UniformBufferBlock &uniform, float &mipmapbias)
+			MipMapVisualSettingComponent(struct uniform_buffer_block &uniform, float &mipmapbias)
 				: uniform(uniform), mipmapbias(mipmapbias) {
 				this->setName("MipMap Visualization");
 			}
@@ -90,7 +90,7 @@ namespace glsample {
 			float &mipmapbias;
 
 		  private:
-			struct UniformBufferBlock &uniform;
+			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<MipMapVisualSettingComponent> mipmapvisualSettingComponent;
 
