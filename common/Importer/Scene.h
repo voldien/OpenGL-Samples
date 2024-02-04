@@ -29,6 +29,9 @@ namespace glsample {
 		virtual void sortRenderQueue();
 
 	  public:
+		const std::vector<NodeObject *> &getNodes() const noexcept { return this->nodes; }
+		const std::vector<GeometryObject> &getMeshes() const noexcept { return this->refGeometry; }
+	  public:
 		/*	TODO add queue structure.	*/
 
 		std::vector<NodeObject *> nodes;

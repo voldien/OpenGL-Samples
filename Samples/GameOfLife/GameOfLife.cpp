@@ -73,7 +73,7 @@ namespace glsample {
 			{
 				/*	Create framebuffer and its textures.	*/
 				glGenFramebuffers(1, &this->gameoflife_framebuffer);
-				this->gameoflife_state_texture.resize(2);
+				this->gameoflife_state_texture.resize(3);
 				glGenTextures(this->gameoflife_state_texture.size(), this->gameoflife_state_texture.data());
 				glGenTextures(1, &this->gameoflife_render_texture);
 				/*	Create init framebuffers.	*/

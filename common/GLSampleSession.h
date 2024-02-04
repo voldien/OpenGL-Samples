@@ -14,6 +14,8 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Core/math3D/AABB.h"
+#include "Core/math3D/BoundingSphere.h"
 #include "IOUtil.h"
 #include <cxxopts.hpp>
 
@@ -29,6 +31,12 @@ namespace glsample {
 
 		size_t vertex_offset = 0;
 		size_t indices_offset = 0;
+
+		// union Bounding {
+		//	fragcore::AABB& aabb;
+		//	fragcore::BoundingSphere& bsp;
+		//} bound;
+
 	} GeometryObject;
 
 	typedef struct texture_object_t {

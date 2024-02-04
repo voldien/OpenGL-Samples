@@ -14,7 +14,6 @@ namespace glsample {
 	 */
 	class NormalMapping : public GLSampleWindow {
 	  public:
-	  
 		NormalMapping() : GLSampleWindow() {
 			this->setTitle("NormalMapping");
 			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformStageBuffer);
@@ -114,25 +113,26 @@ namespace glsample {
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string normalTexturePath = this->getResult()["normal-texture"].as<std::string>();
 
-			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+			{
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
-			this->normalMapping_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				/*	Load shader	*/
+				this->normalMapping_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+			}
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normalMapping_program);
-			unsigned int uniform_buffer_index =
-				glGetUniformBlockIndex(this->normalMapping_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->normalMapping_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->normalMapping_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->normalMapping_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->normalMapping_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -196,6 +196,7 @@ namespace glsample {
 
 			glBindVertexArray(0);
 		}
+
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {

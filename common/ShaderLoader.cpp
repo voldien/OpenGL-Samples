@@ -207,6 +207,67 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 	return program;
 }
 
+int ShaderLoader::loadMeshProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
+								  const std::vector<uint32_t> *meshs, const std::vector<uint32_t> *tasks) {
+	std::vector<char> mesh_source;
+	if (meshs) {
+
+		const std::vector<char> vertex_source_code = fragcore::ShaderCompiler::convertSPIRV(*meshs, compilerOptions);
+		mesh_source.insert(mesh_source.end(), vertex_source_code.begin(), vertex_source_code.end());
+	}
+
+	std::vector<char> task_source;
+	if (tasks) {
+
+		const std::vector<char> fragment_source_code = fragcore::ShaderCompiler::convertSPIRV(*tasks, compilerOptions);
+		task_source.insert(task_source.end(), fragment_source_code.begin(), fragment_source_code.end());
+	}
+
+	return ShaderLoader::loadMeshProgram(&task_source, &mesh_source);
+}
+
+int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vector<char> *tasks) {
+	fragcore::resetErrorFlag();
+
+	const int program = glCreateProgram();
+	fragcore::checkError();
+
+	int shader_mesh = 0;
+	int shader_task = 0;
+	int lstatus;
+
+	shader_mesh = loadShader(*meshs, GL_MESH_SHADER_NV);
+	glAttachShader(program, shader_mesh);
+	shader_task = loadShader(*tasks, GL_TASK_SHADER_NV);
+	glAttachShader(program, shader_task);
+
+	/*	*/
+	glLinkProgram(program);
+	fragcore::checkError();
+
+	glGetProgramiv(program, GL_LINK_STATUS, &lstatus);
+	fragcore::checkError();
+	if (lstatus != GL_TRUE) {
+		char log[4096];
+		glGetProgramInfoLog(program, sizeof(log), nullptr, log);
+		fragcore::checkError();
+
+		throw cxxexcept::RuntimeException("Failed to link program: {}", log);
+	}
+
+	if (glIsShader(shader_mesh)) {
+		glDetachShader(program, shader_mesh);
+		glDeleteShader(shader_mesh);
+	}
+
+	if (glIsShader(shader_task)) {
+		glDetachShader(program, shader_task);
+		glDeleteShader(shader_task);
+	}
+
+	return program;
+}
+
 static void checkShaderError(int shader) {
 
 	GLint lstatus;

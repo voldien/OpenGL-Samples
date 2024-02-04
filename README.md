@@ -5,10 +5,13 @@
 
 A collection of OpenGL Samples.
 
-## Command line Options
+## CLI - Command Line Options
 
 ```bash
- OpenGL-Samples options:
+Usage:
+  OpenGL Sample: GLSample [OPTION...]
+
+ GLSample options:
   -h, --help                helper information.
   -d, --debug               Enable Debug View. (default: true)
   -t, --time arg            How long to run sample (default: 0)
@@ -17,6 +20,9 @@ A collection of OpenGL Samples.
   -g, --opengl-version arg  OpenGL Version (default: -1)
   -F, --filesystem arg      FileSystem (default: .)
   -r, --renderdoc           Enable RenderDoc
+  -G, --gamma-correction    Enable Gamma Correction
+  -W, --width arg           Set Window Width (default: -1)
+  -H, --height arg          Set Window Height (default: -1)
 ```
 
 ## Samples

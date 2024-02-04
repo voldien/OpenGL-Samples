@@ -245,7 +245,8 @@ namespace glsample {
 		AlphaClippingGLSample() : GLSample<AlphaClipping>() {}
 
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/alpha-clipping.png"))(
+			options("T,texture", "Texture File Path",
+					cxxopts::value<std::string>()->default_value("asset/alpha-clipping.png"))(
 				"C,clipping", "Default Clipping Threshold", cxxopts::value<float>()->default_value("0.5"));
 		}
 	};

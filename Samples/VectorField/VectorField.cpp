@@ -403,8 +403,6 @@ namespace glsample {
 								  this->uniformStageBuffer.particleSetting.particleBox.y / this->localWorkGroupSize[1],
 								  this->uniformStageBuffer.particleSetting.particleBox.z / this->localWorkGroupSize[2]);
 
-				glUseProgram(0);
-
 				glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
 				/*	Check if mouse pressed down.	*/
@@ -416,6 +414,8 @@ namespace glsample {
 						this->uniformStageBuffer.particleSetting.particleBox.y / this->localWorkGroupSize[1],
 						this->uniformStageBuffer.particleSetting.particleBox.z / this->localWorkGroupSize[2]);
 				}
+
+				glUseProgram(0);
 			}
 
 			/*	*/

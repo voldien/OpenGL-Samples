@@ -68,8 +68,8 @@ namespace glsample {
 	  protected:
 		T fov = 80.0f;
 		T aspect = 16.0f / 9.0f;
-		T near = 0.15f;
-		T far = 1000.0f;
+		T near = 0.2f;
+		T far = 1500.0f;
 		glm::mat4 proj;
 	};
 } // namespace glsample

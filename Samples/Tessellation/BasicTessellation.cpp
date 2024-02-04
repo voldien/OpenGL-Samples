@@ -17,9 +17,14 @@ namespace glsample {
 	  public:
 		BasicTessellation() : GLSampleWindow() {
 			this->setTitle("Basic Tessellation");
+
 			this->tessellationSettingComponent =
 				std::make_shared<TessellationSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->tessellationSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct uniform_buffer_block {
@@ -47,6 +52,7 @@ namespace glsample {
 			TessellationSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Tessellation Settings");
 			}
+
 			void draw() override {
 				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
@@ -67,7 +73,6 @@ namespace glsample {
 		std::shared_ptr<TessellationSettingComponent> tessellationSettingComponent;
 
 		/*	Uniform buffers.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -113,30 +118,32 @@ namespace glsample {
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string heightTexturePath = this->getResult()["heightmap"].as<std::string>();
 
-			/*	*/
-			const std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> control_source =
-				IOUtil::readFileData<uint32_t>(this->ControlShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> evolution_source =
-				IOUtil::readFileData<uint32_t>(this->EvoluationShaderPath, this->getFileSystem());
+			{
+				/*	*/
+				const std::vector<uint32_t> vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> control_binary =
+					IOUtil::readFileData<uint32_t>(this->ControlShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> evolution_binary =
+					IOUtil::readFileData<uint32_t>(this->EvoluationShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
-			this->tessellation_program = ShaderLoader::loadGraphicProgram(
-				compilerOptions, &vertex_source, &fragment_source, nullptr, &control_source, &evolution_source);
+				/*	Load shader	*/
+				this->tessellation_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_binary, &fragment_binary, nullptr, &control_binary, &evolution_binary);
+			}
 
 			/*	Setup Shader.	*/
 			glUseProgram(this->tessellation_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->tessellation_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->tessellation_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->tessellation_program, "diffuse"), 0);
 			glUniform1i(glGetUniformLocation(this->tessellation_program, "gDisplacementMap"), 1);
-			glUniformBlockBinding(this->tessellation_program, this->uniform_buffer_index, 0);
+			glUniformBlockBinding(this->tessellation_program, uniform_buffer_index, 0);
 
 			glUseProgram(0);
 
@@ -167,8 +174,8 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->plan.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-						 vertices.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
 			/*	*/
 			glGenBuffers(1, &this->plan.ibo);
@@ -198,12 +205,11 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+
 		void draw() override {
 			int width, height;
 			getSize(&width, &height);
-
-			this->uniformStageBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -253,6 +259,8 @@ namespace glsample {
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10, 10, 10));
 
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
+
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			this->uniformStageBuffer.eyePos = glm::vec4(this->camera.getPosition(), 0);
@@ -265,7 +273,7 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
-	
+
 	class BasicTessellationGLSample : public GLSample<BasicTessellation> {
 	  public:
 		BasicTessellationGLSample() : GLSample<BasicTessellation>() {}

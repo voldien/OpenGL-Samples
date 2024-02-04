@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Core/Math3D.h"
 #include "Util/Frustum.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
@@ -30,6 +31,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class CameraController : public Frustum {
 	  public:
 		CameraController() = default;
@@ -42,16 +47,16 @@ namespace glsample {
 			bool a = state[SDL_SCANCODE_A];
 			bool s = state[SDL_SCANCODE_S];
 			bool d = state[SDL_SCANCODE_D];
-			bool alt = state[SDL_SCANCODE_LALT];
-			bool shift = state[SDL_SCANCODE_LSHIFT];
+			const bool alt = state[SDL_SCANCODE_LALT];
+			const bool shift = state[SDL_SCANCODE_LSHIFT];
 
 			// mouse movement.
 			SDL_PumpEvents(); // make sure we have the latest mouse state.
 
 			const int buttons = SDL_GetMouseState(&x, &y);
 
-			const float xDiff = -(xprev - x) * xspeed;
-			const float yDiff = -(yprev - y) * yspeed;
+			const float xDiff = -(xprev - x) * this->xspeed;
+			const float yDiff = -(yprev - y) * this->yspeed;
 			xprev = x;
 			yprev = y;
 
@@ -74,8 +79,12 @@ namespace glsample {
 				flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime,
 										 current_speed, 0.5f * activated, this->fov, xDiff, yDiff, w, a, s, d, 0, 0, 0);
 
-				// calcFrustumPlanes(const Vector3 &position, const Vector3 &look, const Vector3 &up, const Vector3
-				// &right)
+				Vector3 position = Vector3(this->pos[0], this->pos[1], this->pos[2]);
+				Vector3 look = Vector3(this->look[0], this->look[1], this->look[2]);
+				Vector3 up = Vector3(this->up[0], this->up[1], this->up[2]);
+				Vector3 right = look.cross(up).normalized();
+
+				this->calcFrustumPlanes(position, look, up, right);
 			}
 		}
 
@@ -91,14 +100,23 @@ namespace glsample {
 
 		const glm::vec3 &getLookDirection() const noexcept { return this->look; }
 		const glm::vec3 getPosition() const noexcept { return this->pos; }
-		void setPosition(const glm::vec3 &position) noexcept { this->pos = position; }
+		void setPosition(const glm::vec3 &position) noexcept {
+			this->pos = position;
+			this->update();
+		}
 
 		const glm::vec3 &getUp() const { return this->up; }
 
-		void lookAt(const glm::vec3 &position) noexcept { this->look = glm::normalize(position - this->getPosition()); }
+		void lookAt(const glm::vec3 &position) noexcept {
+			this->look = glm::normalize(position - this->getPosition());
+			this->update();
+		}
 
 	  protected:
-		void update() {}
+		void update() noexcept {
+			flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], 0, 0,
+									 0.5f * activated, this->fov, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+		}
 
 	  private:
 		float speed = 100;

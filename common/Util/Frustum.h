@@ -15,8 +15,10 @@
  */
 #pragma once
 #include "Camera.h"
+#include "Core/math3D/BoundingSphere.h"
 #include <Core/math3D/Plane.h>
 #include <FragCore.h>
+#include <GeometryUtil.h>
 
 namespace glsample {
 
@@ -40,21 +42,22 @@ namespace glsample {
 		 *
 		 */
 		enum FrustumPlanes : unsigned int {
-			TOPP = 0,	 /*	*/
-			BOTTOMP = 1, /*	*/
-			LEFTP = 2,	 /*	*/
-			RIGHTP = 3,	 /*	*/
-			NEARP = 4,	 /*	*/
-			FARP = 5,	 /*	*/
+			TOP_PLANE = 0,	  /*	*/
+			BOTTOM_PLANE = 1, /*	*/
+			LEFT_PLANE = 2,	  /*	*/
+			RIGHT_PLANE = 3,  /*	*/
+			NEAR_PLANE = 4,	  /*	*/
+			FAR_PLANE = 5,	  /*	*/
 		};
 
+		/**
+		 * @brief Get the Plane object
+		 *
+		 * @param index
+		 * @return Plane<float>&
+		 */
 		Plane<float> &getPlane(int index) { return this->planes[index]; }
 		const Plane<float> &getPlane(int index) const { return this->planes[index]; }
-
-		/**
-		 *	Update camera matrix perspective.
-		 */
-		virtual void updatePerspective();
 
 		/**
 		 *	Comput the frustum planes.
@@ -74,12 +77,12 @@ namespace glsample {
 		 * @param max
 		 * @return eIntersect if intersect the frustum, eOut otherwise.
 		 */
-		virtual Intersection intersectionAABB(const Vector3 &min, const Vector3 &max) noexcept;
+		virtual Intersection intersectionAABB(const Vector3 &min, const Vector3 &max) const noexcept;
 
-		virtual Intersection intersectionAABB(const AABB &bounds) noexcept;
+		virtual Intersection intersectionAABB(const AABB &bounds) const noexcept;
 
-		virtual Intersection intersectionOBB(const Vector3 &u, const Vector3 &v, const Vector3 &w) noexcept;
-		virtual Intersection intersectionOBB(const OBB &obb) noexcept;
+		virtual Intersection intersectionOBB(const Vector3 &u, const Vector3 &v, const Vector3 &w) const noexcept;
+		virtual Intersection intersectionOBB(const OBB &obb) const noexcept;
 
 		/**
 		 *	Check if sphere intersects frustum.
@@ -116,63 +119,59 @@ namespace glsample {
 	Frustum::Frustum(const Frustum &other) { /**this = other;*/
 	}
 
-	void Frustum::updatePerspective() {
-		// this->percmatrix = Matrix4x4::perspective(this->getFov(), this->getRatio(), this->getNear(), this->getFar());
-
-		/*	*/
-		// calcFrustumPlanes(transform.getPosition(), transform.getRotation().getVector(),
-		//                   transform.getRotation().getVector(Vector3::up()),
-		//                   transform.getRotation().getVector(Vector3::right()));
-	}
-
 	void Frustum::calcFrustumPlanes(const Vector3 &position, const Vector3 &look, const Vector3 &up,
 									const Vector3 &right) {
 		Vector3 dir, nc, fc, X, Y, Z;
 
-		planes[NEARP].setNormalAndPoint(-Z, nc);
-		planes[FARP].setNormalAndPoint(Z, fc);
+		Z = look;
+		nc = position + dir * this->getNear();
+		fc = position + dir * this->getFar();
+
+		planes[NEAR_PLANE].setNormalAndPoint(-Z, nc);
+		planes[FAR_PLANE].setNormalAndPoint(Z, fc);
 
 		Vector3 aux, normal;
 
 		aux = (nc + Y * nh) - position;
 		aux.normalize();
 		normal = aux.cross(X);
-		planes[TOPP].setNormalAndPoint(normal, nc + Y * nh);
+		planes[TOP_PLANE].setNormalAndPoint(normal, nc + Y * nh);
 
 		aux = (nc - Y * nh) - position;
 		aux.normalize();
 		normal = X.cross(aux);
-		planes[BOTTOMP].setNormalAndPoint(normal, nc - Y * nh);
+		planes[BOTTOM_PLANE].setNormalAndPoint(normal, nc - Y * nh);
 
 		aux = (nc - X * nw) - position;
 		aux.normalize();
 		normal = aux.cross(Y);
-		planes[LEFTP].setNormalAndPoint(normal, nc - X * nw);
+		planes[LEFT_PLANE].setNormalAndPoint(normal, nc - X * nw);
 
 		aux = (nc + X * nw) - position;
 		aux.normalize();
 		normal = Y.cross(aux);
-		planes[RIGHTP].setNormalAndPoint(normal, nc + X * nw);
+		planes[RIGHT_PLANE].setNormalAndPoint(normal, nc + X * nw);
 	}
 
 	Frustum::Intersection Frustum::checkPoint(const Vector3 &pos) const noexcept {
-		int x;
 
 		/*	Iterate through each plane.	*/
-		for (x = 0; x < 6; x++) {
-			if (planes[x].distance(pos) < 0) {
+		for (int x = 0; x < 6; x++) {
+			if (fragcore::GeometryUtility::TestPlanesPoint(planes[x], pos)) {
 				return Out;
 			}
 		}
 		return In;
 	}
 
-	Frustum::Intersection Frustum::intersectionAABB(const Vector3 &min, const Vector3 &max) noexcept {
+	Frustum::Intersection Frustum::intersectionAABB(const Vector3 &min, const Vector3 &max) const noexcept {
 
 		Frustum::Intersection result = Frustum::In;
-		int i;
 
-		for (i = 0; i < 6; i++) {
+		for (int i = 0; i < 6; i++) {
+			if (fragcore::GeometryUtility::TestPlanesAABB(planes[i], AABB::createMinMax(min, max))) {
+				return Out;
+			}
 
 			Vector3 p = min;
 			Vector3 n = max;
@@ -201,19 +200,28 @@ namespace glsample {
 		return result;
 	}
 
-	Frustum::Intersection Frustum::intersectionAABB(const AABB &bounds) noexcept {
-		return In;
+	Frustum::Intersection Frustum::intersectionAABB(const AABB &bounds) const noexcept {
 		return intersectionAABB(bounds.min(), bounds.max());
 	}
 
-	Frustum::Intersection Frustum::intersectionOBB(const Vector3 &u, const Vector3 &v, const Vector3 &w) noexcept {
+	Frustum::Intersection Frustum::intersectionOBB(const Vector3 &u, const Vector3 &v,
+												   const Vector3 &w) const noexcept {
 		return Out;
 	}
-	Frustum::Intersection Frustum::intersectionOBB(const OBB &obb) noexcept { return Out; }
+	Frustum::Intersection Frustum::intersectionOBB(const OBB &obb) const noexcept { return Out; }
 
-	Frustum::Intersection Frustum::intersectionSphere(const Vector3 &pos, float radius) const noexcept { return Out; }
+	Frustum::Intersection Frustum::intersectionSphere(const Vector3 &pos, float radius) const noexcept {
+		return Frustum::intersectionSphere(BoundingSphere(pos, radius));
+	}
 
-	Frustum::Intersection Frustum::intersectionSphere(const BoundingSphere &sphere) const noexcept { return Out; }
+	Frustum::Intersection Frustum::intersectionSphere(const BoundingSphere &sphere) const noexcept {
+		for (int i = 0; i < 6; i++) {
+			if (fragcore::GeometryUtility::TestPlanesSphere(planes[i], sphere)) {
+				return Out;
+			}
+		}
+		return In;
+	}
 
 	Frustum::Intersection Frustum::intersectPlane(const Plane<float> &plane) const noexcept { return In; }
 

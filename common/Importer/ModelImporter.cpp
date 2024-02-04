@@ -106,12 +106,15 @@ void ModelImporter::initScene(const aiScene *scene) {
 	std::thread process_model_thread([&]() {
 		/*	 */
 		if (scene->HasMeshes()) {
+
 			this->models.resize(scene->mNumMeshes);
 
+			/*	*/
 			for (size_t x = 0; x < scene->mNumMeshes; x++) {
 				this->initMesh(scene->mMeshes[x], x);
 			}
 
+			/*	*/
 			for (size_t x = 0; x < scene->mNumMeshes; x++) {
 				this->initBoneSkeleton(scene->mMeshes[x], x);
 			}
@@ -140,8 +143,6 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 	/*	Wait intill done.	*/
 	process_model_thread.join();
-	process_textures_thread.join();
-	process_animation_thread.join();
 
 	/*	Compute bonding box.	*/
 	std::thread process_bounding_boxes([&]() {
@@ -150,10 +151,13 @@ void ModelImporter::initScene(const aiScene *scene) {
 			for (size_t x = 0; x < scene->mNumMeshes; x++) {
 				// Compute bounding box.
 				this->models[x].boundingBox = GeometryUtility::computeBoundingBox(
-					(const Vector3 *)scene->mMeshes[x]->mVertices, scene->mMeshes[x]->mNumVertices);
+					(const Vector3 *)scene->mMeshes[x]->mVertices, scene->mMeshes[x]->mNumVertices, sizeof(aiVector3D));
 			}
 		}
 	});
+
+	process_textures_thread.join();
+	process_animation_thread.join();
 
 	// /*	*/
 	if (scene->HasMaterials()) {
@@ -164,13 +168,6 @@ void ModelImporter::initScene(const aiScene *scene) {
 			this->initMaterial(scene->mMaterials[x], x);
 		}
 	}
-
-	// /*	*/
-	//
-	//
-	//
-	//
-	//
 
 	this->initNoodeRoot(scene->mRootNode);
 
@@ -206,11 +203,11 @@ void ModelImporter::initNoodeRoot(const aiNode *nodes, NodeObject *parent) {
 		/*	*/
 		if (nodes->mChildren[x]->mMeshes) {
 
-			/*	*/
+			/*	*/ // TODO: compute the bounding box.
 			for (size_t y = 0; y < nodes->mChildren[x]->mNumMeshes; y++) {
 
 				/*	Get material for mesh object.	*/
-				MaterialObject &materialRef =
+				const MaterialObject &materialRef =
 					getMaterials()[this->sceneRef->mMeshes[*nodes->mChildren[x]->mMeshes]->mMaterialIndex];
 
 				/*	*/
@@ -359,7 +356,6 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 			Indice += indicesSize;
 
 		} else if (face.mNumIndices == 2) {
-		
 		}
 	}
 

@@ -6,6 +6,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class Triangle : public GLSampleWindow {
 	  public:
 		Triangle() : GLSampleWindow() { this->setTitle("Triangle"); }
@@ -26,7 +30,6 @@ namespace glsample {
 			{0.5f, -0.5f, 0.0f, 1.0f, 0.0f}, /*	Vertex (2), Color(3)	*/
 			{0.0f, 0.5f, 1.0f, 1.0f, 1.0f},	 /*	Vertex (2), Color(3)	*/
 			{-0.5f, -0.5f, 0.0f, 0.0f, 1.0f} /*	Vertex (2), Color(3)	*/
-
 		};
 
 		void Release() override {

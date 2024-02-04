@@ -10,7 +10,7 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec4 lightSpace;
 
-layout(binding = 1) uniform sampler2D DiffuseTexture;
+layout(binding = 0) uniform sampler2D DiffuseTexture;
 layout(binding = 1) uniform sampler2D ShadowTexture;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
@@ -28,6 +28,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 cameraPosition;
 	vec4 subsurfaceColor;
 
+	/*	*/
 	float bias;
 	float shadowStrength;
 	float sigma;
@@ -40,8 +41,8 @@ float getExpToLinear(const in float nearZ, const in float farZ, const in float n
 }
 
 float trace() {
-	vec4 projCoords = lightSpace / lightSpace.w;
 
+	vec4 projCoords = lightSpace / lightSpace.w;
 	// transform to [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
 
@@ -55,10 +56,10 @@ float trace() {
 
 	/*	*/
 	const float range = ubo.range / 2;
-	const float s = (getExpToLinear(-range, range, d_o) - getExpToLinear(-range, range, d_i));
+	const float volumeDistance = (getExpToLinear(-range, range, d_o) - getExpToLinear(-range, range, d_i)) * 0.1;
 
 	/*	*/
-	return exp(-s * ubo.sigma);
+	return exp(-volumeDistance * ubo.sigma);
 }
 
 void main() {
@@ -75,7 +76,7 @@ void main() {
 	const float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), 16);
 	const vec4 pointLightSpecular = vec4(spec);
 
-	const vec4 sub = (subsurface + contribution * ubo.lightColor + ubo.ambientColor + pointLightSpecular);
+	const vec4 sub = (subsurface + (contribution * ubo.lightColor) + ubo.ambientColor + pointLightSpecular);
 
 	fragColor = texture(DiffuseTexture, UV) * sub;
 }

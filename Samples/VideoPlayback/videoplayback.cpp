@@ -490,7 +490,7 @@ namespace glsample {
 			res = av_read_frame(this->pformatCtx, packet);
 
 			if (res == 0) {
-				
+
 				/*	*/
 				if (packet->stream_index == this->videoStream) {
 					result = avcodec_send_packet(this->pVideoCtx, packet);
@@ -540,10 +540,8 @@ namespace glsample {
 							glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 
 							glBindTexture(GL_TEXTURE_2D, this->videoFrameTextures[this->nthVideoFrame]);
-							glTexSubImage2D(
-								GL_TEXTURE_2D, 0, 0, 0, this->video_width, this->video_height, GL_RGBA,
-								GL_UNSIGNED_BYTE,
-								reinterpret_cast<const void *>(this->videoStageBufferMemorySize * this->nthVideoFrame));
+							glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, this->video_width, this->video_height, GL_RGBA,
+											GL_UNSIGNED_BYTE, nullptr);
 							glBindTexture(GL_TEXTURE_2D, 0);
 							glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 

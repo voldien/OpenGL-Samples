@@ -95,10 +95,9 @@ namespace glsample {
 			}
 			void draw() override {
 
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
-				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+
+				ImGui::TextUnformatted("Shadow");
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
 
 				ImGui::DragFloat("Disk Radius", &this->uniform.diskRadius, 1, 0.0f, 1000.0f);
@@ -121,6 +120,8 @@ namespace glsample {
 					}
 					ImGui::PopID();
 				}
+				ImGui::TextUnformatted("Debug");
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Animate Lights", &this->animate);
 			}
 

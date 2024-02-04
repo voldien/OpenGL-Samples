@@ -29,6 +29,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 cameraPosition;
 	vec4 subsurfaceColor;
 
+	/*	*/
 	float bias;
 	float shadowStrength;
 	float sigma;

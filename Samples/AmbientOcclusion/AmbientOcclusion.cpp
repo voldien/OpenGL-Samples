@@ -212,8 +212,8 @@ namespace glsample {
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_source, &fragment_ssao_source);
 
 				/*	Load shader	*/
-				this->ssao_depth_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_depth_only_source, &fragment_ssao_depth_onlysource);
+				this->ssao_depth_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_ssao_depth_only_source, &fragment_ssao_depth_onlysource);
 
 				/*	Load shader	*/
 				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_multi_pass_source,
@@ -435,7 +435,7 @@ namespace glsample {
 
 				/*	*/
 				glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->multipass_texture_width,
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, this->multipass_texture_width,
 							 this->multipass_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -700,9 +700,9 @@ namespace glsample {
 			{
 
 				this->uniformStageBlock.model = glm::mat4(1.0f);
-				this->uniformStageBlock.model = glm::rotate(this->uniformStageBlock.model, glm::radians(elapsedTime * 0.0f),
-													   glm::vec3(0.0f, 1.0f, 0.0f));
-				this->uniformStageBlock.model = glm::scale(this->uniformStageBlock.model, glm::vec3(10.95f));
+				this->uniformStageBlock.model = glm::rotate(
+					this->uniformStageBlock.model, glm::radians(elapsedTime * 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				this->uniformStageBlock.model = glm::scale(this->uniformStageBlock.model, glm::vec3(5.95f));
 				this->uniformStageBlock.view = this->camera.getViewMatrix();
 				this->uniformStageBlock.modelView = (this->uniformStageBlock.view * this->uniformStageBlock.model);
 				this->uniformStageBlock.modelViewProjection =

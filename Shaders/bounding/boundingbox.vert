@@ -21,13 +21,13 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[64]; }
+layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[512]; }
 instance_ubo;
 
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
 
 void main() {
-	gl_Position = ubo.proj * ubo.view * instance_ubo.model[gl_InstanceID] * vec4(Vertex, 1.0);
+	gl_Position = ubo.proj * ubo.view * (instance_ubo.model[gl_InstanceID]) * vec4(Vertex, 1.0);
     
 	instanceColor = vec4(abs(rand(vec2(gl_InstanceID, 0))), 0, abs(rand(vec2(gl_InstanceID, 10))), 1);
 }

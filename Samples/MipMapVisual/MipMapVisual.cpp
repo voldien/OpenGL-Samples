@@ -175,6 +175,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 
+			/*	Create sampler.	*/
 			glCreateSamplers(1, &this->mipmap_sampler);
 			glSamplerParameteri(this->mipmap_sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glSamplerParameteri(this->mipmap_sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -188,6 +189,11 @@ namespace glsample {
 			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom<MipMapScene>(modelLoader);
+		}
+
+		void onResize(int width, int height) override {
+			/*	Update camera	*/
+			this->camera.setAspect((float)width / (float)height);
 		}
 
 		void draw() override {
@@ -233,7 +239,7 @@ namespace glsample {
 			/*	*/
 			const glm::mat4 proj = this->camera.getProjectionMatrix();
 			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::scale(model, glm::vec3(1.95f));
+			model = glm::scale(model, glm::vec3(1.05f));
 			const glm::mat4 view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.modelViewProjection = proj * view * model;
 

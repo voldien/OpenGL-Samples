@@ -11,6 +11,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class SubSurfaceScattering : public GLSampleWindow {
 	  public:
 		SubSurfaceScattering() : GLSampleWindow() {
@@ -48,8 +52,6 @@ namespace glsample {
 		size_t shadowWidth = 4096;
 		size_t shadowHeight = 4096;
 
-		std::string diffuseTexturePath = "asset/diffuse.png";
-
 		unsigned int diffuse_texture;
 
 		std::vector<GeometryObject> refObj;
@@ -59,7 +61,6 @@ namespace glsample {
 		unsigned int shadow_program;
 
 		/*	Uniform buffer.	*/
-		unsigned int uniform_buffer_index;
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
@@ -107,7 +108,6 @@ namespace glsample {
 		};
 		std::shared_ptr<BasicShadowMapSettingComponent> subSurfaceScatteringSettingComponent;
 
-		const std::string modelPath = "asset/bunny.obj";
 		/*	*/
 		const std::string vertexGraphicShaderPath = "Shaders/subsurfacescattering/subsurfacescattering.vert.spv";
 		const std::string fragmentGraphicShaderPath = "Shaders/subsurfacescattering/subsurfacescattering.frag.spv";
@@ -130,46 +130,50 @@ namespace glsample {
 		}
 
 		void Initialize() override {
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			const std::string diffuseTexturePath = "asset/diffuse.png";
 
-			/*	*/
-			std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
+			{
+				/*	*/
+				std::vector<uint32_t> vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
-			/*	*/
-			std::vector<uint32_t> vertex_shadow_source =
-				IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_shadow_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
+				/*	*/
+				std::vector<uint32_t> vertex_shadow_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_shadow_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shaders	*/
-			this->graphic_subsurface_scattering_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
-			this->shadow_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_source, &fragment_shadow_source);
+				/*	Load shaders	*/
+				this->graphic_subsurface_scattering_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+				this->shadow_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary, &fragment_shadow_binary);
+			}
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	*/
 			glUseProgram(this->shadow_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->shadow_program, this->uniform_buffer_index, this->uniform_buffer_binding);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->shadow_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
 			glUseProgram(this->graphic_subsurface_scattering_program);
-			this->uniform_buffer_index =
+			uniform_buffer_index =
 				glGetUniformBlockIndex(this->graphic_subsurface_scattering_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_subsurface_scattering_program, "DiffuseTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->graphic_subsurface_scattering_program, "ShadowTexture"), 1);
-			glUniformBlockBinding(this->graphic_subsurface_scattering_program, this->uniform_buffer_index,
+			glUniformBlockBinding(this->graphic_subsurface_scattering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -227,13 +231,14 @@ namespace glsample {
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+
 		void draw() override {
 			int width, height;
-			getSize(&width, &height);
-			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->getSize(&width, &height);
 
 			/*	Compute light matrices.	*/
-			float near_plane = -this->uniform.range / 2.0f, far_plane = this->uniform.range / 2.0f;
+			const float near_plane = -this->uniform.range / 2.0f, far_plane = this->uniform.range / 2.0f;
 			glm::mat4 lightProjection = glm::ortho(near_plane, far_plane, near_plane, far_plane, near_plane, far_plane);
 			glm::mat4 lightView =
 				glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
@@ -244,13 +249,12 @@ namespace glsample {
 			glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
 			this->uniform.lightModelProject = lightSpaceMatrix;
 
-			update();
-
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, this->uniform_buffer,
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
+			/*	Render from light perspective.	*/
 			{
 
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->shadowFramebuffer);
@@ -260,7 +264,9 @@ namespace glsample {
 				glUseProgram(this->shadow_program);
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+				/*	*/
 				glCullFace(GL_BACK);
+				/*	*/
 				glEnable(GL_CULL_FACE);
 
 				/*	Setup the shadow.	*/
@@ -273,6 +279,8 @@ namespace glsample {
 				glBindVertexArray(0);
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
+
+			/*	*/
 			glClearColor(0.05f, 0.05, 0.05, 0.0f);
 			{
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -284,16 +292,16 @@ namespace glsample {
 				glUseProgram(this->graphic_subsurface_scattering_program);
 
 				glCullFace(GL_BACK);
-				// glDisable(GL_CULL_FACE);
+				glDisable(GL_CULL_FACE);
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK,
 							  this->subSurfaceScatteringSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				/*	*/
+				/*	Texture.	*/
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-				/*	*/
+				/*	Shadow texture.	*/
 				glActiveTexture(GL_TEXTURE0 + 1);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
@@ -315,6 +323,8 @@ namespace glsample {
 			this->uniform.model = glm::mat4(1.0f);
 			this->uniform.model = glm::scale(this->uniform.model, glm::vec3(20));
 			this->uniform.view = this->camera.getViewMatrix();
+			this->uniform.proj = this->camera.getProjectionMatrix();
+
 			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
 			this->uniform.cameraPosition = glm::vec4(this->camera.getPosition(), 0.0f);
 
@@ -332,8 +342,8 @@ namespace glsample {
 	  public:
 		SubSurfaceScatteringGLSample() : GLSample<SubSurfaceScattering>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"))(
+				"T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));
 		}
 	};
 

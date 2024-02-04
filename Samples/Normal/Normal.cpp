@@ -16,8 +16,13 @@ namespace glsample {
 	  public:
 		Normal() : GLSampleWindow() {
 			this->setTitle("Normal");
+			/*	*/
 			this->normalSettingComponent = std::make_shared<NormalSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->normalSettingComponent);
+
+			/*	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct uniform_buffer_block {
@@ -28,18 +33,13 @@ namespace glsample {
 			glm::mat4 ViewProj;
 			glm::mat4 modelViewProjection;
 
-			/*	light source.	*/
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
-			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-
 			/*	*/
 			float normalLength = 1.0f;
 
 		} uniformStageBuffer;
 
 		/*	*/
-		GeometryObject plan;
+		GeometryObject geometry;
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
@@ -64,12 +64,6 @@ namespace glsample {
 				this->setName("Normal Settings");
 			}
 			void draw() override {
-				ImGui::TextUnformatted("Light Setting");
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Normal Setting");
 				ImGui::DragFloat("Face Normal Length", &this->uniform.normalLength);
 				ImGui::Checkbox("Triangle Normal", &this->showTriangleNormal);
@@ -108,9 +102,9 @@ namespace glsample {
 			glDeleteBuffers(1, &this->uniform_buffer);
 
 			/*	*/
-			glDeleteVertexArrays(1, &this->plan.vao);
-			glDeleteBuffers(1, &this->plan.vbo);
-			glDeleteBuffers(1, &this->plan.ibo);
+			glDeleteVertexArrays(1, &this->geometry.vao);
+			glDeleteBuffers(1, &this->geometry.vbo);
+			glDeleteBuffers(1, &this->geometry.ibo);
 		}
 
 		void Initialize() override {
@@ -118,38 +112,39 @@ namespace glsample {
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
-			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_normal_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexNormalShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> geomtry_normal_binary =
-				IOUtil::readFileData<uint32_t>(this->geomtryNormalVertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_normal_vertex_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentNormalShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> geomtry_normal_triangle_binary =
-				IOUtil::readFileData<uint32_t>(this->geomtryNormalTriangleShaderPath, this->getFileSystem());
-			/*	*/
-			const std::vector<uint32_t> vertex_graphic_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_graphic_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
+			{
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_normal_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexNormalShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> geomtry_normal_binary =
+					IOUtil::readFileData<uint32_t>(this->geomtryNormalVertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_normal_vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentNormalShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> geomtry_normal_triangle_binary =
+					IOUtil::readFileData<uint32_t>(this->geomtryNormalTriangleShaderPath, this->getFileSystem());
+				/*	*/
+				const std::vector<uint32_t> vertex_graphic_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_graphic_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
-			this->normal_vertex_program = ShaderLoader::loadGraphicProgram(
-				compilerOptions, &vertex_normal_binary, &fragment_normal_vertex_binary, &geomtry_normal_binary);
-			this->normal_triangle_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_normal_binary, &fragment_normal_vertex_binary,
-												 &geomtry_normal_triangle_binary);
-			this->graphic_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary, &fragment_graphic_binary);
+				/*	Load shader	*/
+				this->normal_vertex_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_normal_binary, &fragment_normal_vertex_binary, &geomtry_normal_binary);
+				this->normal_triangle_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_normal_binary,
+													 &fragment_normal_vertex_binary, &geomtry_normal_triangle_binary);
+				this->graphic_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary, &fragment_graphic_binary);
+			}
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->normal_vertex_program);
-			unsigned int uniform_buffer_index =
-				glGetUniformBlockIndex(this->normal_vertex_program, "UniformBufferBlock");
+			int uniform_buffer_index = glGetUniformBlockIndex(this->normal_vertex_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->normal_vertex_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -187,20 +182,20 @@ namespace glsample {
 			ProceduralGeometry::generateTorus(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
+			glGenVertexArrays(1, &this->geometry.vao);
+			glBindVertexArray(this->geometry.vao);
 
 			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
+			glGenBuffers(1, &this->geometry.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, geometry.vbo);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 						 GL_STATIC_DRAW);
 
 			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
+			glGenBuffers(1, &this->geometry.ibo);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.ibo);
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
+			this->geometry.nrIndicesElements = indices.size();
 
 			/*	Vertex.	*/
 			glEnableVertexAttribArray(0);
@@ -259,8 +254,8 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(this->geometry.vao);
+				glDrawElements(GL_TRIANGLES, this->geometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 				glUseProgram(0);
 			}
@@ -273,13 +268,13 @@ namespace glsample {
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 				/*	*/
-				glBindVertexArray(this->plan.vao);
+				glBindVertexArray(this->geometry.vao);
 				if (this->normalSettingComponent->showTriangleNormal) {
 					glUseProgram(this->normal_triangle_program);
-					glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+					glDrawElements(GL_TRIANGLES, this->geometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				} else {
 					glUseProgram(this->normal_vertex_program);
-					glDrawElements(GL_POINTS, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+					glDrawElements(GL_POINTS, this->geometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				}
 
 				glBindVertexArray(0);
@@ -299,8 +294,8 @@ namespace glsample {
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model =
-				glm::rotate(this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::rotate(
+				this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.proj =

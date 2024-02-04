@@ -143,11 +143,10 @@ namespace glsample {
 
 			glBindVertexArray(this->refGeometry[0].vao);
 
+			const GeometryObject &refMesh = this->refGeometry[node->geometryObjectIndex[i]];
 			/*	*/
-			glDrawElementsBaseVertex(
-				GL_TRIANGLES, this->refGeometry[node->geometryObjectIndex[i]].nrIndicesElements, GL_UNSIGNED_INT,
-				(void *)(sizeof(unsigned int) * this->refGeometry[node->geometryObjectIndex[i]].indices_offset),
-				this->refGeometry[node->geometryObjectIndex[i]].vertex_offset);
+			glDrawElementsBaseVertex(GL_TRIANGLES, refMesh.nrIndicesElements, GL_UNSIGNED_INT,
+									 (void *)(sizeof(unsigned int) * refMesh.indices_offset), refMesh.vertex_offset);
 
 			glBindVertexArray(0);
 		}

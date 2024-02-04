@@ -42,8 +42,9 @@ namespace glsample {
 
 		CameraController camera;
 
-		unsigned int skinned_program;
+		unsigned int skinned_graphic_program;
 		unsigned int skinned_debug_program;
+		unsigned int skinned_bone_program;
 		unsigned int skybox_program;
 
 		/*	*/
@@ -58,6 +59,9 @@ namespace glsample {
 		/*	*/
 		const std::string vertexSkinnedShaderPath = "Shaders/skinnedmesh/skinnedmesh.vert.spv";
 		const std::string fragmentSkinnedShaderPath = "Shaders/skinnedmesh/skinnedmesh.frag.spv";
+
+		const std::string vertexSkinnedBoneShaderPath = "Shaders/skinnedmesh/skinnedmesh_debug.vert.spv";
+		const std::string fragmentSkinnedBoneShaderPath = "Shaders/skinnedmesh/skinnedmesh_debug.frag.spv";
 
 		const std::string vertexSkinnedDebugShaderPath = "Shaders/skinnedmesh/skinnedmesh_debug.vert.spv";
 		const std::string fragmentSkinnedDebugShaderPath = "Shaders/skinnedmesh/skinnedmesh_debug.frag.spv";
@@ -78,7 +82,7 @@ namespace glsample {
 
 		void Release() override {
 			/*	*/
-			glDeleteProgram(this->skinned_program);
+			glDeleteProgram(this->skinned_graphic_program);
 			glDeleteProgram(this->skinned_debug_program);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -102,17 +106,27 @@ namespace glsample {
 				const std::vector<uint32_t> skinned_debug_fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentSkinnedDebugShaderPath, this->getFileSystem());
 
+				/*	*/
+				const std::vector<uint32_t> skinned_bone_vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexSkinnedBoneShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> skinned_bone_fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkinnedBoneShaderPath, this->getFileSystem());
+
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->skinned_program =
+				this->skinned_graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &skinned_vertex_binary, &skinned_fragment_binary);
 
 				/*	Load shader	*/
-				this->skinned_program = ShaderLoader::loadGraphicProgram(compilerOptions, &skinned_debug_vertex_binary,
-																		 &skinned_debug_fragment_binary);
+				this->skinned_debug_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &skinned_debug_vertex_binary, &skinned_debug_fragment_binary);
+
+				/*	Load shader	*/
+				this->skinned_bone_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &skinned_bone_vertex_binary, &skinned_bone_fragment_binary);
 			}
 		}
 
@@ -133,7 +147,7 @@ namespace glsample {
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
-				glUseProgram(this->skinned_program);
+				glUseProgram(this->skinned_graphic_program);
 
 				glDisable(GL_CULL_FACE);
 			}

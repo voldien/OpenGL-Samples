@@ -127,9 +127,11 @@ namespace glsample {
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("DrawLight", &this->showLight);
+				ImGui::Checkbox("Show GBuffer", &this->showGBuffers);
 			}
 
 			bool showWireFrame = false;
+			bool showGBuffers = false;
 			bool showLight = false;
 
 		  private:
@@ -360,9 +362,8 @@ namespace glsample {
 			}
 
 			/*	Setup lights.	*/
-
 			for (size_t i = 0; i < this->pointLights.size(); i++) {
-				this->pointLights[i].range = 25.0f;
+				this->pointLights[i].range = 10.0f;
 				this->pointLights[i].position = glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(2.0f);
 				this->pointLights[i].color = glm::vec4(1, 1, 1, 1);
 				this->pointLights[i].constant_attenuation = 1.7f;
@@ -449,7 +450,6 @@ namespace glsample {
 				glUseProgram(this->multipass_program);
 
 				glDisable(GL_BLEND);
-
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_TRUE);
 				glDisable(GL_CULL_FACE);
@@ -479,9 +479,7 @@ namespace glsample {
 				/*	*/
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 				glViewport(0, 0, width, height);
-				glClear(GL_COLOR_BUFFER_BIT);
-
-				glUseProgram(this->deferred_pointlight_program);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				glDisable(GL_DEPTH_TEST);
 				glEnable(GL_BLEND);
@@ -502,11 +500,14 @@ namespace glsample {
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 				glBindVertexArray(this->sphere.vao);
-				glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT,
-												  (void *)this->sphere.indices_offset, this->pointLights.size(),
-												  this->sphere.vertex_offset);
-				glUseProgram(this->deferred_directional_program);
+				/*	Draw point lights.	*/
+				glUseProgram(this->deferred_pointlight_program);
+				// glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT,
+				//								  (void *)this->sphere.indices_offset, this->pointLights.size(),
+				//								  this->sphere.vertex_offset);
 
+				glUseProgram(this->deferred_directional_program);
+				/*	Draw directional lights.	*/
 				glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
 												  (void *)this->plan.indices_offset, 1, this->plan.vertex_offset);
 				glBindVertexArray(0);
@@ -516,6 +517,24 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + i);
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
+
+			/*	Blit image targets to screen.	*/
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
+
+			if (this->deferredSettingComponent->showGBuffers) {
+
+				/*	Transfer each target to default framebuffer.	*/
+				const float halfW = (width / 4.0f);
+				const float halfH = (height / 4.0f);
+				for (size_t i = 0; i < this->deferred_textures.size(); i++) {
+					glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+					glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height,
+									  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW,
+									  halfH + (i / 2) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+				}
+			}
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		void update() override {
@@ -528,7 +547,7 @@ namespace glsample {
 			{
 				this->uniformStageBuffer.model = glm::mat4(1.0f);
 				this->uniformStageBuffer.model = glm::rotate(
-					this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+					this->uniformStageBuffer.model, glm::radians(elapsedTime * 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 				this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.95f));
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
@@ -545,7 +564,8 @@ namespace glsample {
 				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}
-			/*	*/
+
+			/*	Point lights.	*/
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_pointlight_buffer);
 				void *uniformPointer = glMapBufferRange(

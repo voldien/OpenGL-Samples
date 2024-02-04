@@ -10,6 +10,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class Texture : public GLSampleWindow {
 	  public:
 		Texture() : GLSampleWindow() {
@@ -26,6 +30,7 @@ namespace glsample {
 			glm::mat4 modelView;
 			glm::mat4 ViewProj;
 			glm::mat4 modelViewProjection;
+
 		} uniform_stage_buffer;
 
 		/*	Uniform buffer.	*/
@@ -59,25 +64,32 @@ namespace glsample {
 			glDeleteBuffers(1, &this->planGeometry.ibo);
 		}
 
+		void onResize(int width, int height) override {
+			/*	*/
+			this->camera.setAspect((float)width / (float)height);
+		}
+
 		void Initialize() override {
 
 			/*	*/
-			std::string texturePath = getResult()["texture"].as<std::string>();
+			const std::string texturePath = getResult()["texture"].as<std::string>();
 
-			/*	*/
-			const std::vector<uint32_t> texture_vertex_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> texture_fragment_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+			{
+				/*	*/
+				const std::vector<uint32_t> texture_vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> texture_fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
-			this->texture_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
+				/*	Load shader	*/
+				this->texture_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
+			}
 
 			/*	Setup graphic program.	*/
 			glUseProgram(this->texture_program);

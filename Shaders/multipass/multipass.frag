@@ -4,7 +4,7 @@
 #extension GL_ARB_uniform_buffer_object : enable
 
 layout(location = 0) out vec4 Diffuse;
-layout(location = 1) out vec3 WorldSpace;
+layout(location = 1) out vec4 WorldSpace;
 layout(location = 2) out vec4 TextureCoord;
 layout(location = 3) out vec3 Normal;
 
@@ -23,7 +23,7 @@ void main() {
 	Diffuse = texture(DiffuseTexture, uv).rgba;
 	Diffuse.a *= texture(AlphaMaskedTexture, uv).r;
 
-	WorldSpace = vertex.xyz;
+	WorldSpace = vec4(vertex.xyz, 1);
 	TextureCoord = vec4(uv, 0, 0);
 
 	/*	Convert normal map texture to a vector.	*/

@@ -22,7 +22,7 @@ namespace glsample {
 
 			/*	Setting Window.	*/
 			this->billboardSettingComponent =
-				std::make_shared<BillBoardSettingComponent>(this->uniformBuffer, this->skybox);
+				std::make_shared<BillBoardSettingComponent>(this->uniformStageBuffer, this->skybox);
 			this->addUIComponent(this->billboardSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -50,7 +50,7 @@ namespace glsample {
 			glm::vec2 scale = glm::vec2(1);
 			glm::vec4 offset;
 
-		} uniformBuffer;
+		} uniformStageBuffer;
 
 		/*	*/
 		GeometryObject terrain;
@@ -413,23 +413,23 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
-			this->uniformBuffer.proj = this->camera.getProjectionMatrix();
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(10.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-			this->uniformBuffer.ViewProj = this->uniformBuffer.proj * this->uniformBuffer.view;
-			this->uniformBuffer.cameraPosition = glm::vec4(this->camera.getPosition(), 0);
+			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model =
+				glm::rotate(this->uniformStageBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
+			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+			this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
+			this->uniformStageBuffer.cameraPosition = glm::vec4(this->camera.getPosition(), 0);
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

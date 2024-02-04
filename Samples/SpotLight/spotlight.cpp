@@ -8,6 +8,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class SpotLight : public GLSampleWindow {
 	  public:
 		SpotLight() : GLSampleWindow() {
