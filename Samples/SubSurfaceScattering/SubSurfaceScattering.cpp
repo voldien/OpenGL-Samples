@@ -34,16 +34,16 @@ namespace glsample {
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-			glm::vec4 lightColor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.0, 0.0, 0.0, 1.0f);
+			glm::vec4 lightColor = glm::vec4(0.5f, 0.5f, 0.6f, 1.0f);
+			glm::vec4 ambientLight = glm::vec4(0.05, 0.05, 0.05, 1.0f);
 			glm::vec4 cameraPosition;
-			glm::vec4 subsurfaceColor = glm::vec4(1.0f);
+			glm::vec4 subsurfaceColor = glm::vec4(0.095, 0.012f, 0.012f, 1.0f);
 
 			/*	*/
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
-			float sigma = 1.0f;
-			float range = 60.0f;
+			float sigma = 9.0f;
+			float range = 80.0f;
 		} uniform;
 
 		/*	*/
@@ -54,7 +54,7 @@ namespace glsample {
 
 		unsigned int diffuse_texture;
 
-		std::vector<GeometryObject> refObj;
+		std::vector<MeshObject> refObj;
 
 		/*	*/
 		unsigned int graphic_subsurface_scattering_program;
@@ -87,7 +87,6 @@ namespace glsample {
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::TextUnformatted("Shadow Settings");
 
-				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 
 				ImGui::TextUnformatted("SubSurface Settings");

@@ -19,8 +19,8 @@ namespace glsample {
 		} OceanVertex;
 
 		/*	*/
-		GeometryObject skybox;
-		GeometryObject ocean;
+		MeshObject skybox;
+		MeshObject ocean;
 
 		/*	*/
 		int skybox_panoramic_texture;

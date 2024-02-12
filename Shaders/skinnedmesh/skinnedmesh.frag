@@ -5,8 +5,12 @@
 
 layout(location = 0) out vec4 fragColor;
 
-layout(location = 0) in vec2 FragIN_uv;
-layout(location = 1) in vec3 FragIN_normal;
+
+layout(location = 0) in vec3 FragIN_position;
+layout(location = 1) in vec2 FragIN_uv;
+layout(location = 2) in vec3 FragIN_normal;
+layout(location = 3) in vec3 FragIN_tangent;
+
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -16,7 +20,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
-	/*	*/
+	/*	Tint color.	*/
 	vec4 tintColor;
 
 	/*	Light source.	*/
@@ -24,12 +28,10 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 
-	/*	*/
-	float normalStrength;
 }
 ubo;
 
-layout(binding = 1) uniform sampler2D DiffuseTexture;
+layout(binding = 0) uniform sampler2D DiffuseTexture;
 
 float computeLightContributionFactor(in const vec3 direction, in const vec3 normalInput) {
 	return max(0.0, dot(normalInput, -normalize(direction)));
@@ -40,5 +42,5 @@ void main() {
 	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, FragIN_normal) * ubo.lightColor;
 
 	/*	*/
-	fragColor = texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, FragIN_uv);// * ubo.tintColor * (ubo.ambientColor + lightColor);
 }

@@ -33,14 +33,17 @@ void main() {
 	const vec3 world = texture(WorldTexture, uv).xyz;
 	const vec3 normal = texture(NormalTexture, uv).xyz;
 
+	/*	*/
 	const vec3 diffVertex = (pointlightUBO.point_light[InstanceID].position - world.xyz);
 	const float dist = length(diffVertex);
 
+	/*	*/
 	const float attenuation = 1.0 / (pointlightUBO.point_light[InstanceID].constant_attenuation +
 							   pointlightUBO.point_light[InstanceID].linear_attenuation * dist +
 							   pointlightUBO.point_light[InstanceID].qudratic_attenuation * (dist * dist));
 
-	const float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
+	/*	*/
+	const float contribution = max(dot(normal, -normalize(diffVertex)), 0.0);
 
 	const vec4 pointLightColors = attenuation * pointlightUBO.point_light[InstanceID].color * contribution *
 							pointlightUBO.point_light[InstanceID].range *

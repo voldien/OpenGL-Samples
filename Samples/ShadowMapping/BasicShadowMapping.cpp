@@ -50,7 +50,7 @@ namespace glsample {
 
 		unsigned int diffuse_texture;
 
-		std::vector<GeometryObject> refObj;
+		std::vector<MeshObject> refObj;
 
 		/*	*/
 		unsigned int graphic_program;

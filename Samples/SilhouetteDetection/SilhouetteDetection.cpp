@@ -14,7 +14,7 @@ namespace glsample {
 		SilhouetteDetection() : GLSampleWindow() { this->setTitle("SilhouetteDetection"); }
 
 		/*	*/
-		GeometryObject plan;
+		MeshObject plan;
 
 		int solhouetteDetection_program;
 		int gl_texture;

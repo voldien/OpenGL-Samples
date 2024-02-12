@@ -58,7 +58,7 @@ namespace glsample {
 		} uniformStageBlockSSAO;
 
 		/*	*/
-		GeometryObject plan;
+		MeshObject plan;
 		Scene scene;
 
 		/*	G-Buffer	*/

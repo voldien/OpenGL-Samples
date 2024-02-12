@@ -81,9 +81,9 @@ namespace glsample {
 			UniformSkyBoxBufferBlock ocean;
 		} uniform_stage_buffer;
 
-		GeometryObject skybox;
-		GeometryObject terrain;
-		GeometryObject plan;
+		MeshObject skybox;
+		MeshObject terrain;
+		MeshObject plan;
 
 		unsigned int skybox_program;
 		unsigned int terrain_program;

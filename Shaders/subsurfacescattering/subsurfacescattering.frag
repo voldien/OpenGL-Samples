@@ -46,17 +46,16 @@ float trace() {
 	// transform to [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
 
-	/*	*/
+	/*	Bias depending on the angle of the surface, to offset from the surface.	*/
 	const float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(ubo.direction).xyz)), ubo.bias);
 	projCoords.z *= (1 - bias);
 
-	/*	*/
+	/*	Get light distance and view distance.	*/
 	const float d_i = texture(ShadowTexture, projCoords.xy).r;
-	const float d_o = (lightSpace / lightSpace.w).z - bias;
+	const float d_o = (lightSpace / lightSpace.w).z;//- bias;
 
 	/*	*/
-	const float range = ubo.range / 2;
-	const float volumeDistance = (getExpToLinear(-range, range, d_o) - getExpToLinear(-range, range, d_i)) * 0.1;
+	const float volumeDistance = d_o - d_i;
 
 	/*	*/
 	return exp(-volumeDistance * ubo.sigma);
@@ -76,7 +75,7 @@ void main() {
 	const float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), 16);
 	const vec4 pointLightSpecular = vec4(spec);
 
-	const vec4 sub = (subsurface + (contribution * ubo.lightColor) + ubo.ambientColor + pointLightSpecular);
+	const vec4 light = (subsurface + (contribution * ubo.lightColor) + ubo.ambientColor + pointLightSpecular);
 
-	fragColor = texture(DiffuseTexture, UV) * sub;
+	fragColor = texture(DiffuseTexture, UV) * light;
 }

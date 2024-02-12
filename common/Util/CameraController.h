@@ -105,12 +105,14 @@ namespace glsample {
 			this->update();
 		}
 
-		const glm::vec3 &getUp() const { return this->up; }
+		const glm::vec3 &getUp() const noexcept { return this->up; }
 
 		void lookAt(const glm::vec3 &position) noexcept {
 			this->look = glm::normalize(position - this->getPosition());
 			this->update();
 		}
+
+		bool hasMoved() const noexcept { return true; }
 
 	  protected:
 		void update() noexcept {

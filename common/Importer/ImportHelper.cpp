@@ -1,109 +1,207 @@
 #include "ImportHelper.h"
 #include "ImageImport.h"
+#include "ModelImporter.h"
 #include <GL/glew.h>
 #include <ProceduralGeometry.h>
+#include <cstdint>
 #include <exception>
 #include <iostream>
 #include <ostream>
+
 using namespace glsample;
 using namespace fragcore;
 
-void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<GeometryObject> &modelSet) {
+typedef struct model_temp_t {
+	const ModelSystemObject *model;
+	size_t index;
+} ModelTemp;
+
+void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshObject> &modelSet) {
 
 	modelSet.resize(modelLoader.getModels().size());
 	unsigned int tmp_ibo;
-	unsigned int tmp_vbo;
-	unsigned int tmp_vao;
 
-	// TODO compute number of buffer required to fill.
-	// TODO: use mapping instead.
+	std::map<int, std::vector<ModelTemp>> map;
+	std::map<int, int> strideVBOMap;
+	std::map<int, int> strideVBAMap;
+	size_t indices_offset = 0;
+	size_t indicesDataSize = 0;
+
+	/*	Sort based on vertex stride.	*/
+	for (size_t i = 0; i < modelLoader.getModels().size(); i++) {
+		const ModelSystemObject &refModel = modelLoader.getModels()[i];
+		map[refModel.vertexStride].push_back({&refModel, i});
+		indicesDataSize += refModel.indicesStride * refModel.nrIndices;
+	}
+
+	{
+
+		/*	*/
+		glGenBuffers(1, &tmp_ibo);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tmp_ibo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesDataSize, nullptr, GL_STATIC_DRAW);
+
+		uint8_t *elementPointer =
+			(uint8_t *)glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, indicesDataSize, GL_MAP_WRITE_BIT);
+
+		size_t offset = 0;
+
+		for (auto it = map.begin(); it != map.end(); it++) {
+			const std::vector<ModelTemp> &ref = (*it).second;
+			const int vertexStride = (*it).first;
+
+			for (size_t i = 0; i < ref.size(); i++) {
+				const ModelSystemObject &refModel = *ref[i].model;
+				const size_t indicesByteSize = refModel.indicesStride * refModel.nrIndices;
+
+				std::memcpy(&elementPointer[offset], refModel.indicesData, indicesByteSize);
+				offset += indicesByteSize;
+			}
+		}
+		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
 
 	/*	Create array buffer, for rendering static geometry.	*/
-	glGenVertexArrays(1, &tmp_vao);
-	glBindVertexArray(tmp_vao);
 
-	size_t vertexDataSize = 0;
-	size_t indicesDataSize = 0;
-	for (size_t i = 0; i < modelLoader.getModels().size(); i++) {
-		vertexDataSize += modelLoader.getModels()[i].vertexStride * modelLoader.getModels()[i].nrVertices;
-		indicesDataSize += modelLoader.getModels()[i].indicesStride * modelLoader.getModels()[i].nrIndices;
-	}
+	size_t nrVertices = 0;
+	size_t nrIndices = 0;
+	size_t boneDataSize = 0;
 
-	glGenBuffers(1, &tmp_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, tmp_vbo);
-	glBufferData(GL_ARRAY_BUFFER, vertexDataSize, nullptr, GL_STATIC_DRAW);
-	size_t offset = 0;
-	for (size_t i = 0; i < modelLoader.getModels().size(); i++) {
-		size_t vertexSize = modelLoader.getModels()[i].vertexStride * modelLoader.getModels()[i].nrVertices;
-		glBufferSubData(GL_ARRAY_BUFFER, offset, vertexSize, modelLoader.getModels()[i].vertexData);
-		offset += vertexSize;
-	}
+	for (auto it = map.begin(); it != map.end(); it++) {
 
-	/*	*/
-	glGenBuffers(1, &tmp_ibo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tmp_ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesDataSize, nullptr, GL_STATIC_DRAW);
-	offset = 0;
-	for (size_t i = 0; i < modelLoader.getModels().size(); i++) {
-		size_t indicesSize = modelLoader.getModels()[i].indicesStride * modelLoader.getModels()[i].nrIndices;
+		const std::vector<ModelTemp> &ref = (*it).second;
+		const int vertexStride = (*it).first;
 
-		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, indicesSize, modelLoader.getModels()[i].indicesData);
-		offset += indicesSize;
-	}
+		size_t vertexDataSize = 0;
+		for (size_t i = 0; i < ref.size(); i++) {
+			const ModelSystemObject &refModel = *ref[i].model;
 
-	const size_t vertexStride = modelLoader.getModels()[0].vertexStride;
-	const size_t IndicesStride = modelLoader.getModels()[0].indicesStride;
+			nrVertices += refModel.nrVertices;
+			/*	*/
+			vertexDataSize += refModel.vertexStride * refModel.nrVertices;
+		}
 
-	// TODO add proper stride.
-	/*	Vertex.	*/
-	glEnableVertexAttribArrayARB(0);
-	glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(0));
+		unsigned int tmp_vbo;
 
-	/*	UV.	*/
-	glEnableVertexAttribArrayARB(1);
-	glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(12));
+		/*	Allocate memory.	*/
+		glGenBuffers(1, &tmp_vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, tmp_vbo);
+		glBufferData(GL_ARRAY_BUFFER, vertexDataSize, nullptr, GL_STATIC_DRAW);
 
-	/*	Normal.	*/
-	glEnableVertexAttribArrayARB(2);
-	glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(20));
+		uint8_t *vertexPointer = (uint8_t *)glMapBufferRange(GL_ARRAY_BUFFER, 0, vertexDataSize, GL_MAP_WRITE_BIT);
 
-	/*	Tangent.	*/
-	glEnableVertexAttribArrayARB(3);
-	glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(32));
+		/*	Map Buffer. */
 
-	/*	BoneID.	*/
-	if (modelLoader.getModels()[0].boneOffset > 0) {
-		glEnableVertexAttribArrayARB(4);
-		glVertexAttribPointerARB(4, 4, GL_INT, GL_FALSE, vertexStride, reinterpret_cast<void *>(32));
+		size_t offset = 0;
 
-		/*	BoneID.	*/
-		glEnableVertexAttribArrayARB(5);
-		glVertexAttribPointerARB(5, 4, GL_FLOAT, GL_FALSE, vertexStride, reinterpret_cast<void *>(32));
-	}
+		for (size_t i = 0; i < ref.size(); i++) {
+			const ModelSystemObject &refModel = *ref[i].model;
 
-	glBindVertexArray(0);
+			const size_t vertexByteSize = refModel.vertexStride * refModel.nrVertices;
 
-	size_t indices_offset = 0;
-	size_t vertices_offset = 0;
+			std::memcpy(&vertexPointer[offset], refModel.vertexData, vertexByteSize);
+			offset += vertexByteSize;
+		}
 
-	for (size_t i = 0; i < modelLoader.getModels().size(); i++) {
-		const size_t vertexSize = modelLoader.getModels()[i].nrVertices;
-		const size_t indicesSize = modelLoader.getModels()[i].nrIndices;
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-		/*	*/
-		GeometryObject &ref = modelSet[i];
-		ref.indices_offset = indices_offset;
-		ref.vertex_offset = vertices_offset;
-		ref.nrIndicesElements = modelLoader.getModels()[i].nrIndices;
-		ref.nrVertices = modelLoader.getModels()[i].nrVertices;
+		strideVBOMap[vertexStride] = tmp_vbo;
 
-		/*	*/
-		ref.vao = tmp_vao;
-		ref.vbo = tmp_vbo;
-		ref.ibo = tmp_ibo;
+		const ModelSystemObject &refModel_base = *ref[0].model;
 
-		vertices_offset += vertexSize;
-		indices_offset += indicesSize;
+		unsigned int tmp_vao;
+		glGenVertexArrays(1, &tmp_vao);
+		glBindVertexArray(tmp_vao);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tmp_ibo);
+		glBindBuffer(GL_ARRAY_BUFFER, tmp_vbo);
+
+		/*	Vertex.	*/
+		glEnableVertexAttribArrayARB(0);
+		glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, vertexStride,
+								 reinterpret_cast<void *>(refModel_base.vertexOffset));
+
+		/*	UV.	*/
+		glEnableVertexAttribArrayARB(1);
+		glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, vertexStride,
+								 reinterpret_cast<void *>(refModel_base.uvOffset));
+
+		/*	Normal.	*/
+		glEnableVertexAttribArrayARB(2);
+		glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, vertexStride,
+								 reinterpret_cast<void *>(refModel_base.normalOffset));
+
+		/*	Tangent.	*/
+		glEnableVertexAttribArrayARB(3);
+		glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, vertexStride,
+								 reinterpret_cast<void *>(refModel_base.tangentOffset));
+
+		/*	Bone.	*/
+		if (refModel_base.boneIndexOffset > 0) {
+
+			/*	BoneID.	*/
+			glEnableVertexAttribArrayARB(4);
+			glVertexAttribPointerARB(4, 4, GL_UNSIGNED_INT, GL_FALSE, vertexStride,
+									 reinterpret_cast<void *>(refModel_base.boneIndexOffset));
+
+			/*	Weight.	*/
+			glEnableVertexAttribArrayARB(5);
+			glVertexAttribPointerARB(5, 4, GL_FLOAT, GL_FALSE, vertexStride,
+									 reinterpret_cast<void *>(refModel_base.boneWeightOffset));
+
+		} else {
+			glDisableVertexAttribArrayARB(4);
+			glDisableVertexAttribArrayARB(5);
+		}
+
+		glBindVertexArray(0);
+
+		strideVBAMap[vertexStride] = tmp_vao;
+
+		size_t vertices_offset = 0;
+		for (size_t i = 0; i < ref.size(); i++) {
+
+			const size_t pindex = ref[i].index;
+			const ModelSystemObject &refModel = *ref[i].model;
+
+			const size_t vertexStride = refModel.vertexStride;
+			const size_t IndicesStride = refModel.indicesStride;
+
+			const size_t vertexSize = refModel.nrVertices;
+			const size_t indicesSize = refModel.nrIndices;
+
+			/*	*/
+			MeshObject &ref = modelSet[pindex];
+			ref.indices_offset = indices_offset;
+			ref.vertex_offset = vertices_offset;
+			ref.nrIndicesElements = refModel.nrIndices;
+			ref.nrVertices = refModel.nrVertices;
+			ref.bound = refModel.bound;
+
+			/*	*/
+			vertices_offset += vertexSize;
+			indices_offset += indicesSize;
+
+			/*	*/
+			ref.vao = tmp_vao;
+			ref.ibo = tmp_ibo;
+			ref.vbo = tmp_vbo;
+
+			switch (refModel.primitiveType) {
+			case 1:
+				ref.primitiveType = GL_POINTS;
+				break;
+			case 2:
+				ref.primitiveType = GL_LINES;
+				break;
+			default:
+			case 4:
+				ref.primitiveType = GL_TRIANGLES;
+				break;
+			}
+		}
 	}
 }
 

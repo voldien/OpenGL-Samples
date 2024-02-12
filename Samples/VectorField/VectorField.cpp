@@ -29,9 +29,9 @@ namespace glsample {
 		size_t VectorFieldMemorySize = 0;
 
 		/*	*/
-		GeometryObject particles;
-		GeometryObject grid;
-		GeometryObject vectorField;
+		MeshObject particles;
+		MeshObject grid;
+		MeshObject vectorField;
 
 		/*	*/
 		unsigned int particle_texture;

@@ -23,16 +23,24 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
+layout(binding = 0, std140) uniform UniformModelBufferBlock { mat4 model[128]; }
+model;
+
 void main() {
 
+	/*	*/
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
 
+	/*	*/
 	vertex = (ubo.modelView * vec4(Vertex, 1.0));
+	
+	/*	*/
 	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
 	tangent = normalize((ubo.model * vec4(Tangent, 0.0)).xyz);
 
-	// const vec3 Ttangent = normalize(tangent - dot(tangent, normal) * normal);
-	bitangent = cross(tangent, normal);
+	const vec3 Ttangent = normalize(tangent - dot(tangent, normal) * normal);
+	bitangent = cross(Ttangent, normal);
 
+	/*	*/
 	uv = TextureCoord;
 }

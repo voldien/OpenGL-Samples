@@ -79,8 +79,8 @@ namespace glsample {
 		} uniform_stage_buffer;
 
 		/*	*/
-		GeometryObject plan;
-		GeometryObject skybox;
+		MeshObject plan;
+		MeshObject skybox;
 
 		/*	*/
 		unsigned int normal_texture;

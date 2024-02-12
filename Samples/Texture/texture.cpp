@@ -39,7 +39,7 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(uniform_buffer_block);
 
-		GeometryObject planGeometry;
+		MeshObject planGeometry;
 
 		/*	*/
 		int texture_program;

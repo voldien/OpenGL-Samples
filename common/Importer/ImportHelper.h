@@ -12,7 +12,7 @@ namespace glsample {
 		 * @param modelLoader
 		 * @param modelSet
 		 */
-		static void loadModelBuffer(ModelImporter &modelLoader, std::vector<GeometryObject> &modelSet);
+		static void loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshObject> &modelSet);
 
 		/**
 		 * @brief

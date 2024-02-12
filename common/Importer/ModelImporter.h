@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/math3D/LinAlg.h"
 #include <Core/IO/IFileSystem.h>
 #include <Core/math3D/AABB.h>
 #include <assimp/Importer.hpp>
@@ -16,8 +17,16 @@
 #include <assimp/vector3.h>
 #include <cassert>
 #include <cstddef>
+#include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <utility>
+
+namespace glsample {}
+
+typedef struct asset_object_t {
+	std::string name;
+} AssetObject;
 
 typedef struct vertex_bone_data_t {
 	static const int NUM_BONES_PER_VERTEX = 4;
@@ -29,15 +38,14 @@ typedef struct vertex_bone_buffer_t {
 	std::vector<VertexBoneData> vertexBoneData;
 } VertexBoneBuffer;
 
-typedef struct material_object_t {
-	unsigned int program;
-	std::string name;
+typedef struct material_object_t : public AssetObject {
+	unsigned int program; // TODO: relocate.
 
 	/*	*/
 	int diffuseIndex = -1;
 	int normalIndex = -1;
 	int emissionIndex = -1;
-	int heightIndex = -1;
+	int heightbumpIndex = -1;
 	int specularIndex = -1;
 	int reflectionIndex = -1;
 	int ambientOcclusionIndex = -1;
@@ -52,45 +60,71 @@ typedef struct material_object_t {
 	glm::vec4 specular;
 	glm::vec4 transparent;
 	glm::vec4 reflectivity;
+
 	float shinininess;
 	float shinininessStrength;
 	float opacity;
 	int blend_mode;
 	int wireframe_mode;
-	int culling_mode;
+	int culling_both_side_mode;
 
 	// TODO add texture
 
 	unsigned int shade_model;
 } MaterialObject;
 
-typedef struct node_object_t {
+typedef struct node_object_t : public AssetObject {
 
+	/*	*/
 	glm::vec3 position;
 	glm::quat rotation;
 	glm::vec3 scale;
 
-	glm::mat4 transform;
+	/*	*/
+	glm::mat4 modelTransform;
+
+	fragcore::Bound bound;
 
 	/*	Geometry and material.	*/
 	std::vector<unsigned int> geometryObjectIndex;
 	std::vector<unsigned int> materialIndex;
 
 	struct node_object_t *parent = nullptr;
-	std::string name;
 } NodeObject;
 
-typedef struct model_system_object {
+typedef struct mesh_data_t : public AssetObject {
+	/*	*/
+	size_t nrVertices;
+	size_t nrIndices;
+
+	size_t vertexStride;
+	size_t indicesStride;
+
+	/*	*/
+	void *vertexData;
+	void *indicesData;
+
+} MeshData;
+
+typedef struct morph_target {
+
+} MorpthTarget;
+
+typedef struct model_system_object : public AssetObject {
+
+	// MeshData mesh;
+	// MeshData bone
 	size_t nrVertices;
 	size_t nrIndices;
 	size_t vertexStride;
 	size_t indicesStride;
+
 	void *vertexData;
 	void *indicesData;
 
 	unsigned int material_index;
 
-	fragcore::AABB boundingBox;
+	fragcore::Bound bound;
 
 	/*	*/
 	unsigned int vertexOffset;
@@ -98,18 +132,20 @@ typedef struct model_system_object {
 	unsigned int tangentOffset;
 	unsigned int uvOffset;
 	unsigned int boneOffset;
+	unsigned int boneWeightOffset;
+	unsigned int boneIndexOffset;
+
+	unsigned int primitiveType;
 
 } ModelSystemObject;
 
-typedef struct bone_t {
-	std::string name;
+typedef struct bone_t : public AssetObject {
 	glm::mat4 inverseBoneMatrix;
 	size_t boneIndex;
 } Bone;
 
-typedef struct model_skeleton_t {
+typedef struct model_skeleton_t : public AssetObject {
 
-	std::string name;
 	std::map<std::string, Bone> bones;
 
 } SkeletonSystem;
@@ -132,28 +168,59 @@ typedef struct key_frame_t {
 	float tangentOut;
 } KeyFrame;
 
-typedef struct curve_t {
+typedef struct curve_t : public AssetObject {
 	std::vector<KeyFrame> keyframes;
-	std::string name;
-
-	/*	Binding.	*/
 } Curve;
 
-typedef struct animation_object_t {
+typedef struct animation_object_t : public AssetObject {
 	std::vector<Curve> curves;
-	std::string name;
+	float durtation;
 
 } AnimationObject;
+
+typedef struct light_object_t : public AssetObject {
+
+	// C_ENUM aiLightSourceType mType;
+
+	glm::vec3 mPosition;
+
+	glm::vec3 mDirection;
+
+	glm::vec3 mUp;
+
+	float mAttenuationConstant;
+
+	float mAttenuationLinear;
+
+	float mAttenuationQuadratic;
+
+	glm::vec4 mColorDiffuse;
+
+	glm::vec4 mColorSpecular;
+
+	glm::vec4 mColorAmbient;
+
+	float mAngleInnerCone;
+
+	float mAngleOuterCone;
+} LightObject;
 
 using namespace Assimp;
 
 class FVDECLSPEC ModelImporter {
   public:
 	ModelImporter(fragcore::IFileSystem *fileSystem) : fileSystem(fileSystem) {}
+	ModelImporter(const ModelImporter &other) = default;
+	ModelImporter(ModelImporter &&other);
 	~ModelImporter() { this->clear(); }
 
+	ModelImporter &operator=(const ModelImporter &other) = default;
+	ModelImporter &operator=(ModelImporter &&other);
+
 	virtual void loadContent(const std::string &path, unsigned long int supportFlag);
-	virtual void clear();
+	// virtual void loadContentMemory(const std::string &path, unsigned long int supportFlag);
+	// TODO:add load from memory.
+	virtual void clear() noexcept;
 
 	fragcore::IFileSystem *getFileSystem() const noexcept { return this->fileSystem; }
 
@@ -177,23 +244,25 @@ class FVDECLSPEC ModelImporter {
 	void loadCurve(aiNodeAnim *curve, Curve *animationClip);
 	//
 
+	LightObject *initLight(const aiLight *light, unsigned int index);
+
 	void loadTexturesFromMaterials(aiMaterial *material);
 
-	// TODO Compute bounding box
-
   public:
-	const std::vector<NodeObject *> getNodes() const { return this->nodes; }
-	const std::vector<ModelSystemObject> &getModels() const { return this->models; }
-	const NodeObject *getNodeRoot() const { return this->rootNode; }
+	const std::vector<NodeObject *> getNodes() const noexcept { return this->nodes; }
+	const std::vector<ModelSystemObject> &getModels() const noexcept { return this->models; }
+	const NodeObject *getNodeRoot() const noexcept { return this->rootNode; }
 
-	const std::vector<MaterialObject> &getMaterials() const { return this->materials; }
-	std::vector<MaterialObject> &getMaterials() { return this->materials; }
+	const std::vector<SkeletonSystem> &getSkeletons() const noexcept { return this->skeletons; }
+
+	const std::vector<MaterialObject> &getMaterials() const noexcept { return this->materials; }
+	std::vector<MaterialObject> &getMaterials() noexcept { return this->materials; }
 
 	/*	*/
-	const std::vector<TextureAssetObject> &getTextures() const { return this->textures; }
-	std::vector<TextureAssetObject> &getTextures() { return this->textures; }
+	const std::vector<TextureAssetObject> &getTextures() const noexcept { return this->textures; }
+	std::vector<TextureAssetObject> &getTextures() noexcept { return this->textures; }
 
-	const std::string &getDirectoryPath() const { return this->filepath; }
+	const std::string &getDirectoryPath() const noexcept { return this->filepath; }
 
 	glm::mat4 &globalTransform() const noexcept;
 

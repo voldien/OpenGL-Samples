@@ -104,8 +104,8 @@ namespace glsample {
 		virtual Intersection intersectionFrustum(const Frustum &frustum) const noexcept;
 
 	  protected: /*	Makes the object only inheritable .	*/
-		Frustum();
-		Frustum(const Frustum &other);
+		Frustum() noexcept;
+		Frustum(const Frustum &other) noexcept;
 
 	  private:					/*	Attributes.	*/
 		Plane<float> planes[6]; /*	*/
@@ -113,10 +113,10 @@ namespace glsample {
 		float nw, nh, fh, fw;	/*	*/
 	};
 
-	Frustum::Frustum() { /*  Default frustum value.  */
+	Frustum::Frustum() noexcept{ /*  Default frustum value.  */
 	}
 
-	Frustum::Frustum(const Frustum &other) { /**this = other;*/
+	Frustum::Frustum(const Frustum &other)noexcept { /**this = other;*/
 	}
 
 	void Frustum::calcFrustumPlanes(const Vector3 &position, const Vector3 &look, const Vector3 &up,

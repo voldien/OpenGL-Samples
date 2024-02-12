@@ -18,6 +18,7 @@ namespace glsample {
 		Gouraud() : GLSampleWindow() {
 			this->setTitle("Gouraud");
 
+			/*	*/
 			this->gouraudSettingComponent = std::make_shared<GouraudSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->gouraudSettingComponent);
 
@@ -32,6 +33,9 @@ namespace glsample {
 			glm::mat4 proj;
 			glm::mat4 modelView;
 			glm::mat4 modelViewProjection;
+
+			glm::vec4 diffuseColor;
+			glm::vec4 specularColor;
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(-1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
@@ -78,7 +82,7 @@ namespace glsample {
 		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		/*	*/
-		GeometryObject sphere;
+		MeshObject sphere;
 
 		/*	*/
 		unsigned int gouraud_program;
@@ -125,11 +129,11 @@ namespace glsample {
 				this->gouraud_program = ShaderLoader::loadGraphicProgram(
 					compilerOptions, &vertex_binary, &fragment_binary, nullptr, &control_binary, &evolution_binary);
 			}
+
 			/*	Setup Shader.	*/
 			glUseProgram(this->gouraud_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->gouraud_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->gouraud_program, this->uniform_buffer_index, 0);
-
 			glUseProgram(0);
 
 			GLint minMapBufferSize;
@@ -218,7 +222,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->gouraudSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				// glPatchParameteri(GL_PATCH_VERTICES, 3);
+				glPatchParameteri(GL_PATCH_VERTICES, 3);
 				glDrawElements(GL_PATCHES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
 				glBindVertexArray(0);
@@ -227,28 +231,33 @@ namespace glsample {
 		}
 
 		void update() override {
+
 			/*	*/
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
+			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
 			this->uniformStageBuffer.model = glm::translate(this->uniformStageBuffer.model, glm::vec3(0, 0, 10));
 			this->uniformStageBuffer.model =
 				glm::rotate(this->uniformStageBuffer.model, (float)Math::PI_half, glm::vec3(1, 0, 0));
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10, 10, 10));
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
-
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+
 			this->uniformStageBuffer.eyePos = glm::vec4(this->camera.getPosition(), 0);
 
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
-				this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
+			{
+				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+				void *uniformPointer = glMapBufferRange(
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
+					this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
+				glUnmapBuffer(GL_UNIFORM_BUFFER);
+			}
 		}
 	};
 

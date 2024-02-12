@@ -20,6 +20,7 @@ namespace glsample {
 			this->phongblinnSettingComponent = std::make_shared<PhongBlinnSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->phongblinnSettingComponent);
 
+			/*	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -54,7 +55,7 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		GeometryObject plan;
+		MeshObject plan;
 		const size_t nrPointLights = 4;
 
 		/*	Textures.	*/
@@ -153,11 +154,11 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->phong_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_phongblinn_source_binary,
-																	   &fragment_phong_source_binary);
+				this->phong_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_phongblinn_source_binary, &fragment_phong_source_binary);
 
-				this->blinn_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_phongblinn_source_binary,
-																	   &fragment_blinn_source_binary);
+				this->blinn_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_phongblinn_source_binary, &fragment_blinn_source_binary);
 			}
 
 			/*	Setup graphic pipeline.	*/

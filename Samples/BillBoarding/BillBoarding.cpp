@@ -53,8 +53,8 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		GeometryObject terrain;
-		GeometryObject billboard;
+		MeshObject terrain;
+		MeshObject billboard;
 		Skybox skybox;
 
 		/*	Textures.	*/

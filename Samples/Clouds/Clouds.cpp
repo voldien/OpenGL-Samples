@@ -51,7 +51,7 @@ namespace glsample {
 			UniformCloudsBufferBlock clouds;
 		} uniform_stage_buffer;
 
-		GeometryObject SkyboxCube;
+		MeshObject SkyboxCube;
 
 		/*	*/
 		unsigned int skybox_program;

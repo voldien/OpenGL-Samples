@@ -42,7 +42,7 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 	// transform to [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
 
-	float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(ubo.direction).xyz)), ubo.bias);
+	const float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(ubo.direction).xyz)), ubo.bias);
 	projCoords.z *= (1 - bias);
 
 	float shadow = textureProj(ShadowTexture, projCoords, 0).r;

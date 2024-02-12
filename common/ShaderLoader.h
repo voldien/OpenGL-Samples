@@ -20,11 +20,15 @@
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class FVDECLSPEC ShaderLoader {
 	  public:
+		/**
+		 * @brief
+		 *
+		 */
 		static int loadGraphicProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
 									  const std::vector<uint32_t> *vertex, const std::vector<uint32_t> *fragment,
 									  const std::vector<uint32_t> *geometry = nullptr,
@@ -34,18 +38,26 @@ namespace glsample {
 									  const std::vector<char> *geometry = nullptr,
 									  const std::vector<char> *tesselationc = nullptr,
 									  const std::vector<char> *tesselatione = nullptr);
-
+		/**
+		 * @brief
+		 *
+		 */
 		static int loadComputeProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
 									  const std::vector<uint32_t> *compute);
 		static int loadComputeProgram(const std::vector<const std::vector<char> *> &computePaths);
 		static int loadComputeProgram(const std::vector<char> &compute);
 
-		// TODO add mesh shader.
+		/**
+		 * @brief
+		 *
+		 */
 		static int loadMeshProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
-								   const std::vector<uint32_t> *meshs, const std::vector<uint32_t> *tasks);
-		static int loadMeshProgram(const std::vector<char> *meshs, const std::vector<char> *tasks);
+								   const std::vector<uint32_t> *meshs, const std::vector<uint32_t> *tasks,
+								   const std::vector<uint32_t> *fragment);
+		static int loadMeshProgram(const std::vector<char> *meshs, const std::vector<char> *tasks,
+								   const std::vector<char> *fragment);
 
 	  private:
-		static int loadShader(const std::vector<char> &data, int type);
+		static int loadShader(const std::vector<char> &data, const int type);
 	};
 } // namespace glsample

@@ -31,7 +31,7 @@ namespace glsample {
 		static_assert(std::is_floating_point<T>::value, "Must be a decimal type(float/double/half).");
 
 	  public:
-		Camera() { this->updateProjectionMatrix(); }
+		Camera() noexcept { this->updateProjectionMatrix(); }
 
 		void setAspect(const T aspect) noexcept {
 			this->aspect = aspect;

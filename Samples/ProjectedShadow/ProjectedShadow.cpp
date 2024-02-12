@@ -65,8 +65,8 @@ namespace glsample {
 
 		} projectShadowUniformBuffer;
 
-		GeometryObject plan;
-		GeometryObject model;
+		MeshObject plan;
+		MeshObject model;
 		glm::quat lightRotation;
 		/*	*/
 		unsigned int diffuse_texture;

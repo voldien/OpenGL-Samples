@@ -38,7 +38,7 @@ namespace glsample {
 	class FrustumCulling : public GLSampleWindow {
 	  public:
 		FrustumCulling() : GLSampleWindow() {
-			this->setTitle("FrustumCulling Rendering");
+			this->setTitle("FrustumCulling");
 
 			/*	Setting Window.	*/
 			this->frustumCullingSettingComponent =
@@ -74,9 +74,9 @@ namespace glsample {
 		UniformBufferBlock uniformStageBuffer;
 
 		/*	*/
-		GeometryObject boundingBox;
-		GeometryObject frustum;
-		GeometryObject plan;
+		MeshObject boundingBox;
+		MeshObject frustum;
+		MeshObject plan;
 		SceneFrustum scene; /*	World Scene.	*/
 
 		/*	*/
@@ -122,6 +122,7 @@ namespace glsample {
 			}
 
 			void draw() override {
+
 				ImGui::TextUnformatted("Light Settings");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
@@ -155,6 +156,7 @@ namespace glsample {
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
+			glDeleteBuffers(1, &this->uniform_instance_buffer);
 
 			/*	*/
 			glDeleteVertexArrays(1, &this->frustum.vao);
@@ -344,8 +346,7 @@ namespace glsample {
 			this->camera_observe_frustum.setAspect((float)width / (float)height);
 
 			/*	Update frustum geometry.	*/
-			Matrix4x4 proj = Matrix4x4();
-			camera.getProjectionMatrix();
+			const Matrix4x4 proj = GLM2E(camera.getProjectionMatrix());
 			std::vector<ProceduralGeometry::Vertex> frustumVertices;
 			ProceduralGeometry::createFrustum(frustumVertices, proj);
 		}
@@ -366,7 +367,7 @@ namespace glsample {
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				/*	*/
 				glViewport(0, 0, width, height);
-				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+				glClearColor(0.05f, 0.05f, 0.05f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				glUseProgram(this->texture_program);
@@ -377,7 +378,7 @@ namespace glsample {
 
 				if (this->frustumCullingSettingComponent->showBounds) {
 					glUseProgram(this->bounding_program);
-					renderBoundingBox(this->camera);
+					this->renderBoundingBox(this->camera);
 					glUseProgram(0);
 				}
 			}
@@ -399,7 +400,7 @@ namespace glsample {
 					const int subWidth = width * 0.3;
 					const int subHeight = height * 0.3;
 					glViewport(subX, subY, subWidth, subHeight);
-					glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+					glClearColor(0.05f, 0.05f, 0.05f, 0.0f);
 					glScissor(subX, subY, subWidth, subHeight);
 					glEnable(GL_SCISSOR_TEST);
 					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -412,12 +413,13 @@ namespace glsample {
 
 					if (this->frustumCullingSettingComponent->showFrustum) {
 						glUseProgram(this->bounding_program);
+						renderFrustum(this->camera_observe_frustum);
 						glUseProgram(0);
 					}
 
 					if (this->frustumCullingSettingComponent->showBounds) {
 						glUseProgram(this->bounding_program);
-						renderBoundingBox(this->camera_observe_frustum);
+						this->renderBoundingBox(this->camera_observe_frustum);
 						glUseProgram(0);
 					}
 
@@ -428,9 +430,9 @@ namespace glsample {
 
 		void update() override {
 
-			/*	Update Camera.	*/
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 
+			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
 			this->camera_observe_frustum.update(this->getTimer().deltaTime<float>());
 
@@ -467,6 +469,13 @@ namespace glsample {
 			}
 		}
 
+		void renderFrustum(const CameraController &camera) {
+			/*	*/
+			glBindVertexArray(this->boundingBox.vao);
+
+			glBindVertexArray(0);
+		}
+
 		void renderBoundingBox(const CameraController &camera) {
 
 			// TODO: fix if more than buffer size.
@@ -479,27 +488,34 @@ namespace glsample {
 				for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
 
 					// TODO: fix,add bound values.
-					//	const GeometryObject &refMesh = this->scene.getMeshes()[node->geometryObjectIndex];
+					const MeshObject &refMesh = this->scene.getMeshes()[node->geometryObjectIndex[i]];
 
 					// Compute matrices.
-					glm::mat4 model = glm::translate(glm::mat4(1.0), this->scene.getNodes()[x]->position);
-					model = (model * glm::toMat4(this->scene.getNodes()[x]->rotation));
-					model = glm::scale(model, this->scene.getNodes()[x]->scale);
+					AABB aabb = fragcore::AABB::createMinMax(
+						Vector3(refMesh.bound.aabb.min[0], refMesh.bound.aabb.min[1], refMesh.bound.aabb.min[2]),
+						Vector3(refMesh.bound.aabb.max[0], refMesh.bound.aabb.max[1], refMesh.bound.aabb.max[2]));
+
+					glm::mat4 boundModel = glm::translate(glm::mat4(1.0), E2GLM<float, 3>(aabb.getCenter()));
+					boundModel = glm::scale(boundModel, E2GLM<float, 3>(aabb.getSize()));
+
+					const glm::mat4 model = this->scene.getNodes()[x]->modelTransform * boundModel;
 
 					instance_model_matrices.push_back(model);
 				}
 			}
 
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
-			uint8_t *uniform_instance_buffer_pointer = (uint8_t *)glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount()) % this->nrUniformBuffers) * uniformInstanceSize,
-				uniformInstanceSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			{
+				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
+				uint8_t *uniform_instance_buffer_pointer = (uint8_t *)glMapBufferRange(
+					GL_UNIFORM_BUFFER, ((this->getFrameCount()) % this->nrUniformBuffers) * this->uniformInstanceSize,
+					this->uniformInstanceSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
-			/*	*/
-			memcpy(uniform_instance_buffer_pointer, instance_model_matrices.data(),
-				   instance_model_matrices.size() * sizeof(instance_model_matrices[0]));
+				/*	*/
+				memcpy(uniform_instance_buffer_pointer, instance_model_matrices.data(),
+					   instance_model_matrices.size() * sizeof(instance_model_matrices[0]));
 
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
+				glUnmapBuffer(GL_UNIFORM_BUFFER);
+			}
 
 			glBindVertexArray(this->boundingBox.vao);
 

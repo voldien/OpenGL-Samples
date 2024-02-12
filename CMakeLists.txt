@@ -131,12 +131,17 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ConditionalDraw)
 # Shader Source Files
 # ###################################
 FILE(GLOB_RECURSE GLSL_SOURCE_FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.fs
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.frag
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.vs
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.vert
-	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.comp
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.gs
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.geom
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.tese
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.tesc
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.comp
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.task
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.mesh
 )
 
 # ###################################

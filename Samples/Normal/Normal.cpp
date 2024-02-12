@@ -39,7 +39,7 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		GeometryObject geometry;
+		MeshObject geometry;
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;

@@ -57,9 +57,9 @@ namespace glsample {
 		const size_t nrPointLights = 4;
 
 		/*	*/
-		GeometryObject plan;
-		GeometryObject obj;
-		GeometryObject skybox;
+		MeshObject plan;
+		MeshObject obj;
+		MeshObject skybox;
 		Skybox skybox_;
 		Scene scene;
 

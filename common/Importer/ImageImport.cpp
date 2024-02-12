@@ -139,6 +139,7 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 
 	GLenum target = GL_TEXTURE_CUBE_MAP;
 	GLuint texture;
+	
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));
 
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));

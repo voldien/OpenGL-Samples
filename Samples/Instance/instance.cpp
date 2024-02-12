@@ -51,7 +51,7 @@ namespace glsample {
 		std::vector<glm::mat4> instance_model_matrices;
 
 		/*	*/
-		GeometryObject instanceGeometry;
+		MeshObject instanceGeometry;
 
 		/*	*/
 		unsigned int diffuse_texture;

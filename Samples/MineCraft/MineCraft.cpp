@@ -48,8 +48,8 @@ namespace glsample {
 		} uniformBlockSSAO;
 
 		/*	*/
-		GeometryObject plan;
-		std::vector<GeometryObject> refObj;
+		MeshObject plan;
+		std::vector<MeshObject> refObj;
 
 		World *world;
 

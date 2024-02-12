@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
+#extension GL_EXT_control_flow_attributes : enable
 
 layout(points) in;
 layout(line_strip) out;
@@ -29,7 +30,7 @@ void main() {
 	const vec3 axis[3] = {normal[0], tangent[0], cross(normalize(tangent[0]), normalize(normal[0]))};
 	const vec4 axisColor[3] = {vec4(0, 0, 1, 0.8), vec4(1, 0, 0, 0.8), vec4(0, 1, 0, 0.8)};
 
-	for (int i = 0; i < 3; i++) {
+	[[unroll]] for (int i = 0; i < 3; i++) {
 		gl_Position = ubo.ViewProj * vec4(gl_in[0].gl_Position.xyz, 1.0);
 		normalColor = axisColor[i];
 		EmitVertex();

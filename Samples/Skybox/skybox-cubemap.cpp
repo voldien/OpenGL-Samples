@@ -26,7 +26,7 @@ namespace glsample {
 			this->camera.enableNavigation(false);
 		}
 
-		GeometryObject SkyboxCube;
+		MeshObject SkyboxCube;
 
 		unsigned int skybox_program;
 		unsigned int skybox_cubemap;

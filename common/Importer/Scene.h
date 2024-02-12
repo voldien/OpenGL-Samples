@@ -12,9 +12,11 @@ namespace glsample {
 	 */
 	class Scene : public fragcore::UIDObject {
 	  public:
-		unsigned int normalDefault = 0;
-		Scene() {}
+		int normalDefault = -1;
+		Scene() { this->init(); }
 		virtual ~Scene();
+
+		virtual void init();
 
 		virtual void release();
 
@@ -30,12 +32,13 @@ namespace glsample {
 
 	  public:
 		const std::vector<NodeObject *> &getNodes() const noexcept { return this->nodes; }
-		const std::vector<GeometryObject> &getMeshes() const noexcept { return this->refGeometry; }
+		const std::vector<MeshObject> &getMeshes() const noexcept { return this->refGeometry; }
+
 	  public:
 		/*	TODO add queue structure.	*/
 
 		std::vector<NodeObject *> nodes;
-		std::vector<GeometryObject> refGeometry;
+		std::vector<MeshObject> refGeometry;
 		std::vector<TextureAssetObject> refTexture;
 		std::vector<MaterialObject> materials;
 		std::vector<animation_object_t> animations;

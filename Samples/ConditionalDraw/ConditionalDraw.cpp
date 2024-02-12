@@ -53,7 +53,7 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		GeometryObject plan;
+		MeshObject plan;
 		ConditionalScene scene;
 
 		/*	Textures.	*/

@@ -55,8 +55,8 @@ namespace glsample {
 		} uniform_stage_buffer;
 
 		/*	*/
-		GeometryObject torus;
-		GeometryObject skybox;
+		MeshObject torus;
+		MeshObject skybox;
 
 		/*	*/
 		unsigned int reflection_texture;

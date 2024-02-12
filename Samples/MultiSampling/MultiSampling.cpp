@@ -25,7 +25,7 @@ namespace glsample {
 		} uniformBuffer;
 
 		/*	*/
-		std::vector<GeometryObject> refObj;
+		std::vector<MeshObject> refObj;
 
 		/*	*/
 		unsigned int diffuse_texture;

@@ -70,7 +70,7 @@ namespace glsample {
 		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		/*	*/
-		GeometryObject RefGeomtry;
+		MeshObject RefGeomtry;
 
 		/*	*/
 		unsigned int tessellation_pn_program;

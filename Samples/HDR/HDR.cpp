@@ -48,8 +48,8 @@ namespace glsample {
 		size_t bloomHeight;
 
 		/*	*/
-		GeometryObject torus;
-		GeometryObject skybox;
+		MeshObject torus;
+		MeshObject skybox;
 
 		/*	*/
 		unsigned int reflection_texture;

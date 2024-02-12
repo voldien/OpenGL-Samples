@@ -43,6 +43,7 @@ void main() {
 
 	vec3 Mnormal = normalize(FragIN_normal);
 	vec3 Ttangent = normalize(FragIN_tangent);
+	
 	Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
 	FragIN_bitangent = cross(Ttangent, Mnormal);
 }

@@ -50,8 +50,8 @@ namespace glsample {
 		const size_t cols = 2;
 
 		/*	*/
-		GeometryObject geometry;
-		GeometryObject plan;
+		MeshObject geometry;
+		MeshObject plan;
 		InstanceSubBuffer instanceBuffer;
 
 		/*	Textures.	*/

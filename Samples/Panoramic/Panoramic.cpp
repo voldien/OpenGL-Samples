@@ -67,8 +67,8 @@ namespace glsample {
 		unsigned int diffuse_texture;
 		unsigned int reflection_texture;
 
-		std::vector<GeometryObject> refObj;
-		GeometryObject skybox;
+		std::vector<MeshObject> refObj;
+		MeshObject skybox;
 		Scene scene;
 		Skybox skybox_;
 

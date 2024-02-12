@@ -16,6 +16,7 @@
 #pragma once
 #include "GLRendererInterface.h"
 #include "GLSampleSession.h"
+#include "GLSampleWindow.h"
 #include "IOUtil.h"
 #include "IRenderer.h"
 #include "Util/CameraController.h"
@@ -30,9 +31,10 @@
  *
  * @tparam T
  */
-template <class T> class GLSample : public glsample::GLSampleSession {
+template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampleSession {
+	//TODO: add static_assert if derived from sample.
   public:
-	GLSample() {
+	GLSample() noexcept {
 		// TODO set working directory to exec path.
 	}
 

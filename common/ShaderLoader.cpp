@@ -179,10 +179,10 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 
 	const int program = glCreateProgram();
 	int lstatus;
-	const int shader_vcompute = loadShader(*computePaths[0], GL_COMPUTE_SHADER);
+	const int shader_compute = loadShader(*computePaths[0], GL_COMPUTE_SHADER);
 
 	/*	*/
-	glAttachShader(program, shader_vcompute);
+	glAttachShader(program, shader_compute);
 	fragcore::checkError();
 
 	/*	*/
@@ -199,34 +199,43 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 		throw cxxexcept::RuntimeException("Failed to link program: {}", log);
 	}
 
-	if (glIsShader(shader_vcompute)) {
-		glDetachShader(program, shader_vcompute);
-		glDeleteShader(shader_vcompute);
+	if (glIsShader(shader_compute)) {
+		glDetachShader(program, shader_compute);
+		glDeleteShader(shader_compute);
 	}
 
 	return program;
 }
 
 int ShaderLoader::loadMeshProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
-								  const std::vector<uint32_t> *meshs, const std::vector<uint32_t> *tasks) {
+								  const std::vector<uint32_t> *meshs, const std::vector<uint32_t> *tasks,
+								  const std::vector<uint32_t> *fragment) {
 	std::vector<char> mesh_source;
 	if (meshs) {
 
-		const std::vector<char> vertex_source_code = fragcore::ShaderCompiler::convertSPIRV(*meshs, compilerOptions);
-		mesh_source.insert(mesh_source.end(), vertex_source_code.begin(), vertex_source_code.end());
+		const std::vector<char> mesh_source_code = fragcore::ShaderCompiler::convertSPIRV(*meshs, compilerOptions);
+		mesh_source.insert(mesh_source.end(), mesh_source_code.begin(), mesh_source_code.end());
 	}
 
 	std::vector<char> task_source;
 	if (tasks) {
 
-		const std::vector<char> fragment_source_code = fragcore::ShaderCompiler::convertSPIRV(*tasks, compilerOptions);
-		task_source.insert(task_source.end(), fragment_source_code.begin(), fragment_source_code.end());
+		const std::vector<char> task_source_code = fragcore::ShaderCompiler::convertSPIRV(*tasks, compilerOptions);
+		task_source.insert(task_source.end(), task_source_code.begin(), task_source_code.end());
 	}
 
-	return ShaderLoader::loadMeshProgram(&task_source, &mesh_source);
+	std::vector<char> fragment_source;
+	if (fragment) {
+
+		const std::vector<char> fragment_source_code = fragcore::ShaderCompiler::convertSPIRV(*fragment, compilerOptions);
+		fragment_source.insert(fragment_source.end(), fragment_source_code.begin(), fragment_source_code.end());
+	}
+
+	return ShaderLoader::loadMeshProgram(&mesh_source, &task_source, &fragment_source);
 }
 
-int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vector<char> *tasks) {
+int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vector<char> *tasks,
+								  const std::vector<char> *fragment) {
 	fragcore::resetErrorFlag();
 
 	const int program = glCreateProgram();
@@ -234,12 +243,16 @@ int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vec
 
 	int shader_mesh = 0;
 	int shader_task = 0;
+	int shader_frag = 0;
 	int lstatus;
 
 	shader_mesh = loadShader(*meshs, GL_MESH_SHADER_NV);
 	glAttachShader(program, shader_mesh);
 	shader_task = loadShader(*tasks, GL_TASK_SHADER_NV);
 	glAttachShader(program, shader_task);
+
+	shader_frag = loadShader(*fragment, GL_FRAGMENT_SHADER);
+	glAttachShader(program, shader_frag);
 
 	/*	*/
 	glLinkProgram(program);
@@ -265,6 +278,11 @@ int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vec
 		glDeleteShader(shader_task);
 	}
 
+	if (glIsShader(shader_frag)) {
+		glDetachShader(program, shader_frag);
+		glDeleteShader(shader_frag);
+	}
+
 	return program;
 }
 
@@ -288,8 +306,9 @@ static void checkShaderError(int shader) {
 	}
 }
 
-int ShaderLoader::loadShader(const std::vector<char> &source, int type) {
+int ShaderLoader::loadShader(const std::vector<char> &source, const int type) {
 
+	/*	*/
 	const unsigned int spirv_magic_number = 0x07230203;
 	const unsigned int magic_number = (source[3] << 24) | (source[2] << 16) | (source[1] << 8) | source[0];
 
@@ -307,8 +326,11 @@ int ShaderLoader::loadShader(const std::vector<char> &source, int type) {
 		glShaderSource(shader, 1, (const GLchar **)&source_data, nullptr);
 	}
 
+	/*	*/
 	fragcore::checkError();
 	glCompileShader(shader);
+
+	/*	*/
 	fragcore::checkError();
 	checkShaderError(shader);
 	return shader;

@@ -30,7 +30,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[64]; }
+layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[512]; }
 instance_ubo;
 
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }

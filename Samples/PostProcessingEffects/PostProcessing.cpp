@@ -47,8 +47,8 @@ namespace glsample {
 		} uniformStageBlockBlur;
 
 		/*	*/
-		GeometryObject plan;
-		std::vector<GeometryObject> refObj;
+		MeshObject plan;
+		std::vector<MeshObject> refObj;
 
 		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer;

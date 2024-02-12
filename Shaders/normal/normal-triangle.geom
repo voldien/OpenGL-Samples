@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
+#extension GL_EXT_control_flow_attributes : enable
 
 layout(triangles) in;
 layout(line_strip) out;
@@ -34,7 +35,7 @@ void main() {
 								 0.5 * (gl_in[0].gl_Position.xyz - gl_in[1].gl_Position.xyz) +
 								 0.5 * (gl_in[0].gl_Position.xyz - gl_in[2].gl_Position.xyz);
 
-	for (int i = 0; i < 3; i++) {
+	[[unroll]] for (int i = 0; i < 3; i++) {
 		gl_Position = ubo.ViewProj * vec4(triangle_center, 1.0);
 		normalColor = axisColor[i];
 		EmitVertex();

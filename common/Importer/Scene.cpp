@@ -8,6 +8,7 @@ namespace glsample {
 	Scene::~Scene() {}
 
 	void Scene::release() {
+		/*	*/
 		for (size_t i = 0; i < this->refGeometry.size(); i++) {
 			if (glIsVertexArray(this->refGeometry[i].vao)) {
 				glDeleteVertexArrays(1, &this->refGeometry[i].vao);
@@ -16,7 +17,7 @@ namespace glsample {
 				glDeleteBuffers(1, &this->refGeometry[i].ibo);
 			}
 			if (glIsBuffer(this->refGeometry[i].vbo)) {
-				glDeleteBuffers(1, &this->refGeometry[i].vao);
+				glDeleteBuffers(1, &this->refGeometry[i].vbo);
 			}
 		}
 
@@ -25,28 +26,29 @@ namespace glsample {
 		}
 	}
 
+	void Scene::init() {
+
+		/*	Create white texture.	*/
+		FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)&this->normalDefault));
+		FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, this->normalDefault));
+		const unsigned char white[] = {127, 127, 255, 255};
+		FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white));
+		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+		/*	Border clamped to max value, it makes the outside area.	*/
+		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
+		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+
+		/*	No Mipmap.	*/
+		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+
+		FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
 	void Scene::update(const float deltaTime) {
-
-		if (normalDefault == 0) {
-			/*	Create white texture.	*/
-			glGenTextures(1, &this->normalDefault);
-			glBindTexture(GL_TEXTURE_2D, this->normalDefault);
-			const unsigned char white[] = {127, 127, 255, 255};
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, white);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			/*	Border clamped to max value, it makes the outside area.	*/
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-			/*	No Mipmap.	*/
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
-
-			FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
-
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
 
 		/*	Update animations.	*/
 		for (size_t x = 0; x < this->animations.size(); x++) {
@@ -84,10 +86,14 @@ namespace glsample {
 			const MaterialObject &material = this->materials[node->materialIndex[i]];
 
 			if (material.diffuseIndex >= 0 && material.diffuseIndex < refTexture.size()) {
+
 				const TextureAssetObject &diffuseTexture = this->refTexture[material.diffuseIndex];
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, diffuseTexture.texture);
+
 			} else {
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->normalDefault);
 			}
 
 			/*	*/
@@ -136,16 +142,18 @@ namespace glsample {
 			}
 
 			/*	*/
-			if (material.culling_mode) {
+			if (material.culling_both_side_mode) {
 				glDisable(GL_CULL_FACE);
+			} else {
+				glDisable(GL_CULL_FACE);
+				// glEnable(GL_CULL_FACE);
 			}
-			glDisable(GL_CULL_FACE);
 
-			glBindVertexArray(this->refGeometry[0].vao);
+			const MeshObject &refMesh = this->refGeometry[node->geometryObjectIndex[i]];
+			glBindVertexArray(refMesh.vao);
 
-			const GeometryObject &refMesh = this->refGeometry[node->geometryObjectIndex[i]];
 			/*	*/
-			glDrawElementsBaseVertex(GL_TRIANGLES, refMesh.nrIndicesElements, GL_UNSIGNED_INT,
+			glDrawElementsBaseVertex(refMesh.primitiveType, refMesh.nrIndicesElements, GL_UNSIGNED_INT,
 									 (void *)(sizeof(unsigned int) * refMesh.indices_offset), refMesh.vertex_offset);
 
 			glBindVertexArray(0);

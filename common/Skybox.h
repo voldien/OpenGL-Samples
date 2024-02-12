@@ -49,7 +49,7 @@ namespace glsample {
 		virtual void RenderImGUI();
 
 	  private:
-		GeometryObject SkyboxCube;
+		MeshObject SkyboxCube;
 		unsigned int skybox_program;
 
 		int frameIndex = 0;

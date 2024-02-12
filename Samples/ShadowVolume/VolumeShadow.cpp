@@ -46,9 +46,9 @@ namespace glsample {
 		} uniform;
 
 		/*	*/
-		GeometryObject plan;
+		MeshObject plan;
 		// TODO add scene
-		GeometryObject scene;
+		MeshObject scene;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;

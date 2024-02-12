@@ -79,10 +79,10 @@ namespace glsample {
 		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		/*	*/
-		GeometryObject skybox;
-		GeometryObject terrain;
-		GeometryObject grass;
-		GeometryObject water;
+		MeshObject skybox;
+		MeshObject terrain;
+		MeshObject grass;
+		MeshObject water;
 
 		/*	*/
 		unsigned int terrain_program;

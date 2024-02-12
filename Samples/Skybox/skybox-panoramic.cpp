@@ -38,7 +38,7 @@ namespace glsample {
 			float gamma = 2.2;
 		} uniform_stage_buffer;
 
-		GeometryObject SkyboxCube;
+		MeshObject SkyboxCube;
 		unsigned int skybox_program;
 
 		int skybox_texture_panoramic;
