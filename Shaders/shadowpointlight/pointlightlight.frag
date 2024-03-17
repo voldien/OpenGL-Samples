@@ -3,7 +3,6 @@
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
 #extension GL_EXT_control_flow_attributes : enable
-
 // layout(early_fragment_tests) in;
 
 layout(location = 0) out vec4 fragColor;
@@ -76,7 +75,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 void main() {
 	vec4 pointLightColors = vec4(0);
 
-	for (int i = 0; i < 4; i++) {
+	[[unroll]] for (int i = 0; i < 4; i++) {
 		/*	*/
 		vec3 diffVertex = (ubo.point_light[i].position - vertex);
 

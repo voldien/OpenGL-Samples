@@ -1,3 +1,5 @@
+#include "ModelImporter.h"
+#include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -55,7 +57,7 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		MeshObject plan;
+		Scene scene; /*	World Scene.	*/
 		const size_t nrPointLights = 4;
 
 		/*	Textures.	*/
@@ -106,8 +108,14 @@ namespace glsample {
 				ImGui::TextUnformatted("Material Setting");
 				ImGui::DragFloat("Shinnes", &this->uniform.shininess);
 				ImGui::Checkbox("Blinn", &this->uniform.useBlinn);
+
+				ImGui::TextUnformatted("Debug Setting");
+				ImGui::Checkbox("Rotate", &this->useAnimate);
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 			bool useBlinn = false;
+			bool useAnimate = false;
+			bool showWireFrame = false;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -122,16 +130,12 @@ namespace glsample {
 		void Release() override {
 			/*	*/
 			glDeleteProgram(this->phong_program);
+			glDeleteProgram(this->blinn_program);
 
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			/*	*/
-			glDeleteVertexArrays(1, &this->plan.vao);
-			glDeleteBuffers(1, &this->plan.vbo);
-			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
 		void Initialize() override {
@@ -182,7 +186,7 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
@@ -190,47 +194,10 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateTorus(1, vertices, indices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
-
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
-
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
+			/*	Load scene from model importer.	*/
+			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(modelLoader);
 
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
@@ -260,12 +227,12 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			{
-
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
+				/*	*/
 				if (this->phongblinnSettingComponent->useBlinn) {
 					glUseProgram(this->blinn_program);
 				} else {
@@ -278,10 +245,10 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, this->phongblinnSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
+				this->scene.render();
 			}
 		}
 
@@ -290,11 +257,13 @@ namespace glsample {
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
-			/*	*/
+			/*	Update uniform stage buffer values.	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model = glm::rotate(
-				this->uniformStageBuffer.model, glm::radians(45.0f * elapsedTime), glm::vec3(1.0f, 1.0f, 0.0f));
-			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(45.95f));
+			if (this->phongblinnSettingComponent->useAnimate) {
+				this->uniformStageBuffer.model = glm::rotate(
+					this->uniformStageBuffer.model, glm::radians(12.0f * elapsedTime), glm::vec3(0.0f, 1.0f, 0.0f));
+			}
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 
@@ -302,8 +271,8 @@ namespace glsample {
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			this->uniformStageBuffer.viewPos = glm::vec4(this->camera.getPosition(), 0.0);
 
+			/*	Update uniform buffer.	*/
 			{
-				/*	*/
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				void *uniformPointer = glMapBufferRange(
 					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,

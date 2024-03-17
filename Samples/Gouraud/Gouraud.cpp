@@ -34,8 +34,7 @@ namespace glsample {
 			glm::mat4 modelView;
 			glm::mat4 modelViewProjection;
 
-			glm::vec4 diffuseColor;
-			glm::vec4 specularColor;
+			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1);
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(-1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
@@ -62,12 +61,16 @@ namespace glsample {
 
 				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Levels", &this->uniform.tessLevel, 1, 0.0f, 6.0f);
+				ImGui::Checkbox("Catmull-Clark", &this->subdivionsCatmullClark);
 
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("Animate", &this->useAnimation);
 			}
 
 			bool showWireFrame = false;
+			bool subdivionsCatmullClark = true;
+			bool useAnimation = false;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -91,10 +94,12 @@ namespace glsample {
 		CameraController camera;
 
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/gouraud/gouraud.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/gouraud/gouraud.frag.spv";
-		const std::string ControlShaderPath = "Shaders/gouraud/gouraud.tesc.spv";
-		const std::string EvoluationShaderPath = "Shaders/gouraud/gouraud.tese.spv";
+		const std::string vertexGouraudShaderPath = "Shaders/gouraud/gouraud.vert.spv";
+		const std::string fragmentGouraudShaderPath = "Shaders/gouraud/gouraud.frag.spv";
+		const std::string ControlGouraudShaderPath = "Shaders/gouraud/gouraud.tesc.spv";
+		const std::string EvoluationGouraudShaderPath = "Shaders/gouraud/gouraud.tese.spv";
+		// const std::string ControlShaderPath = "Shaders/gouraud/gouraud.tesc.spv";
+		// const std::string EvoluationShaderPath = "Shaders/gouraud/gouraud.tese.spv";
 
 		void Release() override {
 			/*	*/
@@ -113,13 +118,13 @@ namespace glsample {
 			{
 				/*	*/
 				const std::vector<uint32_t> vertex_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->vertexGouraudShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->fragmentGouraudShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> control_binary =
-					IOUtil::readFileData<uint32_t>(this->ControlShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->ControlGouraudShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> evolution_binary =
-					IOUtil::readFileData<uint32_t>(this->EvoluationShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->EvoluationGouraudShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -150,7 +155,7 @@ namespace glsample {
 			{
 				std::vector<ProceduralGeometry::Vertex> vertices;
 				std::vector<unsigned int> indices;
-				ProceduralGeometry::generateSphere(1, vertices, indices, 6, 6);
+				ProceduralGeometry::generateSphere(1, vertices, indices, 8, 8);
 
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenVertexArrays(1, &this->sphere.vao);
@@ -236,11 +241,13 @@ namespace glsample {
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
-			/*	*/
+			/*	Update uniform stage buffer values.	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
 			this->uniformStageBuffer.model = glm::translate(this->uniformStageBuffer.model, glm::vec3(0, 0, 10));
-			this->uniformStageBuffer.model =
-				glm::rotate(this->uniformStageBuffer.model, (float)Math::PI_half, glm::vec3(1, 0, 0));
+			if (this->gouraudSettingComponent->useAnimation) {
+				this->uniformStageBuffer.model = glm::rotate(
+					this->uniformStageBuffer.model, (float)Math::PI_half * elapsedTime * 0.12f, glm::vec3(0, 1, 0));
+			}
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10, 10, 10));
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();

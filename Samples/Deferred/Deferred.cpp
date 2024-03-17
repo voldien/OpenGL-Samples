@@ -42,6 +42,7 @@ namespace glsample {
 			glm::vec3 position;
 			float range;
 			glm::vec4 color;
+			/*	*/
 			float intensity;
 			float constant_attenuation;
 			float linear_attenuation;
@@ -454,6 +455,8 @@ namespace glsample {
 			/*	*/
 			this->camera.setAspect((float)width / (float)height);
 		}
+
+		float computePointLightRadius(const PointLight &pointLight) const noexcept { return 0; }
 
 		void draw() override {
 

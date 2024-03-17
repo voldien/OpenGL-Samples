@@ -19,6 +19,7 @@ struct point_light {
 	float qudratic_attenuation;
 };
 
+#define NR_LIGHTS 4
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -31,7 +32,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 specularColor;
 	vec4 viewPos;
 
-	point_light point_light[4];
+	point_light point_light[NR_LIGHTS];
 
 	float shininess;
 }

@@ -6,13 +6,31 @@
 
 namespace glsample {
 
+	enum class TextureType {
+		Diffuse = 0,	/*	*/
+		Normal = 1,		/*	*/
+		Mask = 2,		/*	*/
+		Specular = 3,	/*	*/
+		Emission = 4,	/*	*/
+		Reflection = 5, /*	*/
+		Displacement,
+	};
+
+	enum class TexturePBRType {
+		Albedo,
+		Normal,
+		Metal,
+		Roughness,
+		AmbientOcclusion,
+		Displacement,
+	};
+
 	/**
 	 * @brief
 	 *
 	 */
 	class Scene : public fragcore::UIDObject {
 	  public:
-		int normalDefault = -1;
 		Scene() { this->init(); }
 		virtual ~Scene();
 
@@ -24,7 +42,7 @@ namespace glsample {
 
 		// virtual void updateBuffers();
 
-		virtual void render();
+		virtual void render(); // TODO, add camera.
 
 		virtual void renderNode(const NodeObject *node);
 
@@ -42,6 +60,11 @@ namespace glsample {
 		std::vector<TextureAssetObject> refTexture;
 		std::vector<MaterialObject> materials;
 		std::vector<animation_object_t> animations;
+
+	  protected:
+		int normalDefault = -1;
+		int diffuseDefault = -1;
+		int emissionDefault = -1;
 
 	  public:
 		// Template

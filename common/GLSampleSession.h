@@ -71,11 +71,11 @@ namespace glsample {
 	template <typename T, int m> inline Eigen::Matrix<T, m, 1> GLM2E(const glm::vec<m, T> &em) {
 		Eigen::Matrix<T, m, 1> v;
 		for (int i = 0; i < m; ++i) {
-			v[i] = em(i);
+			v(i) = em[i];
 		}
 		return v;
 	}
-	
+
 	template <typename T, int m, int n> inline Eigen::Matrix<T, m, n> GLM2E(const glm::mat<m, n, T> &em) {
 		Eigen::Matrix<T, m, n> mat;
 		for (int i = 0; i < m; ++i) {

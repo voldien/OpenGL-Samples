@@ -10,7 +10,8 @@
 
 namespace glsample {
 
-	// TODO integrate PCF
+	/**
+	 */
 	class BasicShadowMapping : public GLSampleWindow {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
@@ -19,7 +20,7 @@ namespace glsample {
 				std::make_shared<BasicShadowMapSettingComponent>(this->uniformStageBuffer, this->shadowTexture);
 			this->addUIComponent(this->shadowSettingComponent);
 
-			/*	*/
+			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -245,13 +246,12 @@ namespace glsample {
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+
 		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);
-
-			this->uniformStageBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			{
 
@@ -350,6 +350,7 @@ namespace glsample {
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
 			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
+			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			this->uniformStageBuffer.cameraPosition = this->camera.getPosition();

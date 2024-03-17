@@ -60,13 +60,16 @@ namespace glsample {
 	}
 
 	void Skybox::Render(const CameraController &camera) {
+		this->Render((camera.getProjectionMatrix() * camera.getRotationMatrix()));
+	}
 
+	void Skybox::Render(const glm::mat4 &viewProj) {
 		if (!this->isEnabled) {
 			return;
 		}
 
 		/*	*/
-		this->uniform_stage_buffer.modelViewProjection = (camera.getProjectionMatrix() * camera.getRotationMatrix());
+		this->uniform_stage_buffer.modelViewProjection = viewProj;
 
 		/*	*/
 		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

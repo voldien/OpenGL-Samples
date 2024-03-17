@@ -10,7 +10,6 @@ namespace glsample {
 
 	/**
 	 * @brief
-	 *
 	 */
 	class PointLight : public GLSampleWindow {
 	  public:
@@ -18,6 +17,7 @@ namespace glsample {
 			this->setTitle("PointLight");
 			this->pointLightSettingComponent = std::make_shared<PointLightSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->pointLightSettingComponent);
+
 			/*	*/
 			this->camera.setPosition(glm::vec3(18.5f));
 			this->camera.lookAt(glm::vec3(0.f));
@@ -99,7 +99,7 @@ namespace glsample {
 		  private:
 			struct uniform_buffer_block &uniform;
 
-			bool lightvisible[4] = {true, true, true, true};
+			bool lightvisible[nrPointLights] = {true, true, true, true};
 		};
 		std::shared_ptr<PointLightSettingComponent> pointLightSettingComponent;
 
@@ -109,12 +109,9 @@ namespace glsample {
 		void Release() override {
 			/*	*/
 			glDeleteProgram(this->pointLight_program);
-
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
-
 			glDeleteBuffers(1, &this->uniform_buffer);
-
 			/*	*/
 			glDeleteVertexArrays(1, &this->plan.vao);
 			glDeleteBuffers(1, &this->plan.vbo);
@@ -269,7 +266,7 @@ namespace glsample {
 				}
 			}
 
-			/*	*/
+			/*	Update uniform stage buffer values.	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
 			this->uniformStageBuffer.model =
 				glm::rotate(this->uniformStageBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -280,7 +277,7 @@ namespace glsample {
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 
-			/*	*/
+			/*	Update uniform buffer.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,

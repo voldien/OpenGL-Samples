@@ -1,6 +1,5 @@
 #include "ModelImporter.h"
 #include "Core/Math.h"
-#include "Core/Math3D.h"
 #include "Core/math3D/AABB.h"
 #include "GeometryUtil.h"
 #include "assimp/Importer.hpp"
@@ -104,10 +103,6 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	if (pScene) {
 
 		this->global = aiMatrix4x4ToGlm(&pScene->mRootNode->mTransformation);
-
-		/*	inverse.	*/
-		aiMatrix4x4 m_GlobalInverseTransform = pScene->mRootNode->mTransformation;
-		m_GlobalInverseTransform.Inverse();
 
 		this->initScene(pScene);
 		// importer.FreeScene();
@@ -224,7 +219,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 		}
 	}
 
-	this->initNoodeRoot(scene->mRootNode);
+	this->initNoodeRoot(scene->mRootNode, nullptr);
 }
 
 void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
@@ -248,14 +243,16 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 		}
 
 		// TODO, resolve relative to world transform model matrix.
-		pobject->position = glm::vec3(position.x, position.y, position.z);
-		pobject->rotation = glm::quat(rotation.w, rotation.x, rotation.y, rotation.z);
-		pobject->scale = glm::vec3(scale.x, scale.y, scale.z);
+		pobject->localPosition = glm::vec3(position.x, position.y, position.z);
+		pobject->localRotation = glm::quat(rotation.w, rotation.x, rotation.y, rotation.z);
+		pobject->localScale = glm::vec3(scale.x, scale.y, scale.z);
 
-		pobject->modelTransform = aiMatrix4x4ToGlm(&node->mChildren[x]->mTransformation);
+		pobject->modelLocalTransform = aiMatrix4x4ToGlm(&node->mChildren[x]->mTransformation);
 
-		if (parent) { // TODO: fix when model is used for render.
-					  // pobject->modelTransform = parent->modelTransform * pobject->modelTransform;
+		if (parent) {
+			pobject->modelGlobalTransform = parent->modelGlobalTransform * pobject->modelLocalTransform;
+		} else {
+			pobject->modelGlobalTransform = this->globalTransform() * pobject->modelLocalTransform;
 		}
 
 		pobject->name = node->mChildren[x]->mName.C_Str();
@@ -271,10 +268,13 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 					getMaterials()[this->sceneRef->mMeshes[*node->mChildren[x]->mMeshes]->mMaterialIndex];
 
 				/*	*/
-				pobject->materialIndex.push_back(
-					this->sceneRef->mMeshes[node->mChildren[x]->mMeshes[y]]->mMaterialIndex);
+				const int meshIndex = node->mChildren[x]->mMeshes[y];
+				pobject->materialIndex.push_back(this->sceneRef->mMeshes[meshIndex]->mMaterialIndex);
 
-				pobject->geometryObjectIndex.push_back(node->mChildren[x]->mMeshes[y]);
+				pobject->geometryObjectIndex.push_back(meshIndex);
+
+				// TODO: compute max volume.*
+				pobject->bound = this->models[meshIndex].bound;
 			}
 		}
 

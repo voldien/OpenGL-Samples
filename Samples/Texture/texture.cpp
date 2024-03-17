@@ -18,6 +18,7 @@ namespace glsample {
 	  public:
 		Texture() : GLSampleWindow() {
 			this->setTitle("Texture");
+
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
@@ -54,10 +55,8 @@ namespace glsample {
 		void Release() override {
 			/*	*/
 			glDeleteProgram(this->texture_program);
-
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
-
 			/*	*/
 			glDeleteVertexArrays(1, &this->planGeometry.vao);
 			glDeleteBuffers(1, &this->planGeometry.vbo);
@@ -187,7 +186,7 @@ namespace glsample {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
 
-			/*	*/
+			/*	Update uniform stage buffer values.	*/
 			this->uniform_stage_buffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
 			this->uniform_stage_buffer.modelViewProjection =

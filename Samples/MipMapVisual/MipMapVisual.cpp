@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -31,6 +32,7 @@ namespace glsample {
 			}
 		}
 	};
+	static const std::vector<glm::vec3> mip_colors = {{1, 1, 0}, {0, 1, 0}, {0, 1, 1}, {1, 1, 1}, {1, 0, 0}, {1, 0, 1}};
 
 	/**
 	 * @brief
@@ -44,14 +46,13 @@ namespace glsample {
 				std::make_shared<MipMapVisualSettingComponent>(this->uniformStageBuffer, this->mipmapbias);
 			this->addUIComponent(this->mipmapvisualSettingComponent);
 
-			/*	*/
+			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct uniform_buffer_block {
-
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 modelViewProjection;
 
 		} uniformStageBuffer;
 
@@ -84,6 +85,11 @@ namespace glsample {
 			void draw() override {
 				ImGui::DragFloat("MipMap Bias", &this->mipmapbias, 1, -10.0f, 10.0f);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				for (size_t i = 0; i < mip_colors.size(); i++) {
+					ImGui::Text("Color Mipmap %zu", i);
+					ImGui::ColorEdit3("Color", (float *)&mip_colors[i],
+									  ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+				}
 			}
 
 			bool showWireFrame = false;
@@ -155,8 +161,6 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->mipmap_texture);
 				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, this->mip_levels - 1));
 
-				const std::vector<glm::vec3> mip_colors = {{1, 1, 0}, {0, 1, 0}, {0, 1, 1},
-														   {1, 1, 1}, {1, 0, 0}, {1, 0, 1}};
 				for (size_t i = 0; i < this->mip_levels; i++) {
 
 					const size_t mip_level_width = noiseW >> i;

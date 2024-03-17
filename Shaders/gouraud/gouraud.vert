@@ -4,8 +4,8 @@
 layout(location = 0) in vec3 Vertex;
 layout(location = 2) in vec3 Normal;
 
-layout(location = 0) out vec3 VertexPosition;
-layout(location = 2) out vec3 normal;
+layout(location = 0) out vec3 WorldPos_CS_in;
+layout(location = 1) out vec3 Normal_CS_in;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -16,7 +16,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 
 	/*	Material	*/
 	vec4 diffuseColor;
-	vec4 specularColor;
 
 	/*	Light source.	*/
 	vec4 direction;
@@ -29,6 +28,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 void main() {
-	VertexPosition = (ubo.model * vec4(Vertex, 1.0)).xyz;
-	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
+	WorldPos_CS_in = (ubo.model * vec4(Vertex, 1.0)).xyz;
+	Normal_CS_in = (ubo.model * vec4(Normal, 0.0)).xyz;
 }

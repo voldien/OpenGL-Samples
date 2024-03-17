@@ -8,7 +8,6 @@ namespace glsample {
 
 	/**
 	 * @brief
-	 *
 	 */
 	class Triangle : public GLSampleWindow {
 	  public:
@@ -39,8 +38,8 @@ namespace glsample {
 		}
 
 		void Initialize() override {
-			{
 
+			{
 				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> triangle_vertex_binary =
 					IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());

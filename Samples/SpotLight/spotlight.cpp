@@ -1,16 +1,19 @@
+#include "ModelImporter.h"
+#include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
+#include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class SpotLight : public GLSampleWindow {
 	  public:
@@ -51,8 +54,7 @@ namespace glsample {
 			SpotLightSource spotLights[nrSpotLights];
 		} uniformStageBuffer;
 
-		/*	*/
-		MeshObject plan;
+		Scene scene; /*	World Scene.	*/
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
@@ -95,7 +97,11 @@ namespace glsample {
 				}
 				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
+				ImGui::Checkbox("Animate Lights", &this->animate);
 			}
+
+			bool animate;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -114,11 +120,6 @@ namespace glsample {
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			/*	*/
-			glDeleteVertexArrays(1, &this->plan.vao);
-			glDeleteBuffers(1, &this->plan.vbo);
-			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
 		void Initialize() override {
@@ -155,7 +156,7 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
@@ -163,55 +164,18 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-						 vertices.data(), GL_STATIC_DRAW);
-
-			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
-
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
-
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
+			/*	Load scene from model importer.	*/
+			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(modelLoader);
 
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
 										glm::vec4(1, 0, 1, 1)};
 			for (size_t i = 0; i < this->nrSpotLights; i++) {
-				this->uniformStageBuffer.spotLights[i].range = 45.0f;
+				this->uniformStageBuffer.spotLights[i].range = 160.0f;
 				this->uniformStageBuffer.spotLights[i].position =
-					glm::vec4(i * -1.0f, i * 1.0f, i * -1.5f, 0) * 12.0f + glm::vec4(2.0f);
+					glm::vec4(i * -1.0f, i * 1.0f, i * -1.5f, 0) * 6.0f + glm::vec4(2.0f);
 				this->uniformStageBuffer.spotLights[i].direction = glm::normalize(
 					glm::vec4(fragcore::Math::degToRad(-20.0f * (i + 1)), fragcore::Math::degToRad(-20.0f * (i + 1)),
 							  fragcore::Math::degToRad(20.0f * (i + 1)), 0));
@@ -220,7 +184,7 @@ namespace glsample {
 				this->uniformStageBuffer.spotLights[i].constant_attenuation = 1.0f;
 				this->uniformStageBuffer.spotLights[i].linear_attenuation = 0.1f;
 				this->uniformStageBuffer.spotLights[i].qudratic_attenuation = 0.05f;
-				this->uniformStageBuffer.spotLights[i].intensity = 1.0f;
+				this->uniformStageBuffer.spotLights[i].intensity = 8.0f;
 			}
 		}
 
@@ -253,9 +217,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
+				this->scene.render();
 			}
 		}
 
@@ -263,16 +225,30 @@ namespace glsample {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
 
-			/*	*/
+			/*	Animate the point lights.	*/
+			if (this->spotLightSettingComponent->animate) {
+				for (size_t i = 0; i < sizeof(uniformStageBuffer.spotLights) / sizeof(uniformStageBuffer.spotLights[0]);
+					 i++) {
+					this->uniformStageBuffer.spotLights[i].direction =
+						glm::vec4(10.0f * std::cos(this->getTimer().getElapsed<float>() * 3.1415 + 1.3 * i),
+								  std::cos(this->getTimer().getElapsed<float>() * 3.1415 + 1.3 * i + 0.5f),
+								  10.0f * std::sin(this->getTimer().getElapsed<float>() * 3.1415 + 1.3 * i), 0);
+
+					this->uniformStageBuffer.spotLights[i].direction =
+						glm::normalize(this->uniformStageBuffer.spotLights[i].direction);
+				}
+			}
+
+			/*	Update uniform stage buffer values.	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
 			this->uniformStageBuffer.model =
-				glm::rotate(this->uniformStageBuffer.model, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(45.95f));
+				glm::rotate(this->uniformStageBuffer.model, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 
-			/*	*/
+			/*	Update uniform buffer.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,

@@ -269,6 +269,9 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Transfer each target to default framebuffer.	*/
+			const size_t widthDivior = 2;
+			const size_t heightDivior = 2;
+
 			const float halfW = (width / 2.0f);
 			const float halfH = (height / 2.0f);
 			for (size_t i = 0; i < this->multipass_textures.size(); i++) {
@@ -288,10 +291,10 @@ namespace glsample {
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model =
-				glm::rotate(this->uniformStageBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->uniformStageBuffer.model = glm::rotate(
+				this->uniformStageBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(2.95f));
-			
+
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBuffer.modelViewProjection =

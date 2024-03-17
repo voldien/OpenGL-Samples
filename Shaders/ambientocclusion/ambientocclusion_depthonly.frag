@@ -18,18 +18,27 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	float radius;
 	float intensity;
 	float bias;
-	float cameraNear;
-	float cameraFar;
-	vec2 screen;
 
-	vec3 kernel[64];
-
+	vec4 kernel[64];
 	vec4 color;
+	vec2 screen;
 }
 ubo;
 
 float getExpToLinear(const in float start, const in float end, const in float expValue) {
 	return ((2.0 * start) / (end + start - expValue * (end - start)));
+}
+
+vec3 calcViewPosition(vec2 coords) {
+	float fragmentDepth = texture(DepthTexture, coords).r;
+
+	vec4 ndc = vec4(coords.x * 2.0 - 1.0, coords.y * 2.0 - 1.0, fragmentDepth * 2.0 - 1.0, 1.0);
+
+	vec4 vs_pos = ndc; // u_projection_inverse * ndc;
+
+	vs_pos.xyz = vs_pos.xyz / vs_pos.w;
+
+	return vs_pos.xyz;
 }
 
 void main() {
@@ -38,6 +47,8 @@ void main() {
 
 	/*	*/
 	const vec3 srcPosition = texture(WorldTexture, uv).xyz;
+	//vec3 viewNormal = cross(dFdy(viewPos.xyz), dFdx(viewPos.xyz));
+
 	const vec3 srcNormal = texture(NormalTexture, uv).rgb;
 	const vec3 randVec = texture(NormalRandomize, uv * (ubo.screen / 3.0)).xyz;
 
@@ -47,7 +58,7 @@ void main() {
 	const mat3 TBN = mat3(tangent, bitangent, srcNormal);
 
 	/*	*/
-	// float srcDepth = texture(DepthTexture, uv).r;
+	vec3 samplePos = calcViewPosition(uv);
 
 	/*	*/
 	const float kernelRadius = ubo.radius;
@@ -56,21 +67,21 @@ void main() {
 	float occlusion = 0.0;
 
 	for (int i = 0; i < ubo.samples; i++) {
-		vec3 samplePos = TBN * (ubo.kernel[i]); // from tangent to view-space
-		samplePos = srcPosition + samplePos * kernelRadius;
+		/*	from tangent to view-space */
+		const vec3 sampleWorldDir = TBN * ubo.kernel[i].xyz;
 
+		/*	From view to clip-space.	*/
 		vec4 offset = vec4(samplePos, 1.0);
-		offset = ubo.proj * offset;			 // from view to clip-space
+		offset = ubo.proj * offset;
 		offset.xyz /= offset.w;				 // perspective divide
 		offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
 
-		float bias = 0.045f;
-		float sampleDepth = texture(DepthTexture, offset.xy).z;
+		float sampleDepth = calcViewPosition(offset.xy).z;
 
-		const float srcDepth = getExpToLinear(ubo.cameraNear, ubo.cameraFar, sampleDepth);
+		/*	*/
+		const float rangeCheck = smoothstep(0.0, 1.0, kernelRadius / abs(srcPosition.z - sampleDepth));
 
-		float rangeCheck = smoothstep(0.0, 1.0, kernelRadius / abs(srcPosition.z - sampleDepth));
-		occlusion += (sampleDepth >= srcPosition.z + bias ? 1.0 : 0.0) * rangeCheck * ubo.intensity;
+		occlusion += ((sampleDepth >= srcPosition.z + ubo.bias ? 1.0 : 0.0) * rangeCheck);
 	}
 
 	/* Average and clamp ambient occlusion	*/

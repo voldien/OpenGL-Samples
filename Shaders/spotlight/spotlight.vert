@@ -11,8 +11,8 @@ layout(location = 2) out vec3 normal;
 
 struct spot_light {
 	vec4 position;
-	vec4 color;
 	vec4 direction;
+	vec4 color;
 	float range;
 	float angle;
 	float intensity;
@@ -38,6 +38,6 @@ ubo;
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
 	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
-	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
+	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
 	uv = TextureCoord;
 }

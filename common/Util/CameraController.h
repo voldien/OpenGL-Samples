@@ -76,13 +76,15 @@ namespace glsample {
 
 			/*	*/
 			if (!alt && this->enable_Look) {
+
 				flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime,
 										 current_speed, 0.5f * activated, this->fov, xDiff, yDiff, w, a, s, d, 0, 0, 0);
 
-				Vector3 position = Vector3(this->pos[0], this->pos[1], this->pos[2]);
-				Vector3 look = Vector3(this->look[0], this->look[1], this->look[2]);
-				Vector3 up = Vector3(this->up[0], this->up[1], this->up[2]);
-				Vector3 right = look.cross(up).normalized();
+				/*	*/
+				const Vector3 position = Vector3(this->pos[0], this->pos[1], this->pos[2]);
+				const Vector3 look = Vector3(this->look[0], this->look[1], this->look[2]).normalized();
+				const Vector3 up = Vector3(this->up[0], this->up[1], this->up[2]).normalized();
+				const Vector3 right = look.cross(up).normalized();
 
 				this->calcFrustumPlanes(position, look, up, right);
 			}

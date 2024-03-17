@@ -32,7 +32,7 @@
  * @tparam T
  */
 template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampleSession {
-	//TODO: add static_assert if derived from sample.
+	// TODO: add static_assert if derived from sample.
   public:
 	GLSample() noexcept {
 		// TODO set working directory to exec path.
@@ -50,18 +50,20 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 		/*	Default common options between all samples.	*/
 		cxxopts::Options options("OpenGL Sample: " + fragcore::SystemInfo::getApplicationName(), helperInfo);
-		cxxopts::OptionAdder &addr =
-			options.add_options(fragcore::SystemInfo::getApplicationName())("h,help", "helper information.")(
-				"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value("true"))(	//TODO: change to false.
-				"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
-				"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
-				"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
-				"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
-				"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."))(
-				"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"))(
-				"G,gamma-correction", "Enable Gamma Correction", cxxopts::value<bool>()->default_value("false"))(
-				"W,width", "Set Window Width", cxxopts::value<int>()->default_value("-1"))(
-				"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"));
+		cxxopts::OptionAdder &addr = options.add_options(fragcore::SystemInfo::getApplicationName())(
+			"h,help", "helper information.")("d,debug", "Enable Debug View.",
+											 cxxopts::value<bool>()->default_value("true"))( // TODO: change to false.
+			"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
+			"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
+			"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
+			"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
+			"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."))(
+			"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"))(
+			"G,gamma-correction", "Enable Gamma Correction", cxxopts::value<bool>()->default_value("false"))(
+			"W,width", "Set Window Width", cxxopts::value<int>()->default_value("-1"))(
+			"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"))(
+			"D,display", "Display", cxxopts::value<int>()->default_value("-1"))(
+			"m,multi-sample", "MSSA", cxxopts::value<int>()->default_value("0"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);
@@ -97,16 +99,18 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		/*	Default window size.	*/
 		int width = result["width"].as<int>();
 		int height = result["height"].as<int>();
+		const int msaa = result["multi-sample"].as<int>();
+		const int display_index = result["display"].as<int>();
 
 		/*	Create filesystem that the asset will be read from.	*/
-		this->activeFileSystem = FileSystem::createFileSystem();
+		this->activeFileSystem = fragcore::FileSystem::createFileSystem();
 		const std::string filesystemPath = result["filesystem"].as<std::string>();
 		if (!this->activeFileSystem->isDirectory(filesystemPath.c_str())) {
 
 			const std::string extension = this->activeFileSystem->getFileExtension(filesystemPath.c_str());
 			if (extension == ".zip") {
 				std::cout << "Found Zip File System: " << filesystemPath << std::endl;
-				this->activeFileSystem = ZipFileSystem::createZipFileObject(filesystemPath.c_str());
+				this->activeFileSystem = fragcore::ZipFileSystem::createZipFileObject(filesystemPath.c_str());
 			}
 		}
 
@@ -121,7 +125,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 			// Check all extension.
 			const std::shared_ptr<fragcore::IRenderer> &renderer = this->sampleRef->getRenderInterface();
 			for (size_t i = 0; i < requiredExtension.size(); i++) {
-				
+
 				//((GLRendererInterface*)*renderer);
 			}
 		}
@@ -137,8 +141,12 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 		/*	*/
 		if (fullscreen) {
-			// Compute window size
-			SDLDisplay display = SDLDisplay::getPrimaryDisplay();
+			/* Compute window size	*/
+			fragcore::SDLDisplay display = fragcore::SDLDisplay::getPrimaryDisplay();
+			if (display_index >= 0) {
+				display = fragcore::SDLDisplay::getDisplay(display_index);
+			}
+
 			width = display.width();
 			height = display.height();
 		}

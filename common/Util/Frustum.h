@@ -109,48 +109,30 @@ namespace glsample {
 
 	  private:					/*	Attributes.	*/
 		Plane<float> planes[6]; /*	*/
-		float tang;				/*	*/
 		float nw, nh, fh, fw;	/*	*/
 	};
 
-	Frustum::Frustum() noexcept{ /*  Default frustum value.  */
+	Frustum::Frustum() noexcept { /*  Default frustum value.  */
 	}
 
-	Frustum::Frustum(const Frustum &other)noexcept { /**this = other;*/
+	Frustum::Frustum(const Frustum &other) noexcept { /**this = other;*/
 	}
 
 	void Frustum::calcFrustumPlanes(const Vector3 &position, const Vector3 &look, const Vector3 &up,
 									const Vector3 &right) {
-		Vector3 dir, nc, fc, X, Y, Z;
 
-		Z = look;
-		nc = position + dir * this->getNear();
-		fc = position + dir * this->getFar();
+		const float halfVSide = this->getFar() * tanf(this->getFOV() * .5f);
+		const float halfHSide = halfVSide * getAspect();
 
-		planes[NEAR_PLANE].setNormalAndPoint(-Z, nc);
-		planes[FAR_PLANE].setNormalAndPoint(Z, fc);
+		Vector3 frontMultFar = this->getFar() * look;
 
-		Vector3 aux, normal;
+		this->planes[NEAR_PLANE] = {position + this->getNear() * look, look};
+		this->planes[FAR_PLANE] = {position + frontMultFar, -look};
 
-		aux = (nc + Y * nh) - position;
-		aux.normalize();
-		normal = aux.cross(X);
-		planes[TOP_PLANE].setNormalAndPoint(normal, nc + Y * nh);
-
-		aux = (nc - Y * nh) - position;
-		aux.normalize();
-		normal = X.cross(aux);
-		planes[BOTTOM_PLANE].setNormalAndPoint(normal, nc - Y * nh);
-
-		aux = (nc - X * nw) - position;
-		aux.normalize();
-		normal = aux.cross(Y);
-		planes[LEFT_PLANE].setNormalAndPoint(normal, nc - X * nw);
-
-		aux = (nc + X * nw) - position;
-		aux.normalize();
-		normal = Y.cross(aux);
-		planes[RIGHT_PLANE].setNormalAndPoint(normal, nc + X * nw);
+		this->planes[RIGHT_PLANE] = {position, (frontMultFar - right * halfHSide).cross(up)};
+		this->planes[LEFT_PLANE] = {position, up.cross(frontMultFar + right * halfHSide)};
+		this->planes[TOP_PLANE] = {position, right.cross(frontMultFar - up * halfVSide)};
+		this->planes[BOTTOM_PLANE] = {position, (frontMultFar + up * halfVSide).cross(right)};
 	}
 
 	Frustum::Intersection Frustum::checkPoint(const Vector3 &pos) const noexcept {
@@ -169,31 +151,9 @@ namespace glsample {
 		Frustum::Intersection result = Frustum::In;
 
 		for (int i = 0; i < 6; i++) {
-			if (fragcore::GeometryUtility::TestPlanesAABB(planes[i], AABB::createMinMax(min, max))) {
+
+			if (fragcore::GeometryUtility::TestPlanesAABB(this->planes[i], AABB::createMinMax(min, max))) {
 				return Out;
-			}
-
-			Vector3 p = min;
-			Vector3 n = max;
-			Vector3 N = planes[i].getNormal();
-
-			if (N.x() >= 0) {
-				p[0] = max.x();
-				n[0] = min.x();
-			}
-			if (N.y() >= 0) {
-				p[1] = max.y();
-				n[1] = min.y();
-			}
-			if (N.z() >= 0) {
-				p[2] = max.z();
-				n[2] = min.z();
-			}
-
-			if (planes[i].distance(p) < 0.0f) {
-				return Out;
-			} else if (planes[i].distance(n) < 0.0f) {
-				result = Intersection::Intersect;
 			}
 		}
 
@@ -201,7 +161,7 @@ namespace glsample {
 	}
 
 	Frustum::Intersection Frustum::intersectionAABB(const AABB &bounds) const noexcept {
-		return intersectionAABB(bounds.min(), bounds.max());
+		return this->intersectionAABB(bounds.min(), bounds.max());
 	}
 
 	Frustum::Intersection Frustum::intersectionOBB(const Vector3 &u, const Vector3 &v,

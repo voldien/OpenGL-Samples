@@ -10,14 +10,18 @@ namespace glsample {
 
 	/**
 	 * @brief
-	 *
 	 */
 	class NormalMapping : public GLSampleWindow {
 	  public:
 		NormalMapping() : GLSampleWindow() {
 			this->setTitle("NormalMapping");
+
 			this->normalMapSettingComponent = std::make_shared<NormalMapSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->normalMapSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct uniform_buffer_block {
@@ -76,11 +80,14 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Normal Setting");
 				ImGui::DragFloat("Strength", &this->uniform.normalStrength);
+
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("Rotate", &this->useAnimate);
 			}
 
 			bool showWireFrame = false;
+			bool useAnimate = false;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -246,17 +253,19 @@ namespace glsample {
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
-			/*	*/
+			/*	Update uniform stage buffer values.	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model = glm::rotate(
-				this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
+			if (this->normalMapSettingComponent->useAnimate) {
+				this->uniformStageBuffer.model = glm::rotate(
+					this->uniformStageBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			}
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
 
-			/*	*/
+			/*	Update uniform buffer.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,

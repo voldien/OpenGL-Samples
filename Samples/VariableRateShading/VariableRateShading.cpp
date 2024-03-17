@@ -9,6 +9,7 @@
 #include <iostream>
 
 namespace glsample {
+	// TODO: use existing sample, override.
 
 	/**
 	 * @brief
@@ -186,7 +187,7 @@ namespace glsample {
 
 			/*	Variable rate shading.	*/
 			{
-				//glBindShadingRateImageNV();
+				// glBindShadingRateImageNV();
 			}
 
 			/*	*/

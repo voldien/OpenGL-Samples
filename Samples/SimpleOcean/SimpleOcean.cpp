@@ -1,4 +1,5 @@
 #include "Core/math/Random.h"
+#include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -21,11 +22,12 @@ namespace glsample {
 	  public:
 		SimpleOcean() : GLSampleWindow() {
 			this->setTitle("Simple Ocean");
+
 			this->simpleOceanSettingComponent =
 				std::make_shared<SimpleOceanSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->simpleOceanSettingComponent);
 
-			/*	*/
+			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(200.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -38,7 +40,7 @@ namespace glsample {
 			float gamma = 2.2;
 		};
 
-		const size_t nrWaves = 32;
+		static const size_t nrMaxWaves = 64;
 
 		typedef struct wave_t {
 			glm::vec4 waveAmpSpeed;
@@ -60,7 +62,7 @@ namespace glsample {
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 position;
 
-			Wave waves[32];
+			Wave waves[nrMaxWaves];
 
 			int nrWaves = 16;
 			float time = 0.0f;
@@ -81,6 +83,7 @@ namespace glsample {
 		/*	*/
 		MeshObject plan;
 		MeshObject skybox;
+		Skybox _skybox;
 
 		/*	*/
 		unsigned int normal_texture;
@@ -120,11 +123,11 @@ namespace glsample {
 
 				/*	*/
 				ImGui::TextUnformatted("Ocean");
+				ImGui::DragInt("Number Waves", &this->uniform.ocean.nrWaves, 1, 0, nrMaxWaves);
 
-				// TODO add section
 				if (ImGui::CollapsingHeader("Ocean Wave Setttings", &ocean_setting_visable,
 											ImGuiTreeNodeFlags_CollapsingHeader)) {
-					ImGui::DragInt("Number Waves", &this->uniform.ocean.nrWaves, 1, 0, 32);
+
 					for (int i = 0; i < this->uniform.ocean.nrWaves; i++) {
 						ImGui::PushID(i);
 						ImGui::Text("Wave %d", i);
@@ -153,7 +156,6 @@ namespace glsample {
 				ImGui::DragFloat("Gamma", &this->uniform.skybox.gamma);
 				/*	*/
 				ImGui::TextUnformatted("Debug");
-
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
@@ -161,7 +163,7 @@ namespace glsample {
 
 		  private:
 			struct uniform_buffer_block &uniform;
-			bool ocean_setting_visable = false;
+			bool ocean_setting_visable = true;
 		};
 		std::shared_ptr<SimpleOceanSettingComponent> simpleOceanSettingComponent;
 
@@ -195,26 +197,28 @@ namespace glsample {
 
 			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
 
-			/*	Load shader source.	*/
-			const std::vector<uint32_t> vertex_simple_ocean_binary =
-				IOUtil::readFileData<uint32_t>(vertexSimpleOceanShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_simple_ocean_binary =
-				IOUtil::readFileData<uint32_t>(fragmentSimpleOceanShaderPath, this->getFileSystem());
+			{
+				/*	Load shader source.	*/
+				const std::vector<uint32_t> vertex_simple_ocean_binary =
+					IOUtil::readFileData<uint32_t>(vertexSimpleOceanShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_simple_ocean_binary =
+					IOUtil::readFileData<uint32_t>(fragmentSimpleOceanShaderPath, this->getFileSystem());
 
-			const std::vector<uint32_t> vertex_skybox_binary =
-				IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_skybox_binary =
-				IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> vertex_skybox_binary =
+					IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_skybox_binary =
+					IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader programs.	*/
-			this->simpleOcean_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_simple_ocean_binary,
-																		 &fragment_simple_ocean_binary);
-			this->skybox_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+				/*	Load shader programs.	*/
+				this->simpleOcean_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_simple_ocean_binary, &fragment_simple_ocean_binary);
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+			}
 
 			/*	Setup graphic pipeline settings.    */
 			glUseProgram(this->simpleOcean_program);
@@ -252,7 +256,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices, 256, 256);
+			ProceduralGeometry::generatePlan(1, vertices, indices, 512, 512);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->plan.vao);
@@ -323,7 +327,7 @@ namespace glsample {
 			glBindVertexArray(0);
 
 			/*	Initilize Waves.	*/
-			for (int i = 0; i < nrWaves; i++) {
+			for (int i = 0; i < nrMaxWaves; i++) {
 
 				float waveLength = 0;
 				float waveAmplitude = 0;
@@ -333,6 +337,8 @@ namespace glsample {
 				this->uniform_stage_buffer.ocean.waves[i].direction = glm::normalize(glm::vec4(rand(), rand(), 0, 0));
 			}
 		}
+
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
 
@@ -426,7 +432,7 @@ namespace glsample {
 				this->uniform_stage_buffer.ocean.model = glm::rotate(this->uniform_stage_buffer.ocean.model,
 																	 glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 				this->uniform_stage_buffer.ocean.model =
-					glm::scale(this->uniform_stage_buffer.ocean.model, glm::vec3(1000.95f));
+					glm::scale(this->uniform_stage_buffer.ocean.model, glm::vec3(2000.95f));
 
 				this->uniform_stage_buffer.ocean.view = this->camera.getViewMatrix();
 				this->uniform_stage_buffer.ocean.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);

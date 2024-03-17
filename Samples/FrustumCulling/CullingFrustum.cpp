@@ -1,4 +1,5 @@
 #include "Core/Math3D.h"
+#include "GLSampleSession.h"
 #include "Scene.h"
 #include "Util/CameraController.h"
 #include <GL/glew.h>
@@ -10,6 +11,7 @@
 #include <cstdint>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <queue>
 
 namespace glsample {
 
@@ -23,13 +25,14 @@ namespace glsample {
 
 		void render() override { Scene::render(); }
 
+		void render(std::queue<const NodeObject *> &queue) { Scene::render(); }
+
 		void renderNode(const NodeObject *node) override {
 
 			// TODO: add frustum culling.
 			Scene::renderNode(node);
 		}
-
-	}; // namespace glsample
+	};
 
 	/**
 	 * @brief FrustumCulling
@@ -49,9 +52,10 @@ namespace glsample {
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 
+			/*	*/
 			this->camera_observe_frustum.setPosition(glm::vec3(200.5f));
 			this->camera_observe_frustum.lookAt(glm::vec3(0.f));
-
+			/*	*/
 			this->camera_observe_frustum.enableNavigation(false);
 			this->camera_observe_frustum.enableLook(false);
 		}
@@ -80,7 +84,7 @@ namespace glsample {
 		SceneFrustum scene; /*	World Scene.	*/
 
 		/*	*/
-		unsigned int texture_program;
+		unsigned int graphic_program;
 		unsigned int bounding_program;
 		unsigned int wireframe_program;
 		unsigned int skybox_program;
@@ -102,7 +106,7 @@ namespace glsample {
 
 		size_t instanceBatch = 0;
 
-		/*	FrustumCulling Rendering Path.	*/
+		/*	FrustumCulling Rendering Path.	*/ // TODO add better shader.
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag.spv";
 
@@ -133,9 +137,11 @@ namespace glsample {
 				ImGui::Checkbox("Show Frustum", &this->showFrustum);
 				ImGui::Checkbox("Show Bounds", &this->showBounds);
 				ImGui::Checkbox("Show Frustum View", &this->showFrustumView);
+				ImGui::Checkbox("Frustum Culling", &this->frustumCulling);
 			}
 
 			bool showWireFrame = false;
+			bool frustumCulling = true;
 			bool showFrustum = true;
 			bool showBounds = true;
 			bool showFrustumView = true;
@@ -149,7 +155,7 @@ namespace glsample {
 
 			this->scene.release();
 
-			glDeleteProgram(this->texture_program);
+			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->skybox_program);
 			glDeleteProgram(this->bounding_program);
 			glDeleteProgram(this->wireframe_program);
@@ -207,7 +213,7 @@ namespace glsample {
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 
 				/*	Load shader	*/
-				this->texture_program =
+				this->graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 				/*	Load shader	*/
@@ -220,10 +226,10 @@ namespace glsample {
 			}
 
 			/*	Setup graphic program.	*/
-			glUseProgram(this->texture_program);
-			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->texture_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->texture_program, uniform_buffer_index, uniform_buffer_binding);
-			glUniform1i(glGetUniformLocation(this->texture_program, "diffuse"), 0);
+			glUseProgram(this->graphic_program);
+			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, uniform_buffer_binding);
+			glUniform1i(glGetUniformLocation(this->graphic_program, "diffuse"), 0);
 			glUseProgram(0);
 
 			/*	Setup graphic program.	*/
@@ -362,6 +368,7 @@ namespace glsample {
 							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformBufferSize * this->nrCameras,
 							  this->uniformBufferSize);
 
+			secondCameraNodeQueue = this->mainCameraNodeQueue;
 			/*	Draw from main camera */
 			{
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -370,7 +377,7 @@ namespace glsample {
 				glClearColor(0.05f, 0.05f, 0.05f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				glUseProgram(this->texture_program);
+				glUseProgram(this->graphic_program);
 
 				this->scene.render();
 
@@ -378,7 +385,7 @@ namespace glsample {
 
 				if (this->frustumCullingSettingComponent->showBounds) {
 					glUseProgram(this->bounding_program);
-					this->renderBoundingBox(this->camera);
+					this->renderBoundingBox(this->camera, this->mainCameraNodeQueue);
 					glUseProgram(0);
 				}
 			}
@@ -405,7 +412,7 @@ namespace glsample {
 					glEnable(GL_SCISSOR_TEST);
 					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-					glUseProgram(this->texture_program);
+					glUseProgram(this->graphic_program);
 
 					this->scene.render();
 
@@ -419,7 +426,7 @@ namespace glsample {
 
 					if (this->frustumCullingSettingComponent->showBounds) {
 						glUseProgram(this->bounding_program);
-						this->renderBoundingBox(this->camera_observe_frustum);
+						this->renderBoundingBox(this->camera_observe_frustum, this->secondCameraNodeQueue);
 						glUseProgram(0);
 					}
 
@@ -427,6 +434,8 @@ namespace glsample {
 				}
 			}
 		}
+		std::queue<const NodeObject *> mainCameraNodeQueue;
+		std::queue<const NodeObject *> secondCameraNodeQueue;
 
 		void update() override {
 
@@ -440,9 +449,6 @@ namespace glsample {
 			{
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 				this->uniformStageBuffer.model = glm::mat4(1.0f);
-				this->uniformStageBuffer.model = glm::rotate(
-					this->uniformStageBuffer.model, glm::radians(elapsedTime * 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-				this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.95f));
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();
 				this->uniformStageBuffer.modelViewProjection =
 					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
@@ -467,6 +473,37 @@ namespace glsample {
 
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}
+
+			/*	Compute frustum culling.	*/
+			mainCameraNodeQueue = std::queue<const NodeObject *>();
+			secondCameraNodeQueue = std::queue<const NodeObject *>();
+			for (size_t x = 0; x < this->scene.getNodes().size(); x++) {
+
+				const NodeObject *node = this->scene.getNodes()[x];
+
+				for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
+
+					/*	Compute world space AABB.	*/
+					const AABB aabb = fragcore::AABB::createMinMax(
+						(GLM2E<float, 4, 4>(node->modelGlobalTransform) *
+						 Vector4(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2], 0))
+							.head(3),
+						(GLM2E<float, 4, 4>(node->modelGlobalTransform) *
+						 Vector4(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2], 0))
+							.head(3));
+
+					if (this->camera.intersectionAABB(aabb) || !this->frustumCullingSettingComponent->frustumCulling) {
+						/*	*/
+						mainCameraNodeQueue.push(node);
+					}
+
+					if (this->camera_observe_frustum.intersectionAABB(aabb) ||
+						!this->frustumCullingSettingComponent->frustumCulling) {
+						/*	*/
+						secondCameraNodeQueue.push(node);
+					}
+				}
+			}
 		}
 
 		void renderFrustum(const CameraController &camera) {
@@ -476,29 +513,30 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		void renderBoundingBox(const CameraController &camera) {
+		void renderBoundingBox(const CameraController &camera, std::queue<const NodeObject *> &queue) {
 
 			// TODO: fix if more than buffer size.
 			std::vector<glm::mat4> instance_model_matrices;
 
-			for (size_t x = 0; x < this->scene.getNodes().size(); x++) {
+			while (!queue.empty()) {
 
-				const NodeObject *node = this->scene.getNodes()[x];
+				const NodeObject *node = queue.front();
+				queue.pop();
 
 				for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
 
-					// TODO: fix,add bound values.
 					const MeshObject &refMesh = this->scene.getMeshes()[node->geometryObjectIndex[i]];
 
-					// Compute matrices.
-					AABB aabb = fragcore::AABB::createMinMax(
-						Vector3(refMesh.bound.aabb.min[0], refMesh.bound.aabb.min[1], refMesh.bound.aabb.min[2]),
-						Vector3(refMesh.bound.aabb.max[0], refMesh.bound.aabb.max[1], refMesh.bound.aabb.max[2]));
+					/*	*/
+					const AABB aabb = fragcore::AABB::createMinMax(
+						Vector4(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2], 0).head(3),
+						Vector4(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2], 0).head(3));
 
-					glm::mat4 boundModel = glm::translate(glm::mat4(1.0), E2GLM<float, 3>(aabb.getCenter()));
-					boundModel = glm::scale(boundModel, E2GLM<float, 3>(aabb.getSize()));
+					glm::mat4 localBoundMatrix = glm::mat4(1);
+					localBoundMatrix = glm::translate(localBoundMatrix, E2GLM<float, 3>(aabb.getCenter()));
+					localBoundMatrix = glm::scale(localBoundMatrix, E2GLM<float, 3>(aabb.getSize()));
 
-					const glm::mat4 model = this->scene.getNodes()[x]->modelTransform * boundModel;
+					const glm::mat4 model = node->modelGlobalTransform * localBoundMatrix;
 
 					instance_model_matrices.push_back(model);
 				}

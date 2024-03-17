@@ -46,6 +46,8 @@ namespace glsample {
 		virtual void Init(unsigned int texture, unsigned int program);
 
 		virtual void Render(const CameraController &camera);
+		virtual void Render(const glm::mat4 &viewProj);
+		/**/
 		virtual void RenderImGUI();
 
 	  private:

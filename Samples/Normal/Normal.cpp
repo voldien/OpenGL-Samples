@@ -1,3 +1,5 @@
+#include "ImportHelper.h"
+#include "ModelImporter.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -20,7 +22,7 @@ namespace glsample {
 			this->normalSettingComponent = std::make_shared<NormalSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->normalSettingComponent);
 
-			/*	*/
+			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
@@ -39,7 +41,7 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		MeshObject geometry;
+		std::vector<MeshObject> refObj;
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
@@ -69,10 +71,12 @@ namespace glsample {
 				ImGui::Checkbox("Triangle Normal", &this->showTriangleNormal);
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("Rotation Animation", &this->useAnimation);
 			}
 
 			bool showWireFrame = false;
 			bool showTriangleNormal = false;
+			bool useAnimation = false;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -101,10 +105,9 @@ namespace glsample {
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
 
-			/*	*/
-			glDeleteVertexArrays(1, &this->geometry.vao);
-			glDeleteBuffers(1, &this->geometry.vbo);
-			glDeleteBuffers(1, &this->geometry.ibo);
+			glDeleteVertexArrays(1, &this->refObj[0].vao);
+			glDeleteBuffers(1, &this->refObj[0].vbo);
+			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
 		void Initialize() override {
@@ -168,7 +171,7 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -176,48 +179,13 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateTorus(1, vertices, indices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->geometry.vao);
-			glBindVertexArray(this->geometry.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->geometry.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, geometry.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glGenBuffers(1, &this->geometry.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->geometry.nrIndicesElements = indices.size();
-
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
-
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
+			/*	Load scene from model importer.	*/
+			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
+			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
+
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
 
@@ -254,8 +222,12 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->geometry.vao);
-				glDrawElements(GL_TRIANGLES, this->geometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(this->refObj[0].vao);
+				for (size_t i = 0; i < this->refObj.size(); i++) {
+					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+											 this->refObj[i].vertex_offset);
+				}
 				glBindVertexArray(0);
 				glUseProgram(0);
 			}
@@ -268,13 +240,24 @@ namespace glsample {
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 				/*	*/
-				glBindVertexArray(this->geometry.vao);
+				glBindVertexArray(this->refObj[0].vao);
 				if (this->normalSettingComponent->showTriangleNormal) {
 					glUseProgram(this->normal_triangle_program);
-					glDrawElements(GL_TRIANGLES, this->geometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+
+					for (size_t i = 0; i < this->refObj.size(); i++) {
+						glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+												 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+												 this->refObj[i].vertex_offset);
+					}
+
 				} else {
 					glUseProgram(this->normal_vertex_program);
-					glDrawElements(GL_POINTS, this->geometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+
+					for (size_t i = 0; i < this->refObj.size(); i++) {
+						glDrawElementsBaseVertex(GL_POINTS, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+												 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+												 this->refObj[i].vertex_offset);
+					}
 				}
 
 				glBindVertexArray(0);
@@ -294,8 +277,10 @@ namespace glsample {
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model = glm::rotate(
-				this->uniformStageBuffer.model, glm::radians(elapsedTime * 45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			if (this->normalSettingComponent->useAnimation) {
+				this->uniformStageBuffer.model = glm::rotate(
+					this->uniformStageBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			}
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.proj =

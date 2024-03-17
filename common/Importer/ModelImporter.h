@@ -76,12 +76,13 @@ typedef struct material_object_t : public AssetObject {
 typedef struct node_object_t : public AssetObject {
 
 	/*	*/
-	glm::vec3 position;
-	glm::quat rotation;
-	glm::vec3 scale;
+	glm::vec3 localPosition;
+	glm::quat localRotation;
+	glm::vec3 localScale;
 
 	/*	*/
-	glm::mat4 modelTransform;
+	glm::mat4 modelGlobalTransform;
+	glm::mat4 modelLocalTransform;
 
 	fragcore::Bound bound;
 
@@ -264,7 +265,7 @@ class FVDECLSPEC ModelImporter {
 
 	const std::string &getDirectoryPath() const noexcept { return this->filepath; }
 
-	glm::mat4 &globalTransform() const noexcept;
+	const glm::mat4 &globalTransform() const noexcept { return this->global; }
 
   private:
 	fragcore::IFileSystem *fileSystem;

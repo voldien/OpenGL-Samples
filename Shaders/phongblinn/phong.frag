@@ -18,6 +18,7 @@ struct point_light {
 	float qudratic_attenuation;
 };
 
+#define NR_LIGHTS 4
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -30,7 +31,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 specularColor;
 	vec4 viewPos;
 
-	point_light point_light[4];
+	point_light point_light[NR_LIGHTS];
 
 	float shininess;
 }
@@ -40,13 +41,13 @@ layout(binding = 1) uniform sampler2D DiffuseTexture;
 
 void main() {
 
-	vec3 viewDir = normalize(ubo.viewPos.xyz - vertex);
+	const vec3 viewDir = normalize(ubo.viewPos.xyz - vertex);
 
 	// Compute directional light
 	vec4 pointLightColors = vec4(0);
 	vec4 pointLightSpecular = vec4(0);
 
-	[[unroll]]for (int i = 0; i < 4; i++) {
+	[[unroll]] for (int i = 0; i < NR_LIGHTS; i++) {
 
 		const vec3 diffVertex = (ubo.point_light[i].position - vertex);
 		const vec3 lightDir = normalize(diffVertex);
@@ -61,9 +62,9 @@ void main() {
 		pointLightColors += attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range *
 							ubo.point_light[i].intensity;
 
-
-		const vec3 halfwayDir = normalize(lightDir + viewDir);
-		const float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), ubo.shininess);
+		/*	*/
+		const vec3 reflectDir = reflect(-lightDir, normal);
+		const float spec = pow(max(dot(viewDir, reflectDir), 0.0), ubo.shininess);
 
 		pointLightSpecular += (ubo.specularColor * spec);
 	}

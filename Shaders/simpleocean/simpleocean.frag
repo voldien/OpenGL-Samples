@@ -32,7 +32,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 ambientColor;
 	vec4 position;
 
-	Wave waves[32];
+	Wave waves[64];
 	int nrWaves;
 	float time;
 
@@ -46,16 +46,8 @@ ubo;
 layout(binding = 1) uniform sampler2D ReflectionTexture;
 layout(binding = 2) uniform sampler2D NormalTexture;
 
-float computeLightContributionFactor(in vec3 direction, in vec3 normalInput) {
+float computeLightContributionFactor(in const vec3 direction, in const vec3 normalInput) {
 	return max(0.0, dot(-normalInput, direction));
-}
-
-vec3 equirectangular(const in vec2 xy) {
-	vec2 tc = xy / vec2(2.0) - 0.5;
-	vec2 thetaphi =
-		((tc * 2.0) - vec2(1.0)) * vec2(3.1415926535897932384626433832795, 1.5707963267948966192313216916398);
-	vec3 rayDirection = vec3(cos(thetaphi.y) * cos(thetaphi.x), sin(thetaphi.y), cos(thetaphi.y) * sin(thetaphi.x));
-	return rayDirection;
 }
 
 vec2 inverse_equirectangular(const in vec3 direction) {
@@ -78,18 +70,19 @@ void main() {
 	const vec3 diffVertex = (ubo.position.xyz - vertex);
 	const vec3 lightDir = normalize(diffVertex);
 	const vec3 halfwayDir = normalize(lightDir + viewDir);
-	const float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), ubo.shininess);
+	const float spec = pow(max(dot(Mnormal, halfwayDir), 0.0), ubo.shininess);
 
 	const vec4 specular = ubo.specularColor * spec;
 
 	/*	*/
-	vec3 reflection = normalize(reflect(viewDir, normalize(Mnormal)));
+	vec3 reflection = normalize(reflect(viewDir, Mnormal));
 	vec2 reflection_uv = inverse_equirectangular(reflection);
 
+	/*	*/
 	float fresnel = max(dot(Mnormal, viewDir), 0);
 	fresnel = pow(fresnel, ubo.fresnelPower);
 
-	vec4 color = mix(ubo.oceanColor, texture(ReflectionTexture, reflection_uv), fresnel);
+	const vec4 color = mix(ubo.oceanColor, texture(ReflectionTexture, reflection_uv), fresnel);
 	fragColor = color * (ubo.ambientColor + lightColor + specular);
 	fragColor.a = 1 - fresnel;
 }

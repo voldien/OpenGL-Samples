@@ -35,7 +35,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 ambientColor;
 	vec4 position;
 
-	Wave waves[32];
+	Wave waves[64];
 	int nrWaves;
 	float time;
 
@@ -51,7 +51,7 @@ vec3 computeNormal(const in float time) {
 	float normalX = 0;
 	float normalY = 0;
 
-	for (int i = 0; i < ubo.nrWaves; i++) {
+	for (int i = 0; i < min(ubo.nrWaves, 64); i++) {
 
 		const Wave w = ubo.waves[i];
 
@@ -66,6 +66,7 @@ vec3 computeNormal(const in float time) {
 float computeHeight(const in float time, in const Wave w) {
 	return w.amplitude * sin(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed);
 }
+
 // Gerstner Waves
 vec3 computeGerstnerWaves(const in float time, in const Wave wave) {
 	float height = 0;
@@ -79,16 +80,17 @@ vec3 computeGerstnerWaves(const in float time, in const Wave wave) {
 	return vec3(x, height, y);
 }
 
+//TODO: compute
 vec3 computeTangent(const in float time, in const Wave w) { return vec3(0); }
 
 void main() {
 
 	float height = 0;
-	for (int i = 0; i < ubo.nrWaves; i++) {
+	for (int i = 0; i < min(ubo.nrWaves, 64); i++) {
 		height += computeHeight(ubo.time, ubo.waves[i]);
 	}
 
-	const vec3 surface_normal = computeNormal(ubo.time);
+	const vec3 surface_normal = normalize(computeNormal(ubo.time));
 
 	const vec3 surface_vertex = Vertex + Normal * height;
 

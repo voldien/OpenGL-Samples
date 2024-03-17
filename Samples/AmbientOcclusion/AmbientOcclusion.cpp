@@ -138,7 +138,7 @@ namespace glsample {
 
 		/*	*/
 		const std::string vertexSSAODepthOnlyShaderPath =
-			"Shaders/ambientocclusion/ambientocclusion_depthonly.vert.spv";
+			"Shaders/ambientocclusion/ambientocclusion.vert.spv";
 		const std::string fragmentSSAODepthOnlyShaderPath =
 			"Shaders/ambientocclusion/ambientocclusion_depthonly.frag.spv";
 
@@ -192,9 +192,9 @@ namespace glsample {
 
 				/*	Load shader source.	*/
 				const std::vector<uint32_t> vertex_ssao_depth_only_source =
-					IOUtil::readFileData<uint32_t>(this->vertexSSAOShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->vertexSSAODepthOnlyShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_ssao_depth_onlysource =
-					IOUtil::readFileData<uint32_t>(this->fragmentSSAOShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->fragmentSSAODepthOnlyShaderPath, this->getFileSystem());
 
 				const std::vector<uint32_t> vertex_multi_pass_source =
 					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
@@ -548,12 +548,6 @@ namespace glsample {
 							  this->ambientOcclusionSettingComponent->showWireframe ? GL_LINE : GL_FILL);
 
 				glDisable(GL_CULL_FACE);
-
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->white_texture);
-
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, 0);
 
 				this->scene.render();
 

@@ -22,9 +22,8 @@
 #include <fstream>
 #include <vector>
 
-using namespace fragcore;
-
 namespace glsample {
+	using namespace fragcore;
 
 	/**
 	 * @brief

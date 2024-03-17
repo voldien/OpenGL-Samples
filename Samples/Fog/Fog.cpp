@@ -10,7 +10,7 @@
 #include <iostream>
 
 namespace glsample {
-	
+
 	/**
 	 * Simple Fog Sample.
 	 */
@@ -20,7 +20,7 @@ namespace glsample {
 			this->setTitle("Fog");
 
 			/*	Setting Window.	*/
-			this->fogSettingComponent = std::make_shared<FogSettingComponent>(this->uniform);
+			this->fogSettingComponent = std::make_shared<FogSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(this->fogSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -57,9 +57,7 @@ namespace glsample {
 			float fogDensity = 0.1f;
 			FogType fogType = FogType::Exp;
 			float fogIntensity = 1.0f;
-		} uniform;
-
-		unsigned int diffuse_texture;
+		} uniform_stage_buffer;
 
 		Scene scene;
 
@@ -110,17 +108,12 @@ namespace glsample {
 
 		void Release() override {
 			glDeleteProgram(this->graphic_fog_program);
-
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			/*	TODO delete geometry.	*/
-			/*	Delete geometry data.	*/
 		}
 
 		void Initialize() override {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
-			const std::string diffuseTexturePath = "asset/diffuse.png"; // TODO remove.
 
 			{
 				/*	*/
@@ -137,10 +130,6 @@ namespace glsample {
 				this->graphic_fog_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 			}
-
-			/*	load Textures	*/
-			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	*/
 			glUseProgram(this->graphic_fog_program);
@@ -171,8 +160,9 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height,
-												  this->uniform.cameraNear, this->uniform.cameraFar);
+			this->uniform_stage_buffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)width / (float)height,
+								 this->uniform_stage_buffer.cameraNear, this->uniform_stage_buffer.cameraFar);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -184,21 +174,18 @@ namespace glsample {
 			/*	Optional - to display wireframe.	*/
 			glPolygonMode(GL_FRONT_AND_BACK, this->fogSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
+			/*	*/
 			{
 
-				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
 				glUseProgram(this->graphic_fog_program);
 
+				/*	*/
 				glCullFace(GL_BACK);
 				glDisable(GL_CULL_FACE);
-
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				this->scene.render();
 			}
@@ -209,17 +196,18 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
-			this->uniform.model = glm::mat4(1.0f);
-			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
-			this->uniform.view = this->camera.getViewMatrix();
-			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
+			this->uniform_stage_buffer.model = glm::mat4(1.0f);
+			this->uniform_stage_buffer.model = glm::scale(this->uniform_stage_buffer.model, glm::vec3(1.95f));
+			this->uniform_stage_buffer.view = this->camera.getViewMatrix();
+			this->uniform_stage_buffer.modelViewProjection =
+				this->uniform_stage_buffer.proj * this->uniform_stage_buffer.view * this->uniform_stage_buffer.model;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
 				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniform, sizeof(uniform));
+			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

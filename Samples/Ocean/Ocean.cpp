@@ -11,7 +11,13 @@ namespace glsample {
 
 	class Ocean : public GLSampleWindow {
 	  public:
-		Ocean() : GLSampleWindow() { this->setTitle("Ocean"); }
+		Ocean() : GLSampleWindow() {
+			this->setTitle("Ocean");
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(200.5f));
+			this->camera.lookAt(glm::vec3(0.f));
+		}
 		// TODO rename.
 		typedef struct _vertex_t {
 			float h0[2];
@@ -51,7 +57,7 @@ namespace glsample {
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4);
 
-		} mvp;
+		} uniformStageBuffer;
 
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
@@ -140,33 +146,35 @@ namespace glsample {
 		// }
 
 		void Initialize() override {
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-			/*	Load source code for the ocean shader.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
-			std::vector<char> control_source = IOUtil::readFileString(tesscShaderPath, this->getFileSystem());
-			std::vector<char> evolution_source = IOUtil::readFileString(teseShaderPath, this->getFileSystem());
+			{
+				/*	Load source code for the ocean shader.	*/
+				std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
+				std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+				std::vector<char> control_source = IOUtil::readFileString(tesscShaderPath, this->getFileSystem());
+				std::vector<char> evolution_source = IOUtil::readFileString(teseShaderPath, this->getFileSystem());
 
-			/*	Load source code for spectrum compute shader.	*/
-			std::vector<char> compute_spectrum_source =
-				IOUtil::readFileString(computeShaderPath, this->getFileSystem());
-			/*	Load source code for fast furious transform.	*/
-			std::vector<char> compute_kff_source = IOUtil::readFileString(computeKFFShaderPath, this->getFileSystem());
+				/*	Load source code for spectrum compute shader.	*/
+				std::vector<char> compute_spectrum_source =
+					IOUtil::readFileString(computeShaderPath, this->getFileSystem());
+				/*	Load source code for fast furious transform.	*/
+				std::vector<char> compute_kff_source =
+					IOUtil::readFileString(computeKFFShaderPath, this->getFileSystem());
 
-			/*	Load graphic program for skybox.	*/
-			this->ocean_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, nullptr,
-																		   &control_source, &evolution_source);
+				/*	Load graphic program for skybox.	*/
+				this->ocean_graphic_program = ShaderLoader::loadGraphicProgram(
+					&vertex_source, &fragment_source, nullptr, &control_source, &evolution_source);
 
-			/*	Load compute shader program.	*/
-			this->spectrum_compute_program = ShaderLoader::loadComputeProgram({&compute_spectrum_source});
-			this->kff_compute_program = ShaderLoader::loadComputeProgram({&compute_kff_source});
+				/*	Load compute shader program.	*/
+				this->spectrum_compute_program = ShaderLoader::loadComputeProgram({&compute_spectrum_source});
+				this->kff_compute_program = ShaderLoader::loadComputeProgram({&compute_kff_source});
 
-			this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
-
+				this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			}
 			/*	Setup ocean shader.	*/
 			glUseProgram(this->ocean_graphic_program);
-			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->ocean_graphic_program, "UniformBufferBlock");
+			unsigned int uniform_buffer_index =
+				glGetUniformBlockIndex(this->ocean_graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->ocean_graphic_program, "reflection"), 0);
 			glUniformBlockBinding(this->ocean_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -338,21 +346,22 @@ namespace glsample {
 
 		void update() override {
 			/*	*/
-			float elapsedTime = getTimer().getElapsed<float>();
+			const float elapsedTime = getTimer().getElapsed<float>();
 			camera.update(getTimer().deltaTime<float>());
 
 			/*	*/
-			this->mvp.model = glm::mat4(1.0f);
-			this->mvp.model = glm::scale(this->mvp.model, glm::vec3(0.95f));
-			this->mvp.view = camera.getViewMatrix();
-			this->mvp.modelViewProjection = this->mvp.proj * camera.getViewMatrix() * this->mvp.model;
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(0.95f));
+			this->uniformStageBuffer.view = camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * camera.getViewMatrix() * this->uniformStageBuffer.model;
 
 			/*	Updated uniform data.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
 								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(uniformPointer, &this->mvp, sizeof(mvp));
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

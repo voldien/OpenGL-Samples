@@ -1,3 +1,4 @@
+#include "FragDef.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -12,8 +13,8 @@
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class SkyBoxPanoramic : public GLSampleWindow {
 	  public:
@@ -81,22 +82,29 @@ namespace glsample {
 		}
 
 		void Initialize() override {
+			// TODO: fix
+			//const std::vector<std::string> cubemapPaths = {"asset/X+.png", "asset/X-.png", "asset/Y+.png",
+			//											   "asset/Y-.png", "asset/Z+.png", "asset/Z-.png"};
+			size_t count = this->getResult()["texture"].count();
+			if(count != 6){
+				throw InvalidArgumentException("Must be 6 file paths - Found {}", count);
+			}
+			const std::vector<std::string> cubemapPaths = this->getResult()["texture"].as<std::vector<std::string>>();
+			{
+				/*	Load shader binaries.	*/
+				std::vector<uint32_t> vertex_source =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			std::vector<std::string> cubemapPaths = {"asset/X+.png", "asset/X-.png", "asset/Y+.png",
-													 "asset/Y-.png", "asset/Z+.png", "asset/Z-.png"};
-
-			/*	Load shader binaries.	*/
-			std::vector<uint32_t> vertex_source =
-				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_source =
-				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
-
-			/*	Create skybox graphic pipeline program.	*/
-			this->skybox_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+				/*	Create skybox graphic pipeline program.	*/
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			}
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
@@ -112,7 +120,7 @@ namespace glsample {
 			/*  */
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
+			this->uniformSize = Math::align(this->uniformSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -138,8 +146,8 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->SkyboxCube.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, SkyboxCube.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-						 vertices.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArray(0);
@@ -201,7 +209,8 @@ namespace glsample {
 
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path",
-					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+					cxxopts::value<std::string>()->default_value(
+						"asset/X+.png asset/X-.png asset/Y+.png asset/Y-.png asset/Z+.png asset/Z-.png"));
 		}
 	};
 } // namespace glsample

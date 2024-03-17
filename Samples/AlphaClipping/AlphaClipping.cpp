@@ -225,7 +225,7 @@ namespace glsample {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
 
-			/*	*/
+			/*	Update uniform stage buffer values.	*/
 			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
 			this->uniform_stage_buffer.modelViewProjection =
 				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix());

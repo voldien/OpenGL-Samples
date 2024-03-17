@@ -1,5 +1,6 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_control_flow_attributes : enable
 
 layout(location = 0) out vec4 fragColor;
 
@@ -34,9 +35,10 @@ layout(binding = 1) uniform sampler2D DiffuseTexture;
 
 void main() {
 
-	// Compute directional light
 	vec4 pointLightColors = vec4(0);
-	for (int i = 0; i < 4; i++) {
+
+	/*	Compute directional light	*/
+	[[unroll]] for (int i = 0; i < 4; i++) {
 		vec3 diffVertex = (ubo.point_light[i].position - vertex);
 		float dist = length(diffVertex);
 

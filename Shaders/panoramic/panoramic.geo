@@ -2,16 +2,16 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
+#extension GL_EXT_control_flow_attributes : enable
 
-layout(location = 0) in vec3 Vertex;
-layout(location = 1) in vec2 TextureCoord;
-layout(location = 2) in vec3 Normal;
-layout(location = 3) in vec3 Tangent;
 
-layout(location = 0) out vec3 vertex;
-layout(location = 1) out vec2 UV;
-layout(location = 2) out vec3 normal;
-layout(location = 3) out vec3 tangent;
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 18) out;
+
+layout(location = 0) in flat int GIndex[];
+
+layout(location = 0) out vec4 FragVertex;
+layout(location = 1) out flat int FIndex;
 
 struct point_light {
 	vec3 position;
@@ -23,7 +23,6 @@ struct point_light {
 	float qudratic_attenuation;
 	float bias;
 	float shadowStrength;
-
 	float padding0;
 	float padding1;
 };
@@ -43,15 +42,20 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 cameraPosition;
 
 	point_light point_light[4];
-	vec4 PCFFilters[20];
-	float diskRadius;
 }
 ubo;
 
 void main() {
-	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
-	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
-	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
-	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
-	UV = TextureCoord;
+
+	[[unroll]]for (int face = 0; face < 6; ++face) {
+		gl_Layer = face;			// built-in variable that specifies to which face we render.
+		 [[unroll]]for (int i = 0; i < 3; ++i) // for each triangle vertex
+		{
+			FragVertex = gl_in[i].gl_Position;
+			FIndex = GIndex[i];
+			gl_Position = (ubo.ViewProjection[gl_Layer]) * gl_in[i].gl_Position;
+			EmitVertex();
+		}
+		EndPrimitive();
+	}
 }
