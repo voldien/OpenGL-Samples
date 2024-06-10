@@ -137,8 +137,7 @@ namespace glsample {
 		const std::string fragmentSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
 
 		/*	*/
-		const std::string vertexSSAODepthOnlyShaderPath =
-			"Shaders/ambientocclusion/ambientocclusion.vert.spv";
+		const std::string vertexSSAODepthOnlyShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert.spv";
 		const std::string fragmentSSAODepthOnlyShaderPath =
 			"Shaders/ambientocclusion/ambientocclusion_depthonly.frag.spv";
 

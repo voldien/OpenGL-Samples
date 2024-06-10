@@ -1,9 +1,9 @@
-#version 460
+#version 460 core
 #extension GL_ARB_derivative_control : enable
-//#extension GL_ARB_compute_variable_group_size : disable
 #extension GL_ARB_enhanced_layouts : enable
 #extension GL_ARB_shader_image_load_store : enable
 #extension GL_ARB_explicit_attrib_location : enable
+
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(binding = 1, rgba8) uniform readonly image2D texture0;
@@ -20,6 +20,8 @@ void main() {
 	// Compute sample coordinate.
 	vec2 TexDiff = vec2(TexSize) / vec2(fragSize);
 	ivec2 sampleTexCoord = ivec2(TexDiff * TexCoord);
+
+
 
 	// TODO add recompute of the sample kernel coordinates.
 	const ivec2 lb = ivec2(-1.0 * TexDiff.x, -1.0 * TexDiff.y);
@@ -42,11 +44,11 @@ void main() {
 	vec4 p22 = imageLoad(texture0, sampleTexCoord + rt);
 
 	// Compute Matrix X and Y.
-	vec3 gx = -p00.xyz + p20.xyz + 2.0f * (p21.xyz - p01.xyz) - p02.xyz + p22.xyz;
-	vec3 gy = -p00.xyz - p20.xyz + 2.0f * (p12.xyz - p10.xyz) + p02.xyz + p22.xyz;
+	const vec3 gx = -p00.xyz + p20.xyz + 2.0f * (p21.xyz - p01.xyz) - p02.xyz + p22.xyz;
+	const vec3 gy = -p00.xyz - p20.xyz + 2.0f * (p12.xyz - p10.xyz) + p02.xyz + p22.xyz;
 
 	// Compute the final.
-	vec3 g = sqrt(gx * gx + gy * gy);
+	const vec3 g = sqrt(gx * gx + gy * gy);
 
 	imageStore(fragColor, TexCoord, vec4(g.rgb, 1.0));
 }

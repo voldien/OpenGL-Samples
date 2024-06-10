@@ -13,6 +13,7 @@ namespace glsample {
 
 	class PBRScene : public Scene {
 	  public:
+	  
 	};
 
 	/**

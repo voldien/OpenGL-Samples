@@ -17,12 +17,15 @@ layout(rgba32f, set = 0, binding = 2) uniform image2D img_output;
 layout(set = 0, binding = 3) uniform UniformBufferBlock {
 	mat4 kernelA;
 	mat4 kernelB;
+	/*	*/
 	float feedRate;
 	float killRate;
 	float diffuseRateA;
 	float diffuseRateB;
 	float delta;
 	float speed;
+	float padding0;
+	float padding1;
 }
 ubo;
 
@@ -36,13 +39,17 @@ float computeDiffuseRateB(const float A, const float B, const float diverage, co
 	return B + (diffuseRate * diverage + A * pow(B, 2) - (killRate - feedRate) * B) * delta;
 }
 
+ivec2 simple_mod(const ivec2 value, const ivec2 modv) { return (value % modv + modv) % modv; }
+
 int memoryAddress(const ivec2 invokedPixelCoord, const ivec2 imageSize, const ivec2 offset) {
-	const ivec2 pixelCoord = (invokedPixelCoord + offset) % imageSize;
-	return pixelCoord.y * imageSize.y + pixelCoord.x;
+	const ivec2 pixelCoord = simple_mod((invokedPixelCoord + offset), imageSize);
+
+	return max(0, pixelCoord.y * imageSize.y + pixelCoord.x);
 }
 
 float lapacianA(const ivec2 pixelCord, const ivec2 imageSize, const mat4 convolutionKernel) {
 	float result = 0;
+	/*	*/
 	[[unroll]] for (int y = 0; y < 3; y++) {
 		[[unroll]] for (int x = 0; x < 3; x++) {
 			result += convolutionKernel[x][2 - y] *
@@ -54,6 +61,7 @@ float lapacianA(const ivec2 pixelCord, const ivec2 imageSize, const mat4 convolu
 
 float lapacianB(const ivec2 pixelCord, const ivec2 imageSize, const mat4 convolutionKernel) {
 	float result = 0;
+	/*	*/
 	[[unroll]] for (int y = 0; y < 3; y++) {
 		[[unroll]] for (int x = 0; x < 3; x++) {
 			result += convolutionKernel[x][2 - y] *
@@ -67,9 +75,13 @@ void main() {
 
 	/*	*/
 	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
-	const uint memory_index = gl_LocalInvocationIndex;
 	const ivec2 cellCellImageSize = imageSize(img_output);
-	const vec2 uv = vec2(pixel_coords) / vec2(cellCellImageSize);
+
+	if(pixel_coords.x > cellCellImageSize.x || pixel_coords.y > cellCellImageSize.y){
+		return;
+	}
+
+	const uint memory_index = memoryAddress(pixel_coords, cellCellImageSize, ivec2(0, 0));
 
 	/*	*/
 	const vec2 AB = PreviousAB.AB[memory_index];
@@ -84,10 +96,14 @@ void main() {
 	const float pB =
 		computeDiffuseRateB(AB.x, AB.y, diverageB, ubo.killRate, ubo.feedRate, ubo.diffuseRateB, ubo.delta * ubo.speed);
 
-	CurrentAB.AB[memory_index] = vec2(pA, pB);
+	/*	*/
+	const vec2 newAB = vec2(pA, pB);
+	CurrentAB.AB[memory_index] = newAB;
+
+	const float ABmag = length(newAB);
 
 	/*	Display the color.	*/
-	const vec4 pixel = vec4(diverageA, 0, diverageB, 1);
+	const vec4 pixel = vec4(pA / ABmag, abs(diverageA - diverageB) / ABmag, pB / ABmag, 1);
 
 	// TODO forward the diverage to a buffer to be drawn
 	imageStore(img_output, pixel_coords, pixel);

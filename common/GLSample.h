@@ -33,6 +33,7 @@
  */
 template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampleSession {
 	// TODO: add static_assert if derived from sample.
+
   public:
 	GLSample() noexcept {
 		// TODO set working directory to exec path.
@@ -121,13 +122,20 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		fragcore::resetErrorFlag();
 
 		/*	Check if required extensions */
+		bool all_required = true;
 		if (requiredExtension.size() > 0) {
 			// Check all extension.
 			const std::shared_ptr<fragcore::IRenderer> &renderer = this->sampleRef->getRenderInterface();
+			fragcore::GLRendererInterface &glRenderer = renderer->as<fragcore::GLRendererInterface>();
 			for (size_t i = 0; i < requiredExtension.size(); i++) {
-
-				//((GLRendererInterface*)*renderer);
+				if (!glRenderer.isExtensionSupported(requiredExtension[i])) {
+					this->sampleRef->getLogger().error("{} Not Supported", requiredExtension[i]);
+					all_required = false;
+				}
 			}
+		}
+		if (!all_required) {
+			return;
 		}
 
 		/*	Internal initialize.	*/
@@ -135,6 +143,9 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 		/*	Init the sample.	*/
 		this->sampleRef->Initialize();
+
+		/*	Make sure everything has been executed from init.	*/
+		glFinish();
 
 		/*	Set debugging state.	*/
 		this->sampleRef->debug(debug);

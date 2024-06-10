@@ -14,7 +14,6 @@ IF(PKG_CONFIG_FOUND)
 	PKG_CHECK_MODULES(SDL2 QUIET sdl2)
 ELSE()
 	MESSAGE(ERROR "")
-
 	# TODO add logic for handling if pkg-config not available.
 ENDIF()
 
@@ -40,7 +39,7 @@ ENDIF()
 # ###########################################
 # Backend libraries
 # ###########################################
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/cxxopts EXCLUDE_FROM_ALL)
+#ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/cxxopts EXCLUDE_FROM_ALL)
 # 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi EXCLUDE_FROM_ALL)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/image/imageloader EXCLUDE_FROM_ALL)
@@ -65,10 +64,8 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/AlphaClipping)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/PointLight)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SpotLight)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/PhongBlinn)
-
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/NormalMapping)
 
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ParallaxMap)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ParallaxOcclusionMapping)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Skybox)
@@ -87,8 +84,8 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ShadowPointLight)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/CascadingShadow)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ProjectedShadow)
 
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/StylizedLandscape)
 
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Subgroup)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SilhouetteDetection)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ShadowVolume)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SimpleOcean)
@@ -104,6 +101,7 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/MineCraft)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SimpleParticleSystem)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/particle-system)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField2D)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/NBodySimulation)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/PhysicalBasedRendering)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/PostProcessingEffects)
@@ -156,10 +154,10 @@ FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${SPIRV}
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
-		COMMAND glslc -x glsl -O -Werror -g --target-env=opengl -o ${SPIRV} ${GLSL}
+		COMMAND glslc  -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex --target-spv=spv1.3 -x glsl -O -Werror -g --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
 		DEPENDS ${GLSL})
 	LIST(APPEND SPIRV_BINARY_FILES ${SPIRV})
-ENDFOREACH(GLSL)
+ENDFOREACH(GLSL) #--target-env=opengl4.5
 
 ADD_CUSTOM_TARGET(
 	Shaders ALL

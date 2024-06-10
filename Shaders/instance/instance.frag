@@ -43,5 +43,5 @@ void main() {
 	const vec4 LightSpecular = ubo.specularColor * spec;
 	const vec4 LightColors = contribution * ubo.lightColor;
 
-	fragColor = (ubo.ambientColor + LightColors + LightSpecular) * texture(DiffuseTexture, uv) * instanceColor;
+	fragColor = (ubo.ambientColor + LightColors + LightSpecular) * texture(DiffuseTexture, uv) * instanceColor * 2.5;
 }

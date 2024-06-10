@@ -22,18 +22,21 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
-	/*	Tint color.	*/
+	/*	*/
 	vec4 tintColor;
 
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
+	vec4 viewDir;
 
 	/*	*/
 	float normalStrength;
+	float shininess;
 }
 ubo;
+
 
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);

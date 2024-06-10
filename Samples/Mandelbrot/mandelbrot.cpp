@@ -1,3 +1,4 @@
+#include "Input.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -26,8 +27,9 @@ namespace glsample {
 		struct uniform_buffer_block {
 			float posX, posY;
 			float mousePosX, mousePosY;
-			float zoom = 1.0f; /*  */
-			float c;		   /*  */
+			float zoom = 1.0f; /*	*/
+			float c = 0;	   /*	*/
+			float ci = 1;	   /*	*/
 			int nrSamples = 128;
 		} params;
 
@@ -35,6 +37,7 @@ namespace glsample {
 		const size_t round_robin_size = 2;
 		unsigned int mandelbrot_framebuffer;
 		unsigned int mandelbrot_program;
+		unsigned int julia_program;
 		unsigned int mandelbrot_texture; // TODO add round robin.
 		unsigned int mandelbrot_texture_width;
 		unsigned int mandelbrot_texture_height;
@@ -55,12 +58,14 @@ namespace glsample {
 				this->setName("Mandelbrot Settings");
 			}
 			void draw() override {
-				ImGui::DragInt("Number of Samples", &this->uniform.nrSamples, 1, 0, 256);
-				ImGui::DragFloat("C", &this->uniform.c);
-				ImGui::DragFloat("Zoom", &this->uniform.zoom, 1.0f, 0.1, 100.0f);
+				ImGui::DragInt("Number of Samples", &this->uniform.nrSamples, 1, 0, 2048);
+				ImGui::DragFloat2("C", &this->uniform.c);
+				ImGui::DragFloat("Zoom", &this->uniform.zoom, 1.0f, 0.001, 10.0f);
+				ImGui::DragInt("Program", &this->program, 1.0f, 0, 1);
 			}
 
 			bool showWireFrame = false;
+			int program;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -68,11 +73,13 @@ namespace glsample {
 		std::shared_ptr<MandelBrotSettingComponent> mandelbrotSettingComponent;
 
 		/*	*/
-		const std::string computeShaderPath = "Shaders/mandelbrot/mandelbrot.comp.spv";
+		const std::string computeMandelbrotShaderPath = "Shaders/mandelbrot/mandelbrot.comp.spv";
+		const std::string computeJuliaShaderPath = "Shaders/mandelbrot/julia.comp.spv";
 
 		void Release() override {
 
 			glDeleteProgram(this->mandelbrot_program);
+			glDeleteProgram(this->julia_program);
 			glDeleteFramebuffers(1, &this->mandelbrot_framebuffer);
 			glDeleteBuffers(1, &this->uniform_buffer);
 			glDeleteTextures(1, (const GLuint *)&this->mandelbrot_texture);
@@ -83,20 +90,30 @@ namespace glsample {
 			{
 				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> mandelbrot_source =
-					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->computeMandelbrotShaderPath, this->getFileSystem());
 
 				/*	*/
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				const std::vector<char> mandelbrot_source_T =
+				const std::vector<char> mandelbrot_binary =
 					fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, compilerOptions);
 
 				/*	Load shader	*/
-				this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_source_T});
+				this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_binary});
+
+				const std::vector<uint32_t> julia_source =
+					IOUtil::readFileData<uint32_t>(this->computeJuliaShaderPath, this->getFileSystem());
+
+				const std::vector<char> julia_binary =
+					fragcore::ShaderCompiler::convertSPIRV(julia_source, compilerOptions);
+
+				/*	Load shader	*/
+				this->julia_program = ShaderLoader::loadComputeProgram({&julia_binary});
 			}
 
+			/*	*/
 			glUseProgram(this->mandelbrot_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->mandelbrot_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -105,10 +122,19 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
+			glUseProgram(this->julia_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->julia_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->julia_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniform1i(glGetUniformLocation(this->julia_program, "img_output"), 0);
+			glGetProgramiv(this->julia_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
+			glUseProgram(0);
+
+			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformBufferSize = Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
 
+			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
@@ -124,8 +150,6 @@ namespace glsample {
 		}
 
 		void onResize(int width, int height) override {
-
-			glFinish();
 
 			this->mandelbrot_texture_width = width;
 			this->mandelbrot_texture_height = height;
@@ -156,7 +180,7 @@ namespace glsample {
 		void draw() override {
 
 			int width, height;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -169,12 +193,13 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			{
 
-				glUseProgram(this->mandelbrot_program);
+				if (this->mandelbrotSettingComponent->program == 0) {
+					glUseProgram(this->mandelbrot_program);
+				} else {
+					glUseProgram(this->julia_program);
+				}
+
 				glBindImageTexture(0, this->mandelbrot_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-
-				int localWorkGroupSize[3];
-
-				glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 
 				glDispatchCompute(std::ceil(this->mandelbrot_texture_width / (float)localWorkGroupSize[0]),
 								  std::ceil(this->mandelbrot_texture_height / (float)localWorkGroupSize[1]), 1);
@@ -203,13 +228,26 @@ namespace glsample {
 			memcpy(uniformPointer, &params, sizeof(params));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
-			/*	Update.	*/
-			int x, y;
-			SDL_GetMouseState(&x, &y);
-			params.mousePosX = x;
-			params.mousePosY = y;
-			params.posX = 0;
-			params.posY = 0;
+			/*	Update Position.	*/
+			{
+				static int prevX = 0, prevY = 0;
+				if (this->getInput().getMouseDown(Input::MouseButton::LEFT_BUTTON)) {
+					this->getInput().getMousePosition(&prevX, &prevY);
+				}
+
+				if (this->getInput().getMouseReleased(Input::MouseButton::LEFT_BUTTON)) {
+					params.posX = params.mousePosX;
+					params.posY = params.mousePosY;
+				}
+
+				int x, y;
+				if (this->getInput().getMousePosition(&x, &y)) {
+					const int deltaX = -(x - prevX);
+					const int deltaY = (y - prevY);
+					params.mousePosX = params.posX + deltaX;
+					params.mousePosY = params.posY + deltaY;
+				}
+			}
 		}
 	};
 

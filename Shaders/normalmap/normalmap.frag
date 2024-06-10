@@ -25,9 +25,11 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
+	vec4 viewDir;
 
 	/*	*/
 	float normalStrength;
+	float shininess;
 }
 ubo;
 
@@ -50,8 +52,15 @@ void main() {
 	const vec3 alteredNormal = normalize(mat3(FragIN_tangent, FragIN_bitangent, FragIN_normal) * NormalMapBump);
 
 	/*	Compute directional light	*/
-	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, alteredNormal) * ubo.lightColor;
+	const float contribution = computeLightContributionFactor(ubo.direction.xyz, alteredNormal);
+	const vec4 lightColor = contribution * ubo.lightColor;
+
+	const vec4 specularColor = vec4(10) * contribution * ubo.lightColor;
+
+	/*  Blinn	*/
+	const vec3 halfwayDir = normalize(-normalize(ubo.direction.xyz) + ubo.viewDir.xyz);
+	const float spec = pow(max(dot(alteredNormal, halfwayDir), 0.0), ubo.shininess);
 
 	/*	*/
-	fragColor = texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor + specularColor * spec);
 }

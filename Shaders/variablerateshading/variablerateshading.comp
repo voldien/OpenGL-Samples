@@ -18,6 +18,7 @@ void main() {
 
 	ivec2 fragSize = imageSize(variableRateLUT);
 	ivec2 TexSize = imageSize(texture0);
+	
 	float distance = imageLoad(texture0, TexCoord).r;
 
 	imageStore(variableRateLUT, TexCoord, vec4(1.0));

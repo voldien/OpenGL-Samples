@@ -12,21 +12,6 @@ layout(binding = 0) uniform sampler2D tex0;
 
 #include "base.glsl"
 
-layout(binding = 0) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
 
-	/*	*/
-	float deltaTime;
-
-	particle_setting setting;
-	motion_t motion;
-
-	vec4 color;
-}
-ubo;
 
 void main() { fragColor = texture(tex0, uv) * (ubo.color + gColor); }

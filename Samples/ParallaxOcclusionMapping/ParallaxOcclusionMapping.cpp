@@ -99,11 +99,11 @@ namespace glsample {
 			glDeleteBuffers(1, &this->plan.vbo);
 			glDeleteBuffers(1, &this->plan.ibo);
 		}
-
 		void Initialize() override {
 
 			/*	*/
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
+			const std::string normalTexturePath = this->getResult()["normal-texture"].as<std::string>();
 			const std::string parallexTexturePath = this->getResult()["parallax-texture"].as<std::string>();
 
 			/*	Load shader source.	*/
@@ -122,16 +122,18 @@ namespace glsample {
 
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->parallexMapping_program);
-			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->parallexMapping_program, "UniformBufferBlock");
+			unsigned int uniform_buffer_index =
+				glGetUniformBlockIndex(this->parallexMapping_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "ParallexTexture"), 1);
-			glUniformBlockBinding(this->parallexMapping_program, uniform_buffer_index,
-								  this->uniform_buffer_binding);
+			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "NormalTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->parallexMapping_program, "ParallexTexture"), 2);
+			glUniformBlockBinding(this->parallexMapping_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
+		//	this->normal_texture = textureImporter.loadImage2D(normalTexturePath);
 			this->parallex_texture = textureImporter.loadImage2D(parallexTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -148,7 +150,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
 			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateCube(1, vertices, indices);
+			ProceduralGeometry::generatePlan(1, vertices, indices);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->plan.vao);
@@ -217,7 +219,10 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + 1);
+				//glActiveTexture(GL_TEXTURE0 + 1);
+				//glBindTexture(GL_TEXTURE_2D, this->normal_texture);
+				/*	*/
+				glActiveTexture(GL_TEXTURE0 + 2);
 				glBindTexture(GL_TEXTURE_2D, this->parallex_texture);
 
 				/*	Optional - to display wireframe.	*/

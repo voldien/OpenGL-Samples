@@ -86,8 +86,8 @@ namespace glsample {
 		CameraController camera;
 
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/phong/phong.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/phong/phong.frag.spv";
+		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/phongblinn/phong.frag.spv";
 
 		/*	*/
 		const std::string vertexShadowShaderPath = "Shaders/projectedshadow/projectedshadow.vert.spv";
@@ -387,8 +387,7 @@ namespace glsample {
 			this->uniformStageBuffer.model = glm::rotate(
 				this->uniformStageBuffer.model, glm::radians(45.0f * elapsedTime), glm::vec3(0.0f, 1.0f, 0.0f));
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(2.95f));
-			this->uniformStageBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBuffer.modelViewProjection =
 				(this->uniformStageBuffer.proj * this->camera.getViewMatrix() * this->uniformStageBuffer.model);
 			this->uniformStageBuffer.viewPos = glm::vec4(this->camera.getPosition(), 0.0f);
@@ -396,9 +395,9 @@ namespace glsample {
 				glm::vec4(-glm::normalize(this->projectShadowUniformBuffer.lightPosition), 0);
 
 			/*	Compute project matrix.	*/
-			const glm::mat4 projectedMatrix = this->computeProjectShadow();
+			const glm::mat4 shadowProjectedMatrix = this->computeProjectShadow();
 
-			this->projectShadowUniformBuffer.shadowProjectMatrix = projectedMatrix;
+			this->projectShadowUniformBuffer.shadowProjectMatrix = shadowProjectedMatrix;
 			this->projectShadowUniformBuffer.model = uniformStageBuffer.model;
 			this->projectShadowUniformBuffer.viewProjection =
 				(this->uniformStageBuffer.proj * this->camera.getViewMatrix());
@@ -421,6 +420,7 @@ namespace glsample {
 
 		/*	Create projection matrix from light point and the plane surface orientation.	*/
 		glm::mat4 computeProjectShadow() const noexcept {
+
 			glm::mat4 projectedMatrix;
 			const glm::vec3 planeNormal = glm::normalize(this->projectShadowUniformBuffer.planeNormal);
 			const glm::vec3 &lightPosition = glm::vec4(this->projectShadowUniformBuffer.lightPosition, 0);

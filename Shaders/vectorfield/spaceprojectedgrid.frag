@@ -9,7 +9,7 @@ layout(binding = 1) uniform sampler2D tex1;
 
 #include "base.glsl"
 
-layout(binding = 0) uniform UniformBufferBlock {
+layout(binding = 2) uniform UniformBufferBlock2 {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -28,14 +28,14 @@ layout(binding = 0) uniform UniformBufferBlock {
 
 	particle_setting setting;
 }
-ubo;
+ubo2;
 
 /*	Compute horizontal and vertical grid lines.	*/
 float resultHorVer(const in vec3 pos, float scale) {
 
 	/*	*/
 	const float z = scale;
-	const vec2 invScreen = 1.0f / ubo.screen;
+	const vec2 invScreen = 1.0f / ubo2.screen;
 
 	vec2 ex_UV = (invScreen * vec2(gl_FragCoord.xy)) * scale + pos.xy;
 
@@ -51,9 +51,9 @@ vec4 computeColor() {
 	const float grid2Intensity = 0.45;
 
 	/*	*/
-	const float zscale = (zoomLevel - ubo.zoom);
-	const vec3 pos1 = (ubo.view * vec4(vVertex, 0.0)).xyz;
-	const vec3 pos2 = (ubo.view * vec4(vVertex, 0.0)).xyz + (ubo.view * vec4(0.5, 0.5, 0, 0)).xyz;
+	const float zscale = (zoomLevel - ubo2.zoom);
+	const vec3 pos1 = (ubo2.view * vec4(vVertex, 0.0)).xyz;
+	const vec3 pos2 = (ubo2.view * vec4(vVertex, 0.0)).xyz + (ubo2.view * vec4(0.5, 0.5, 0, 0)).xyz;
 
 	/*  Compute grid color.   */
 	float color = resultHorVer(pos1, zscale) * grid1Intensity;

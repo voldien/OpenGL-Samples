@@ -6,22 +6,6 @@ layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
 
 #include "base.glsl"
 
-layout(binding = 0) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
-
-	/*	*/
-	float deltaTime;
-
-	particle_setting setting;
-	motion_t motion;
-
-	vec4 color;
-}
-ubo;
 
 /*	*/
 layout(std430, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
@@ -43,7 +27,7 @@ vec3 computeInfluence(const vec3 position) {
 	const float amplitude = 1.0;
 	const float virtualGridScale = 10.0;
 
-	const uvec3 vectorBox = ubo.setting.particleBox;
+	const uvec3 vectorBox = ubo.setting.particleBox.xyz;
 
 	/*	Get position and position index.	*/
 	const vec3 flopos = floor(position);
@@ -60,18 +44,20 @@ vec3 computeInfluence(const vec3 position) {
 			const vec3 fvpos = flopos + vec3(x, y, 0);
 
 			/*	Fetch vector force.	*/
-			const uint index = (vpos.y * vectorBox.x) + vpos.x;
+			
+			const uint index = (vpos.z * vectorBox.x * vpos.y * vectorBox.y) + (vpos.y * vectorBox.x) + vpos.x;
 			const vec3 vecforce = vectorfield.field[index].force;
 
 			/*	Compute influence force.	*/
 			const float dist = distance(fvpos, position);
 			const float distSquare = pow(dist, 2.0) * virtualGridScale;
-			const float invDist = 1.0 / (distSquare);
+			const float invDist = 1.0 / (distSquare + 0.01);
 
 			/*	Sum Additional force.	*/
 			force += (vecforce * invDist) * amplitude;
 		}
 	}
+
 	return force;
 }
 
@@ -92,13 +78,13 @@ vec2 computeMotionInfluence(vec4 particle) {
 void main() {
 
 	/*	Bounding Box of the simluation.	*/
-	const vec3 max = ubo.setting.particleBox;
+	const vec3 max = ubo.setting.particleBox.xyz;
 	const vec3 min = vec3(0, 0, 0);
 
-	/*	Iterator.	*/
 	const uvec3 index = gl_GlobalInvocationID.xyz;
 
-	const uint pindex = index.x * index.y + index.z;
+	/*	Particle index.	*/
+	const uint pindex = index.x * index.y * index.z + index.y * index.z + index.z;
 
 	/*  Get particle.   */
 	vec3 position = readBuffer.particle[pindex].position;
@@ -108,7 +94,7 @@ void main() {
 	/*  Get vector of incluense. - Bilinear   */
 	const vec3 forceInf = computeInfluence(position);
 	/*  Compute total force.  */
-	vec3 force = (velocity + forceInf);
+	const vec3 force = (velocity + forceInf);
 
 	/*  Add force to particle position. */
 	velocity = force * invMass;
@@ -118,6 +104,8 @@ void main() {
 	/*	Final position update.	*/
 	position.xyz = clamp(position.xyz, min, max);
 
+	/*	Update particle.	*/
 	writeBuffer.particle[pindex].position = position;
-	writeBuffer.particle[pindex].velocity = vec4(velocity, 1);
+	writeBuffer.particle[pindex].time = readBuffer.particle[pindex].time - ubo.deltaTime;
+	writeBuffer.particle[pindex].velocity.xyz = velocity;
 }

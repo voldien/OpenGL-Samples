@@ -22,10 +22,8 @@
 #include <Core/IO/IOUtil.h>
 #include <Exception.hpp>
 #include <fmt/format.h>
-#include <fstream>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
-#include <vector>
 
 namespace glsample {
 	using namespace fragcore;

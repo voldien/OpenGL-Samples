@@ -7,22 +7,6 @@ layout(max_vertices = 6) out;
 
 #include "base.glsl"
 
-layout(binding = 0) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
-
-	/*	*/
-	float deltaTime;
-
-	particle_setting setting;
-	motion_t motion;
-
-	vec4 color;
-}
-ubo;
 
 /*  */
 layout(location = 0) smooth in vec3 outForce[];
@@ -30,7 +14,10 @@ layout(location = 0) smooth in vec3 outForce[];
 layout(location = 0) smooth out vec3 amplitude;
 
 /*	Compute arrow color.	*/
-vec3 computeForceColor(const in vec3 dir) { return vec3((dir.x + 1.0) / 2.0, (dir.y + 1.0) / 2.0, (dir.x - 1.0) / 2.0); }
+vec3 computeForceColor(const in vec3 dir) {
+	return vec3((dir.x + 1.0) / 2.0, (dir.y + 1.0) / 2.0, (dir.x - 1.0) / 2.0);
+}
+
 
 void main() {
 
@@ -40,12 +27,12 @@ void main() {
 	const vec3 identity = vec3(1.0, 0.0, 0.0);
 	const float arrowLength = 1.0 / 3.5;
 
-	/*  Create Billboard quad.    */
 	for (int i = 0; i < gl_in.length(); i++) {
 
 		const vec4 glpos = gl_in[i].gl_Position;
 
 		const vec3 pos = glpos.xyz;
+
 		const vec3 dir = outForce[i];
 		const vec3 endPos = pos + dir;
 

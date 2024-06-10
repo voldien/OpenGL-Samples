@@ -4,9 +4,9 @@
 layout(location = 0) in vec3 inVertex;
 layout(location = 1) in vec3 inForce;
 
-layout(location = 0) out vec3 outForce;
+layout(location = 0) out smooth vec3 outForce;
 
 void main() {
-	gl_Position = inVertex.xyzx;
+	gl_Position = vec4(inVertex.xyz, 1);
 	outForce = inForce;
 }

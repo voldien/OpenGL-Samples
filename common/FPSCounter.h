@@ -16,7 +16,6 @@
 #pragma once
 #include <stddef.h>
 
-
 namespace glsample {
 
 	/**
@@ -50,11 +49,13 @@ namespace glsample {
 
 		void update(const float elapsedTime) noexcept {
 			if (totalFPS % fpsSample == 0) {
+				incrementFPS(elapsedTime);
 			}
+
 			totalFPS++;
 		}
 
-		unsigned int getFPS() const noexcept { return averageFPS; }
+		unsigned int getFPS() const noexcept { return this->averageFPS; }
 
 	  protected:
 		void internal_update(long int timeSample) noexcept {

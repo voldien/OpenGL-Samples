@@ -15,11 +15,13 @@
  */
 #pragma once
 #include "FPSCounter.h"
+#include "SDLInput.h"
 #include <Core/IO/IFileSystem.h>
 #include <Core/Time.h>
 #include <MIMIWindow.h>
 #include <ProceduralGeometry.h>
 #include <cxxopts.hpp>
+#include <spdlog/spdlog.h>
 
 class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
   public:
@@ -45,19 +47,21 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	virtual void update() = 0;
 
+  public:
 	virtual void onResize(int width, int height) {}
 
 	virtual void setTitle(const std::string &title) override;
 
-  public:
+  public: /*	*/
 	glsample::FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }
 	const glsample::FPSCounter<float> &getFPSCounter() const noexcept { return this->fpsCounter; }
 
 	const fragcore::Time &getTimer() const noexcept { return this->time; }
 	fragcore::Time &getTimer() noexcept { return this->time; }
+
 	size_t getFrameCount() const noexcept { return this->frameCount; }
 
-	size_t getFrameBufferIndex() const noexcept { return this->frameCount; }
+	size_t getFrameBufferIndex() const noexcept { return this->frameBufferIndex; }
 	size_t getFrameBufferCount() const noexcept { return this->getNumberFrameBuffers(); }
 
 	void debug(bool enable);
@@ -65,7 +69,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void captureScreenShot();
 
 	fragcore::IFileSystem *getFileSystem() const noexcept { return this->filesystem; }
-	void setFileSystem(fragcore::IFileSystem *filesystem) { this->filesystem = filesystem; }
+	void setFileSystem(fragcore::IFileSystem *filesystem) noexcept { this->filesystem = filesystem; }
 
 	unsigned int getShaderVersion() const;
 
@@ -75,20 +79,26 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	cxxopts::ParseResult &getResult() noexcept { return this->parseResult; }
 	void setCommandResult(cxxopts::ParseResult &result) noexcept { this->parseResult = result; }
 
+	fragcore::SDLInput &getInput() noexcept { return this->input; }
+	const fragcore::SDLInput &getInput()const  noexcept { return this->input; }
+
 	// const fragcore::GLRendererInterface *getRenderInterface();
 
 	void setColorSpace(bool srgb);
 
 	void enableRenderDoc(bool status);
 
+	spdlog::logger &getLogger() const noexcept { return *this->logger; }
+
   protected:
 	virtual void displayMenuBar() override;
-	virtual void renderUI() override;
+	virtual void renderUI() override; // TODO: rename
 
   private:
 	cxxopts::ParseResult parseResult;
 	glsample::FPSCounter<float> fpsCounter;
 	fragcore::Time time;
+	fragcore::SDLInput input;
 	bool debugGL = true;
 
 	/*	*/
@@ -101,5 +111,6 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	int preWidth, preHeight;
 
   protected:
+	spdlog::logger *logger;
 	// TODO Enable RenderDoc
 };

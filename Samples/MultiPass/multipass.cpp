@@ -24,6 +24,7 @@ namespace glsample {
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
+
 		}
 
 		struct uniform_buffer_block {

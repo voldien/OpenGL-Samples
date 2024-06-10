@@ -1,3 +1,4 @@
+#include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -39,14 +40,16 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 viewDir = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
 			/*	Normal attributes.	*/
 			float normalStrength = 1.0f;
-
+			float shininess = 16;
 		} uniformStageBuffer;
 
 		/*	*/
 		MeshObject plan;
+		Scene scene; /*	World Scene.	*/
 
 		/*	Textures.	*/
 		unsigned int diffuse_texture;
@@ -80,6 +83,8 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Normal Setting");
 				ImGui::DragFloat("Strength", &this->uniform.normalStrength);
+
+				ImGui::DragFloat("shininess", &this->uniform.shininess);
 
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -117,14 +122,15 @@ namespace glsample {
 		void Initialize() override {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
+
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string normalTexturePath = this->getResult()["normal-texture"].as<std::string>();
 
 			{
 				/*	Load shader source.	*/
-				const std::vector<uint32_t> vertex_binary =
+				const std::vector<uint32_t> vertex_normalmapping_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_binary =
+				const std::vector<uint32_t> fragment_normalmapping_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 				/*	*/
@@ -133,8 +139,8 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->normalMapping_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+				this->normalMapping_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_normalmapping_binary, &fragment_normalmapping_binary);
 			}
 
 			/*	Setup graphic pipeline.	*/
@@ -153,13 +159,18 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+			/*	Load scene from model importer.	*/
+			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
+			modelLoader.loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(modelLoader);
 
 			/*	Load geometry.	*/
 			std::vector<ProceduralGeometry::Vertex> vertices;
@@ -240,10 +251,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->plan.vao);
-				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
+				this->scene.render();
 			}
 		}
 
@@ -264,6 +272,7 @@ namespace glsample {
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
+			this->uniformStageBuffer.viewDir = glm::vec4(this->camera.getLookDirection(), 0);
 
 			/*	Update uniform buffer.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

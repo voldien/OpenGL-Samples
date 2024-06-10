@@ -19,7 +19,6 @@
 #include <Core/IO/IOUtil.h>
 #include <Exception.hpp>
 #include <fmt/format.h>
-#include <fstream>
 #include <vector>
 
 namespace glsample {

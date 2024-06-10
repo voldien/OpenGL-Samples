@@ -227,7 +227,8 @@ int ShaderLoader::loadMeshProgram(const fragcore::ShaderCompiler::CompilerConver
 	std::vector<char> fragment_source;
 	if (fragment) {
 
-		const std::vector<char> fragment_source_code = fragcore::ShaderCompiler::convertSPIRV(*fragment, compilerOptions);
+		const std::vector<char> fragment_source_code =
+			fragcore::ShaderCompiler::convertSPIRV(*fragment, compilerOptions);
 		fragment_source.insert(fragment_source.end(), fragment_source_code.begin(), fragment_source_code.end());
 	}
 

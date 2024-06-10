@@ -6,6 +6,7 @@
 #include <OpenALAudioInterface.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
+#include <cstdint>
 #include <fmt/core.h>
 #include <glm/glm.hpp>
 #include <iostream>
@@ -99,6 +100,7 @@ namespace glsample {
 
 		unsigned int mSource;
 		std::vector<unsigned int> mAudioBuffers;
+		unsigned int bufferIndex = 0;
 
 		/*  */
 		unsigned int videoplayback_program;
@@ -136,6 +138,12 @@ namespace glsample {
 											  {1.0f, 1.0f, 0.0f, 1.0f, 0.0f}};
 
 		// TODO add support to toggle between quad and blit.
+
+		std::string error_message(int result) {
+			char buf[AV_ERROR_MAX_STRING_SIZE];
+			av_strerror(result, buf, sizeof(buf));
+			return buf;
+		}
 
 		void Release() override {
 			/*	Release Video Data.	*/
@@ -338,8 +346,8 @@ namespace glsample {
 				this->mSource = this->audioSource->getNativePtr();
 				// alSourcef(this->mSource, AL_PITCH, 144.0f / 23.97f);
 
-				this->mAudioBuffers.resize(5);
-				FAOPAL_VALIDATE(alGenBuffers(5, this->mAudioBuffers.data()));
+				this->mAudioBuffers.resize(8);
+				FAOPAL_VALIDATE(alGenBuffers(this->mAudioBuffers.size(), this->mAudioBuffers.data()));
 			}
 
 			this->loadVideo(videoPath.c_str());
@@ -478,14 +486,7 @@ namespace glsample {
 				throw cxxexcept::RuntimeException("failed to allocated memory for AVPacket");
 			}
 
-			// TODO fix update rate.
 			int res, result;
-
-			//  seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q,
-			//        pFormatCtx->streams[stream_index]->time_base);
-
-			// res = av_seek_frame(this->pformatCtx, this->videoStream,
-			//					this->getTimer().getElapsed<float>() * AV_TIME_BASE * 2, 0);
 
 			res = av_read_frame(this->pformatCtx, packet);
 
@@ -493,21 +494,20 @@ namespace glsample {
 
 				/*	*/
 				if (packet->stream_index == this->videoStream) {
+
 					result = avcodec_send_packet(this->pVideoCtx, packet);
 					if (result < 0) {
-						char buf[AV_ERROR_MAX_STRING_SIZE];
-						av_strerror(result, buf, sizeof(buf));
-						throw cxxexcept::RuntimeException("Failed to send packet for decoding picture frame : {}", buf);
+						throw cxxexcept::RuntimeException("Failed to send packet for decoding image frame : {}",
+														  error_message(result));
 					}
 
 					while (result >= 0) {
 						result = avcodec_receive_frame(this->pVideoCtx, this->frame);
-						if (result == AVERROR(EAGAIN) || result == AVERROR_EOF)
-							break;
-						if (result < 0) {
-							char buf[AV_ERROR_MAX_STRING_SIZE];
-							av_strerror(result, buf, sizeof(buf));
-							throw cxxexcept::RuntimeException(" : {}", buf);
+						if (result == AVERROR(EAGAIN) || result == AVERROR_EOF) {
+							this->getLogger().debug("Failed to recv videoframe {}", error_message(result));
+							continue;
+						} else if (result < 0) {
+							throw cxxexcept::RuntimeException(" : {}", error_message(result));
 						}
 
 						if (this->frame->format == AV_PIX_FMT_YUV420P) {
@@ -549,22 +549,21 @@ namespace glsample {
 						}
 					}
 				} else if (packet->stream_index == this->audioStream) {
+
 					result = avcodec_send_packet(this->pAudioCtx, packet);
 					if (result < 0) {
-						char buf[AV_ERROR_MAX_STRING_SIZE];
-						av_strerror(result, buf, sizeof(buf));
-						throw cxxexcept::RuntimeException("Failed to send packet for decoding audio frame : {}", buf);
+						throw cxxexcept::RuntimeException("Failed to send packet for decoding audio frame : {}",
+														  error_message(result));
 					}
 
+					/*	*/
 					while (result >= 0) {
 						result = avcodec_receive_frame(this->pAudioCtx, this->frame);
 						if (result == AVERROR(EAGAIN) || result == AVERROR_EOF) {
-							break;
-						}
-						if (result < 0) {
-							char buf[AV_ERROR_MAX_STRING_SIZE];
-							av_strerror(result, buf, sizeof(buf));
-							throw cxxexcept::RuntimeException(" : {}", buf);
+							this->getLogger().debug("Failed to recv audio frame {}", error_message(result));
+							continue;
+						} else if (result < 0) {
+							throw cxxexcept::RuntimeException(" : {}", error_message(result));
 						}
 
 						/*	*/
@@ -577,33 +576,37 @@ namespace glsample {
 							alFormat = AL_FORMAT_STEREO_FLOAT32;
 						}
 
-						int outputSamples = swr_convert(this->swrContext, this->destBuffer, destBufferLinesize,
-														(const uint8_t **)frame->extended_data, frame->nb_samples);
+						const int outputSamples =
+							swr_convert(this->swrContext, this->destBuffer, destBufferLinesize,
+										(const uint8_t **)frame->extended_data, frame->nb_samples);
 
-						int bufferSize = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT) * 2 * outputSamples;
+						/*	*/
+						const size_t channels = 2;
+						const int bufferSize =
+							av_get_bytes_per_sample((AVSampleFormat)this->frame->format) * channels * outputSamples;
 						alFormat = AL_FORMAT_STEREO_FLOAT32;
 
 						ALint processed, queued, currentBuffer;
 						FAOPAL_VALIDATE(alGetSourcei((ALuint)this->mSource, AL_BUFFERS_PROCESSED, &processed));
 						FAOPAL_VALIDATE(alGetSourcei((ALuint)this->mSource, AL_BUFFERS_QUEUED, &queued));
 
-						if (processed > 0 || queued <= 0) {
+						while (processed > 0) {
+							ALuint bid;
+							FAOPAL_VALIDATE(alSourceUnqueueBuffers(this->mSource, 1, &bid));
+							--processed;
+						}
 
-							if (queued > 0) {
-								FAOPAL_VALIDATE(alSourceUnqueueBuffers(
-									this->mSource, 1,
-									&this->mAudioBuffers[this->nthVideoFrame % this->mAudioBuffers.size()]));
-							}
+						if (static_cast<ALuint>(queued) < this->mAudioBuffers.size()) {
 
-							std::cout << bufferSize << " " << frame->sample_rate << " " << alFormat << std::endl;
+							this->getLogger().info("{} {} {}", bufferSize, frame->sample_rate, alFormat);
 
-							FAOPAL_VALIDATE(
-								alBufferData(this->mAudioBuffers[this->nthVideoFrame % this->mAudioBuffers.size()],
-											 alFormat, this->destBuffer[0], bufferSize, frame->sample_rate));
+							const ALuint current_audio_buffer = {this->mAudioBuffers[this->bufferIndex]};
+							FAOPAL_VALIDATE(alBufferData(current_audio_buffer, alFormat, this->destBuffer[0],
+														 bufferSize, frame->sample_rate));
 
-							FAOPAL_VALIDATE(alSourceQueueBuffers(
-								this->mSource, 1,
-								&this->mAudioBuffers[this->nthVideoFrame % this->mAudioBuffers.size()]));
+							FAOPAL_VALIDATE(alSourceQueueBuffers(this->mSource, 1, &current_audio_buffer));
+
+							this->bufferIndex = (this->bufferIndex + 1) % this->mAudioBuffers.size();
 
 							/* Check that the source is playing. */
 							int state;
@@ -614,6 +617,8 @@ namespace glsample {
 								FAOPAL_VALIDATE(alSourcePlay(this->mSource));
 							}
 						}
+
+						/*	*/
 						ALint playStatus;
 						FAOPAL_VALIDATE(alGetSourcei(this->mSource, AL_SOURCE_STATE, &playStatus));
 						if (playStatus != AL_PLAYING) {
@@ -621,10 +626,22 @@ namespace glsample {
 						}
 					}
 				}
+			} else {
+				this->getLogger().debug("Failed to read package {}", error_message(res));
 			}
+
 			av_packet_unref(packet);
 			av_packet_free(&packet);
+
+			// res = av_seek_frame(this->pformatCtx, -1, timestamp, AVSEEK_FLAG_ANY);
+			if (res < 0) {
+				this->getLogger().debug("Failed to seek {}", error_message(res));
+				return;
+			}
+
+			std::this_thread::sleep_for(8ms);
 		}
+
 	}; // namespace glsample
 
 	class VideoPlaybackGLSample : public GLSample<VideoPlayback> {

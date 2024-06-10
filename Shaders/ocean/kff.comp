@@ -3,10 +3,8 @@
 
 layout(local_size_x = 64, local_size_y = 1) in;
 
-struct particle_t {
-	vec2 h0;
-    vec2 ht_real_img;
-};
+/*	Include common.	*/
+#include"ocean_base.glsl"
 
 layout(std430, set = 0, binding = 0) buffer Positions { particle_t pos[]; }
 positions;
@@ -23,6 +21,7 @@ void main() {
 	uint gid = gl_GlobalInvocationID.x;
 	uint me = gid  & 0x3f;
 	uint dg = (me << 2) + (gid >> 6) * VSTRIDE;
+	positions.pos[gid].ht_real_img.x += 0.000001;
 	//  vec4 *gr = (__global float4 *)(greal + dg);
 	//  vec4 *gi = (__global float4 *)(gimag + dg);
 	// float4 float4 float4 float4 zr0 zr1 zr2 zr3 = = = = gr[0 * 64];

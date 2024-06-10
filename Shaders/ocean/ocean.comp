@@ -3,52 +3,24 @@
 
 layout(local_size_x = 32, local_size_y = 1) in;
 
-// TODO refractor.
+/*	Include common.	*/
+#include"ocean_base.glsl"
 
-struct particle_t {
-	vec2 h0;
-	vec2 ht_real_img;
-};
 
-layout(std430, set = 0, binding = 0) buffer Positions { particle_t pos[]; }
+layout(std430, set = 0, binding = 1) buffer Positions { particle_t pos[]; }
 positions;
-
-struct particle_param_t {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
-
-	float width, height;
-	float delta;
-	float patchSize;
-};
-
-layout(set = 0, binding = 1) uniform UniformBufferBlock { particle_param_t _params; }
-u_pushConstants;
-
-// complex math functions
-vec2 conjugate(vec2 arg) { return vec2(arg.x, -arg.y); }
-vec2 complex_exp(float arg) {
-	float s;
-	float c;
-	// s = sincos(arg, &c);
-	return vec2(c, s);
-}
-
-const float PI = 3.14;
 
 void main() {
 	uvec3 index = gl_GlobalInvocationID.xyz;
 
-	uint width = uint(u_pushConstants._params.width);
-	uint height = uint(u_pushConstants._params.height);
-	float patchSize = u_pushConstants._params.patchSize;
+	uint width = uint(ubo.width);
+	uint height = uint(ubo.height);
+	float patchSize = ubo.patchSize;
 
 	uint x = index.z;
 	uint y = index.y;
 	uint i = y * width + x;
+	positions.pos[index.x].ht_real_img.x += 0.000001;
 
 	// // calculate coordinates
 	// vec2 k;

@@ -25,14 +25,18 @@ namespace glsample {
 		}
 
 		struct reaction_diffusion_param_t {
-			float kernelA[4][4] = {{0.1, 0.5, 0.1, 0}, {0.5, -1, 0.5, 0}, {0.1, 0.5, 0.1, 0}, {0, 0, 0, 0}};
-			float kernelB[4][4] = {{0.1, 0.5, 0.1, 0}, {0.5, -1, 0.5, 0}, {0.1, 0.5, 0.1, 0}, {0, 0, 0, 0}};
+			float kernelA[4][4] = {{0.05, 0.2, 0.05, 0}, {0.2, -1, 0.2, 0}, {0.05, 0.2, 0.05, 0}, {0, 0, 0, 0}};
+			float kernelB[4][4] = {{0.25, 0.5, 0.25, 0}, {0.5, -3, 0.5, 0}, {0.25, 0.5, 0.25, 0}, {0, 0, 0, 0}};
+
+			/*	*/
 			float feedRate = 0.055f;
 			float killRate = .062f;
 			float diffuseRateA = 1.0f;
 			float diffuseRateB = .5f;
-			float delta = 10.1f;
+			float delta = 0.1f;
 			float speed = 1.0f;
+			float padding0;
+			float padding1;
 
 		} uniformBuffer;
 
@@ -142,8 +146,6 @@ namespace glsample {
 
 		void onResize(int width, int height) override {
 
-			glFinish();
-
 			this->reactiondiffusion_texture_width = width;
 			this->reactiondiffusion_texture_height = height;
 
@@ -153,12 +155,14 @@ namespace glsample {
 											   this->reactiondiffusion_texture_height);
 
 			/*	Generate random game state.	*/
-			Random random;
 			for (size_t j = 0; j < this->reactiondiffusion_texture_height; j++) {
 				for (size_t i = 0; i < this->reactiondiffusion_texture_width; i++) {
 
+					/*	Normalized coordinate.	*/
+
+					/*	*/
 					textureData[this->reactiondiffusion_texture_width * j + i] =
-						glm::vec2(fragcore::Math::PerlinNoise((float)j * 0.05f + 0, (float)i * 0.05f + 0, 1) * 1.0f,
+						glm::vec2(fragcore::Math::PerlinNoise((float)i * 0.05f + 0, (float)j * 0.05f + 0, 1) * 1.0f,
 								  fragcore::Math::PerlinNoise((float)i * 0.05f + 1, (float)j * 0.05f + 1, 1) * 1.0f);
 				}
 			}

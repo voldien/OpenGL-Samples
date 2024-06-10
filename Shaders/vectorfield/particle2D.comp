@@ -1,0 +1,70 @@
+#version 460 core
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_compute_shader : enable
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+#include "base.glsl"
+
+/*	*/
+layout(std430, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
+readBuffer;
+/*	*/
+layout(std430, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]; }
+writeBuffer;
+
+layout(constant_id = 0) const float epsilon = 0.0011f;
+
+/**
+ * Perform particle simulation with vector field.
+ */
+void main() {
+
+	/*	Bounding Box of the simluation.	*/
+	const vec2 max = ubo.setting.particleBox.xy;
+	const vec2 min = vec2(0, 0);
+
+	/*	Particle index.	*/
+	const uint pindex = gl_GlobalInvocationID.x;
+	if (pindex >= ubo.setting.nrParticles) {
+		return;
+	}
+
+	const float delta = ubo.deltaTime * ubo.setting.speed;
+
+	/*  Get particle.   */
+	vec2 position = readBuffer.particle[pindex].position.xy;
+	vec2 velocity = readBuffer.particle[pindex].velocity.xy;
+	const float invMass = readBuffer.particle[pindex].velocity.w;
+
+	const float alpha = 0.8 * 0.001;
+	const vec2 dragVelocityChange = -alpha * velocity * velocity * delta;
+	/*  Add force to particle position. */
+	vec2 newVelocity = velocity + (-velocity * 0.9) * delta;
+
+	/*	Check bounds.	*/
+	if (position.x + epsilon > max.x) {
+		newVelocity = reflect(newVelocity, vec2(-1, 0));
+	}
+	if (position.y + epsilon > max.y) {
+		newVelocity = reflect(newVelocity, vec2(0, -1));
+	}
+	if (position.x - epsilon < min.x) {
+		newVelocity = reflect(newVelocity, vec2(1, 0));
+	}
+	if (position.y - epsilon < min.y) {
+		newVelocity = reflect(newVelocity, vec2(0, 1));
+	}
+
+	/*	Update the position.	*/
+	position += newVelocity * delta;
+
+	/*	Final position update.	*/
+	position.xy = clamp(position.xy, min, max);
+	/*	Update particle.	*/
+	writeBuffer.particle[pindex].position.xy = position;
+	// writeBuffer.particle[pindex].time = readBuffer.particle[pindex].time - ubo.deltaTime;
+	writeBuffer.particle[pindex].velocity.xy = newVelocity;
+
+	// memoryBarrier();
+}

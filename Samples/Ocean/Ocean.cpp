@@ -1,3 +1,4 @@
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -14,18 +15,21 @@ namespace glsample {
 		Ocean() : GLSampleWindow() {
 			this->setTitle("Ocean");
 
+			this->oceanSettingComponent = std::make_shared<OceanSettingComponent>(this->uniformStageBuffer);
+			this->addUIComponent(this->oceanSettingComponent);
+
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(200.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
-		// TODO rename.
-		typedef struct _vertex_t {
+
+		typedef struct _ocean_vertex_t {
+			/*	*/
 			float h0[2];
 			float ht_real_img[2];
 		} OceanVertex;
 
 		/*	*/
-		MeshObject skybox;
 		MeshObject ocean;
 
 		/*	*/
@@ -48,43 +52,70 @@ namespace glsample {
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
 
-			float delta;
-			/*	*/
-			float speed;
-
 			/*light source.	*/
-			glm::vec3 direction = glm::vec3(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0);
+			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4);
+
+			float width, height;
+			float speed;
+			float delta;
+			float patchSize;
+
+			glm::vec4 gEyeWorldPos;
+			float gDispFactor;
+			float tessLevel;
 
 		} uniformStageBuffer;
 
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(uniform_buffer_block);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
 		unsigned int ssbo_ocean_buffer_binding = 1;
 
 		CameraController camera;
+		Skybox skybox;
 
 		typedef struct particle_t {
 			glm::vec4 position; /*	Position, time	*/
 			glm::vec4 velocity; /*	Velocity.	*/
 		} Particle;
 
-		std::string panoramicPath = "asset/panoramic.jpg";
+		/*	*/
+		const std::string vertexSkyboxShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxShaderPath = "Shaders/skybox/panoramic.frag.spv";
+		/*	*/
+		const std::string vertexShaderPath = "Shaders/ocean/ocean.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/ocean/ocean.frag.spv";
+		const std::string tesscShaderPath = "Shaders/ocean/ocean.tesc.spv";
+		const std::string teseShaderPath = "Shaders/ocean/ocean.tese.spv";
 
-		const std::string vertexSkyboxShaderPath = "Shaders/skybox-panoramic/skybox.vert";
-		const std::string fragmentSkyboxShaderPath = "Shaders/skybox-panoramic/skybox-panoramic.frag";
+		/*	*/
+		const std::string computeShaderPath = "Shaders/ocean/ocean.comp.spv";
+		const std::string computeKFFShaderPath = "Shaders/ocean/kff.comp.spv";
 
-		const std::string vertexShaderPath = "Shaders/ocean/ocean.vert";
-		const std::string fragmentShaderPath = "Shaders/ocean/ocean.frag";
-		const std::string tesscShaderPath = "Shaders/ocean/ocean.tesc";
-		const std::string teseShaderPath = "Shaders/ocean/ocean.tese";
+		class OceanSettingComponent : public nekomimi::UIComponent {
+		  public:
+			OceanSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
+				this->setName("Ocean Settings");
+			}
 
-		const std::string computeShaderPath = "Shaders/ocean/ocean.comp";
-		const std::string computeKFFShaderPath = "Shaders/ocean/kff.comp";
+			void draw() override {
+
+				ImGui::TextUnformatted("Debug Setting");
+				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("Rotate", &this->useAnimate);
+			}
+
+			bool showWireFrame = false;
+			bool useAnimate = false;
+
+		  private:
+			struct uniform_buffer_block &uniform;
+		};
+		std::shared_ptr<OceanSettingComponent> oceanSettingComponent;
 
 		void Release() override {
 			/*	*/
@@ -98,12 +129,10 @@ namespace glsample {
 
 			/*	*/
 			glDeleteVertexArrays(1, &this->ocean.vao);
-			glDeleteVertexArrays(1, &this->skybox.vao);
 
 			/*	*/
 			glDeleteBuffers(1, &this->ocean.vbo);
 			glDeleteBuffers(1, &this->ocean.ibo);
-			glDeleteBuffers(1, &this->skybox.vbo);
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
@@ -146,32 +175,51 @@ namespace glsample {
 		// }
 
 		void Initialize() override {
+			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
 
 			{
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
+
 				/*	Load source code for the ocean shader.	*/
-				std::vector<char> vertex_source = IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-				std::vector<char> fragment_source = IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
-				std::vector<char> control_source = IOUtil::readFileString(tesscShaderPath, this->getFileSystem());
-				std::vector<char> evolution_source = IOUtil::readFileString(teseShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> vertex_ocean_binary =
+					IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> control_source =
+					IOUtil::readFileData<uint32_t>(tesscShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> evolution_source =
+					IOUtil::readFileData<uint32_t>(teseShaderPath, this->getFileSystem());
 
 				/*	Load source code for spectrum compute shader.	*/
-				std::vector<char> compute_spectrum_source =
-					IOUtil::readFileString(computeShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> compute_spectrum_source =
+					IOUtil::readFileData<uint32_t>(computeShaderPath, this->getFileSystem());
 				/*	Load source code for fast furious transform.	*/
-				std::vector<char> compute_kff_source =
-					IOUtil::readFileString(computeKFFShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> compute_kff_source =
+					IOUtil::readFileData<uint32_t>(computeKFFShaderPath, this->getFileSystem());
 
 				/*	Load graphic program for skybox.	*/
-				this->ocean_graphic_program = ShaderLoader::loadGraphicProgram(
-					&vertex_source, &fragment_source, nullptr, &control_source, &evolution_source);
+				this->ocean_graphic_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ocean_binary, &fragment_source, nullptr,
+													 &control_source, &evolution_source);
 
 				/*	Load compute shader program.	*/
-				this->spectrum_compute_program = ShaderLoader::loadComputeProgram({&compute_spectrum_source});
-				this->kff_compute_program = ShaderLoader::loadComputeProgram({&compute_kff_source});
+				this->spectrum_compute_program =
+					ShaderLoader::loadComputeProgram(compilerOptions, &compute_spectrum_source);
+				this->kff_compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_kff_source);
 
-				this->skybox_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+				/*	Load shader binaries.	*/
+				std::vector<uint32_t> vertex_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxShaderPath, this->getFileSystem());
+
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
-			/*	Setup ocean shader.	*/
+
+			/*	Setup ocean Graphic Pipeline.	*/
 			glUseProgram(this->ocean_graphic_program);
 			unsigned int uniform_buffer_index =
 				glGetUniformBlockIndex(this->ocean_graphic_program, "UniformBufferBlock");
@@ -183,98 +231,81 @@ namespace glsample {
 			glUseProgram(this->spectrum_compute_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->spectrum_compute_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->spectrum_compute_program, uniform_buffer_index, this->uniform_buffer_binding);
+			int ocean_buffer_position_index =
+				glGetProgramResourceIndex(this->spectrum_compute_program, GL_SHADER_STORAGE_BLOCK, "Positions");
+			glShaderStorageBlockBinding(this->spectrum_compute_program, ocean_buffer_position_index,
+										this->ssbo_ocean_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup fast furious transform.	*/
 			glUseProgram(this->kff_compute_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->kff_compute_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->kff_compute_program, uniform_buffer_index, this->uniform_buffer_binding);
+			int kff_buffer_position_index =
+				glGetProgramResourceIndex(this->kff_compute_program, GL_SHADER_STORAGE_BLOCK, "Positions");
+			glShaderStorageBlockBinding(this->kff_compute_program, kff_buffer_position_index,
+										this->ssbo_ocean_buffer_binding);
 			glUseProgram(0);
 
-			/*	Setup skybox shader.	*/
+			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
 			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
-			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Compute uniform size that is aligned with the requried for the hardware.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformSize = Math::align(uniformSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices, ocean_width, ocean_height);
+			/*	Load Ocean plan geometry.	*/
+			{
+				std::vector<ProceduralGeometry::Vertex> vertices;
+				std::vector<unsigned int> indices;
+				ProceduralGeometry::generatePlan(1, vertices, indices, this->ocean_width, this->ocean_height);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->ocean.vao);
-			glBindVertexArray(this->ocean.vao);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenVertexArrays(1, &this->ocean.vao);
+				glBindVertexArray(this->ocean.vao);
 
-			glGenBuffers(1, &this->ocean.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, ocean.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
+				glGenBuffers(1, &this->ocean.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, ocean.vbo);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
-			glGenBuffers(1, &this->ocean.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ocean.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
-						 GL_STATIC_DRAW);
-			this->ocean.nrIndicesElements = indices.size();
+				glGenBuffers(1, &this->ocean.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ocean.ibo);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
+							 GL_STATIC_DRAW);
+				this->ocean.nrIndicesElements = indices.size();
 
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+				/*	*/
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  (void *)(sizeof(float) * 3));
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  (void *)(sizeof(float) * 3));
 
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
+				glEnableVertexAttribArray(2);
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
 
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
+				glEnableVertexAttribArray(3);
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
 
-			glBindVertexArray(0);
-
-			ProceduralGeometry::generateCube(1, vertices, indices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->skybox.vbo);
-			glBindVertexArray(this->skybox.vao);
-
-			glGenBuffers(1, &this->skybox.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->skybox.nrIndicesElements = indices.size();
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->skybox.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
-
-			glBindVertexArray(0);
+				glBindVertexArray(0);
+			}
 
 			/*	Load skybox for reflective.	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->skybox_panoramic_texture = textureImporter.loadImage2D(this->panoramicPath);
+			this->skybox_panoramic_texture = textureImporter.loadImage2D(skyboxPath);
+			this->skybox.Init(this->skybox_panoramic_texture, this->skybox_program);
 		}
 
 		void draw() override {
@@ -289,7 +320,8 @@ namespace glsample {
 
 			/*	Bind uniform buffer associated with all of the pipelines.	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
-							  (this->getFrameCount() % nrUniformBuffer) * this->uniformSize, this->uniformSize);
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
 
 			/*	Compute fast fourier transformation.	*/
 			{
@@ -301,11 +333,14 @@ namespace glsample {
 
 				/*	*/
 				int FFT_SIZE = 0;
+				const size_t workgroupX = FFT_SIZE * 64;
 				glUseProgram(this->kff_compute_program);
 				glDispatchCompute(FFT_SIZE * 64, 1, 1);
 				glDispatchCompute(256 * 257 / 2 * 64, 1, 1);
 				glDispatchCompute(FFT_SIZE * 64, 1, 1);
 			}
+
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 			/*	Render ocean.	*/
 			{
@@ -318,33 +353,22 @@ namespace glsample {
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->ocean.vao);
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
-				glDrawElements(GL_PATCHES, ocean_width * ocean_height * 2, GL_UNSIGNED_INT, nullptr);
+				glDrawElements(GL_PATCHES, this->ocean_width * this->ocean_height * 2, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
-
-			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 			/*	Render Skybox.	*/
 			{
-				/*	*/
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				glDisable(GL_CULL_FACE);
-				glDisable(GL_BLEND);
-				glEnable(GL_STENCIL);
-
-				glUseProgram(this->skybox_program);
-
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic_texture);
-
 				/*	Draw triangle*/
-				glBindVertexArray(this->skybox.vao);
-				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
+				this->skybox.Render(this->camera);
 			}
+
+			/*	Post processing.	*/
+			{}
 		}
 
 		void update() override {
+
 			/*	*/
 			const float elapsedTime = getTimer().getElapsed<float>();
 			camera.update(getTimer().deltaTime<float>());
@@ -358,11 +382,22 @@ namespace glsample {
 
 			/*	Updated uniform data.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformSize,
-								 uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+				uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
+		}
+	};
+
+	class OceanGLSample : public GLSample<Ocean> {
+	  public:
+		OceanGLSample() : GLSample<Ocean>() {}
+		void customOptions(cxxopts::OptionAdder &options) override {
+			options("S,skybox", "Skybox Texture File Path",
+					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"))(
+				"W,width", "Width", cxxopts::value<int>()->default_value("128"))(
+				"H,height", "Height", cxxopts::value<int>()->default_value("128"));
 		}
 	};
 } // namespace glsample
@@ -371,7 +406,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::Ocean> sample;
+		glsample::OceanGLSample sample;
 		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {

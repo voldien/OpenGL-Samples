@@ -3,25 +3,15 @@
 
 layout(location = 0) out vec4 fragColor;
 
-
 layout(location = 1) in vec4 velocity;
 layout(location = 2) in vec2 normal;
 
+
+/*	Include common.	*/
+#include"ocean_base.glsl"
+
 layout(binding = 1) uniform sampler2D panorama;
 
-
-layout(binding = 0) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
-	vec4 diffuse;
-	float deltaTime;
-
-
-}
-ubo;
 
 
 void main() {

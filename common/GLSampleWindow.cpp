@@ -1,11 +1,15 @@
 #include "GLSampleWindow.h"
 #include "FPSCounter.h"
+#include "spdlog/common.h"
 #include <GLRendererInterface.h>
 #include <ImageLoader.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_mouse.h>
 #include <iostream>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/syslog_sink.h>
+#include <spdlog/spdlog.h>
 
 using namespace glsample;
 
@@ -13,6 +17,17 @@ using namespace glsample;
 unsigned int pboBuffer;
 
 GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::GfxBackEnd::ImGUI_OpenGL) {
+
+	/* Create logger	*/
+	auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	stdout_sink->set_level(spdlog::level::trace);
+	stdout_sink->set_color_mode(spdlog::color_mode::always);
+	stdout_sink->set_pattern("[%Y-%m-%d %T.%e] [%^%l%$] %v");
+	stdout_sink->set_pattern("%g:%# [%^%l%$] %v");
+
+	this->logger = new spdlog::logger("glsample", {stdout_sink});
+	this->logger->set_level(spdlog::level::trace);
+
 	/*	*/
 	this->enableDocking(false);
 
@@ -47,7 +62,7 @@ void GLSampleWindow::displayMenuBar() {}
 
 void GLSampleWindow::renderUI() {
 
-	/*	*/
+	/*	Make sure all commands are flush before resizing.	*/
 	if (this->preWidth != this->width() || this->preHeight != this->height()) {
 		/*	Finish all commands before starting resizing buffers and etc.	*/
 		glFinish();
@@ -59,6 +74,8 @@ void GLSampleWindow::renderUI() {
 	this->preWidth = this->width();
 	this->preHeight = this->height();
 
+	/*	Main Update function.	*/
+	this->getInput().update();
 	this->update();
 
 	/*	*/
@@ -82,30 +99,35 @@ void GLSampleWindow::renderUI() {
 		glGetQueryObjectiv(this->queries[1], GL_QUERY_RESULT, &nrSamples);
 		glGetQueryObjectiv(this->queries[2], GL_QUERY_RESULT, &nrPrimitives);
 
-		std::cout << "Samples: " << nrSamples << " Primitives: " << nrPrimitives << std::endl;
+		this->getLogger().debug("Samples: {} Primitives: {} Elapsed: {}", nrSamples, nrPrimitives,
+								time_elasped / 100000.0f);
 	}
 
 	/*	*/
 	this->frameCount++;
 	this->frameBufferIndex = (this->frameBufferIndex + 1) % this->getFrameBufferCount();
 	this->getTimer().update();
-	// this->fpsCounter.incrementFPS(SDL_GetPerformanceCounter());
+	this->getFPSCounter().update(this->getTimer().getElapsed<float>());
 
 	/*	*/
-	std::cout << "FPS " << this->getFPSCounter().getFPS() << " Elapsed Time: " << this->getTimer().getElapsed<float>()
-			  << std::endl;
-
-	/*	*/
-	const Uint8 *state = SDL_GetKeyboardState(nullptr);
-
-	/*	Check if screenshot button pressed.	*/
-	if (state[SDL_SCANCODE_F12]) {
-		this->captureScreenShot();
+	if (this->debugGL) {
+		this->getLogger().info("FPS: {} Elapsed Time: {}", this->getFPSCounter().getFPS(),
+							   this->getTimer().getElapsed<float>());
 	}
 
-	/*	Enter fullscreen via short command.	*/
-	if (state[SDL_SCANCODE_RETURN] && (state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL])) {
-		this->setFullScreen(!this->isFullScreen());
+	{
+		/*	*/
+		const Uint8 *state = SDL_GetKeyboardState(nullptr);
+
+		/*	Check if screenshot button pressed.	*/
+		if (state[SDL_SCANCODE_F12]) {
+			this->captureScreenShot();
+		}
+
+		/*	Enter fullscreen via short command.	*/
+		if (state[SDL_SCANCODE_RETURN] && (state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL])) {
+			this->setFullScreen(!this->isFullScreen());
+		}
 	}
 }
 
@@ -118,6 +140,12 @@ void GLSampleWindow::debug(bool enable) {
 	fragcore::GLRendererInterface *interface =
 		dynamic_cast<fragcore::GLRendererInterface *>(this->getRenderInterface().get());
 	interface->setDebug(enable);
+
+	if (enable) {
+		this->logger->set_level(spdlog::level::trace);
+	} else {
+		this->logger->set_level(spdlog::level::info);
+	}
 }
 
 void GLSampleWindow::captureScreenShot() {
@@ -152,7 +180,7 @@ void GLSampleWindow::captureScreenShot() {
 		// Application and time
 		time_t rawtime;
 		struct tm *timeinfo;
-		char buffer[80];
+		char buffer[128];
 
 		std::time(&rawtime);
 		timeinfo = localtime(&rawtime);

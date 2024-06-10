@@ -5,26 +5,11 @@ layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
 
 #include "base.glsl"
 
-layout(binding = 0) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
-
-	/*	*/
-	float deltaTime;
-
-	particle_setting setting;
-	motion_t motion;
-
-	vec4 color;
-}
-ubo;
 
 /*	*/
 layout(std430, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
 readBuffer;
+
 /*	*/
 layout(std430, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]; }
 writeBuffer;

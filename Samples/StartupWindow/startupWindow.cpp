@@ -2,6 +2,7 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <iostream>
+
 namespace glsample {
 
 	/**

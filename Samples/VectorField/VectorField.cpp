@@ -3,9 +3,11 @@
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <Importer/ImageImport.h>
+#include <array>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <random>
 
 namespace glsample {
 
@@ -27,6 +29,7 @@ namespace glsample {
 		const size_t nrParticleBuffers = 3;
 		size_t ParticleMemorySize = 0;
 		size_t VectorFieldMemorySize = 0;
+		std::array<size_t, 3> vector_field_dims = {32, 32, 32};
 
 		/*	*/
 		MeshObject particles;
@@ -47,19 +50,23 @@ namespace glsample {
 		unsigned int vector_field_graphic_program;
 
 		typedef struct motion_t {
-			glm::vec2 pos; /*  Position in pixel space.    */
-			glm::vec2 velocity /*  direction and magnitude of mouse movement.  */;
-			float radius; /*  Radius of incluense, also the pressure of input.    */
+			glm::vec2 pos;		/*  Position in pixel space.    */
+			glm::vec2 velocity; /*  direction and magnitude of mouse movement.  */
+			float radius;		/*  Radius of incluense, also the pressure of input.    */
+			float pad0;
+			float pad1;
+			float pad2;
 		} Motion;
 
 		typedef struct particle_setting_t {
-			glm::uvec4 particleBox = glm::uvec4(16, 16, 16, 0);
-			glm::uvec4 vectorfieldbox = glm::uvec4(16, 16, 16, 0);
+			glm::uvec4 particleBox = glm::uvec4(32, 32, 32, 0);
+			glm::uvec4 vectorfieldbox = glm::uvec4(32, 32, 32, 0);
 
 			float speed = 1.0f;
 			float lifetime = 5.0f;
 			float gravity = 9.82f;
 			float strength = 1.0f;
+
 			float density = 1.0f;
 			float padd0;
 			float padd1;
@@ -72,12 +79,11 @@ namespace glsample {
 			alignas(16) glm::mat4 proj;
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
+			glm::vec4 color = glm::vec4(1);
 
 			/*	*/
 			ParticleSetting particleSetting;
 			Motion motion;
-
-			glm::vec4 color = glm::vec4(1);
 
 			/*	*/
 			float delta;
@@ -127,7 +133,7 @@ namespace glsample {
 				ImGui::Checkbox("Draw VectorField", &this->drawVectorField);
 			}
 
-			bool simulateParticles;
+			bool simulateParticles = true;
 			bool drawVectorField = false;
 			bool showWireFrame = false;
 
@@ -199,7 +205,7 @@ namespace glsample {
 				this->particle_motion_force_compute_program =
 					ShaderLoader::loadComputeProgram(compilerOptions, &compute_motion_source_binary);
 
-				/*	*/
+				/*	Vector field.	*/
 				vertex_source =
 					glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldVertexShaderPath, this->getFileSystem());
 				geometry_source = glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldGeometryShaderPath,
@@ -280,6 +286,7 @@ namespace glsample {
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniformStageBuffer), &uniformStageBuffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			GLint minStorageMapBufferSize;
@@ -302,15 +309,18 @@ namespace glsample {
 			Particle *particle_buffer = static_cast<Particle *>(
 				glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, this->ParticleMemorySize * this->nrParticleBuffers,
 								 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+
+			std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+			std::default_random_engine generator;
 			for (size_t i = 0; i < this->nrParticles * this->nrParticleBuffers; i++) {
 
 				particle_buffer[i].position =
-					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
-							  Random::normalizeRand<float>() * 100.0f,
-							  Random::normalizeRand<float>() * this->uniformStageBuffer.particleSetting.lifetime);
-				particle_buffer[i].velocity = glm::vec4(
-					Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
-					Random::normalizeRand<float>() * 100.0f, 1.0f / (Random::normalizeRand<float>() * 100.0f));
+					glm::vec4(randomFloats(generator) * 100.0f, randomFloats(generator) * 100.0f,
+							  randomFloats(generator) * 100.0f,
+							  randomFloats(generator) * this->uniformStageBuffer.particleSetting.lifetime);
+				particle_buffer[i].velocity =
+					glm::vec4(randomFloats(generator) * 100.0f, randomFloats(generator) * 100.0f,
+							  randomFloats(generator) * 100.0f, 1.0f / (randomFloats(generator) * 100.0f));
 			}
 			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
@@ -325,12 +335,13 @@ namespace glsample {
 
 			glEnableVertexAttribArray(1);
 			glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle),
-								  reinterpret_cast<void *>(sizeof(float) * 4));
+								  reinterpret_cast<void *>(sizeof(glm::vec4)));
 
 			glBindVertexArray(0);
 
 			/*	*/
-			this->VectorFieldMemorySize = this->nrParticles * sizeof(VectorForce);
+			this->VectorFieldMemorySize =
+				vector_field_dims[0] * vector_field_dims[1] * vector_field_dims[2] * sizeof(VectorForce);
 			this->VectorFieldMemorySize = Math::align<size_t>(this->VectorFieldMemorySize, minStorageMapBufferSize);
 
 			glGenVertexArrays(1, &this->vectorField.vao);
@@ -344,26 +355,39 @@ namespace glsample {
 
 			/*	Position.	*/
 			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VectorForce), nullptr);
 
-			/*	Velocity.	*/
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
+			/*	Force.	*/
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VectorForce),
 								  reinterpret_cast<void *>(sizeof(glm::vec3)));
 
 			glBindVertexArray(0);
 
-			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->vectorField.vbo);
-			VectorForce *vec_field =
-				static_cast<VectorForce *>(glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, this->VectorFieldMemorySize,
-															GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
-			/*	Setup particle.	*/
-			for (size_t i = 0; i < this->nrParticles; i++) {
-				vec_field[i].position = glm::vec3(fragcore::Math::PerlinNoise(i, i * 2), 0, 0);
-				vec_field[i].force =
-					glm::vec3(fragcore::Math::PerlinNoise(i, i * 2), fragcore::Math::PerlinNoise(i, i * 4),
-							  fragcore::Math::PerlinNoise(i, i * 5));
+			/*	Create vector field.	*/
+			{
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->vectorField.vbo);
+				VectorForce *vec_field = static_cast<VectorForce *>(
+					glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, this->VectorFieldMemorySize,
+									 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+
+				/*	Setup particle.	*/
+				for (size_t x = 0; x < vector_field_dims[0]; x++) {
+					for (size_t y = 0; y < vector_field_dims[1]; y++) {
+						for (size_t z = 0; z < vector_field_dims[2]; z++) {
+							const size_t index =
+								(x * vector_field_dims[0] * vector_field_dims[1]) + y * vector_field_dims[0] + z;
+
+							vec_field[index].position = glm::vec3(x, y, z);
+							vec_field[index].force = glm::vec3(fragcore::Math::PerlinNoise(x, y * 2, z),
+															   fragcore::Math::PerlinNoise(x, y * 2, z),
+															   fragcore::Math::PerlinNoise(x, y * 2, z)) *
+													 20.0f;
+						}
+					}
+				}
+				glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 			}
-			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
 			fragcore::resetErrorFlag();
 		}
@@ -425,7 +449,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Draw Vector field.	*/
-			{
+			if (this->vectorFieldSettingComponent->drawVectorField) {
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
@@ -444,6 +468,13 @@ namespace glsample {
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->vectorField.vao);
+				/*	Bind.	*/
+				glBindVertexBuffer(0, this->particles.vbo,
+								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * this->ParticleMemorySize,
+								   sizeof(particles));
+				glBindVertexBuffer(1, this->particles.vbo,
+								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * this->ParticleMemorySize,
+								   sizeof(particles));
 				glDrawArrays(GL_POINTS, 0, this->nrParticles);
 				glBindVertexArray(0);
 
@@ -485,10 +516,10 @@ namespace glsample {
 				/*	Bind.	*/
 				glBindVertexBuffer(0, this->particles.vbo,
 								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * this->ParticleMemorySize,
-								   0);
+								   sizeof(Particle));
 				glBindVertexBuffer(1, this->particles.vbo,
 								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * this->ParticleMemorySize,
-								   sizeof(glm::vec4));
+								   sizeof(Particle));
 				glDrawArrays(GL_POINTS, 0, this->nrParticles);
 				glBindVertexArray(0);
 
@@ -531,8 +562,8 @@ namespace glsample {
 	  public:
 		VectorFieldSample() : GLSample<VectorField>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Cloth Texture Path",
-					cxxopts::value<std::string>()->default_value("asset/texture.png"));
+			options("T,texture", "Particle Texture Path",
+					cxxopts::value<std::string>()->default_value("asset/particle-cell.png"));
 		}
 	};
 } // namespace glsample
