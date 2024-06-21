@@ -229,6 +229,8 @@ namespace glsample {
 				glDispatchCompute(
 					std::ceil(this->reactiondiffusion_texture_width / (float)this->localWorkGroupSize[0]),
 					std::ceil(this->reactiondiffusion_texture_height / (float)this->localWorkGroupSize[1]), 1);
+					
+				/*	Wait in till image has been written.	*/
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 			}
 

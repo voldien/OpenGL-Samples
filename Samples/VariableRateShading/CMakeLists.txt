@@ -1,10 +1,9 @@
-#TODO: use existing sample as base.
 FILE(GLOB VARIABLE_RATE_SHADING_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 FILE(GLOB VARIABLE_RATE_SHADING_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 ADD_EXECUTABLE(VariableRateShading ${VARIABLE_RATE_SHADING_SOURCE_FILES} ${VARIABLE_RATE_SHADING_HEADER_FILES})
-TARGET_LINK_LIBRARIES(VariableRateShading glCommon gl-sample-common-asset-importer)
-ADD_DEPENDENCIES(VariableRateShading glCommon gl-sample-common-asset-importer)
+TARGET_LINK_LIBRARIES(VariableRateShading ModelViewer-Core)
+ADD_DEPENDENCIES(VariableRateShading ModelViewer-Core)
 
 TARGET_INCLUDE_DIRECTORIES(VariableRateShading PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

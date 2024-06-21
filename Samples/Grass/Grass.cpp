@@ -328,6 +328,7 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
+	
 	class GrassGLSample : public GLSample<Grass> {
 	  public:
 		GrassGLSample() : GLSample<Grass>() {}

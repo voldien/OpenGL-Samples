@@ -7,9 +7,9 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(binding = 1, rgba8) uniform readonly image2D texture0;
+layout(binding = 1, rgba16) uniform readonly image2D texture0;
 
-layout(binding = 0, rgba8) uniform writeonly image2D variableRateLUT;
+layout(binding = 0, r8ui) uniform coherent writeonly uimage2D variableRateLUT;
 
 void main() {
 
@@ -21,5 +21,5 @@ void main() {
 	
 	float distance = imageLoad(texture0, TexCoord).r;
 
-	imageStore(variableRateLUT, TexCoord, vec4(1.0));
+	imageStore(variableRateLUT, TexCoord, uvec4(1.0));
 }

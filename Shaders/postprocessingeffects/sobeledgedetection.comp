@@ -21,33 +21,31 @@ void main() {
 	vec2 TexDiff = vec2(TexSize) / vec2(fragSize);
 	ivec2 sampleTexCoord = ivec2(TexDiff * TexCoord);
 
-
-
 	// TODO add recompute of the sample kernel coordinates.
 	const ivec2 lb = ivec2(-1.0 * TexDiff.x, -1.0 * TexDiff.y);
-	vec4 p00 = imageLoad(texture0, sampleTexCoord + lb);
+	const vec4 p00 = imageLoad(texture0, sampleTexCoord + lb);
 	const ivec2 b = ivec2(0.0 * TexDiff.x, -1.0 * TexDiff.y);
-	vec4 p10 = imageLoad(texture0, sampleTexCoord + b);
+	const vec4 p10 = imageLoad(texture0, sampleTexCoord + b);
 	const ivec2 rb = ivec2(1.0 * TexDiff.x, -1.0 * TexDiff.y);
-	vec4 p20 = imageLoad(texture0, sampleTexCoord + rb);
+	const vec4 p20 = imageLoad(texture0, sampleTexCoord + rb);
 
 	const ivec2 l = ivec2(-1.0 * TexDiff.x, 0.0 * TexDiff.y);
-	vec4 p01 = imageLoad(texture0, sampleTexCoord + l);
+	const vec4 p01 = imageLoad(texture0, sampleTexCoord + l);
 	const ivec2 r = ivec2(1.0 * TexDiff.x, 0.0 * TexDiff.y);
-	vec4 p21 = imageLoad(texture0, sampleTexCoord + r);
+	const vec4 p21 = imageLoad(texture0, sampleTexCoord + r);
 
 	const ivec2 lt = ivec2(-1.0 * TexDiff.x, 1.0 * TexDiff.y);
-	vec4 p02 = imageLoad(texture0, sampleTexCoord + lt);
+	const vec4 p02 = imageLoad(texture0, sampleTexCoord + lt);
 	const ivec2 t = ivec2(-1.0 * TexDiff.x, 1.0 * TexDiff.y);
-	vec4 p12 = imageLoad(texture0, sampleTexCoord + t);
+	const vec4 p12 = imageLoad(texture0, sampleTexCoord + t);
 	const ivec2 rt = ivec2(1.0 * TexDiff.x, 1.0 * TexDiff.y);
-	vec4 p22 = imageLoad(texture0, sampleTexCoord + rt);
+	const vec4 p22 = imageLoad(texture0, sampleTexCoord + rt);
 
-	// Compute Matrix X and Y.
+	/* Compute Matrix X and Y.	*/
 	const vec3 gx = -p00.xyz + p20.xyz + 2.0f * (p21.xyz - p01.xyz) - p02.xyz + p22.xyz;
 	const vec3 gy = -p00.xyz - p20.xyz + 2.0f * (p12.xyz - p10.xyz) + p02.xyz + p22.xyz;
 
-	// Compute the final.
+	/* Compute the final.	*/
 	const vec3 g = sqrt(gx * gx + gy * gy);
 
 	imageStore(fragColor, TexCoord, vec4(g.rgb, 1.0));

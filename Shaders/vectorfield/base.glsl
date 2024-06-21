@@ -1,3 +1,4 @@
+
 struct particle_t {
 	vec3 position;
 	float time;

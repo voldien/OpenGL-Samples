@@ -12,6 +12,4 @@ layout(binding = 0) uniform sampler2D tex0;
 
 #include "base.glsl"
 
-
-
 void main() { fragColor = texture(tex0, uv) * (ubo.color + gColor); }

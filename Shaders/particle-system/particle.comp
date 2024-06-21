@@ -1,4 +1,4 @@
-#version 460
+#version 460 core
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(local_size_x = 32, local_size_y = 1) in;
@@ -29,10 +29,10 @@ layout(binding = 0) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 modelViewProjection;
 
+	particle_setting setting;
+
 	/*	*/
 	float deltaTime;
-
-	particle_setting setting;
 }
 ubo;
 
@@ -46,18 +46,19 @@ float rand(vec2 co) {
 }
 
 void main() {
+
 	uint index = gl_GlobalInvocationID.x;
 
+	/*	*/
 	vec3 position = readBuffer.particle[index].position;
 	float time = readBuffer.particle[index].time;
 	vec4 vel = readBuffer.particle[index].velocity;
 
-	const float globalSpeed = ubo.setting.speed;
 	vec3 force_impulse = vec3(rand(gl_GlobalInvocationID.xy));
 
 	float k_v = 1.5;
 
-	float deltaTime = ubo.deltaTime * globalSpeed;
+	const float deltaTime = ubo.setting.speed * ubo.deltaTime;
 
 	/*	*/
 	vec3 v = vel.xyz + (force_impulse)*k_v * deltaTime;

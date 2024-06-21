@@ -16,10 +16,26 @@
 #pragma once
 #include "Core/math3D/LinAlg.h"
 #include "IOUtil.h"
+#include <GL/glew.h>
 #include <cxxopts.hpp>
 #include <glm/matrix.hpp>
 
 namespace glsample {
+
+	typedef struct {
+		GLuint count;
+		GLuint instanceCount;
+		GLuint firstIndex;
+		GLuint baseVertex;
+		GLuint baseInstance;
+	} DrawElementsIndirectCommand;
+
+	typedef struct {
+		GLuint count;
+		GLuint instanceCount;
+		GLuint first;
+		GLuint baseInstance;
+	} DrawArraysIndirectCommand;
 
 	// TODO relocate.
 	typedef struct geometry_object_t {

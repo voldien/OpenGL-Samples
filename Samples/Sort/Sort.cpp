@@ -14,24 +14,25 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class MandelBrot : public GLSampleWindow {
+	class Sort : public GLSampleWindow {
 	  public:
-		MandelBrot() : GLSampleWindow() {
-			this->setTitle("MandelBrot Compute");
+		Sort() : GLSampleWindow() {
+			this->setTitle("Sort Compute");
 
 			/*	*/
-			this->mandelbrotSettingComponent = std::make_shared<MandelBrotSettingComponent>(this->params);
-			this->addUIComponent(this->mandelbrotSettingComponent);
+			this->sortSettingComponent = std::make_shared<SortSettingComponent>(this->params);
+			this->addUIComponent(this->sortSettingComponent);
 		}
 
-		struct uniform_buffer_block {
+		typedef struct uniform_buffer_block_t {
 			float posX, posY;
 			float mousePosX, mousePosY;
 			float zoom = 1.0f; /*	*/
 			float c = 0;	   /*	*/
 			float ci = 1;	   /*	*/
 			int nrSamples = 128;
-		} params;
+		} UniformBuferBlock;
+		UniformBuferBlock params;
 
 		/*	*/
 		const size_t round_robin_size = 2;
@@ -49,32 +50,40 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(uniform_buffer_block);
+		size_t uniformBufferSize = sizeof(uniform_buffer_block_t);
 
-		class MandelBrotSettingComponent : public nekomimi::UIComponent {
+		class SortSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			MandelBrotSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
-				this->setName("Mandelbrot Settings");
+			SortSettingComponent(struct uniform_buffer_block_t &uniform) : uniform(uniform) {
+				this->setName("Sort Settings");
 			}
 			void draw() override {
 				ImGui::DragInt("Number of Samples", &this->uniform.nrSamples, 1, 0, 2048);
 				ImGui::DragFloat2("C", &this->uniform.c);
 				ImGui::DragFloat("Zoom", &this->uniform.zoom, 1.0f, 0.001, 10.0f);
 				ImGui::DragInt("Program", &this->program, 1.0f, 0, 1);
+
+				if (ImGui::Button("Reset")) {
+				}
 			}
 
 			bool showWireFrame = false;
 			int program;
 
 		  private:
-			struct uniform_buffer_block &uniform;
+			struct uniform_buffer_block_t &uniform;
 		};
-		std::shared_ptr<MandelBrotSettingComponent> mandelbrotSettingComponent;
+		std::shared_ptr<SortSettingComponent> sortSettingComponent;
 
 		/*	*/
 		const std::string computeMandelbrotShaderPath = "Shaders/mandelbrot/mandelbrot.comp.spv";
 		const std::string computeJuliaShaderPath = "Shaders/mandelbrot/julia.comp.spv";
+
+		/*	Particle.	*/
+		const std::string sortLineVertexShaderPath = "Shaders/sort/line.vert.spv";
+		const std::string sortLineGeometryShaderPath = "Shaders/sort/line.geom.spv";
+		const std::string sortLineFragmentShaderPath = "Shaders/sort/line.frag.spv";
 
 		void Release() override {
 
@@ -114,20 +123,22 @@ namespace glsample {
 			}
 
 			/*	*/
-			glUseProgram(this->mandelbrot_program);
-			int uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->mandelbrot_program, uniform_buffer_index, this->uniform_buffer_binding);
-			glUniform1i(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
-			glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
-			glUseProgram(0);
+			{
+				glUseProgram(this->mandelbrot_program);
+				int uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
+				glUniformBlockBinding(this->mandelbrot_program, uniform_buffer_index, this->uniform_buffer_binding);
+				glUniform1i(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
+				glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
+				glUseProgram(0);
 
-			/*	*/
-			glUseProgram(this->julia_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->julia_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->julia_program, uniform_buffer_index, this->uniform_buffer_binding);
-			glUniform1i(glGetUniformLocation(this->julia_program, "img_output"), 0);
-			glGetProgramiv(this->julia_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
-			glUseProgram(0);
+				/*	*/
+				glUseProgram(this->julia_program);
+				uniform_buffer_index = glGetUniformBlockIndex(this->julia_program, "UniformBufferBlock");
+				glUniformBlockBinding(this->julia_program, uniform_buffer_index, this->uniform_buffer_binding);
+				glUniform1i(glGetUniformLocation(this->julia_program, "img_output"), 0);
+				glGetProgramiv(this->julia_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
+				glUseProgram(0);
+			}
 
 			/*	*/
 			GLint minMapBufferSize;
@@ -193,7 +204,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			{
 
-				if (this->mandelbrotSettingComponent->program == 0) {
+				if (this->sortSettingComponent->program == 0) {
 					glUseProgram(this->mandelbrot_program);
 				} else {
 					glUseProgram(this->julia_program);
@@ -208,17 +219,39 @@ namespace glsample {
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
 			}
 
-			/*	Blit mandelbrot framebuffer to default framebuffer.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->mandelbrot_framebuffer);
-
-			glBlitFramebuffer(0, 0, this->mandelbrot_texture_width, this->mandelbrot_texture_height, 0, 0, width,
-							  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			/*	Draw sort */
 		}
 
 		void update() override {
+			// const float elapsedTime = this->getTimer().getElapsed<float>();
+			// this->camera.update(this->getTimer().deltaTime<float>());
+
+			// /*	*/
+			// {
+			// 	const float xHalf = this->uniformStageBuffer.particleSetting.particleBox.x / 2.f;
+			// 	const float yHalf = this->uniformStageBuffer.particleSetting.particleBox.y / 2.f;
+			// 	glm::mat4 proj = glm::ortho(-xHalf, xHalf, -yHalf, yHalf, -10.0f, 10.0f);
+
+			// 	glm::mat4 viewMatrix = glm::translate(glm::vec3(-xHalf, -yHalf, 0));
+			// 	/*	*/
+			// 	this->uniformStageBuffer.proj = proj;
+
+			// 	this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
+
+			// 	this->uniformStageBuffer.model = glm::mat4(1.0f);
+			// 	this->uniformStageBuffer.view = viewMatrix;
+			// 	this->uniformStageBuffer.modelViewProjection =
+			// 		this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+
+			// 	if (this->getInput().getMousePressed(Input::MouseButton::LEFT_BUTTON)) {
+			// 		int x, y;
+			// 		this->getInput().getMousePosition(&x, &y);
+			// 		this->uniformStageBuffer.motion.normalizedPos =
+			// 			glm::vec2(1, 1) - (glm::vec2(x, y) / glm::vec2(this->width(), this->height()));
+			// 		this->uniformStageBuffer.motion.normalizedPos.x =
+			// 			1.0f - this->uniformStageBuffer.motion.normalizedPos.x;
+			// 	}
+			// }
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -227,35 +260,21 @@ namespace glsample {
 								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &params, sizeof(params));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
-
-			/*	Update Position.	*/
-			{
-				static int prevX = 0, prevY = 0;
-				if (this->getInput().getMouseDown(Input::MouseButton::LEFT_BUTTON)) {
-					this->getInput().getMousePosition(&prevX, &prevY);
-				}
-
-				if (this->getInput().getMouseReleased(Input::MouseButton::LEFT_BUTTON)) {
-					params.posX = params.mousePosX;
-					params.posY = params.mousePosY;
-				}
-
-				int x, y;
-				if (this->getInput().getMousePosition(&x, &y)) {
-					const int deltaX = -(x - prevX);
-					const int deltaY = (y - prevY);
-					params.mousePosX = params.posX + deltaX;
-					params.mousePosY = params.posY + deltaY;
-				}
-			}
 		}
+	};
+
+	class SortGLSample : public GLSample<Sort> {
+	  public:
+		SortGLSample() : GLSample<Sort>() {}
+
+		void customOptions(cxxopts::OptionAdder &options) override {}
 	};
 
 } // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::MandelBrot> sample;
+		glsample::SortGLSample sample;
 		sample.run(argc, argv);
 	} catch (const std::exception &ex) {
 

@@ -11,8 +11,8 @@
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class SkyBoxPanoramic : public GLSampleWindow {
 
@@ -86,7 +86,9 @@ namespace glsample {
 		}
 
 		void Initialize() override {
+
 			const std::string panoramicPath = this->getResult()["texture"].as<std::string>();
+
 			{
 				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> vertex_skybox_binary =
@@ -103,6 +105,7 @@ namespace glsample {
 				this->skybox_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
+			
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
 			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
@@ -143,8 +146,8 @@ namespace glsample {
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenBuffers(1, &this->SkyboxCube.vbo);
 			glBindBuffer(GL_ARRAY_BUFFER, SkyboxCube.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-						 vertices.data(), GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+						 GL_STATIC_DRAW);
 
 			/*	*/
 			glEnableVertexAttribArray(0);

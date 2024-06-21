@@ -12,6 +12,12 @@ layout(location = 0) smooth out vec2 uv;
 layout(location = 1) smooth out vec4 gColor;
 layout(location = 0) in vec4 velocity[];
 
+
+/*	Compute arrow color.	*/
+vec3 computeForceColor(const in vec3 dir) {
+	return vec3((dir.x + 1.0) / 2.0, (dir.y + 1.0) / 2.0, (dir.x - 1.0) / 2.0);
+}
+
 void main() {
 	const int noffsets = 4;
 	int i, j;
@@ -46,7 +52,8 @@ void main() {
 						  length(velocity[i]) * blue, 1.0);
 
 			const vec3 dir = normalize(velocity[i].xyz);
-			gColor = vec4(hsv2rgb(vec3(atan(dir.x, dir.y), 0.5, 0.9)), 0);
+			gColor = vec4(hsv2rgb(vec3(atan(dir.x, dir.y), 0.6, 0.8)), 0);
+			gColor = vec4(computeForceColor(dir.xyy), 0);
 			uv = cUV[j];
 			EmitVertex();
 		}

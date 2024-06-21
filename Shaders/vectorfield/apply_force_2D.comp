@@ -20,7 +20,7 @@ void main() {
 	const uint pindex = gl_GlobalInvocationID.x;
 
 	if (pindex >= ubo.setting.nrParticles) {
-	//	return;
+		return;
 	}
 
 	const float delta = ubo.deltaTime * ubo.setting.speed;
@@ -30,8 +30,8 @@ void main() {
 	const vec2 worldMousePosition = maxBox * ubo.motion.pos;
 
 	/*  Get particle.   */
-	vec2 position = readBuffer.particle[pindex].position.xy;
-	vec2 velocity = readBuffer.particle[pindex].velocity.xy;
+	const vec2 position = readBuffer.particle[pindex].position.xy;
+	const vec2 velocity = readBuffer.particle[pindex].velocity.xy;
 	const float invMass = readBuffer.particle[pindex].velocity.w;
 
 	/*	*/
@@ -44,6 +44,4 @@ void main() {
 	const vec2 influenceVelocity = clamp(dir * influence_magnitude, vec2(-20), vec2(20));
 
 	writeBuffer.particle[pindex].velocity.xy = velocity + influenceVelocity;
-
-	barrier();
 }

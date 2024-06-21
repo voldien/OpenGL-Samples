@@ -1,3 +1,4 @@
+#include "Core/math/NormalDistribution.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -10,8 +11,8 @@
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class ParticleSystem : public GLSampleWindow {
 	  public:
@@ -19,7 +20,7 @@ namespace glsample {
 			this->setTitle("Particle-System");
 			this->particleSystemSettingComponent =
 				std::make_shared<ParticleSystemSettingComponent>(this->uniformStageBuffer);
-				
+
 			this->addUIComponent(this->particleSystemSettingComponent);
 		}
 
@@ -56,15 +57,15 @@ namespace glsample {
 			alignas(16) glm::mat4 modelViewProjection;
 
 			/*	*/
-			float delta;
+			ParticleSetting particleSetting;
 
 			/*	*/
-			ParticleSetting particleSetting;
+			float delta;
 
 		} uniformStageBuffer;
 
 		typedef struct particle_t {
-			glm::vec4 position; /*	Position, time	*/
+			glm::vec4 position; /*	Position (XYZ), time	*/
 			glm::vec4 velocity; /*	Velocity.	*/
 		} Particle;
 		CameraController camera;
@@ -94,11 +95,10 @@ namespace glsample {
 		std::shared_ptr<ParticleSystemSettingComponent> particleSystemSettingComponent;
 
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/particle-system/particle.vert";
-		const std::string fragmentShaderPath = "Shaders/particle-system/particle.frag";
-		const std::string computeShaderPath = "Shaders/particle-system/particle.comp";
-
-		const std::string particleTexturePath = "asset/particle.png";
+		const std::string vertexParticleShaderPath = "Shaders/particle-system/particle.vert";
+		const std::string fragmentParticleShaderPath = "Shaders/particle-system/particle.frag";
+		/*	*/
+		const std::string computeParticleSimulationShaderPath = "Shaders/particle-system/particle.comp";
 
 		void Release() override {
 			/*	*/
@@ -115,22 +115,27 @@ namespace glsample {
 
 		void Initialize() override {
 
-			/*	*/
-			std::vector<char> vertex_source = glsample::IOUtil::readFileString(vertexShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source =
-				glsample::IOUtil::readFileString(fragmentShaderPath, this->getFileSystem());
+			const std::string spriteTexture = this->getResult()["texture"].as<std::string>();
 
 			/*	*/
-			std::vector<char> compute_source =
-				glsample::IOUtil::readFileString(computeShaderPath, this->getFileSystem());
+			{
+				std::vector<char> vertex_source =
+					glsample::IOUtil::readFileString(vertexParticleShaderPath, this->getFileSystem());
+				std::vector<char> fragment_source =
+					glsample::IOUtil::readFileString(fragmentParticleShaderPath, this->getFileSystem());
 
-			/*	Load shader	*/
-			this->particle_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
-			this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
+				/*	*/
+				std::vector<char> compute_source =
+					glsample::IOUtil::readFileString(computeParticleSimulationShaderPath, this->getFileSystem());
+
+				/*	Load shader	*/
+				this->particle_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+				this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_source});
+			}
 
 			/*	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->particle_texture = textureImporter.loadImage2D(particleTexturePath);
+			this->particle_texture = textureImporter.loadImage2D(spriteTexture);
 
 			/*	Setup graphic render pipeline.	*/
 			glUseProgram(this->particle_graphic_program);
@@ -144,7 +149,7 @@ namespace glsample {
 			uniform_buffer_index = glGetUniformBlockIndex(this->particle_compute_program, "UniformBufferBlock");
 			int particle_buffer_read_index = glGetUniformBlockIndex(this->particle_compute_program, "ReadBuffer");
 			int particle_buffer_write_index = glGetUniformBlockIndex(this->particle_compute_program, "WriteBuffer");
-			glGetProgramiv(this->particle_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+			glGetProgramiv(this->particle_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 
 			glUniformBlockBinding(this->particle_compute_program, uniform_buffer_index, this->uniform_buffer_binding);
 			/*	*/
@@ -175,6 +180,8 @@ namespace glsample {
 			Particle *particle_buffer =
 				(Particle *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, ParticleMemorySize * nrParticleBuffers,
 											 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+			RandomUniform<float> randomUniform;
+			/*	*/
 			for (int i = 0; i < nrParticles * nrParticleBuffers; i++) {
 				particle_buffer[i].position =
 					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
@@ -210,8 +217,13 @@ namespace glsample {
 			this->getSize(&width, &height);
 			glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
 
+			const size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrParticleBuffers;
+			const size_t write_buffer_index = (this->getFrameCount() + 0) % this->nrParticleBuffers;
+
 			/*	Compute particles.	*/
 			{
+
+				const uint nrWorkGroupsX = std::ceil((float)this->nrParticles / (float)this->localWorkGroupSize[0]);
 
 				/*	Bind uniform buffer.	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
@@ -291,14 +303,16 @@ namespace glsample {
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			{
+				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
-								 this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+				void *uniformPointer = glMapBufferRange(
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+					this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 
-			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(uniformStageBuffer));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
+				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(uniformStageBuffer));
+				glUnmapBuffer(GL_UNIFORM_BUFFER);
+			}
 		}
 	};
 
@@ -306,7 +320,6 @@ namespace glsample {
 	  public:
 		ParticleSystemGLSample() : GLSample<ParticleSystem>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));
 		}
 	};

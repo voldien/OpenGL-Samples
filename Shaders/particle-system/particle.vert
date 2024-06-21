@@ -1,4 +1,4 @@
-#version 460
+#version 460 core
 #extension GL_ARB_separate_shader_objects : enable
 
 layout(location = 0) in vec4 inPosition;
@@ -19,10 +19,10 @@ layout(binding = 0) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 modelViewProjection;
 
+	particle_setting setting;
+
 	/*	*/
 	float deltaTime;
-
-	particle_setting setting;
 }
 ubo;
 

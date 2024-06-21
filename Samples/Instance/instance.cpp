@@ -1,4 +1,3 @@
-#include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -79,7 +78,7 @@ namespace glsample {
 			InstanceSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Instance Settings");
 			}
-			
+
 			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
@@ -118,6 +117,7 @@ namespace glsample {
 
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
+
 			{
 				/*	Load shader source.	*/
 				std::vector<uint32_t> instance_vertex_binary =
@@ -174,49 +174,51 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
-			ModelImporter modelLoader(FileSystem::getFileSystem());
-			modelLoader.loadContent(modelPath, 0);
+			{
+				ModelImporter modelLoader(FileSystem::getFileSystem());
+				modelLoader.loadContent(modelPath, 0);
 
-			const ModelSystemObject &modelRef = modelLoader.getModels()[0];
+				const ModelSystemObject &modelRef = modelLoader.getModels()[0];
 
-			/*	load Textures	*/
-			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
+				/*	load Textures	*/
+				TextureImporter textureImporter(this->getFileSystem());
+				this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->instanceGeometry.vao);
-			glBindVertexArray(this->instanceGeometry.vao);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenVertexArrays(1, &this->instanceGeometry.vao);
+				glBindVertexArray(this->instanceGeometry.vao);
 
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->instanceGeometry.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, instanceGeometry.vbo);
-			glBufferData(GL_ARRAY_BUFFER, modelRef.nrVertices * modelRef.vertexStride, modelRef.vertexData,
-						 GL_STATIC_DRAW);
+				/*	Create array buffer, for rendering static geometry.	*/
+				glGenBuffers(1, &this->instanceGeometry.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, instanceGeometry.vbo);
+				glBufferData(GL_ARRAY_BUFFER, modelRef.nrVertices * modelRef.vertexStride, modelRef.vertexData,
+							 GL_STATIC_DRAW);
 
-			/*	*/
-			glGenBuffers(1, &this->instanceGeometry.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, instanceGeometry.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, modelRef.nrIndices * modelRef.indicesStride, modelRef.indicesData,
-						 GL_STATIC_DRAW);
-			this->instanceGeometry.nrIndicesElements = modelRef.nrIndices;
+				/*	*/
+				glGenBuffers(1, &this->instanceGeometry.ibo);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, instanceGeometry.ibo);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, modelRef.nrIndices * modelRef.indicesStride, modelRef.indicesData,
+							 GL_STATIC_DRAW);
+				this->instanceGeometry.nrIndicesElements = modelRef.nrIndices;
 
-			/*	Vertices.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, nullptr);
+				/*	Vertices.	*/
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, nullptr);
 
-			/*	UVs	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(12));
+				/*	UVs	*/
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(12));
 
-			/*	Normals.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(20));
+				/*	Normals.	*/
+				glEnableVertexAttribArray(2);
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(20));
 
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(32));
+				/*	Tangent.	*/
+				glEnableVertexAttribArray(3);
+				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, modelRef.vertexStride, reinterpret_cast<void *>(32));
 
-			glBindVertexArray(0);
+				glBindVertexArray(0);
+			}
 		}
 
 		void draw() override {

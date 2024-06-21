@@ -124,9 +124,12 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		/*	Check if required extensions */
 		bool all_required = true;
 		if (requiredExtension.size() > 0) {
-			// Check all extension.
+
 			const std::shared_ptr<fragcore::IRenderer> &renderer = this->sampleRef->getRenderInterface();
-			fragcore::GLRendererInterface &glRenderer = renderer->as<fragcore::GLRendererInterface>();
+
+			const fragcore::GLRendererInterface &glRenderer = renderer->as<fragcore::GLRendererInterface>();
+
+			/* Check all extension.	*/
 			for (size_t i = 0; i < requiredExtension.size(); i++) {
 				if (!glRenderer.isExtensionSupported(requiredExtension[i])) {
 					this->sampleRef->getLogger().error("{} Not Supported", requiredExtension[i]);
@@ -134,7 +137,10 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 				}
 			}
 		}
+		/*	*/
 		if (!all_required) {
+			this->sampleRef->getLogger().info("Bye Bye");
+			delete this->sampleRef;
 			return;
 		}
 

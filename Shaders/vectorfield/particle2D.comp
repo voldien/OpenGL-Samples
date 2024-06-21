@@ -20,15 +20,15 @@ layout(constant_id = 0) const float epsilon = 0.0011f;
  */
 void main() {
 
-	/*	Bounding Box of the simluation.	*/
-	const vec2 max = ubo.setting.particleBox.xy;
-	const vec2 min = vec2(0, 0);
-
 	/*	Particle index.	*/
 	const uint pindex = gl_GlobalInvocationID.x;
 	if (pindex >= ubo.setting.nrParticles) {
 		return;
 	}
+
+	/*	Bounding Box of the simluation.	*/
+	const vec2 max = ubo.setting.particleBox.xy;
+	const vec2 min = vec2(0, 0);
 
 	const float delta = ubo.deltaTime * ubo.setting.speed;
 
@@ -65,6 +65,4 @@ void main() {
 	writeBuffer.particle[pindex].position.xy = position;
 	// writeBuffer.particle[pindex].time = readBuffer.particle[pindex].time - ubo.deltaTime;
 	writeBuffer.particle[pindex].velocity.xy = newVelocity;
-
-	// memoryBarrier();
 }

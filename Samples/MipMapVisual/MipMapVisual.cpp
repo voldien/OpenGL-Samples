@@ -12,6 +12,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief 
+	 * 
+	 */
 	class MipMapScene : public Scene {
 	  public:
 		MipMapScene() : Scene() {}
@@ -42,6 +46,7 @@ namespace glsample {
 	  public:
 		MipMapVisual() : GLSampleWindow() {
 			this->setTitle("MipMap Visualization");
+			
 			this->mipmapvisualSettingComponent =
 				std::make_shared<MipMapVisualSettingComponent>(this->uniformStageBuffer, this->mipmapbias);
 			this->addUIComponent(this->mipmapvisualSettingComponent);

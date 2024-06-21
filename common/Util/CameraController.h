@@ -25,7 +25,6 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/rotate_vector.hpp>
-#define FLYTHROUGH_CAMERA_IMPLEMENTATION 1
 #include "flythrough_camera.h"
 #include <glm/gtc/matrix_transform.hpp>
 

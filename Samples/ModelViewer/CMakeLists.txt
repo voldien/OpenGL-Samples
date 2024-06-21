@@ -1,0 +1,17 @@
+FILE(GLOB MODEL_VIEWER_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+FILE(GLOB MODEL_VIEWER_HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+
+ADD_EXECUTABLE(ModelViewer ${MODEL_VIEWER_SOURCE_FILES} ${MODEL_VIEWER_HEADER_FILES} )
+TARGET_LINK_LIBRARIES(ModelViewer glCommon gl-sample-common-asset-importer)
+ADD_DEPENDENCIES(ModelViewer glCommon gl-sample-common-asset-importer)
+
+TARGET_INCLUDE_DIRECTORIES(ModelViewer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} )
+
+INSTALL(TARGETS ModelViewer DESTINATION bin)
+
+# Library component
+ADD_LIBRARY(ModelViewer-Core ${CMAKE_CURRENT_SOURCE_DIR}/ModelViewer.cpp ${MODEL_VIEWER_HEADER_FILES})
+TARGET_LINK_LIBRARIES(ModelViewer-Core PUBLIC glCommon gl-sample-common-asset-importer)
+TARGET_INCLUDE_DIRECTORIES(ModelViewer-Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} )
+ADD_DEPENDENCIES(ModelViewer-Core glCommon gl-sample-common-asset-importer)
+INSTALL(TARGETS ModelViewer-Core DESTINATION lib)

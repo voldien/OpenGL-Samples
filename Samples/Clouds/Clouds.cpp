@@ -11,8 +11,8 @@
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class Clouds : public GLSampleWindow {
 
@@ -112,29 +112,31 @@ namespace glsample {
 		void Initialize() override {
 			const std::string panoramicPath = this->getResult()["texture"].as<std::string>();
 
-			/*	Load shader binaries.	*/
-			std::vector<uint32_t> vertex_skybox_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_skybox_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+			{
+				/*	Load shader binaries.	*/
+				std::vector<uint32_t> vertex_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
-			std::vector<uint32_t> vertex_clouds_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			std::vector<uint32_t> fragment_clouds_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+				std::vector<uint32_t> vertex_clouds_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_clouds_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
-			/*	*/
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Create skybox graphic pipeline program.	*/
-			this->skybox_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+				/*	Create skybox graphic pipeline program.	*/
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 
-			this->clouds_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_clouds_binary, &fragment_clouds_binary);
-
+				this->clouds_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_clouds_binary, &fragment_clouds_binary);
+			}
+			
 			/*	Setup skybox graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
@@ -233,9 +235,7 @@ namespace glsample {
 			}
 
 			/*	Clouds.	*/
-			{
-
-			}
+			{}
 		}
 
 		void update() override {

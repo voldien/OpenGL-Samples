@@ -4,26 +4,19 @@
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
+#include <ModelViewer.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 namespace glsample {
-	// TODO: use existing sample, override.
-
 	/**
 	 * @brief
 	 *
 	 */
-	class VariableRateShading : public GLSampleWindow {
+	class VariableRateShading : public ModelViewer {
 	  public:
-		VariableRateShading() : GLSampleWindow() {
-			this->setTitle("Variable Rate Shading (VRS)");
-
-			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
-			this->camera.lookAt(glm::vec3(0.f));
-		}
+		VariableRateShading() : ModelViewer() { this->setTitle("Variable Rate Shading (VRS)"); }
 
 		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
@@ -34,16 +27,14 @@ namespace glsample {
 
 		} uniformBuffer;
 
-		/*	*/
-		std::vector<MeshObject> refObj;
-
-		/*	*/
-		unsigned int diffuse_texture;
-		unsigned int normal_texture;
+		unsigned int variable_rate_program;
+		int localWorkGroupSize[3];
+		unsigned int variable_rate_lut_texture;
 
 		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer;
-		unsigned int multipass_program;
+
+		unsigned int nthTexture = 0;
 		unsigned int multipass_texture_width;
 		unsigned int multipass_texture_height;
 		std::vector<unsigned int> multipass_textures;
@@ -56,87 +47,98 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
-		CameraController camera;
-
-		std::string diffuseTexturePath = "asset/diffuse.png";
-		/*	*/
-		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
-		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
-
-		const std::string modelPath = "asset/sponza/sponza.obj";
+		const std::string computeShaderPath = "Shaders/variablerateshading/variablerateshading.comp.spv";
 
 		void Release() override {
-			glDeleteProgram(this->multipass_program);
+			glDeleteProgram(this->variable_rate_program);
 			/*	*/
-			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, &this->depthTexture);
 			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			/*	*/
-			glDeleteVertexArrays(1, &this->refObj[0].vao);
-			glDeleteBuffers(1, &this->refObj[0].vbo);
-			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
 		void Initialize() override {
 
-			/*	*/
-			const std::vector<uint32_t> vertex_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
+			ModelViewer::Initialize();
+			
+			{
+				/*	Load shader binaries.	*/
+				const std::vector<uint32_t> variable_rate_shading_compute_binary =
+					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
+				/*	*/
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-			/*	Load shader	*/
-			this->multipass_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+				/*	Create compute pipeline.	*/
+				this->variable_rate_program =
+					ShaderLoader::loadComputeProgram(compilerOptions, &variable_rate_shading_compute_binary);
+			}
 
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->multipass_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
-			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(this->variable_rate_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->variable_rate_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->variable_rate_program, "texture0"), 0);
+			glUniform1i(glGetUniformLocation(this->variable_rate_program, "variableRateLUT"), 1);
+			glUniformBlockBinding(this->variable_rate_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glGetProgramiv(this->variable_rate_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			glUseProgram(0);
-
-			/*	load Textures	*/
-			TextureImporter textureImporter(getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = fragcore::Math::align(uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-			/*	*/
-			ModelImporter modelLoader(FileSystem::getFileSystem());
-			modelLoader.loadContent(modelPath, 0);
-
-			ImportHelper::loadModelBuffer(modelLoader, refObj);
-
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
 
 			/*	*/
-			this->multipass_textures.resize(4);
+			this->multipass_textures.resize(1);
 			glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
+			glGenTextures(1, &this->variable_rate_lut_texture);
 			onResize(this->width(), this->height());
+
+			/*	Setup and configure shading rate palette.	*/
+			{
+				GLint palSize;
+				glGetIntegerv(GL_SHADING_RATE_IMAGE_PALETTE_SIZE_NV, &palSize);
+
+				GLenum *palette = new GLenum[palSize];
+
+				palette[0] = GL_SHADING_RATE_NO_INVOCATIONS_NV;
+				palette[1] = GL_SHADING_RATE_1_INVOCATION_PER_PIXEL_NV;
+				palette[2] = GL_SHADING_RATE_1_INVOCATION_PER_2X2_PIXELS_NV;
+				palette[3] = GL_SHADING_RATE_1_INVOCATION_PER_4X4_PIXELS_NV;
+
+				/* fill the rest	*/
+				for (size_t i = 4; i < palSize; ++i) {
+					palette[i] = GL_SHADING_RATE_1_INVOCATION_PER_PIXEL_NV;
+				}
+
+				glShadingRateImagePaletteNV(0, 0, palSize, palette);
+				delete[] palette;
+
+				/*	 One palette with a constant rate	*/
+				GLenum *paletteFullRate = new GLenum[palSize];
+				for (size_t i = 0; i < palSize; ++i) {
+					paletteFullRate[i] = GL_SHADING_RATE_1_INVOCATION_PER_PIXEL_NV;
+				}
+
+				glShadingRateImagePaletteNV(1, 0, palSize, paletteFullRate);
+				delete[] paletteFullRate;
+			}
 		}
 
 		void onResize(int width, int height) override {
-
+			ModelViewer::onResize(width, height);
 			this->multipass_texture_width = width;
 			this->multipass_texture_height = height;
 
@@ -173,9 +175,45 @@ namespace glsample {
 			}
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+			/*	Create and configure Variable Rate Shading configuration.	*/
+			glEnable(GL_SHADING_RATE_IMAGE_PER_PRIMITIVE_NV);
+			glEnable(GL_SHADING_RATE_IMAGE_NV);
+
+			/*	Create and update */
+			{
+				int m_shadingRateImageTexelWidth;
+				int m_shadingRateImageTexelHeight;
+
+				glGetIntegerv(GL_SHADING_RATE_IMAGE_TEXEL_HEIGHT_NV, &m_shadingRateImageTexelHeight);
+				glGetIntegerv(GL_SHADING_RATE_IMAGE_TEXEL_WIDTH_NV, &m_shadingRateImageTexelWidth);
+
+				const size_t lut_width = std::floor(width / (float)m_shadingRateImageTexelWidth);
+				const size_t lut_height = std::floor(height / (float)m_shadingRateImageTexelHeight);
+
+				glBindTexture(GL_TEXTURE_2D, this->variable_rate_lut_texture);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, lut_width, lut_height, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE,
+							 nullptr);
+				glBindTexture(GL_TEXTURE_2D, 0);
+			}
 		}
 
 		void draw() override {
+
+			/*	*/
+			{
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);
+
+				/*	Variable rate shading.	*/
+				glBindShadingRateImageNV(this->variable_rate_lut_texture);
+
+				glEnable(GL_SHADING_RATE_IMAGE_NV);
+
+				ModelViewer::draw();
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+				glDisable(GL_SHADING_RATE_IMAGE_NV);
+			}
 
 			/*	*/
 			int width, height;
@@ -185,89 +223,56 @@ namespace glsample {
 			this->uniformBuffer.proj =
 				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
-			/*	Variable rate shading.	*/
-			{
-				// glBindShadingRateImageNV();
-			}
-
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
+			/*	Bind and Compute variable rate look up table Program.	*/
 			{
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->multipass_framebuffer);
-				/*	*/
-				glViewport(0, 0, this->multipass_texture_width, this->multipass_texture_height);
-				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glUseProgram(this->variable_rate_program);
 
-				/*	*/
-				glUseProgram(this->multipass_program);
+				/*	Previous game of life state.	*/
+				glBindImageTexture(0, this->multipass_textures[this->nthTexture % this->multipass_textures.size()], 0,
+								   GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
 
-				glDisable(GL_CULL_FACE);
+				/*	The resulting game of life state.	*/
+				glBindImageTexture(1, this->variable_rate_lut_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8UI);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
+				const size_t workGroupX = std::ceil(this->multipass_texture_width / (float)this->localWorkGroupSize[0]);
+				const size_t workGroupY =
+					std::ceil(this->multipass_texture_height / (float)this->localWorkGroupSize[1]);
 
-				glBindVertexArray(this->refObj[0].vao);
-				for (size_t i = 0; i < this->refObj.size(); i++) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
-											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
-											 this->refObj[i].vertex_offset);
-				}
-				glBindVertexArray(0);
+				glDispatchCompute(workGroupY, workGroupY, 1);
 
-				glUseProgram(0);
+				/*	Wait in till image has been written.	*/
+				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 			}
-
-			/*	Blit image targets to screen.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
 
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glViewport(0, 0, width, height);
 
-			/*	*/
-			const float halfW = (width / 2.0f);
-			const float halfH = (height / 2.0f);
-			for (size_t i = 0; i < this->multipass_textures.size(); i++) {
-				glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
-				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
-								  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW, halfH + (i / 2) * halfH,
-								  GL_COLOR_BUFFER_BIT, GL_LINEAR);
+			/*	Blit image targets to screen.	*/
+			{
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
+
+				/*	*/
+				glReadBuffer(GL_COLOR_ATTACHMENT0);
+				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
+								  height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		void update() override {
-			/*	Update Camera.	*/
-			const float elapsedTime = this->getTimer().getElapsed<float>();
-			this->camera.update(this->getTimer().deltaTime<float>());
-
-			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(40.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-
-			/*	*/
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
-		}
+		void update() override { ModelViewer::update(); }
 	};
+
 	class VariableRateShadingGLSample : public GLSample<VariableRateShading> {
 	  public:
 		VariableRateShadingGLSample() : GLSample<VariableRateShading>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
+			GLSampleSession::customOptions(options);
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
 				"S,skybox", "Skybox Texture File Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
@@ -278,7 +283,8 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 
-	const std::vector<const char *> required_extensions = {"GL_NV_shading_rate_image"};
+	const std::vector<const char *> required_extensions = {"GL_NV_shading_rate_image",
+														   /*"GL_NV_primitive_shading_rate"*/};
 
 	try {
 		glsample::VariableRateShadingGLSample sample;

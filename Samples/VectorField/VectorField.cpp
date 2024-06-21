@@ -19,8 +19,10 @@ namespace glsample {
 	  public:
 		VectorField() : GLSampleWindow() {
 			this->setTitle("VectorField");
+
 			this->vectorFieldSettingComponent =
 				std::make_shared<ParticleSystemSettingComponent>(this->uniformStageBuffer);
+
 			this->addUIComponent(this->vectorFieldSettingComponent);
 		}
 
@@ -50,10 +52,10 @@ namespace glsample {
 		unsigned int vector_field_graphic_program;
 
 		typedef struct motion_t {
-			glm::vec2 pos;		/*  Position in pixel space.    */
-			glm::vec2 velocity; /*  direction and magnitude of mouse movement.  */
-			float radius;		/*  Radius of incluense, also the pressure of input.    */
-			float pad0;
+			glm::vec2 normalizedPos; /*  Position in pixel space.    */
+			glm::vec2 velocity;		 /*  direction and magnitude of mouse movement.  */
+			float radius = 10.0f;	 /*  Radius of incluense, also the pressure of input.    */
+			float amplitude = 1.0;
 			float pad1;
 			float pad2;
 		} Motion;
@@ -68,9 +70,9 @@ namespace glsample {
 			float strength = 1.0f;
 
 			float density = 1.0f;
-			float padd0;
-			float padd1;
-			float padd2;
+			uint32_t nrparticles;
+			float spriteSize = 0.25f;
+			float dragMag = 1.0f;
 		} ParticleSetting;
 
 		struct uniform_buffer_block {
@@ -193,10 +195,10 @@ namespace glsample {
 																				  &fragment_source, &geometry_source);
 
 				/*	*/
-				std::vector<uint32_t> compute_particle_source_binary =
+				const std::vector<uint32_t> compute_particle_source_binary =
 					IOUtil::readFileData<uint32_t>(this->particleComputeShaderPath, this->getFileSystem());
 
-				std::vector<uint32_t> compute_motion_source_binary =
+				const std::vector<uint32_t> compute_motion_source_binary =
 					IOUtil::readFileData<uint32_t>(this->particleMotionForceComputeShaderPath, this->getFileSystem());
 
 				/*	Load Compute.	*/
@@ -293,11 +295,9 @@ namespace glsample {
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageMapBufferSize);
 
 			/*	Compute number of particles and memory size required, aligned to hardware min alignment.	*/
-			this->nrParticles = (size_t)(uniformStageBuffer.particleSetting.particleBox.x *
-										 uniformStageBuffer.particleSetting.particleBox.y *
-										 uniformStageBuffer.particleSetting.particleBox.z);
-			this->ParticleMemorySize =
-				Math::align<size_t>(this->nrParticles * sizeof(Particle), minStorageMapBufferSize);
+			this->nrParticles = Math::product(&uniformStageBuffer.particleSetting.particleBox[0], 3);
+			this->ParticleMemorySize = this->nrParticles * sizeof(Particle);
+			this->ParticleMemorySize = Math::align<size_t>(this->ParticleMemorySize, minStorageMapBufferSize);
 
 			/*	Create buffer.	*/
 			glGenBuffers(1, &this->particles.vbo);
@@ -397,6 +397,9 @@ namespace glsample {
 
 			int width, height;
 			this->getSize(&width, &height);
+
+			size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrParticleBuffers;
+			size_t write_buffer_index = (this->getFrameCount() + 0) % this->nrParticleBuffers;
 
 			/*	Compute particles in vector field.	*/
 			if (this->vectorFieldSettingComponent->simulateParticles) {

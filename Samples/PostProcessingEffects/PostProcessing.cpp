@@ -5,6 +5,7 @@
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
+#include <ModelViewer.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -13,9 +14,9 @@
 // TODO move to post processing section.
 namespace glsample {
 
-	class PostProcessing : public GLSampleWindow {
+	class PostProcessing : public ModelViewer {
 	  public:
-		PostProcessing() : GLSampleWindow() {
+		PostProcessing() : ModelViewer() {
 			this->setTitle("Post Processing");
 
 			// this->ambientOcclusionSettingComponent =
