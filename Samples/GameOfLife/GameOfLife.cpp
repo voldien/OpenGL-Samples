@@ -14,9 +14,9 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class SubGroup : public GLSampleWindow {
+	class GameOfLife : public GLSampleWindow {
 	  public:
-		SubGroup() : GLSampleWindow() { this->setTitle("GameOfLife - Compute"); }
+		GameOfLife() : GLSampleWindow() { this->setTitle("GameOfLife - Compute"); }
 
 		/*	Framebuffers.	*/
 		unsigned int gameoflife_framebuffer;
@@ -189,7 +189,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		GLSample<glsample::SubGroup> sample;
+		GLSample<glsample::GameOfLife> sample;
 		sample.run(argc, argv);
 	} catch (const std::exception &ex) {
 

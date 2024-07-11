@@ -14,7 +14,7 @@ layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
 layout(location = 4) out vec3 bitangent;
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
+layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -23,7 +23,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(binding = 0, std140) uniform UniformModelBufferBlock { mat4 model[128]; }
+layout(set = 0, binding = 0, std140) uniform UniformModelBufferBlock { mat4 model[128]; }
 model;
 
 void main() {
@@ -33,7 +33,7 @@ void main() {
 
 	/*	*/
 	vertex = (ubo.modelView * vec4(Vertex, 1.0));
-	
+
 	/*	*/
 	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
 	tangent = normalize((ubo.model * vec4(Tangent, 0.0)).xyz);

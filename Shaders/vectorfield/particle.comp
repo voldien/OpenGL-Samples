@@ -1,11 +1,11 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_compute_shader : enable
+#extension GL_EXT_control_flow_attributes : enable
 
-layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 4) in;
 
 #include "base.glsl"
-
 
 /*	*/
 layout(std430, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
@@ -44,7 +44,7 @@ vec3 computeInfluence(const vec3 position) {
 			const vec3 fvpos = flopos + vec3(x, y, 0);
 
 			/*	Fetch vector force.	*/
-			
+
 			const uint index = (vpos.z * vectorBox.x * vpos.y * vectorBox.y) + (vpos.y * vectorBox.x) + vpos.x;
 			const vec3 vecforce = vectorfield.field[index].force;
 
@@ -80,6 +80,8 @@ void main() {
 	/*	Bounding Box of the simluation.	*/
 	const vec3 max = ubo.setting.particleBox.xyz;
 	const vec3 min = vec3(0, 0, 0);
+
+	[[unroll]] for (int i = 0; i < NR_Particles; i++) {}
 
 	const uvec3 index = gl_GlobalInvocationID.xyz;
 

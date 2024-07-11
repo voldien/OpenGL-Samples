@@ -62,7 +62,7 @@ namespace glsample {
 		void Initialize() override {
 
 			ModelViewer::Initialize();
-			
+
 			{
 				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> variable_rate_shading_compute_binary =

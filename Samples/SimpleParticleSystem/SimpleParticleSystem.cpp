@@ -243,7 +243,7 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
-	
+
 	class SimpleParticleSystemGLSample : public GLSample<SimpleParticleSystem> {
 	  public:
 		SimpleParticleSystemGLSample() : GLSample<SimpleParticleSystem>() {}

@@ -3,18 +3,18 @@
 #extension GL_ARB_compute_shader : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 // Contains the cells information.
-layout(set = 0, binding = 0, std430) writeonly buffer img_current_cells { vec2 AB[]; }
+layout(set = 0, binding = 0, std430) writeonly restrict buffer WriteCells { vec2 AB[]; }
 CurrentAB;
 
-layout(set = 0, binding = 1, std430) readonly buffer img_previous_cells { vec2 AB[]; }
+layout(set = 0, binding = 1, std430) readonly buffer ReadCells { vec2 AB[]; }
 PreviousAB;
 
-layout(rgba32f, set = 0, binding = 2) uniform image2D img_output;
+layout(rgba8, set = 0, binding = 2) uniform restrict image2D img_output;
 
-layout(set = 0, binding = 3) uniform UniformBufferBlock {
+layout(set = 0, binding = 3, std140) uniform UniformBufferBlock {
 	mat4 kernelA;
 	mat4 kernelB;
 	/*	*/
@@ -39,9 +39,9 @@ float computeDiffuseRateB(const float A, const float B, const float diverage, co
 	return B + (diffuseRate * diverage + A * pow(B, 2) - (killRate - feedRate) * B) * delta;
 }
 
-ivec2 simple_mod(const ivec2 value, const ivec2 modv) { return (value % modv + modv) % modv; }
+ivec2 simple_mod(const in ivec2 value, const in ivec2 modv) { return (value % modv + modv) % modv; }
 
-int memoryAddress(const ivec2 invokedPixelCoord, const ivec2 imageSize, const ivec2 offset) {
+int memoryAddress(const in ivec2 invokedPixelCoord, const in ivec2 imageSize, const in ivec2 offset) {
 	const ivec2 pixelCoord = simple_mod((invokedPixelCoord + offset), imageSize);
 
 	return max(0, pixelCoord.y * imageSize.y + pixelCoord.x);
@@ -77,7 +77,7 @@ void main() {
 	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 	const ivec2 cellCellImageSize = imageSize(img_output);
 
-	if(pixel_coords.x > cellCellImageSize.x || pixel_coords.y > cellCellImageSize.y){
+	if (any(greaterThan(gl_GlobalInvocationID.xy, cellCellImageSize))) {
 		return;
 	}
 
@@ -90,16 +90,19 @@ void main() {
 	const float diverageA = lapacianA(pixel_coords, cellCellImageSize, ubo.kernelA);
 	const float diverageB = lapacianB(pixel_coords, cellCellImageSize, ubo.kernelB);
 
-	/*	*/
-	const float pA =
-		computeDiffuseRateA(AB.x, AB.y, diverageA, ubo.killRate, ubo.feedRate, ubo.diffuseRateA, ubo.delta * ubo.speed);
-	const float pB =
-		computeDiffuseRateB(AB.x, AB.y, diverageB, ubo.killRate, ubo.feedRate, ubo.diffuseRateB, ubo.delta * ubo.speed);
+	const float deltaTime = ubo.delta * ubo.speed;
 
 	/*	*/
+	const float pA =
+		computeDiffuseRateA(AB.x, AB.y, diverageA, ubo.killRate, ubo.feedRate, ubo.diffuseRateA, deltaTime);
+	const float pB =
+		computeDiffuseRateB(AB.x, AB.y, diverageB, ubo.killRate, ubo.feedRate, ubo.diffuseRateB, deltaTime);
+
+	/*	Update the new state.	*/
 	const vec2 newAB = vec2(pA, pB);
 	CurrentAB.AB[memory_index] = newAB;
 
+	/*	Create visual representation.	*/
 	const float ABmag = length(newAB);
 
 	/*	Display the color.	*/

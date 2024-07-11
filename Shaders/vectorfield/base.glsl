@@ -1,3 +1,5 @@
+layout(constant_id = 0) const float epsilon = 0.0011f;
+layout(constant_id = 1) const int NR_Particles = 8;
 
 struct particle_t {
 	vec3 position;
@@ -22,7 +24,7 @@ struct particle_setting {
 	float density;
 	uint nrParticles;
 	float spriteSize;
-	float pad2;
+	float dragMag;
 };
 
 /**

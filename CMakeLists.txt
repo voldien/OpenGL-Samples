@@ -36,6 +36,12 @@ ELSE()
 	ADD_DEFINITIONS(-D_GLIBCXX_ASSERTIONS)
 ENDIF()
 
+# GCC compiler flag options.
+IF((CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX) AND NOT CMAKE_COMPILER_IS_MINGW)
+#	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wextra -Wall")
+#	SET(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wextra -Wall")
+ENDIF()
+
 # ###########################################
 # Backend libraries
 # ###########################################
@@ -45,6 +51,8 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/mod
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/geometryutil EXCLUDE_FROM_ALL)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/audio EXCLUDE_FROM_ALL)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/audio/openal EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/physic EXCLUDE_FROM_ALL)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/modules/physic/bullet EXCLUDE_FROM_ALL)
 
 # ##################################################
 # Backend common logic for all OpenGL Samples
@@ -127,8 +135,11 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VariableRateShading)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/RayTracing)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Sort)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/CirclePacking)
 
 
+
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Rigidbody)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/OcclusionCulling)
 
 
@@ -155,15 +166,16 @@ FILE(GLOB_RECURSE GLSL_SOURCE_FILES
 # ###################################
 FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	GET_FILENAME_COMPONENT(FILE_NAME ${GLSL} ABSOLUTE)
-
+	
+	#TODO: enable debug for debug build.
 	SET(SPIRV "${FILE_NAME}.spv")
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${SPIRV}
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
-		COMMAND glslc  -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex --target-spv=spv1.3 -x glsl -O -Werror -g --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
+		COMMAND glslc -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex --target-spv=spv1.3 -x glsl -O -Werror -g --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
 		DEPENDS ${GLSL})
 	LIST(APPEND SPIRV_BINARY_FILES ${SPIRV})
-ENDFOREACH(GLSL) #--target-env=opengl4.5
+ENDFOREACH(GLSL)
 
 ADD_CUSTOM_TARGET(
 	Shaders ALL

@@ -2,8 +2,8 @@ FILE(GLOB MULTISAMPLING_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 FILE(GLOB HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 ADD_EXECUTABLE(MultiSampling ${MULTISAMPLING_FILES} ${HEADER_FILES})
-TARGET_LINK_LIBRARIES(MultiSampling glCommon gl-sample-common-asset-importer)
-ADD_DEPENDENCIES(MultiSampling glCommon gl-sample-common-asset-importer)
+TARGET_LINK_LIBRARIES(MultiSampling ModelViewer-Core)
+ADD_DEPENDENCIES(MultiSampling glCommon ModelViewer-Core)
 
 TARGET_INCLUDE_DIRECTORIES(MultiSampling PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

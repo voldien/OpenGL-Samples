@@ -89,7 +89,7 @@ namespace glsample {
 
 			{
 				/*	Load shader binaries.	*/
-				const std::vector<uint32_t> mandelbrot_source =
+				const std::vector<uint32_t> mandelbrot_binary =
 					IOUtil::readFileData<uint32_t>(this->computeMandelbrotShaderPath, this->getFileSystem());
 
 				/*	*/
@@ -97,20 +97,14 @@ namespace glsample {
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				const std::vector<char> mandelbrot_binary =
-					fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, compilerOptions);
-
 				/*	Load shader	*/
-				this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_binary});
+				this->mandelbrot_program = ShaderLoader::loadComputeProgram(compilerOptions, &mandelbrot_binary);
 
-				const std::vector<uint32_t> julia_source =
+				const std::vector<uint32_t> julia_binary =
 					IOUtil::readFileData<uint32_t>(this->computeJuliaShaderPath, this->getFileSystem());
 
-				const std::vector<char> julia_binary =
-					fragcore::ShaderCompiler::convertSPIRV(julia_source, compilerOptions);
-
 				/*	Load shader	*/
-				this->julia_program = ShaderLoader::loadComputeProgram({&julia_binary});
+				this->julia_program = ShaderLoader::loadComputeProgram(compilerOptions, &julia_binary);
 			}
 
 			/*	*/
@@ -230,9 +224,11 @@ namespace glsample {
 
 			/*	Update Position.	*/
 			{
-				static int prevX = 0, prevY = 0;
+				static int prev_move_X = 0, prev_move_Y = 0;
+				static int prev_zoom_X = 0, prev_zoom_zoom = 0;
+
 				if (this->getInput().getMouseDown(Input::MouseButton::LEFT_BUTTON)) {
-					this->getInput().getMousePosition(&prevX, &prevY);
+					this->getInput().getMousePosition(&prev_move_X, &prev_move_Y);
 				}
 
 				if (this->getInput().getMouseReleased(Input::MouseButton::LEFT_BUTTON)) {
@@ -240,12 +236,27 @@ namespace glsample {
 					params.posY = params.mousePosY;
 				}
 
+				if (this->getInput().getMouseDown(Input::MouseButton::RIGHT_BUTTON)) {
+					this->getInput().getMousePosition(&prev_zoom_X, nullptr);
+					prev_zoom_zoom = params.zoom;
+				}
+
+				if (this->getInput().getMouseReleased(Input::MouseButton::RIGHT_BUTTON)) {
+				}
+
 				int x, y;
 				if (this->getInput().getMousePosition(&x, &y)) {
-					const int deltaX = -(x - prevX);
-					const int deltaY = (y - prevY);
-					params.mousePosX = params.posX + deltaX;
-					params.mousePosY = params.posY + deltaY;
+					if (this->getInput().getMousePressed(Input::MouseButton::LEFT_BUTTON)) {
+						const int deltaX = -(x - prev_move_X);
+						const int deltaY = (y - prev_move_Y);
+						params.mousePosX = params.posX + deltaX;
+						params.mousePosY = params.posY + deltaY;
+					}
+					if (this->getInput().getMousePressed(Input::MouseButton::RIGHT_BUTTON)) {
+						const int deltaZoomX = -(x - prev_zoom_X);
+
+						params.zoom = prev_zoom_zoom + deltaZoomX * 0.0001f;
+					}
 				}
 			}
 		}

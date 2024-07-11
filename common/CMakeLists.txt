@@ -18,4 +18,4 @@ TARGET_COMPILE_DEFINITIONS(glCommon PRIVATE FLYTHROUGH_CAMERA_IMPLEMENTATION=1)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Importer)
 
-INSTALL(TARGETS glCommon DESTINATION lib)
+INSTALL(TARGETS glCommon fragcore nekomimi-window fragcore-rgl fragcore-shader-compiler cxxopts fragcore-geometry-util fragcore-window-sdl fragcore-imageloader glew DESTINATION lib)

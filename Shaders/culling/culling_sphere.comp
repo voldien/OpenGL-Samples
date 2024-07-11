@@ -12,7 +12,7 @@ struct plan {
 	float d;	 /*	*/
 };
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
+layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -27,15 +27,15 @@ struct AABB {
 };
 
 // TODO: determine if storage or uniform.
-layout(binding = 1, std140) uniform UniformInstanceBlock { AABB model[1024]; }
+layout(set = 0, binding = 1, std140) uniform UniformInstanceBlock { AABB model[1024]; }
 instance_ubo;
 
 // TODO: determine if storage or uniform.
-layout(binding = 2, std140) uniform UniformMeshBlock { AABB model[1024]; }
+layout(set = 0, binding = 2, std140) uniform UniformMeshBlock { AABB model[1024]; }
 mesh_ubo;
 
 /*  output data.    */
-layout(binding = 3) buffer NumInstances {
+layout(set = 0, binding = 3) buffer NumInstances {
 	uint vertexCount;
 	uint instanceCount; // = 1
 	uint firstVertex;	// = 0

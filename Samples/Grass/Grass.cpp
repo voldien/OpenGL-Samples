@@ -98,18 +98,20 @@ namespace glsample {
 		unsigned int skybox_texture_panoramic;
 
 		/*	*/
-		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert";
-		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag";
+		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert.spv";
+		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag.spv";
 
 		/*	*/
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
+		const std::string grassComputehaderPath = "Shaders/grass/grass.comp.spv";
+
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/grass/grass.vert";
-		const std::string fragmentShaderPath = "Shaders/grass/grass.frag";
-		const std::string ControlShaderPath = "Shaders/grass/grass.tesc";
-		const std::string EvoluationShaderPath = "Shaders/grass/grass.tese";
+		const std::string vertexShaderPath = "Shaders/grass/grass.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/grass/grass.frag.spv";
+		const std::string ControlShaderPath = "Shaders/grass/grass.tesc.spv";
+		const std::string EvoluationShaderPath = "Shaders/grass/grass.tese.spv";
 
 		void Release() override {
 
@@ -328,7 +330,7 @@ namespace glsample {
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
-	
+
 	class GrassGLSample : public GLSample<Grass> {
 	  public:
 		GrassGLSample() : GLSample<Grass>() {}

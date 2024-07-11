@@ -12,7 +12,7 @@ struct plan {
 	float d;	 /*	*/
 };
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
+layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -27,7 +27,7 @@ struct AABB {
 };
 
 // TODO: determine if storage or uniform.
-layout(binding = 1, std140) uniform UniformInstanceBlock { AABB model[1024]; }
+layout(set = 0, binding = 1, std140) uniform UniformInstanceBlock { AABB model[1024]; }
 instance_ubo;
 
 struct indirect_buffer {
@@ -38,8 +38,7 @@ struct indirect_buffer {
 };
 
 /*  output data.    */
-layout(binding = 2) buffer NumInstances { indirect_buffer indirect[]; }
-numBlades;
+layout(set = 0, binding = 2) buffer NumInstances { indirect_buffer indirect[]; };
 
 int intersectionAABB(const in vec3 min, in const vec3 max) { return 0; }
 

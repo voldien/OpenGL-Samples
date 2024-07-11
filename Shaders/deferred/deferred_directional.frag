@@ -16,7 +16,7 @@ struct directional_light {
 	vec4 color;
 };
 //
-layout(binding = 1, std140) uniform UniformBufferLight { directional_light light[64]; }
+layout(set = 0, binding = 1, std140) uniform UniformBufferLight { directional_light light[64]; }
 directionalLightUBO;
 
 vec2 CalcTexCoord() { return gl_FragCoord.xy / vec2(1920, 1080); }

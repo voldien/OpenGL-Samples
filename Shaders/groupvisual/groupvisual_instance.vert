@@ -24,20 +24,31 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 
-	vec4 specularColor;
-	vec4 viewPos;
-	float shininess;
+	/*	*/
+	uint nrFaces;
+	float delta;
+	float scale;
 }
 ubo;
 
-layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[512]; }
+struct _instance_data_t {
+	mat4 model;
+	vec4 color;
+};
+
+layout(binding = 1, std140) readonly restrict buffer UniformInstanceBlock { _instance_data_t model[]; }
 instance_ubo;
 
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
 
 void main() {
-	gl_Position = ubo.proj * ubo.view * instance_ubo.model[gl_InstanceID] * vec4(Vertex, 1.0);
+	const mat4 model = instance_ubo.model[gl_InstanceID].model;
+	const vec4 instance_color = instance_ubo.model[gl_InstanceID].color;
+
+	gl_Position = ubo.proj * ubo.view * model * vec4(Vertex, 1.0);
 	uv = TextureCoord;
-	normal = normalize((instance_ubo.model[gl_InstanceID] * vec4(Normal, 0.0)).xyz);
-	instanceColor = vec4(abs(rand(vec2(gl_InstanceID, 0))), 0, abs(rand(vec2(gl_InstanceID, 10))), 1);
+
+	normal = normalize((model * vec4(Normal, 0.0)).xyz);
+	instanceColor =
+		instance_color; // vec4(abs(rand(vec2(gl_InstanceID, 0))), 0, abs(rand(vec2(gl_InstanceID, 10))), 1) + ;
 }

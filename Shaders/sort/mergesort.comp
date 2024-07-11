@@ -1,6 +1,32 @@
 #version 460 core
-
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_compute_shader : enable
+#extension GL_EXT_control_flow_attributes : enable
 #include "sort.glsl"
 
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
-void main(){}
+layout(set = 0, binding = 1, std430) writeonly restrict buffer WriteSort { vec4 value[]; }
+writeSort;
+
+layout(set = 0, binding = 2, std430) readonly buffer ReadSort { vec4 value[]; }
+readSort;
+
+void main() {
+
+	/*  Perform a single merge operation.   */
+	const uint index0 = gl_GlobalInvocationID.x + 0;
+	const uint index1 = gl_GlobalInvocationID.x + 1;
+
+	const vec4 value0 = readSort.value[index0];
+	const vec4 value1 = readSort.value[index1];
+
+	/*	greater true =>  swap.	*/
+	bvec4 greater = greaterThan(value0, value1);
+
+	/*	swap based */
+	vec4 sorter_value = vec4(greater) * value0 + vec4(not(greater)) * value1;
+
+	writeSort.value[index0] = sorter_value;
+	writeSort.value[index1] = sorter_value;
+}

@@ -20,7 +20,7 @@ struct point_light {
 	float qudratic_attenuation;
 };
 
-layout(binding = 1, std140) uniform UniformBufferLight { point_light point_light[64]; }
+layout(set = 0, binding = 1, std140) uniform UniformBufferLight { point_light point_light[64]; }
 pointlightUBO;
 
 vec2 CalcTexCoord() { return gl_FragCoord.xy / vec2(1920, 1080); }

@@ -12,7 +12,7 @@ layout(binding = 2) uniform sampler2D DepthTexture;
 layout(binding = 3) uniform sampler2D NormalTexture;
 layout(binding = 4) uniform sampler2D NormalRandomize;
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
+layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
 	int samples;
 	float radius;
@@ -47,7 +47,7 @@ void main() {
 
 	/*	*/
 	const vec3 srcPosition = texture(WorldTexture, uv).xyz;
-	//vec3 viewNormal = cross(dFdy(viewPos.xyz), dFdx(viewPos.xyz));
+	// vec3 viewNormal = cross(dFdy(viewPos.xyz), dFdx(viewPos.xyz));
 
 	const vec3 srcNormal = texture(NormalTexture, uv).rgb;
 	const vec3 randVec = texture(NormalRandomize, uv * (ubo.screen / 3.0)).xyz;

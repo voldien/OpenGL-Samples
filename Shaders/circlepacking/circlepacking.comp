@@ -1,0 +1,66 @@
+#version 460
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_compute_shader : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+struct Circle {
+	vec3 position;
+	float radius;
+};
+
+layout(set = 0, binding = 0, std430) writeonly restrict buffer CurrentPacking { Circle circles[]; }
+current_circle_state;
+
+layout(set = 0, binding = 1, std430) readonly restrict buffer PreviousPacking { Circle circles[]; }
+previous_circle_state;
+
+layout(set = 0, binding = 2) uniform UniformBufferBlock {
+	/*	*/
+	uint growStartIndex;
+	uint nrGrowing;
+	float growSpeed;
+
+	/*	*/
+	float deltaTime;
+	float speed;
+	float padding0;
+	float padding1;
+}
+ubo;
+
+layout(constant_id = 0) const int Local_Compute = 1;
+
+void main() {
+
+	/*	*/
+	const uint pindex = gl_GlobalInvocationID.x;
+
+	if (pindex > ubo.nrGrowing) {
+		return;
+	}
+
+	const Circle current_circle = previous_circle_state.circles[pindex];
+
+	/*	Determine if it can grow.	*/
+	int canGrow = 1;
+	for (int i = 0; i < ubo.nrGrowing; i++) {
+		Circle circle = previous_circle_state.circles[i];
+		if (circle.radius < current_circle.radius) {
+			canGrow = 0 * canGrow;
+		}
+	}
+
+	const float delta = ubo.deltaTime * ubo.speed;
+	const float growth = delta * ubo.growSpeed;
+
+	if (canGrow == 1) {
+		Circle c = previous_circle_state.circles[pindex];
+		c.radius += growth;
+
+		current_circle_state.circles[pindex] = c;
+	}else{
+		// Swap it the place.
+	}
+}

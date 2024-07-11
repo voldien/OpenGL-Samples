@@ -12,7 +12,7 @@ layout(binding = 2) uniform sampler2D DepthTexture;	   /*	*/
 layout(binding = 3) uniform sampler2D NormalTexture;   /*	*/
 layout(binding = 4) uniform sampler2D NormalRandomize; /*	*/
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
+layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
 	int samples;
 	float radius;

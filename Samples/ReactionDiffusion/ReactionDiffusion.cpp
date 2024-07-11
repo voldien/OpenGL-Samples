@@ -24,6 +24,8 @@ namespace glsample {
 			this->addUIComponent(this->reactionDiffusionSettingComponent);
 		}
 
+		// std::vectorfloat kernelAs[4][4]
+
 		struct reaction_diffusion_param_t {
 			float kernelA[4][4] = {{0.05, 0.2, 0.05, 0}, {0.2, -1, 0.2, 0}, {0.05, 0.2, 0.05, 0}, {0, 0, 0, 0}};
 			float kernelB[4][4] = {{0.25, 0.5, 0.25, 0}, {0.5, -3, 0.5, 0}, {0.25, 0.5, 0.25, 0}, {0, 0, 0, 0}};
@@ -40,10 +42,10 @@ namespace glsample {
 
 		} uniformBuffer;
 
+		std::vector<unsigned int> reactiondiffusion_buffer;
+
 		/*	Framebuffers.	*/
 		unsigned int reactiondiffusion_framebuffer;
-
-		std::vector<unsigned int> reactiondiffusion_buffer;
 		unsigned int reactiondiffusion_render_texture;
 		size_t reactiondiffusion_texture_width;
 		size_t reactiondiffusion_texture_height;
@@ -55,6 +57,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 3;
 		unsigned int current_cells_buffer_binding = 0;
 		unsigned int previous_cells_buffer_binding = 1;
+		unsigned int image_output_binding = 2;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(uniformBuffer);
@@ -113,12 +116,24 @@ namespace glsample {
 
 			/*	Setup compute pipeline.	*/
 			glUseProgram(this->reactiondiffusion_program);
-			glUniform1i(glGetUniformLocation(this->reactiondiffusion_program, "renderTexture"), 2);
+			glUniform1i(glGetUniformLocation(this->reactiondiffusion_program, "renderTexture"),
+						this->image_output_binding);
 
-			glGetProgramiv(this->reactiondiffusion_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->reactiondiffusion_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->reactiondiffusion_program, uniform_buffer_index, this->uniform_buffer_binding);
 
+			int buffer_read_index =
+				glGetProgramResourceIndex(this->reactiondiffusion_program, GL_SHADER_STORAGE_BLOCK, "ReadCells");
+			int buffer_write_index =
+				glGetProgramResourceIndex(this->reactiondiffusion_program, GL_SHADER_STORAGE_BLOCK, "WriteCells");
+
+			/*	*/
+			glShaderStorageBlockBinding(this->reactiondiffusion_program, buffer_read_index,
+										this->current_cells_buffer_binding);
+			glShaderStorageBlockBinding(this->reactiondiffusion_program, buffer_write_index,
+										this->previous_cells_buffer_binding);
+
+			glGetProgramiv(this->reactiondiffusion_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
@@ -154,20 +169,26 @@ namespace glsample {
 			std::vector<glm::vec2> textureData(this->reactiondiffusion_texture_width *
 											   this->reactiondiffusion_texture_height);
 
+			const float scale_random = 18.0f;
 			/*	Generate random game state.	*/
 			for (size_t j = 0; j < this->reactiondiffusion_texture_height; j++) {
 				for (size_t i = 0; i < this->reactiondiffusion_texture_width; i++) {
 
+					const float ratioH =
+						(float)this->reactiondiffusion_texture_width / (float)this->reactiondiffusion_texture_height;
 					/*	Normalized coordinate.	*/
+					const float xCoord =
+						scale_random * ((float)i / (float)this->reactiondiffusion_texture_width) * ratioH;
+					const float yCoord = scale_random * ((float)j / (float)this->reactiondiffusion_texture_height);
 
 					/*	*/
 					textureData[this->reactiondiffusion_texture_width * j + i] =
-						glm::vec2(fragcore::Math::PerlinNoise((float)i * 0.05f + 0, (float)j * 0.05f + 0, 1) * 1.0f,
-								  fragcore::Math::PerlinNoise((float)i * 0.05f + 1, (float)j * 0.05f + 1, 1) * 1.0f);
+						glm::vec2(fragcore::Math::PerlinNoise(xCoord + 0, yCoord + 0, 1) * 1.0f,
+								  fragcore::Math::PerlinNoise(xCoord + 1, yCoord + 1, 1) * 1.0f);
 				}
 			}
 
-			/*	Create game of life state textures.	*/
+			/*	Create state textures.	*/
 			for (size_t i = 0; i < this->reactiondiffusion_buffer.size(); i++) {
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->reactiondiffusion_buffer[i]);
 				glBufferData(GL_SHADER_STORAGE_BUFFER, textureData.size() * sizeof(textureData[0]), textureData.data(),
@@ -225,21 +246,23 @@ namespace glsample {
 					this->reactiondiffusion_buffer[(this->nthTexture + 1) % this->reactiondiffusion_buffer.size()]);
 
 				/*	The image where the graphic version will be stored as.	*/
-				glBindImageTexture(2, this->reactiondiffusion_render_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+				glBindImageTexture(this->image_output_binding, this->reactiondiffusion_render_texture, 0, GL_FALSE, 0,
+								   GL_WRITE_ONLY, GL_RGBA8);
+
 				glDispatchCompute(
 					std::ceil(this->reactiondiffusion_texture_width / (float)this->localWorkGroupSize[0]),
 					std::ceil(this->reactiondiffusion_texture_height / (float)this->localWorkGroupSize[1]), 1);
-					
+
 				/*	Wait in till image has been written.	*/
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 			}
 
-			/*	*/
-			glViewport(0, 0, width, height);
-
 			/*	Blit reaction diffusion render framebuffer to default framebuffer.	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->reactiondiffusion_framebuffer);
+
+			/*	*/
+			glViewport(0, 0, width, height);
 
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glBlitFramebuffer(0, 0, this->reactiondiffusion_texture_width, this->reactiondiffusion_texture_height, 0, 0,

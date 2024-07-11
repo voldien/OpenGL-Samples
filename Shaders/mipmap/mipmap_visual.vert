@@ -9,7 +9,7 @@ layout(location = 1) in vec3 TextureCoordinate;
 layout(location = 0) out vec2 uv;
 
 /*	*/
-layout(binding = 0, std140) uniform UniformBufferBlock { mat4 modelViewProjection; }
+layout(set = 0, binding = 0, std140) uniform UniformBufferBlock { mat4 modelViewProjection; }
 ubo;
 
 void main() {

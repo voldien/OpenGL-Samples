@@ -11,7 +11,6 @@
 #include <iostream>
 #include <random>
 
-// TODO move to post processing section.
 namespace glsample {
 
 	class PostProcessing : public ModelViewer {
@@ -19,9 +18,9 @@ namespace glsample {
 		PostProcessing() : ModelViewer() {
 			this->setTitle("Post Processing");
 
-			// this->ambientOcclusionSettingComponent =
+			//this->postProcessingSettingComponent =
 			//	std::make_shared<PostProcessingSettingComponent>(this->uniformStageBlockBlur);
-			// this->addUIComponent(this->ambientOcclusionSettingComponent);
+			//this->addUIComponent(this->postProcessingSettingComponent);
 		}
 
 		struct uniform_buffer_block {
@@ -118,13 +117,10 @@ namespace glsample {
 		  private:
 			struct UniformSSAOBufferBlock &uniform;
 		};
-		std::shared_ptr<PostProcessingSettingComponent> ambientOcclusionSettingComponent;
+		std::shared_ptr<PostProcessingSettingComponent> postProcessingSettingComponent;
 
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
-
-		const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert";
-		const std::string fragmentShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag";
 
 		void Release() override {
 			/*	*/
@@ -146,16 +142,20 @@ namespace glsample {
 		void Initialize() override {
 
 			/*	Load shader source.	*/
-			std::vector<char> vertex_source = IOUtil::readFileString(this->vertexSSAOShaderPath, this->getFileSystem());
-			std::vector<char> fragment_source = IOUtil::readFileString(this->fragmentShaderPath, this->getFileSystem());
+			{
+				// std::vector<char> vertex_source =
+				// 	IOUtil::readFileString(this->vertexSSAOShaderPath, this->getFileSystem());
+				// std::vector<char> fragment_source =
+				// 	IOUtil::readFileString(this->fragmentShaderPath, this->getFileSystem());
 
-			/*	Load shader	*/
-			this->ssao_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+				// /*	Load shader	*/
+				// this->ssao_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
 
-			vertex_source = IOUtil::readFileString(this->vertexMultiPassShaderPath, this->getFileSystem());
-			fragment_source = IOUtil::readFileString(this->fragmentMultiPassShaderPath, this->getFileSystem());
+				// vertex_source = IOUtil::readFileString(this->vertexMultiPassShaderPath, this->getFileSystem());
+				// fragment_source = IOUtil::readFileString(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
-			this->multipass_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+				// this->multipass_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+			}
 
 			/*	Setup graphic ambient occlusion pipeline.	*/
 			glUseProgram(this->ssao_program);
@@ -494,11 +494,6 @@ namespace glsample {
 	class PostProcessingSample : public GLSample<PostProcessing> {
 	  public:
 		PostProcessingSample() : GLSample<PostProcessing>() {}
-		// virtual void commandline(cxxopts::OptionAdder &options) override {
-		//	options.add_options("Texture-Sample")("T,texture", "Texture Path",
-		//										  cxxopts::value<std::string>()->default_value("texture.png"))(
-		//		"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
-		//}
 	};
 
 } // namespace glsample

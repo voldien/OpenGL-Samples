@@ -12,7 +12,7 @@ namespace glsample {
 	  public:
 		NBodySimulation() : GLSampleWindow() {
 			this->setTitle("NBody Particle System");
-			com = std::make_shared<NBodySimulationSettingView>(this->uniform_stage.settings);
+			this->com = std::make_shared<NBodySimulationSettingView>(this->uniform_stage.settings);
 			this->addUIComponent(com);
 		}
 

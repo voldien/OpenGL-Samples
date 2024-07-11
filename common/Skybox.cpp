@@ -84,10 +84,12 @@ namespace glsample {
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (frameIndex % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
 
-			GLint cullstate, blend, depth_test;
+			/*	Extract current state. to restore afterward rendered the skybox.	*/
+			GLint cullstate, blend, depth_test, depth_func;
 			glGetIntegerv(GL_CULL_FACE, &cullstate);
 			glGetIntegerv(GL_BLEND, &blend);
 			glGetIntegerv(GL_DEPTH_TEST, &depth_test);
+			glGetIntegerv(GL_DEPTH_FUNC, &depth_func);
 
 			glDisable(GL_CULL_FACE);
 			glDisable(GL_BLEND);
@@ -118,6 +120,8 @@ namespace glsample {
 			if (depth_test) {
 				glEnable(GL_DEPTH_TEST);
 			}
+
+			glDepthFunc(depth_func);
 		}
 
 		this->frameIndex = (this->frameIndex + 1) % this->nrUniformBuffer;

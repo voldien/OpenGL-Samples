@@ -24,24 +24,20 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 
-	vec4 specularColor;
-	vec4 viewPos;
-	float shininess;
+	/*	*/
+	uint nrFaces;
+	float delta;
+	float scale;
 }
 ubo;
 
 void main() {
 
-	const vec3 viewDir = normalize(ubo.viewPos.xyz - vertex);
 	const vec3 N = normalize(normal);
-
-	const vec3 halfwayDir = normalize(ubo.direction.xyz + viewDir);
-	const float spec = pow(max(dot(N, halfwayDir), 0.0), ubo.shininess);
-
 	const float contribution = max(dot(N, normalize(ubo.direction.xyz)), 0.0);
 
-	const vec4 LightSpecular = ubo.specularColor * spec;
 	const vec4 LightColors = contribution * ubo.lightColor;
 
-	fragColor = (ubo.ambientColor + LightColors + LightSpecular) * texture(DiffuseTexture, uv) * instanceColor * 2.5;
+	fragColor = instanceColor; //* LightColors;// (ubo.ambientColor + LightColors + LightSpecular) *
+							   // texture(DiffuseTexture, uv) * instanceColor * 2.5;
 }

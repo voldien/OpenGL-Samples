@@ -1,3 +1,4 @@
+#include "ModelViewer.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -11,9 +12,9 @@
 namespace glsample {
 
 	// TODO: relocate and be part of the anti alasing.
-	class MultiSampling : public GLSampleWindow {
+	class MultiSampling : public ModelViewer {
 	  public:
-		MultiSampling() : GLSampleWindow() { this->setTitle("MultiSampling"); }
+		MultiSampling() : ModelViewer() { this->setTitle("MultiSampling"); }
 
 		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
@@ -46,76 +47,17 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 
-		CameraController camera;
-
-		std::string diffuseTexturePath = "asset/diffuse.png";
-		/*	*/
-		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
-		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
-
-		const std::string modelPath = "asset/sponza/sponza.obj";
-
 		void Release() override {
 			glDeleteProgram(this->multipass_program);
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, &this->depthTexture);
 			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
-
-			/*	*/
-			glDeleteBuffers(1, &this->uniform_buffer);
-
-			/*	*/
-			glDeleteVertexArrays(1, &this->refObj[0].vao);
-			glDeleteBuffers(1, &this->refObj[0].vbo);
-			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
 		void Initialize() override {
 
-			/*	*/
-			const std::vector<uint32_t> vertex_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
-
-			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-			compilerOptions.glslVersion = this->getShaderVersion();
-
-			/*	Load shader	*/
-			this->multipass_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
-
-			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->multipass_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
-			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
-			glUseProgram(0);
-
-			/*	load Textures	*/
-			TextureImporter textureImporter(getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(this->diffuseTexturePath);
-
-			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
-			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			uniformBufferSize = fragcore::Math::align(uniformBufferSize, (size_t)minMapBufferSize);
-
-			/*	Create uniform buffer.	*/
-			glGenBuffers(1, &this->uniform_buffer);
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-			/*	*/
-			ModelImporter modelLoader(FileSystem::getFileSystem());
-			modelLoader.loadContent(modelPath, 0);
-
-			ImportHelper::loadModelBuffer(modelLoader, refObj);
-
+			ModelViewer::Initialize();
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
 
@@ -226,28 +168,7 @@ namespace glsample {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-		void update() override {
-			/*	Update Camera.	*/
-			const float elapsedTime = this->getTimer().getElapsed<float>();
-			this->camera.update(this->getTimer().deltaTime<float>());
-
-			/*	*/
-			this->uniformBuffer.model = glm::mat4(1.0f);
-			this->uniformBuffer.model =
-				glm::rotate(this->uniformBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformBuffer.model = glm::scale(this->uniformBuffer.model, glm::vec3(40.95f));
-			this->uniformBuffer.view = this->camera.getViewMatrix();
-			this->uniformBuffer.modelViewProjection =
-				this->uniformBuffer.proj * this->uniformBuffer.view * this->uniformBuffer.model;
-
-			/*	*/
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
-		}
+		void update() override { ModelViewer::update(); }
 	};
 
 } // namespace glsample

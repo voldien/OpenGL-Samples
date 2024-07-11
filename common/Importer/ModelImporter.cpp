@@ -651,9 +651,6 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 				default:
 					break;
 				}
-
-				/*	Texture property.	*/
-				mapmode;
 			}
 
 		} /**/

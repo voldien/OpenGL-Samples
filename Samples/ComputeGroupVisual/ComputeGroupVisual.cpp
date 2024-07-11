@@ -7,6 +7,7 @@
 #include <Importer/ImageImport.h>
 #include <array>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -33,12 +34,12 @@ namespace glsample {
 		int localWorkGroupSize[3];
 
 		/*	Shader pipeline programs.	*/
-		unsigned int texture_graphic_program;
+		unsigned int compute_visual_instance_graphic_program;
 		unsigned int compute_group_visual_compute_program;
 
 		typedef struct _instance_data_t {
 			glm::mat4 model;
-			// glm::vec4 color;
+			glm::vec4 color;
 		} InstanceData;
 
 		struct uniform_buffer_block {
@@ -48,9 +49,13 @@ namespace glsample {
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
 
-			glm::vec4 color = glm::vec4(1);
+			/*	light source.	*/
+			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
+			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
 			/*	*/
+			unsigned int nrFaces;
 			float delta;
 
 		} uniformStageBuffer;
@@ -88,7 +93,7 @@ namespace glsample {
 			}
 
 			bool showWireFrame = false;
-			int workgroupSize[3] = {1, 1, 1};
+			int workgroupSize[3] = {2, 2, 2};
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -96,15 +101,15 @@ namespace glsample {
 		std::shared_ptr<ComputeGroupVisualSettingComponent> computeGroupVisualSettingComponent;
 
 		/*	Texture shaders paths.	*/
-		const std::string vertexShaderPath = "Shaders/instance/instance.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/instance/instance.frag.spv";
+		const std::string vertexShaderPath = "Shaders/groupvisual/groupvisual_instance.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/groupvisual/groupvisual_instance.frag.spv";
 
 		/*	Particle Simulation in Vector Field.	*/
 		const std::string groupVisualComputeShaderPath = "Shaders/groupvisual/groupvisual.comp.spv";
 
 		void Release() override {
 			/*	*/
-			glDeleteProgram(this->texture_graphic_program);
+			glDeleteProgram(this->compute_visual_instance_graphic_program);
 			glDeleteProgram(this->compute_group_visual_compute_program);
 
 			/*	*/
@@ -127,7 +132,7 @@ namespace glsample {
 					glsample::IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 				/*	Load Graphic Program.	*/
-				this->texture_graphic_program =
+				this->compute_visual_instance_graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 				/*	*/
@@ -140,15 +145,17 @@ namespace glsample {
 			}
 
 			/*	Setup instance graphic pipeline.	*/
-			glUseProgram(this->texture_graphic_program);
-			glUniform1i(glGetUniformLocation(this->texture_graphic_program, "DiffuseTexture"), 0);
+			glUseProgram(this->compute_visual_instance_graphic_program);
+			glUniform1i(glGetUniformLocation(this->compute_visual_instance_graphic_program, "DiffuseTexture"), 0);
 			/*	*/
-			int uniform_buffer_index = glGetUniformBlockIndex(this->texture_graphic_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->texture_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
+			int uniform_buffer_index =
+				glGetUniformBlockIndex(this->compute_visual_instance_graphic_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->compute_visual_instance_graphic_program, uniform_buffer_index,
+								  this->uniform_buffer_binding);
 			/*	*/
 			const int uniform_instance_buffer_index =
-				glGetUniformBlockIndex(this->texture_graphic_program, "UniformInstanceBlock");
-			glUniformBlockBinding(this->texture_graphic_program, uniform_instance_buffer_index,
+				glGetUniformBlockIndex(this->compute_visual_instance_graphic_program, "UniformInstanceBlock");
+			glUniformBlockBinding(this->compute_visual_instance_graphic_program, uniform_instance_buffer_index,
 								  this->uniform_instance_buffer_binding);
 			glUseProgram(0);
 
@@ -192,9 +199,9 @@ namespace glsample {
 			this->uniformBufferSize = Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
 
 			/*	*/
-			GLint uniformMaxSize;
-			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
-			this->instanceBatch = uniformMaxSize / sizeof(InstanceData);
+			GLint storageMaxSize;
+			glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &storageMaxSize);
+			this->instanceBatch = storageMaxSize / sizeof(InstanceData);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -208,27 +215,26 @@ namespace glsample {
 			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->indirect_buffer);
 			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand) * this->nrUniformBuffer, nullptr,
 						 GL_DYNAMIC_DRAW);
-
 			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 
 			/*	*/
-			size_t maxInstances = (size_t)Math::product<int>(maxWorkGroupCount, 3) *
-								  (size_t)Math::product<int>(this->localWorkGroupSize, 3);
+			const size_t maxInstances = (size_t)Math::product<int>(maxWorkGroupCount, 3) *
+										(size_t)Math::product<int>(this->localWorkGroupSize, 3);
 			this->uniformInstanceMemorySize =
 				fragcore::Math::align(maxInstances * sizeof(InstanceData), (size_t)minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_instance_buffer);
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceMemorySize * this->nrUniformBuffer, nullptr,
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, this->uniformInstanceMemorySize * this->nrUniformBuffer, nullptr,
 						 GL_DYNAMIC_DRAW);
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 			/*  */
 			{
 				/*	Load geometry.	*/
 				std::vector<ProceduralGeometry::Vertex> vertices;
 				std::vector<unsigned int> indices;
-				ProceduralGeometry::generateCube(1.0f, vertices, indices);
+				ProceduralGeometry::generateSphere(1.0f, vertices, indices);
 
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenVertexArrays(1, &this->CubeMesh.vao);
@@ -251,8 +257,21 @@ namespace glsample {
 				glEnableVertexAttribArray(0);
 				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
 
+				/*	*/
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(sizeof(glm::vec3)));
+
+				/*	*/
+				glEnableVertexAttribArray(2);
+				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
+									  reinterpret_cast<void *>(sizeof(glm::vec3) + sizeof(glm::vec2)));
+
 				glBindVertexArray(0);
 			}
+
+			/*	*/
+			this->uniformStageBuffer.nrFaces = this->CubeMesh.nrIndicesElements;
 
 			fragcore::resetErrorFlag();
 		}
@@ -267,17 +286,18 @@ namespace glsample {
 			const size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrUniformBuffer;
 			const size_t write_buffer_index = (this->getFrameCount() + 0) % this->nrUniformBuffer;
 
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
+							  this->uniformBufferSize);
+
 			if (true) {
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-								  this->uniformBufferSize);
 
 				glUseProgram(this->compute_group_visual_compute_program);
 
 				/*	*/
 				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
 								  this->uniform_instance_buffer, 0, this->uniformInstanceMemorySize);
-
+				/*	*/
 				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->visual_indirect_buffer_binding, this->indirect_buffer,
 								  0, sizeof(IndirectDrawElement));
 
@@ -287,7 +307,7 @@ namespace glsample {
 				const size_t Zinvoke = this->computeGroupVisualSettingComponent->workgroupSize[2];
 				glDispatchCompute(Xinvoke, Yinvoke, Zinvoke);
 
-				glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_UNIFORM_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
+				glUseProgram(0);
 			}
 
 			/*	*/
@@ -296,15 +316,19 @@ namespace glsample {
 			/*	*/
 			glViewport(0, 0, width, height);
 
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_binding, this->uniform_instance_buffer,
-							  0, 32000);
+			/*	Wait in till the */
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT |
+							GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 
 			/*	Draw Cubes.	*/
 			{
 
-				glUseProgram(this->texture_graphic_program);
+				glUseProgram(this->compute_visual_instance_graphic_program);
 
-				glDisable(GL_BLEND);
+				/*	*/
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
+								  this->uniform_instance_buffer, 0, this->uniformInstanceMemorySize);
+
 				glDisable(GL_CULL_FACE);
 
 				/*	*/
@@ -317,8 +341,10 @@ namespace glsample {
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->CubeMesh.vao);
+
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->indirect_buffer);
 				glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr);
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 				glBindVertexArray(0);
 
 				glUseProgram(0);

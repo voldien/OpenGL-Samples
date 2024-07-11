@@ -19,7 +19,7 @@ struct culling {
 };
 
 const int nrPlanees = 6;
-layout(binding = 0, std140) uniform UniformBufferBlock {
+layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -30,11 +30,11 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(binding = 1) buffer AABBInstanceBlock { AABB aabb[]; }
+layout(set = 0, binding = 1) buffer AABBInstanceBlock { AABB aabb[]; }
 aabb;
 
 /*  output data.    */
-layout(binding = 2) buffer CulledResult { culling result[]; }
+layout(set = 0, binding = 2) buffer CulledResult { culling result[]; }
 culled;
 
 uint intersectionAABB(const in Plane plane, const in AABB aabb) {

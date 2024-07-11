@@ -21,12 +21,13 @@ namespace glsample {
 			this->setTitle("VectorField");
 
 			this->vectorFieldSettingComponent =
-				std::make_shared<ParticleSystemSettingComponent>(this->uniformStageBuffer);
+				std::make_shared<ParticleSystemSettingComponent>(this->uniformStageBuffer, this->nrParticles);
 
 			this->addUIComponent(this->vectorFieldSettingComponent);
 		}
 
 		/*	*/
+		const size_t particle_multiple_count = 8;
 		size_t nrParticles = 0;
 		const size_t nrParticleBuffers = 3;
 		size_t ParticleMemorySize = 0;
@@ -35,12 +36,10 @@ namespace glsample {
 
 		/*	*/
 		MeshObject particles;
-		MeshObject grid;
 		MeshObject vectorField;
 
 		/*	*/
 		unsigned int particle_texture;
-		unsigned int grid_texture;
 
 		int localWorkGroupSize[3];
 
@@ -48,7 +47,6 @@ namespace glsample {
 		unsigned int particle_graphic_program;
 		unsigned int particle_compute_program;
 		unsigned int particle_motion_force_compute_program;
-		unsigned int grid_graphic_program;
 		unsigned int vector_field_graphic_program;
 
 		typedef struct motion_t {
@@ -118,26 +116,36 @@ namespace glsample {
 		class ParticleSystemSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			ParticleSystemSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
+			ParticleSystemSettingComponent(struct uniform_buffer_block &uniform, const size_t &nrParticleInternal)
+				: uniform(uniform), nrParticle(nrParticleInternal) {
 				this->setName("Particle Settings");
 			}
 			void draw() override {
 				ImGui::DragFloat("Speed", &this->uniform.particleSetting.speed, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Strength", &this->uniform.particleSetting.strength, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("LifeTime", &this->uniform.particleSetting.lifetime, 1, 0.0f, 10.0f);
-				ImGui::ColorEdit4("LifeTime", &this->uniform.color[0],
+				ImGui::ColorEdit4("Diffuse Color", &this->uniform.color[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::DragFloat("Sprite Size", &this->uniform.particleSetting.spriteSize, 1, 0.0f, 10.0f);
+				ImGui::DragFloat("Drag Global", &this->uniform.particleSetting.dragMag, 1, 1.0f, 10.0f);
+
+				ImGui::DragFloat("Radius Influence", &this->uniform.motion.radius, 1, -128.0f, 128.0f);
+				ImGui::DragFloat("Amplitude Influence", &this->uniform.motion.amplitude, 1, 0, 128.0f);
 
 				ImGui::Checkbox("Simulate Particles", &this->simulateParticles);
+				ImGui::DragInt("Number Particles", (int *)&this->uniform.particleSetting.nrparticles, 1, 0,
+							   this->nrParticle);
 				/*	*/
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
-				ImGui::Checkbox("Draw VectorField", &this->drawVectorField);
+				ImGui::Checkbox("Draw VectorField2D", &this->drawVelocity);
 			}
 
 			bool simulateParticles = true;
 			bool drawVectorField = false;
+			bool drawVelocity = false;
 			bool showWireFrame = false;
+			const size_t &nrParticle;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -244,8 +252,6 @@ namespace glsample {
 				glGetProgramResourceIndex(this->particle_compute_program, GL_SHADER_STORAGE_BLOCK, "WriteBuffer");
 			glGetProgramiv(this->particle_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 
-			// glGetAttribLocation(this->particle_compute_program, )
-
 			/*	*/
 			glUniformBlockBinding(this->particle_compute_program, uniform_buffer_particle_compute_index,
 								  this->uniform_buffer_binding);
@@ -295,7 +301,8 @@ namespace glsample {
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageMapBufferSize);
 
 			/*	Compute number of particles and memory size required, aligned to hardware min alignment.	*/
-			this->nrParticles = Math::product(&uniformStageBuffer.particleSetting.particleBox[0], 3);
+			this->nrParticles =
+				Math::product(&uniformStageBuffer.particleSetting.particleBox[0], 3) * this->particle_multiple_count;
 			this->ParticleMemorySize = this->nrParticles * sizeof(Particle);
 			this->ParticleMemorySize = Math::align<size_t>(this->ParticleMemorySize, minStorageMapBufferSize);
 
@@ -307,20 +314,26 @@ namespace glsample {
 
 			/*	*/
 			Particle *particle_buffer = static_cast<Particle *>(
-				glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, this->ParticleMemorySize * this->nrParticleBuffers,
-								 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+				glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, this->ParticleMemorySize, GL_MAP_WRITE_BIT));
 
-			std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+			std::uniform_real_distribution<float> randomDirection(-1.0, 1.0); /* random floats between [-1.0, 1.0]	*/
+			std::uniform_real_distribution<float> randomPosition(0.00001,
+																 0.99999); /* random floats between [-1.0, 1.0] */
+			RandomUniform<float> uniformRandom(-1, 0);
 			std::default_random_engine generator;
-			for (size_t i = 0; i < this->nrParticles * this->nrParticleBuffers; i++) {
+
+			const float xSize = this->uniformStageBuffer.particleSetting.particleBox.x;
+			const float ySize = this->uniformStageBuffer.particleSetting.particleBox.y;
+
+			for (size_t i = 0; i < this->nrParticles; i++) {
 
 				particle_buffer[i].position =
-					glm::vec4(randomFloats(generator) * 100.0f, randomFloats(generator) * 100.0f,
-							  randomFloats(generator) * 100.0f,
-							  randomFloats(generator) * this->uniformStageBuffer.particleSetting.lifetime);
+					glm::vec4(randomPosition(generator) * xSize, randomPosition(generator) * ySize,
+							  randomPosition(generator) * ySize, 0);
+
 				particle_buffer[i].velocity =
-					glm::vec4(randomFloats(generator) * 100.0f, randomFloats(generator) * 100.0f,
-							  randomFloats(generator) * 100.0f, 1.0f / (randomFloats(generator) * 100.0f));
+					glm::vec4(randomDirection(generator) * 1.0f, randomDirection(generator) * 1.0f,
+							  randomDirection(generator) * 1.0f, 1.0f / (randomDirection(generator) * 1.0f));
 			}
 			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
@@ -432,16 +445,6 @@ namespace glsample {
 
 				glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
-				/*	Check if mouse pressed down.	*/
-				if (false) {
-					glUseProgram(this->particle_motion_force_compute_program);
-
-					glDispatchCompute(
-						this->uniformStageBuffer.particleSetting.particleBox.x / this->localWorkGroupSize[0],
-						this->uniformStageBuffer.particleSetting.particleBox.y / this->localWorkGroupSize[1],
-						this->uniformStageBuffer.particleSetting.particleBox.z / this->localWorkGroupSize[2]);
-				}
-
 				glUseProgram(0);
 			}
 
@@ -457,7 +460,6 @@ namespace glsample {
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
-				/*  Draw grid.  */
 				glDisable(GL_BLEND);
 				glDisable(GL_CULL_FACE);
 

@@ -178,6 +178,8 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 	fragcore::resetErrorFlag();
 
 	const int program = glCreateProgram();
+	fragcore::checkError();
+
 	int lstatus;
 	const int shader_compute = loadShader(*computePaths[0], GL_COMPUTE_SHADER);
 
@@ -247,13 +249,20 @@ int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vec
 	int shader_frag = 0;
 	int lstatus;
 
+	/*	*/
 	shader_mesh = loadShader(*meshs, GL_MESH_SHADER_NV);
 	glAttachShader(program, shader_mesh);
+	fragcore::checkError();
+
+	/*	*/
 	shader_task = loadShader(*tasks, GL_TASK_SHADER_NV);
 	glAttachShader(program, shader_task);
+	fragcore::checkError();
 
+	/*	*/
 	shader_frag = loadShader(*fragment, GL_FRAGMENT_SHADER);
 	glAttachShader(program, shader_frag);
+	fragcore::checkError();
 
 	/*	*/
 	glLinkProgram(program);
@@ -289,14 +298,14 @@ int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vec
 
 static void checkShaderError(int shader) {
 
-	GLint lstatus;
+	GLint cstatus;
 
 	/*  */
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &lstatus);
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &cstatus);
 	fragcore::checkError();
 
 	/*	*/
-	if (lstatus != GL_TRUE) {
+	if (cstatus != GL_TRUE) {
 		GLint maxLength = 0;
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
 		fragcore::checkError();
@@ -317,22 +326,22 @@ int ShaderLoader::loadShader(const std::vector<char> &source, const int type) {
 	std::vector<const GLchar **> source_refs;
 
 	const unsigned int shader = glCreateShader(type);
-
 	fragcore::checkError();
+
 	/*	Load as Spirv if data is spirv file and supported.	*/
 	if (spirv_magic_number == magic_number && glSpecializeShaderARB) {
 		glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, source.data(), source.size());
 		glSpecializeShaderARB(shader, "main", 0, 0, 0);
 	} else {
 		glShaderSource(shader, 1, (const GLchar **)&source_data, nullptr);
+		fragcore::checkError();
 	}
 
 	/*	*/
-	fragcore::checkError();
 	glCompileShader(shader);
+	fragcore::checkError();
 
 	/*	*/
-	fragcore::checkError();
 	checkShaderError(shader);
 	return shader;
 }

@@ -37,7 +37,7 @@ namespace glsample {
 		/*	*/
 		const size_t round_robin_size = 2;
 		unsigned int mandelbrot_framebuffer;
-		unsigned int mandelbrot_program;
+		unsigned int sort_mergesort_program;
 		unsigned int julia_program;
 		unsigned int mandelbrot_texture; // TODO add round robin.
 		unsigned int mandelbrot_texture_width;
@@ -46,8 +46,11 @@ namespace glsample {
 		/*	*/
 		int localWorkGroupSize[3];
 
-		/*	*/
-		unsigned int uniform_buffer_binding = 0;
+		/*	Uniform buffer.	*/
+		unsigned int uniform_buffer_binding = 3;
+		unsigned int current_cells_buffer_binding = 0;
+		unsigned int previous_cells_buffer_binding = 1;
+		unsigned int image_output_binding = 2;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(uniform_buffer_block_t);
@@ -65,6 +68,7 @@ namespace glsample {
 				ImGui::DragInt("Program", &this->program, 1.0f, 0, 1);
 
 				if (ImGui::Button("Reset")) {
+					/*	*/
 				}
 			}
 
@@ -77,8 +81,8 @@ namespace glsample {
 		std::shared_ptr<SortSettingComponent> sortSettingComponent;
 
 		/*	*/
-		const std::string computeMandelbrotShaderPath = "Shaders/mandelbrot/mandelbrot.comp.spv";
-		const std::string computeJuliaShaderPath = "Shaders/mandelbrot/julia.comp.spv";
+		const std::string computeMergeSortShaderPath = "Shaders/sort/merge.comp.spv";
+		const std::string computeJuliaShaderPath = "Shaders/sort/julia.comp.spv";
 
 		/*	Particle.	*/
 		const std::string sortLineVertexShaderPath = "Shaders/sort/line.vert.spv";
@@ -87,7 +91,7 @@ namespace glsample {
 
 		void Release() override {
 
-			glDeleteProgram(this->mandelbrot_program);
+			glDeleteProgram(this->sort_mergesort_program);
 			glDeleteProgram(this->julia_program);
 			glDeleteFramebuffers(1, &this->mandelbrot_framebuffer);
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -98,19 +102,16 @@ namespace glsample {
 
 			{
 				/*	Load shader binaries.	*/
-				const std::vector<uint32_t> mandelbrot_source =
-					IOUtil::readFileData<uint32_t>(this->computeMandelbrotShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> mergesort_binary =
+					IOUtil::readFileData<uint32_t>(this->computeMergeSortShaderPath, this->getFileSystem());
 
 				/*	*/
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				const std::vector<char> mandelbrot_binary =
-					fragcore::ShaderCompiler::convertSPIRV(mandelbrot_source, compilerOptions);
-
 				/*	Load shader	*/
-				this->mandelbrot_program = ShaderLoader::loadComputeProgram({&mandelbrot_binary});
+				this->sort_mergesort_program = ShaderLoader::loadComputeProgram(compilerOptions, &mergesort_binary);
 
 				const std::vector<uint32_t> julia_source =
 					IOUtil::readFileData<uint32_t>(this->computeJuliaShaderPath, this->getFileSystem());
@@ -124,11 +125,22 @@ namespace glsample {
 
 			/*	*/
 			{
-				glUseProgram(this->mandelbrot_program);
-				int uniform_buffer_index = glGetUniformBlockIndex(this->mandelbrot_program, "UniformBufferBlock");
-				glUniformBlockBinding(this->mandelbrot_program, uniform_buffer_index, this->uniform_buffer_binding);
-				glUniform1i(glGetUniformLocation(this->mandelbrot_program, "img_output"), 0);
-				glGetProgramiv(this->mandelbrot_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
+				glUseProgram(this->sort_mergesort_program);
+				int uniform_buffer_index = glGetUniformBlockIndex(this->sort_mergesort_program, "UniformBufferBlock");
+				glUniformBlockBinding(this->sort_mergesort_program, uniform_buffer_index, this->uniform_buffer_binding);
+
+				int buffer_read_index =
+					glGetProgramResourceIndex(this->sort_mergesort_program, GL_SHADER_STORAGE_BLOCK, "ReadCells");
+				int buffer_write_index =
+					glGetProgramResourceIndex(this->sort_mergesort_program, GL_SHADER_STORAGE_BLOCK, "WriteCells");
+
+				/*	*/
+				glShaderStorageBlockBinding(this->sort_mergesort_program, buffer_read_index,
+											this->current_cells_buffer_binding);
+				glShaderStorageBlockBinding(this->sort_mergesort_program, buffer_write_index,
+											this->previous_cells_buffer_binding);
+
+				glGetProgramiv(this->sort_mergesort_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 				glUseProgram(0);
 
 				/*	*/
@@ -205,7 +217,7 @@ namespace glsample {
 			{
 
 				if (this->sortSettingComponent->program == 0) {
-					glUseProgram(this->mandelbrot_program);
+					glUseProgram(this->sort_mergesort_program);
 				} else {
 					glUseProgram(this->julia_program);
 				}
