@@ -25,6 +25,7 @@ namespace glsample {
 	 */
 	template <typename T = float> class FPSCounter {
 	  public:
+	  
 		FPSCounter(const unsigned int nrFPSSample = 50, const size_t timeResolution = 1000000000) {
 			this->fpsSample = nrFPSSample;
 			this->timeResolution = timeResolution;

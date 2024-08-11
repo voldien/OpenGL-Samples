@@ -11,6 +11,7 @@ layout(set = 0, binding = 1, rgba8) uniform readonly image2D texture0;
 layout(set = 0, binding = 0, rgba8) uniform writeonly image2D fragColor;
 
 void main() {
+
 	/*	*/
 	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(fragColor)))) {
 		return;

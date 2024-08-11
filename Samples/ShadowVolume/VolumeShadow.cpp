@@ -9,12 +9,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <Scene.h>
 
 namespace glsample {
 
 	/**
-	 * @brief 
-	 * 
+	 * @brief
+	 *
 	 */
 	class VolumeShadow : public GLSampleWindow {
 	  public:
@@ -47,8 +48,8 @@ namespace glsample {
 
 		/*	*/
 		MeshObject plan;
-		// TODO add scene
-		MeshObject scene;
+
+		Scene scene;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
@@ -68,6 +69,7 @@ namespace glsample {
 		int graphic_program;
 
 		CameraController camera;
+
 		class StencilVolumeShadowSettingComponent : public nekomimi::UIComponent {
 		  public:
 			StencilVolumeShadowSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
@@ -94,8 +96,8 @@ namespace glsample {
 		std::shared_ptr<StencilVolumeShadowSettingComponent> shadowSettingComponent;
 
 		/*	*/
-		const std::string vertexGraphicShaderPath = "Shaders/phong/phong.vert.spv";
-		const std::string fragmentGraphicShaderPath = "Shaders/phong/phong.frag.spv";
+		const std::string vertexGraphicShaderPath = "Shaders/phongblinn/phong.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/phongblinn/phongblinn.frag.spv";
 
 		/*	Shadow shader paths.	*/
 		const std::string vertexShadowShaderPath = "Shaders/volumeshadow/volumeshadow.vert.spv";
@@ -223,6 +225,11 @@ namespace glsample {
 
 				glBindVertexArray(0);
 			}
+
+			/*	*/
+			ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
+			modelLoader->loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(*modelLoader);
 
 			{
 				/*	Create multipass framebuffer.	*/

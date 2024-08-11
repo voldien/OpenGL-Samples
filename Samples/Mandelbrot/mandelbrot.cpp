@@ -131,7 +131,7 @@ namespace glsample {
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
@@ -198,6 +198,7 @@ namespace glsample {
 				glDispatchCompute(std::ceil(this->mandelbrot_texture_width / (float)localWorkGroupSize[0]),
 								  std::ceil(this->mandelbrot_texture_height / (float)localWorkGroupSize[1]), 1);
 
+				glUseProgram(0);
 				/*	Wait in till image has been written.	*/
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
 			}

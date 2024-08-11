@@ -56,9 +56,6 @@ namespace glsample {
 
 		Scene scene; /*	World Scene.	*/
 
-		/*	Textures.	*/
-		unsigned int diffuse_texture;
-
 		/*	Program.	*/
 		unsigned int pointLight_program;
 
@@ -124,7 +121,6 @@ namespace glsample {
 
 		void Initialize() override {
 
-			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			{
@@ -148,10 +144,6 @@ namespace glsample {
 			glUniform1i(glGetUniformLocation(this->pointLight_program, "DiffuseTexture"), 0);
 			glUniformBlockBinding(this->pointLight_program, this->uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
-
-			/*	load Textures	*/
-			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;

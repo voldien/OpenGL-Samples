@@ -41,7 +41,7 @@ namespace glsample {
 			unsigned int sampleIndex;
 
 		} uniformBuffer;
-		
+
 		/*	Framebuffers.	*/
 		unsigned int raytracing_framebuffer;
 		unsigned int raytracing_render_texture; /*	No round robin required, since once updated, it is instantly

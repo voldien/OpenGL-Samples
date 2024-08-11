@@ -1,17 +1,14 @@
-#include "Core/math/NormalDistribution.h"
 #include "GLSampleWindow.h"
 #include "RenderDesc.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <Importer/ImageImport.h>
-#include <array>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-#include <random>
 
 namespace glsample {
 
@@ -26,6 +23,10 @@ namespace glsample {
 			this->computeGroupVisualSettingComponent =
 				std::make_shared<ComputeGroupVisualSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->computeGroupVisualSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		/*	*/
@@ -86,6 +87,7 @@ namespace glsample {
 			void draw() override {
 
 				if (ImGui::InputInt3("WorkGroup", this->workgroupSize)) {
+					needUpdate = true;
 				}
 				/*	*/
 				ImGui::TextUnformatted("Debug");
@@ -94,6 +96,7 @@ namespace glsample {
 
 			bool showWireFrame = false;
 			int workgroupSize[3] = {2, 2, 2};
+			bool needUpdate = true;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -126,9 +129,9 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	*/
-				std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_source =
 					glsample::IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-				std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_source =
 					glsample::IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 				/*	Load Graphic Program.	*/
@@ -136,7 +139,7 @@ namespace glsample {
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
 
 				/*	*/
-				std::vector<uint32_t> compute_visual_binary =
+				const std::vector<uint32_t> compute_visual_binary =
 					IOUtil::readFileData<uint32_t>(this->groupVisualComputeShaderPath, this->getFileSystem());
 
 				/*	Load Compute.	*/
@@ -290,7 +293,7 @@ namespace glsample {
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
-			if (true) {
+			if (this->computeGroupVisualSettingComponent->needUpdate) {
 
 				glUseProgram(this->compute_group_visual_compute_program);
 
@@ -308,6 +311,8 @@ namespace glsample {
 				glDispatchCompute(Xinvoke, Yinvoke, Zinvoke);
 
 				glUseProgram(0);
+
+				this->computeGroupVisualSettingComponent->needUpdate = false;
 			}
 
 			/*	*/
@@ -320,7 +325,6 @@ namespace glsample {
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT |
 							GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 
-			/*	Draw Cubes.	*/
 			{
 
 				glUseProgram(this->compute_visual_instance_graphic_program);
@@ -329,17 +333,22 @@ namespace glsample {
 				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
 								  this->uniform_instance_buffer, 0, this->uniformInstanceMemorySize);
 
-				glDisable(GL_CULL_FACE);
-
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_FRONT);
+				glFrontFace(GL_CW);
 				/*	*/
-				glEnable(GL_BLEND);
+				glDisable(GL_BLEND);
 				glBlendEquation(GL_FUNC_ADD);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 				/*	*/
 				glEnable(GL_DEPTH_TEST);
 
-				/*	Draw triangle.	*/
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK,
+							  this->computeGroupVisualSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
+				/*	Draw Items.	*/
 				glBindVertexArray(this->CubeMesh.vao);
 
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->indirect_buffer);
@@ -356,7 +365,7 @@ namespace glsample {
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
-			/*	*/
+			/*	Update uniforms.	*/
 			{
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 

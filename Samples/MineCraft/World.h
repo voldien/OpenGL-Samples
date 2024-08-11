@@ -13,6 +13,7 @@ class World {
 		// return chunk.getData(x, y, z); // [x & 0xF, y & 0xF, z & 0xF];
 		return 0;
 	}
+	
 	// uint32_t operator[](int x, int y, int z) {
 	//
 	//	var chunk = Chunks[ChunkId.FromWorldPos(x, y, z)];

@@ -115,6 +115,7 @@ namespace glsample {
 
 		void Initialize() override {
 
+			const std::string model = this->getResult()["model"].as<std::string>();
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string heightTexturePath = this->getResult()["heightmap"].as<std::string>();
 
@@ -149,8 +150,8 @@ namespace glsample {
 
 			/*	Load Diffuse and Height Map Texture.	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
-			this->heightmap_texture = textureImporter.loadImage2D(heightTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath, ColorSpace::SRGB);
+			this->heightmap_texture = textureImporter.loadImage2D(heightTexturePath, ColorSpace::Raw);
 
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -281,7 +282,7 @@ namespace glsample {
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/tessellation_diffusemap.png"))(
-				"D,heightmap", "Height/Displacement Texture Path",
+				"H,heightmap", "Height/Displacement Texture Path",
 				cxxopts::value<std::string>()->default_value("asset/tessellation_heightmap.png"));
 		}
 	};

@@ -34,16 +34,10 @@ ubo;
 float GetTessLevel(float Distance0, float Distance1) {
 	float AvgDistance = (Distance0 + Distance1) / 2.0;
 
-	// TODO lerp.
-	if (AvgDistance <= 50.0) {
-		return 20.0;
-	} else if (AvgDistance <= 100.0) {
-		return 15.0;
-	} else if (AvgDistance <= 200.0) {
-		return 10.0;
-	} else {
-		return 4.0;
-	}
+	const float maxTessellation = 20.0;
+	const float minTessellation = 0.04;
+
+	return mix(minTessellation, maxTessellation, 100 / (AvgDistance + 10));
 }
 
 void main() {

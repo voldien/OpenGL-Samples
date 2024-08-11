@@ -2,11 +2,9 @@
 
 namespace glsample {
 
-	Frustum::Frustum() noexcept { /*  Default frustum value.  */
-	}
+	Frustum::Frustum() noexcept = default;
 
-	Frustum::Frustum(const Frustum &other) noexcept { /**this = other;*/
-	}
+	Frustum::Frustum(const Frustum &other) noexcept = default;
 
 	void Frustum::calcFrustumPlanes(const Vector3 &position, const Vector3 &look, const Vector3 &up,
 									const Vector3 &right) {

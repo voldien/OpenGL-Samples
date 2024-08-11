@@ -310,7 +310,7 @@ static void checkShaderError(int shader) {
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
 		fragcore::checkError();
 
-		char log[maxLength];
+		char log[4096];
 		glGetShaderInfoLog(shader, sizeof(log), &maxLength, log);
 		fragcore::checkError();
 	}

@@ -61,8 +61,9 @@ namespace glsample {
 
 		std::vector<fragcore::RigidBody *> rigidbodies;
 		fragcore::RigidBody *planeRigibody;
+		fragcore::RigidBody *sphereRigibody;
 
-		const std::array<int, 3> grid_aray = {8, 2, 8};
+		const std::array<int, 3> grid_aray = {8, 24, 8};
 
 		/*	*/
 		MeshObject boundingBox;
@@ -82,7 +83,7 @@ namespace glsample {
 		unsigned int uniform_instance_buffer_binding = 1;
 
 		unsigned int uniform_buffer;
-		unsigned int uniform_instance_buffer;
+		unsigned int ssbo_instance_buffer;
 
 		const size_t nrUniformBuffers = 3;
 		size_t uniformBufferSize = sizeof(uniform_buffer_block);
@@ -94,7 +95,7 @@ namespace glsample {
 
 		size_t instanceBatch = 0;
 
-		PhysicInterface *interface;
+		PhysicInterface *physic_interface;
 
 		/*	RigidBody Rendering Path.	*/
 		const std::string vertexInstanceShaderPath = "Shaders/instance/instance_ssbo.vert.spv";
@@ -121,10 +122,14 @@ namespace glsample {
 
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("Use Gravity", &this->useGravity);
+				ImGui::DragFloat("Speed", &this->speed);
 			}
 
 			bool showWireFrame = false;
 			bool RigidBody = true;
+			bool useGravity = true;
+			float speed = 1.0f;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -139,7 +144,7 @@ namespace glsample {
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
-			glDeleteBuffers(1, &this->uniform_instance_buffer);
+			glDeleteBuffers(1, &this->ssbo_instance_buffer);
 		}
 
 		void Initialize() override {
@@ -259,8 +264,8 @@ namespace glsample {
 				this->uniformInstanceSize =
 					fragcore::Math::align(this->instanceBatch * sizeof(glm::mat4), (size_t)minStorageAlignSize);
 
-				glGenBuffers(1, &this->uniform_instance_buffer);
-				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer);
+				glGenBuffers(1, &this->ssbo_instance_buffer);
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->ssbo_instance_buffer);
 				glBufferData(GL_SHADER_STORAGE_BUFFER, this->uniformInstanceSize * this->nrUniformBuffers, nullptr,
 							 GL_DYNAMIC_DRAW);
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -272,7 +277,7 @@ namespace glsample {
 				// TODO: add helper method to merge multiple.
 				std::vector<ProceduralGeometry::Vertex> wireCubeVertices;
 				std::vector<unsigned int> wireCubeIndices;
-				ProceduralGeometry::generateCube(1, wireCubeVertices, wireCubeIndices);
+				ProceduralGeometry::generateCube(1, wireCubeVertices, wireCubeIndices, 2);
 
 				std::vector<ProceduralGeometry::Vertex> planVertices;
 				std::vector<unsigned int> planIndices;
@@ -280,7 +285,7 @@ namespace glsample {
 
 				std::vector<ProceduralGeometry::Vertex> CubeVertices;
 				std::vector<unsigned int> CubeIndices;
-				ProceduralGeometry::generateCube(1, CubeVertices, CubeIndices);
+				ProceduralGeometry::generateCube(1, CubeVertices, CubeIndices, 2);
 
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenVertexArrays(1, &this->box.vao);
@@ -355,51 +360,78 @@ namespace glsample {
 				glBindVertexArray(0);
 			}
 
-			/*	TODO:Multiple thread*/
+			/*	TODO: Multiple thread construction of all rigidbodies.	*/
 			{
-				this->interface = new BulletPhysicInterface(nullptr);
+				this->physic_interface = new BulletPhysicInterface(nullptr);
+
+				/*	Camera collision object.	*/
+				CollisionDesc sphereDesc;
+				sphereDesc.Primitive = CollisionDesc::ShapePrimitive::Sphere;
+				sphereDesc.sphereshape.radius = 4.0f;
+				Collision *sphereCollider = this->physic_interface->createCollision(&sphereDesc);
+
+				/*	Sphere Rigidbody.	*/
+				RigidBodyDesc sphereRigiDesc;
+				sphereRigiDesc.useGravity = false;
+				sphereRigiDesc.isKinematic = true;
+				sphereRigiDesc.collision = sphereCollider;
+				sphereRigiDesc.position = Vector3(0, 0, 0);
+				sphereRigiDesc.mass = 1000;
+
+				this->sphereRigibody = this->physic_interface->createRigibody(&sphereRigiDesc);
+				this->physic_interface->addRigidBody(this->sphereRigibody);
 
 				CollisionDesc planDesc;
-				planDesc.Primitive = CollisionDesc::ShapePrimitive::Plane;
-				planDesc.planeshape.d = -10;
-				planDesc.planeshape.normal[0] = 0;
-				planDesc.planeshape.normal[1] = 1;
-				planDesc.planeshape.normal[2] = 0;
-				Collision *planeCollider = this->interface->createCollision(&planDesc);
+				planDesc.Primitive = CollisionDesc::ShapePrimitive::Box;
+
+				planDesc.boxshape.boxsize[0] = 1000;
+				planDesc.boxshape.boxsize[1] = 6;
+				planDesc.boxshape.boxsize[2] = 1000;
+				planDesc.center[0] = 0;
+				planDesc.center[1] = 0;
+				planDesc.center[2] = 0;
+				Collision *planeCollider = this->physic_interface->createCollision(&planDesc);
 
 				/*	Plane Rigidbody.	*/
 				RigidBodyDesc planRigiDesc;
 				planRigiDesc.useGravity = false;
 				planRigiDesc.isKinematic = true;
 				planRigiDesc.collision = planeCollider;
-				planRigiDesc.position = Vector3(0, 0, 0);
+				planRigiDesc.position = Vector3(0, -20, 0);
+				planRigiDesc.mass = 0;
 
-				this->planeRigibody = this->interface->createRigibody(&planRigiDesc);
-				this->interface->addRigidBody(this->planeRigibody);
+				this->planeRigibody = this->physic_interface->createRigibody(&planRigiDesc);
+				this->physic_interface->addRigidBody(this->planeRigibody);
 
 				/*	*/
 				CollisionDesc collisionDesc;
 				collisionDesc.Primitive = CollisionDesc::ShapePrimitive::Box;
-				collisionDesc.boxshape.boxsize[0] = 1;
-				collisionDesc.boxshape.boxsize[1] = 1;
-				collisionDesc.boxshape.boxsize[2] = 1;
+				collisionDesc.boxshape.boxsize[0] = 1.0f;
+				collisionDesc.boxshape.boxsize[1] = 1.0f;
+				collisionDesc.boxshape.boxsize[2] = 1.0f;
 
-				Collision *boxCollider = this->interface->createCollision(&collisionDesc);
+				Collision *boxCollider = this->physic_interface->createCollision(&collisionDesc);
 
-				for (size_t i = 0; i < this->rigidbodies.size(); i++) {
-					RigidBodyDesc desc;
-					desc.collision = boxCollider;
-					desc.mass = 1;
-					desc.useGravity = true;
-					desc.drag = 0;
-					desc.position = Vector3(i, i, i);
-					desc.isKinematic = false;
-					fragcore::RigidBody *rigidbody = this->interface->createRigibody(&desc);
-					this->rigidbodies[i] = rigidbody;
+				size_t rig_index = 0;
+				const float offset = 2.085f;
+				for (size_t x = 0; x < this->grid_aray[0]; x++) {
+					for (size_t y = 0; y < this->grid_aray[1]; y++) {
+						for (size_t z = 0; z < this->grid_aray[2]; z++) {
+							RigidBodyDesc desc;
+							desc.collision = boxCollider;
+							desc.mass = 20;
+							desc.useGravity = true;
+							desc.drag = 0.005;
+							desc.position = Vector3(x * offset, 10 + y * offset, z * offset);
+							desc.isKinematic = false;
+							fragcore::RigidBody *rigidbody = this->physic_interface->createRigibody(&desc);
+							this->rigidbodies[rig_index++] = rigidbody;
+						}
+					}
 				}
 
 				for (size_t i = 0; i < this->rigidbodies.size(); i++) {
-					this->interface->addRigidBody(this->rigidbodies[i]);
+					this->physic_interface->addRigidBody(this->rigidbodies[i]);
 				}
 			}
 		}
@@ -423,17 +455,18 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
-							  this->uniform_instance_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize,
+							  this->ssbo_instance_buffer,
+							  ((this->getFrameCount()) % this->nrUniformBuffers) * this->uniformInstanceSize,
 							  this->uniformInstanceSize);
 
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			/*	Draw from main camera */
+			glViewport(0, 0, width, height);
+			glClearColor(0.05f, 0.05f, 0.05f, 0.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			/*	Draw rigidbodies.	*/
 			{
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
-				/*	*/
-				glViewport(0, 0, width, height);
-				glClearColor(0.05f, 0.05f, 0.05f, 0.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				glUseProgram(this->graphic_program);
 
@@ -444,9 +477,35 @@ namespace glsample {
 				glDisable(GL_BLEND);
 				glEnable(GL_DEPTH_TEST);
 
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, this->rigidBodySettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
 				glBindVertexArray(box.vao);
 				glDrawElementsInstanced(GL_TRIANGLES, this->box.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
 										this->rigidbodies.size());
+				glBindVertexArray(0);
+
+				glUseProgram(0);
+			}
+
+			/*	Draw collision plane.	*/
+			{
+
+				glUseProgram(this->graphic_program);
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->white_texture);
+
+				glDisable(GL_CULL_FACE);
+				glDisable(GL_BLEND);
+				glEnable(GL_DEPTH_TEST);
+
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, this->rigidBodySettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
+				glBindVertexArray(plan.vao);
+				// glDrawElementsInstanced(GL_TRIANGLES, this->box.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				//						this->rigidbodies.size());
 				glBindVertexArray(0);
 
 				glUseProgram(0);
@@ -457,16 +516,19 @@ namespace glsample {
 
 		void update() override {
 
-			this->interface->sync();
+			this->physic_interface->sync();
 
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
+			this->sphereRigibody->setPosition(
+				Vector3(this->camera.getPosition().x, this->camera.getPosition().y, this->camera.getPosition().z));
+
 			/*	*/
 			{
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
-				this->uniformStageBuffer.model = glm::mat4(1.0f);
+				this->uniformStageBuffer.model = glm::mat4(0.5f);
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();
 				this->uniformStageBuffer.modelViewProjection =
 					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
@@ -483,20 +545,22 @@ namespace glsample {
 
 			/*	Update rigidbody model matrix.	*/
 			{
-				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer);
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->ssbo_instance_buffer);
 				uint8_t *uniform_instance_buffer_pointer = (uint8_t *)glMapBufferRange(
 					GL_SHADER_STORAGE_BUFFER,
-					((this->getFrameCount()) % this->nrUniformBuffers) * this->uniformInstanceSize,
-					this->uniformInstanceSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformInstanceSize,
+					this->uniformInstanceSize,
+					GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 
 				for (size_t i = 0; i < rigidbodies.size(); i++) {
 					glm::mat4 model = glm::mat4(1);
 					model = glm::translate(model, glm::vec3(rigidbodies[i]->getPosition().x(),
 															rigidbodies[i]->getPosition().y(),
 															rigidbodies[i]->getPosition().z()));
-					glm::quat roat(rigidbodies[i]->getOrientation().w(), rigidbodies[i]->getOrientation().x(),
-								   rigidbodies[i]->getOrientation().y(), rigidbodies[i]->getOrientation().z());
+					const glm::quat roat(rigidbodies[i]->getOrientation().w(), rigidbodies[i]->getOrientation().x(),
+										 rigidbodies[i]->getOrientation().y(), rigidbodies[i]->getOrientation().z());
 					model = model * glm::toMat4(roat);
+
 					memcpy(&uniform_instance_buffer_pointer[i * sizeof(glm::mat4)], &model[0][0], sizeof(model));
 				}
 				/*	*/
@@ -504,8 +568,21 @@ namespace glsample {
 				glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 			}
 
+			if (this->rigidBodySettingComponent->useGravity) {
+				this->physic_interface->setGravity(Vector3(0, -9.82, 0));
+			} else {
+				this->physic_interface->setGravity(Vector3(0, 0, 0));
+			}
+
+			if (this->getInput().getMouseDown(Input::MouseButton::LEFT_BUTTON)) {
+				for (size_t i = 0; i < rigidbodies.size(); i++) {
+					rigidbodies[i]->addForce(Vector3(0, 150, 0));
+				}
+			}
+
 			/*	Simulate.	*/
-			this->interface->simulate(this->getTimer().deltaTime<float>(), 1);
+			this->physic_interface->simulate(
+				this->getTimer().deltaTime<float>() * this->rigidBodySettingComponent->speed, 1, 1.0f / 60.0f);
 		}
 	};
 

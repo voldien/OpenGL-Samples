@@ -22,6 +22,7 @@
 
 namespace glsample {
 
+	// TODO relocate.
 	typedef struct {
 		GLuint count;
 		GLuint instanceCount;
@@ -37,7 +38,6 @@ namespace glsample {
 		GLuint baseInstance;
 	} DrawArraysIndirectCommand;
 
-	// TODO relocate.
 	typedef struct geometry_object_t {
 		/*	*/
 		unsigned int vao;

@@ -100,7 +100,7 @@ namespace glsample {
 		/*	*/
 		const std::string vertexDeferredDirectionalShaderPath = "Shaders/deferred/deferred_directional.vert.spv";
 		const std::string fragmentDeferredDirectionalShaderPath = "Shaders/deferred/deferred_directional.frag.spv";
-
+		/*	*/
 		const std::string vertexInstanceShaderPath = "Shaders/instance/instance.vert.spv";
 		const std::string fragmentInstanceShaderPath = "Shaders/instance/instance.frag.spv";
 

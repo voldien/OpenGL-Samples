@@ -7,8 +7,9 @@ class ModelViewerGLSample : public GLSample<ModelViewer> {
 	ModelViewerGLSample() : GLSample<ModelViewer>() {}
 
 	void customOptions(cxxopts::OptionAdder &options) override {
-		//			options("T,texture", "Texture Path",
-		//					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+		options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
+			"T,skybox", "Skybox Texture Path",
+			cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 	}
 };
 

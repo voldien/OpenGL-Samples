@@ -66,4 +66,4 @@ namespace glsample {
 		bool skybox_settings_visable = true;
 	};
 
-}; // namespace glsample
+} // namespace glsample

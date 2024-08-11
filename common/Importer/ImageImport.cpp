@@ -16,7 +16,7 @@ int TextureImporter::loadImage2D(const std::string &path, const ColorSpace color
 	Image image = imageLoader.loadImage(io);
 	io->close();
 
-	return loadImage2DRaw(image);
+	return loadImage2DRaw(image, colorSpace);
 }
 
 int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace) {
@@ -73,16 +73,19 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 	if (colorSpace == ColorSpace::SRGB) {
 		switch (internalformat) {
 		case GL_RGBA8:
+			internalformat = GL_SRGB8_ALPHA8;
+			break;
+		case GL_RGB8:
 			internalformat = GL_SRGB8;
 			break;
 		// case GL_RGBA16F:
-		// 	internalformat = GL_SRGBA16F;
+		// 	internalformat = GL_RGBA16F;
 		// 	break;
 		case GL_R8:
 			internalformat = GL_SR8_EXT;
 			break;
 		default:
-			break;
+			throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));
 		}
 	}
 
@@ -139,7 +142,7 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 
 	GLenum target = GL_TEXTURE_CUBE_MAP;
 	GLuint texture;
-	
+
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));
 
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));

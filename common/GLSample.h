@@ -64,7 +64,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 			"W,width", "Set Window Width", cxxopts::value<int>()->default_value("-1"))(
 			"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"))(
 			"D,display", "Display", cxxopts::value<int>()->default_value("-1"))(
-			"m,multi-sample", "MSSA", cxxopts::value<int>()->default_value("0"));
+			"m,multi-sample", "Set MSAA", cxxopts::value<int>()->default_value("0"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);
@@ -115,6 +115,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 			}
 		}
 
+		/*	*/
 		this->sampleRef = new T();
 		this->sampleRef->setCommandResult(result);
 
@@ -139,7 +140,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		}
 		/*	*/
 		if (!all_required) {
-			this->sampleRef->getLogger().info("Bye Bye");
+			this->sampleRef->getLogger().info("Bye Bye ^_^");
 			delete this->sampleRef;
 			return;
 		}

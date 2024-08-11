@@ -6,7 +6,6 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_mouse.h>
-#include <iostream>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
 #include <spdlog/spdlog.h>
@@ -32,9 +31,10 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 	this->enableDocking(false);
 
 	/*	*/
-	this->fpsCounter = FPSCounter<float>(50, this->getTimer().getTimeResolution());
+	this->fpsCounter = FPSCounter<float>(60, this->getTimer().getTimeResolution());
 	this->getTimer().start();
 
+	/*	*/
 	this->getRenderInterface()->setDebug(true);
 	// this->set
 
@@ -54,7 +54,7 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 	this->preWidth = this->width();
 	this->preHeight = this->height();
 
-	/*	*/
+	/*	Disable automatic framebuffer gamma correction, each application handle it manually.	*/
 	glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
@@ -99,21 +99,13 @@ void GLSampleWindow::renderUI() {
 		glGetQueryObjectiv(this->queries[1], GL_QUERY_RESULT, &nrSamples);
 		glGetQueryObjectiv(this->queries[2], GL_QUERY_RESULT, &nrPrimitives);
 
-		this->getLogger().debug("Samples: {} Primitives: {} Elapsed: {}", nrSamples, nrPrimitives,
+		this->getLogger().debug("Samples: {} Primitives: {} Elapsed: {} ms", nrSamples, nrPrimitives,
 								time_elasped / 100000.0f);
 	}
 
 	/*	*/
 	this->frameCount++;
 	this->frameBufferIndex = (this->frameBufferIndex + 1) % this->getFrameBufferCount();
-	this->getTimer().update();
-	this->getFPSCounter().update(this->getTimer().getElapsed<float>());
-
-	/*	*/
-	if (this->debugGL) {
-		this->getLogger().info("FPS: {} Elapsed Time: {}", this->getFPSCounter().getFPS(),
-							   this->getTimer().getElapsed<float>());
-	}
 
 	{
 		/*	*/
@@ -129,6 +121,14 @@ void GLSampleWindow::renderUI() {
 			this->setFullScreen(!this->isFullScreen());
 		}
 	}
+
+	this->getFPSCounter().update(this->getTimer().getElapsed<float>());
+	/*	*/
+	if (this->debugGL) {
+		this->getLogger().info("FPS: {} Elapsed Time: {}", this->getFPSCounter().getFPS(),
+							   this->getTimer().getElapsed<float>());
+	}
+	this->getTimer().update();
 }
 
 void GLSampleWindow::setTitle(const std::string &title) {

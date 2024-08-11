@@ -8,7 +8,6 @@
 #include <ShaderLoader.h>
 #include <cstring>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -400,7 +399,7 @@ namespace glsample {
 
 			/*	*/
 			if (this->shadowSettingComponent->animate) {
-				
+
 				for (size_t i = 0; i < this->nrPointLights; i++) {
 					this->uniform.pointLights[i].position =
 						glm::vec3(5.0f * std::cos(this->getTimer().getElapsed<float>() * 0.51415 + 1.3 * i), 10,

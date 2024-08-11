@@ -115,7 +115,7 @@ namespace glsample {
 		CameraController camera;
 
 		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/phongblinn/phongblinn.frag.spv";
+		const std::string fragmentShaderPath = "Shaders/phongblinn/phong.frag.spv";
 
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
@@ -185,13 +185,13 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_texture = textureImporter.loadImage2D(panoramicPath);
-
 			this->skybox_.Init(this->skybox_texture, this->skybox_program);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformBufferSize = fragcore::Math::align(sizeof(UniformObjectBufferBlock), (size_t)minMapBufferSize);
+
 			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -217,8 +217,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->plan.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-							 vertices.data(), GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
 				/*  Create index buffer.    */
 				glGenBuffers(1, &this->plan.ibo);
@@ -267,8 +267,8 @@ namespace glsample {
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenBuffers(1, &this->skybox.vbo);
 				glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex),
-							 vertices.data(), GL_STATIC_DRAW);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
 				/*	*/
 				glEnableVertexAttribArray(0);

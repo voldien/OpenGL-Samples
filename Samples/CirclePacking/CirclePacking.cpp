@@ -24,7 +24,7 @@ namespace glsample {
 		}
 
 		typedef struct circle_t {
-			float position[3];
+			glm::vec3 position;
 			float radius;
 		} Circle;
 
@@ -40,7 +40,7 @@ namespace glsample {
 
 			/*	*/
 			float delta;
-			float speed;
+			float speed = 1;
 
 		} uniformStageBuffer;
 
@@ -51,7 +51,6 @@ namespace glsample {
 
 		/*	*/
 		MeshObject circles_points;
-
 		unsigned int particle_texture;
 
 		/*	*/
@@ -61,6 +60,7 @@ namespace glsample {
 
 		unsigned int nthTexture = 0;
 		CameraController camera;
+
 		/*	*/
 		int circle_packing_read_buffer_binding = 1;
 		int circle_packing_write_buffer_binding = 2;
@@ -75,6 +75,7 @@ namespace glsample {
 		const std::string particleVertexShaderPath = "Shaders/vectorfield/particle.vert.spv";
 		const std::string particleGeometryShaderPath = "Shaders/vectorfield/particle.geom.spv";
 		const std::string particleFragmentShaderPath = "Shaders/vectorfield/particle.frag.spv";
+
 		/*	*/
 		const std::string computeShaderPath = "Shaders/circlepacking/circlepacking.comp.spv";
 
@@ -99,7 +100,6 @@ namespace glsample {
 				/*	*/
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
-				ImGui::Checkbox("Draw VectorField2D", &this->drawVectorField);
 			}
 
 			bool simulateParticles = true;
@@ -113,10 +113,7 @@ namespace glsample {
 
 		void Release() override {
 			glDeleteProgram(this->circle_packing_program);
-
-			// glDeleteTextures(this->gameoflife_state_texture.size(),
-			//				 (const GLuint *)this->gameoflife_state_texture.data());
-			// glDeleteTextures(1, &this->gameoflife_render_texture);
+			glDeleteProgram(this->particle_graphic_program);
 		}
 
 		void Initialize() override {
@@ -125,18 +122,30 @@ namespace glsample {
 			const std::string particleTexturePath = this->getResult()["texture"].as<std::string>();
 
 			{
-				/*	Load shader binaries.	*/
-				const std::vector<uint32_t> gameoflife_compute_binary =
-					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
-
 				/*	*/
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
+				/*	*/
+				const std::vector<uint32_t> vertex_source =
+					glsample::IOUtil::readFileData<uint32_t>(this->particleVertexShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> geometry_source =
+					glsample::IOUtil::readFileData<uint32_t>(this->particleGeometryShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source =
+					glsample::IOUtil::readFileData<uint32_t>(this->particleFragmentShaderPath, this->getFileSystem());
+
+				/*	Load Graphic Program.	*/
+				this->particle_graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source,
+																				  &fragment_source, &geometry_source);
+
+				/*	Load shader binaries.	*/
+				const std::vector<uint32_t> circle_packing_compute_binary =
+					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
+
 				/*	Create compute pipeline.	*/
 				this->circle_packing_program =
-					ShaderLoader::loadComputeProgram(compilerOptions, &gameoflife_compute_binary);
+					ShaderLoader::loadComputeProgram(compilerOptions, &circle_packing_compute_binary);
 			}
 
 			/*	Setup particle graphic render pipeline.	*/
@@ -169,6 +178,18 @@ namespace glsample {
 			glGetProgramiv(this->circle_packing_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			glUseProgram(0);
 
+			/*	*/
+			GLint minMapBufferSize;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			this->uniformBufferSize = Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
+
+			/*	*/
+			glGenBuffers(1, &this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBufferData(GL_UNIFORM_BUFFER, uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniformStageBuffer), &uniformStageBuffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 			GLint minStorageMapBufferSize;
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageMapBufferSize);
 
@@ -179,10 +200,20 @@ namespace glsample {
 
 			/*	Create buffer.	*/
 			glGenBuffers(1, &this->circles_points.vbo);
-			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->circles_points.vbo);
-			glBufferData(GL_SHADER_STORAGE_BUFFER, this->ParticleMemorySize * this->nrParticleBuffers, nullptr,
-						 GL_DYNAMIC_DRAW);
-			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+			glBindBuffer(GL_ARRAY_BUFFER, this->circles_points.vbo);
+			glBufferData(GL_ARRAY_BUFFER, this->ParticleMemorySize * this->nrParticleBuffers, nullptr, GL_DYNAMIC_DRAW);
+
+			Circle *particle_buffer =
+				static_cast<Circle *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, this->ParticleMemorySize, GL_MAP_WRITE_BIT));
+
+			std::default_random_engine generator;
+			std::uniform_real_distribution<float> randomPosition(0.00001,
+																 0.99999); /* random floats between [-1.0, 1.0] */
+			for (size_t i = 0; i < nrCircles; i++) {
+				particle_buffer[i].position = glm::vec3(randomPosition(generator), randomPosition(generator), 0);
+			}
+
+			glUnmapBuffer(GL_ARRAY_BUFFER);
 
 			/*	Create array buffer, for rendering static geometry.	*/
 			glGenVertexArrays(1, &this->circles_points.vao);
@@ -292,8 +323,8 @@ namespace glsample {
 
 			/*	*/
 			{
-				const float xHalf = 2; // this->uniformStageBuffer.particleSetting.particleBox.x / 2.f;
-				const float yHalf = 2; // this->uniformStageBuffer.particleSetting.particleBox.y / 2.f;
+				const float xHalf = 2;
+				const float yHalf = 2;
 				glm::mat4 proj = glm::ortho(-xHalf, xHalf, -yHalf, yHalf, -10.0f, 10.0f);
 
 				glm::mat4 viewMatrix = glm::translate(glm::vec3(-xHalf, -yHalf, 0));
@@ -307,6 +338,16 @@ namespace glsample {
 				this->uniformStageBuffer.modelViewProjection =
 					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			}
+
+			/*	Bind buffer and update region with new data.	*/
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
+				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+
+			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 

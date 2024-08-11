@@ -32,6 +32,7 @@ namespace glsample {
 			glm::mat4 view;
 			glm::mat4 proj;
 			glm::mat4 modelView;
+			glm::mat4 viewProjection;
 			glm::mat4 modelViewProjection;
 
 			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1);
@@ -89,6 +90,7 @@ namespace glsample {
 
 		/*	*/
 		unsigned int gouraud_program;
+		unsigned int simple_tessellation_program;
 
 		/*	*/
 		CameraController camera;
@@ -98,6 +100,7 @@ namespace glsample {
 		const std::string fragmentGouraudShaderPath = "Shaders/gouraud/gouraud.frag.spv";
 		const std::string ControlGouraudShaderPath = "Shaders/gouraud/gouraud.tesc.spv";
 		const std::string EvoluationGouraudShaderPath = "Shaders/gouraud/gouraud.tese.spv";
+
 		// const std::string ControlShaderPath = "Shaders/gouraud/gouraud.tesc.spv";
 		// const std::string EvoluationShaderPath = "Shaders/gouraud/gouraud.tese.spv";
 
@@ -117,7 +120,7 @@ namespace glsample {
 
 			{
 				/*	*/
-				const std::vector<uint32_t> vertex_binary =
+				const std::vector<uint32_t> vertex_gouraud_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexGouraudShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentGouraudShaderPath, this->getFileSystem());
@@ -132,7 +135,7 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->gouraud_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_binary, &fragment_binary, nullptr, &control_binary, &evolution_binary);
+					compilerOptions, &vertex_gouraud_binary, &fragment_binary, nullptr, &control_binary, &evolution_binary);
 			}
 
 			/*	Setup Shader.	*/
@@ -141,6 +144,7 @@ namespace glsample {
 			glUniformBlockBinding(this->gouraud_program, this->uniform_buffer_index, 0);
 			glUseProgram(0);
 
+			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSize = Math::align(this->uniformSize, (size_t)minMapBufferSize);
@@ -217,9 +221,13 @@ namespace glsample {
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize,
 								  this->uniformSize);
 
-				glUseProgram(this->gouraud_program);
+				if (this->gouraudSettingComponent->subdivionsCatmullClark) {
+					glUseProgram(this->gouraud_program);
+				} else {
+					glUseProgram(this->simple_tessellation_program);
+				}
 
-				glDisable(GL_CULL_FACE);
+				glEnable(GL_CULL_FACE);
 				glEnable(GL_DEPTH_TEST);
 
 				/*	Draw triangle   */
@@ -252,6 +260,7 @@ namespace glsample {
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 
+			this->uniformStageBuffer.viewProjection = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 

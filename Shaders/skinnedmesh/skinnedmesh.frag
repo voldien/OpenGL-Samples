@@ -5,31 +5,12 @@
 
 layout(location = 0) out vec4 fragColor;
 
-
 layout(location = 0) in vec3 FragIN_position;
 layout(location = 1) in vec2 FragIN_uv;
 layout(location = 2) in vec3 FragIN_normal;
 layout(location = 3) in vec3 FragIN_tangent;
 
-
-layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 ViewProj;
-	mat4 modelViewProjection;
-
-	/*	Tint color.	*/
-	vec4 tintColor;
-
-	/*	Light source.	*/
-	vec4 direction;
-	vec4 lightColor;
-	vec4 ambientColor;
-
-}
-ubo;
+#include "skinnedmesh_common.glsl"
 
 layout(binding = 0) uniform sampler2D DiffuseTexture;
 
@@ -42,5 +23,5 @@ void main() {
 	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, FragIN_normal) * ubo.lightColor;
 
 	/*	*/
-	fragColor = texture(DiffuseTexture, FragIN_uv);// * ubo.tintColor * (ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, FragIN_uv); // * ubo.tintColor * (ubo.ambientColor + lightColor);
 }

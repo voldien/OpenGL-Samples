@@ -8,8 +8,8 @@ layout(location = 1) smooth in vec4 gColor;
 layout(location = 2) in float ageTime;
 
 /*  */
-layout(binding = 0) uniform sampler2D tex0;
+layout(binding = 0) uniform sampler2D spriteTexture;
 
 #include "base.glsl"
 
-void main() { fragColor = texture(tex0, uv) * (ubo.color + gColor); }
+void main() { fragColor = texture(spriteTexture, uv) * (ubo.color + gColor); }

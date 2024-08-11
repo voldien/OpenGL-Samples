@@ -7,6 +7,7 @@
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
+#include <ModelViewer.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -17,9 +18,9 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class Panoramic : public GLSampleWindow {
+	class Panoramic : public ModelViewer {
 	  public:
-		Panoramic() : GLSampleWindow() {
+		Panoramic() : ModelViewer() {
 			this->setTitle("Panoramic View");
 
 			/*	*/

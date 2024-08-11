@@ -109,8 +109,8 @@ namespace glsample {
 		CameraController camera;
 
 		/*	Simple Terrain.	*/
-		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert";
-		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag";
+		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert.spv";
+		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag.spv";
 
 		/*	Skybox.	*/
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
@@ -185,15 +185,17 @@ namespace glsample {
 
 			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
 
-			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+			{
 
-			/*	Load shader	*/
-			const std::vector<char> simple_terrain_vertex_source = IOUtil::readFileString(vertexTerrainShaderPath, this->getFileSystem());
-			const std::vector<char> simple_terrain_fragment_source =
-				IOUtil::readFileString(fragmentTerrainShaderPath, this->getFileSystem());
+				/*	Load shader	*/
+				const std::vector<char> simple_terrain_vertex_source =
+					IOUtil::readFileString(vertexTerrainShaderPath, this->getFileSystem());
+				const std::vector<char> simple_terrain_fragment_source =
+					IOUtil::readFileString(fragmentTerrainShaderPath, this->getFileSystem());
 
-			this->terrain_program = ShaderLoader::loadGraphicProgram(&simple_terrain_vertex_source, &simple_terrain_fragment_source);
-
+				this->terrain_program =
+					ShaderLoader::loadGraphicProgram(&simple_terrain_vertex_source, &simple_terrain_fragment_source);
+			}
 			/*	Create Terrain Shader.	*/
 			glUseProgram(this->terrain_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->terrain_program, "UniformBufferBlock");

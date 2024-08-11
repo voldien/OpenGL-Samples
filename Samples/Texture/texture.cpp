@@ -99,7 +99,7 @@ namespace glsample {
 
 			/*	Load Texture	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(texturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(texturePath, ColorSpace::SRGB);
 
 			/*	Align the uniform buffer size to hardware specific.	*/
 			GLint minMapBufferSize;

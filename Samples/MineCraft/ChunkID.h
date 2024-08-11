@@ -1,5 +1,9 @@
 #pragma once
 
+/**
+ * @brief 
+ * 
+ */
 class ChunkID {
   public:
 	int X;
@@ -22,5 +26,5 @@ class ChunkID {
 
 	friend bool operator!=(ChunkID &left, ChunkID &right) { return !(left == right); }
 
-	static ChunkID FromWorldPos(int x, int y, int z) { return ChunkID(x >> 4, y >> 4, z >> 4); }
+	static ChunkID FromWorldPos(const int x, const int y, const int z) { return ChunkID(x >> 4, y >> 4, z >> 4); }
 };

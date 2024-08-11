@@ -16,17 +16,17 @@
 #pragma once
 #include "Core/Math3D.h"
 #include "Util/Frustum.h"
+#include "flythrough_camera.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_mouse.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/rotate_vector.hpp>
-#include "flythrough_camera.h"
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace glsample {
 
@@ -52,7 +52,7 @@ namespace glsample {
 			// mouse movement.
 			SDL_PumpEvents(); // make sure we have the latest mouse state.
 
-			const int buttons = SDL_GetMouseState(&x, &y);
+			SDL_GetMouseState(&x, &y);
 
 			const float xDiff = -(xprev - x) * this->xspeed;
 			const float yDiff = -(yprev - y) * this->yspeed;

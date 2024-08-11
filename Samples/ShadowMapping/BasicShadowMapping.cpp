@@ -11,6 +11,8 @@
 namespace glsample {
 
 	/**
+	 * @brief
+	 *
 	 */
 	class BasicShadowMapping : public GLSampleWindow {
 	  public:
@@ -104,6 +106,7 @@ namespace glsample {
 		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
 		const std::string fragmentPCFGraphicShaderPath = "Shaders/shadowmap/texture_pcf.frag.spv";
 
+		/*	*/
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
 
@@ -185,6 +188,7 @@ namespace glsample {
 									  this->uniform_graphic_buffer_binding);
 				glUseProgram(0);
 			}
+
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);

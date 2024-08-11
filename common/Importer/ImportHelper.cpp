@@ -212,15 +212,14 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 	textures.resize(Reftextures.size());
 
 	glsample::TextureImporter textureImporter(modelLoader.getFileSystem());
-	ColorSpace colorSpace;
 
 	for (size_t i = 0; i < Reftextures.size(); i++) {
 		TextureAssetObject &tex = Reftextures[i];
-
+		ColorSpace colorSpace = ColorSpace::Raw;
 		if (tex.data == nullptr) {
 			try {
 				std::cout << "Loading " << tex.filepath << std::endl;
-				tex.texture = textureImporter.loadImage2D(tex.filepath);
+				tex.texture = textureImporter.loadImage2D(tex.filepath, colorSpace);
 				glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
 
 			} catch (const std::exception &ex) {
@@ -241,7 +240,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				try {
 
 					Image image = imageLoader.loadImage(refIO);
-					tex.texture = textureImporter.loadImage2DRaw(image);
+					tex.texture = textureImporter.loadImage2DRaw(image, colorSpace);
 				} catch (std::exception &ex) {
 					std::cerr << "Failed to load: " << ex.what() << std::endl;
 				}

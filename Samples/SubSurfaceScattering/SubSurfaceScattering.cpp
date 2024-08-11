@@ -158,7 +158,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
+			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath, ColorSpace::SRGB);
 
 			/*	*/
 			glUseProgram(this->shadow_program);

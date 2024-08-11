@@ -13,14 +13,19 @@
 
 namespace glsample {
 
+	class PostProcessingBase : public fragcore::Object {
+		public:
+	};
+	
+
 	class PostProcessing : public ModelViewer {
 	  public:
 		PostProcessing() : ModelViewer() {
 			this->setTitle("Post Processing");
 
-			//this->postProcessingSettingComponent =
+			// this->postProcessingSettingComponent =
 			//	std::make_shared<PostProcessingSettingComponent>(this->uniformStageBlockBlur);
-			//this->addUIComponent(this->postProcessingSettingComponent);
+			// this->addUIComponent(this->postProcessingSettingComponent);
 		}
 
 		struct uniform_buffer_block {
@@ -119,8 +124,10 @@ namespace glsample {
 		};
 		std::shared_ptr<PostProcessingSettingComponent> postProcessingSettingComponent;
 
-		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert";
-		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag";
+		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
+		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
+
+		const std::string vertexPostProcessingShaderPath = "Shaders/postprocessing/post.vert.spv";
 
 		void Release() override {
 			/*	*/
@@ -140,21 +147,39 @@ namespace glsample {
 		}
 
 		void Initialize() override {
+			/*	*/
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
 
 			/*	Load shader source.	*/
 			{
-				// std::vector<char> vertex_source =
-				// 	IOUtil::readFileString(this->vertexSSAOShaderPath, this->getFileSystem());
-				// std::vector<char> fragment_source =
-				// 	IOUtil::readFileString(this->fragmentShaderPath, this->getFileSystem());
+				/*	*/
+				const std::vector<uint32_t> multipass_vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> multipass_fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
-				// /*	Load shader	*/
-				// this->ssao_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
 
-				// vertex_source = IOUtil::readFileString(this->vertexMultiPassShaderPath, this->getFileSystem());
-				// fragment_source = IOUtil::readFileString(this->fragmentMultiPassShaderPath, this->getFileSystem());
+				/*	Load shader	*/
+				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &multipass_vertex_binary,
+																		   &multipass_fragment_binary);
 
-				// this->multipass_program = ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source);
+				/*	Load shader binaries.	*/
+				std::vector<uint32_t> vertex_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+
+				/*	*/
+				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+				compilerOptions.glslVersion = this->getShaderVersion();
+
+				/*	Create skybox graphic pipeline program.	*/
+				// this->skybox_program =
+				//	ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
 
 			/*	Setup graphic ambient occlusion pipeline.	*/

@@ -12,6 +12,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 view;
 	mat4 proj;
 	mat4 modelView;
+	mat4 viewProjection;
 	mat4 modelViewProjection;
 
 	/*	Material	*/
@@ -29,5 +30,5 @@ ubo;
 
 void main() {
 	WorldPos_CS_in = (ubo.model * vec4(Vertex, 1.0)).xyz;
-	Normal_CS_in = (ubo.model * vec4(Normal, 0.0)).xyz;
+	Normal_CS_in = normalize( (ubo.model * vec4(Normal, 0.0)).xyz);
 }

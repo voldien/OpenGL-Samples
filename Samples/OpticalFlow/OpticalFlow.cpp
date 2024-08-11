@@ -37,6 +37,7 @@ namespace glsample {
 		/*	*/
 		const size_t round_robin_size = 2;
 		unsigned int color_framebuffer;
+		unsigned int opticalTexture;
 
 		unsigned int opticalflow_program;
 		unsigned int color_texture; // TODO add round robin.
@@ -115,7 +116,7 @@ namespace glsample {
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
+			this->uniformBufferSize = fragcore::Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -162,10 +163,14 @@ namespace glsample {
 		}
 
 		void draw() override {
+
 			ModelViewer::draw();
 
 			int width, height;
+
+			glBindFramebuffer(GL_FRAMEBUFFER, this->color_framebuffer);
 			this->getSize(&width, &height);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -175,11 +180,12 @@ namespace glsample {
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, this->color_framebuffer);
 			{
 				glUseProgram(this->opticalflow_program);
 
-				glBindImageTexture(0, this->color_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+				glBindImageTexture(0, this->opticalTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+				glBindImageTexture(1, this->color_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
+
 
 				glDispatchCompute(std::ceil(this->color_texture_width / (float)localWorkGroupSize[0]),
 								  std::ceil(this->color_texture_height / (float)localWorkGroupSize[1]), 1);
@@ -195,6 +201,28 @@ namespace glsample {
 			glBlitFramebuffer(0, 0, this->color_texture_width, this->color_texture_height, 0, 0, width, height,
 							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			/*	Blit image targets to screen.	*/
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->color_framebuffer);
+
+			glViewport(0, 0, width, height);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glBlitFramebuffer(0, 0, this->color_texture_width, this->color_texture_height, 0, 0,
+							  this->color_texture_width, this->color_texture_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			/*	Transfer each target to default framebuffer.	*/
+			const size_t widthDivior = 2;
+			const size_t heightDivior = 2;
+
+			// const float halfW = (width / 2.0f);
+			// const float halfH = (height / 2.0f);
+			// for (size_t i = 0; i < this->multipass_textures.size(); i++) {
+			//	glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+			//	glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
+			//					  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW, halfH + (i / 2) * halfH,
+			//					  GL_COLOR_BUFFER_BIT, GL_LINEAR);
+			//}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
@@ -236,8 +264,9 @@ namespace glsample {
 		OpticalFlowGLSample() : GLSample<OpticalFlow>() {}
 
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path",
-					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
+				"S,skybox", "Skybox Texture File Path",
+				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};
 

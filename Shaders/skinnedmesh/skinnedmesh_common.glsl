@@ -1,7 +1,6 @@
-#version 460
-#extension GL_ARB_separate_shader_objects : enable
 
-layout(location = 0) in vec3 Vertex;
+
+const int MAX_BONES = 512;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -11,18 +10,15 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
-	/*	*/
+	/*	Tint color.	*/
 	vec4 tintColor;
 
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
-
-	/*  */
-	vec4 cameraPosition;
-	vec2 scale;
 }
 ubo;
 
-void main() { gl_Position = ubo.model * vec4(Vertex, 1); }
+layout(binding = 1, std140) uniform UniformSkeletonBufferBlock { mat4 gBones[MAX_BONES]; }
+skeletonUBO;
