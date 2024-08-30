@@ -134,8 +134,9 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->gouraud_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_gouraud_binary, &fragment_binary, nullptr, &control_binary, &evolution_binary);
+				this->gouraud_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_gouraud_binary, &fragment_binary, nullptr,
+													 &control_binary, &evolution_binary);
 			}
 
 			/*	Setup Shader.	*/

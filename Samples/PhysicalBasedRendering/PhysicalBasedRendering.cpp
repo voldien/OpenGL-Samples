@@ -13,7 +13,6 @@ namespace glsample {
 
 	class PBRScene : public Scene {
 	  public:
-	  
 	};
 
 	/**
@@ -180,7 +179,8 @@ namespace glsample {
 			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "Irradiance"), 4);
 			glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
-			uniform_buffer_index = glGetUniformBlockIndex(this->simple_physical_based_rendering_program, "UniformBufferBlock");
+			uniform_buffer_index =
+				glGetUniformBlockIndex(this->simple_physical_based_rendering_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);

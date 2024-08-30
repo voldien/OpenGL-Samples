@@ -33,7 +33,7 @@ namespace glsample {
 		}
 		static const int maxKernels = 64;
 
-		// TODO combine uniform buffer stage.
+		// TODO later - combine uniform buffer stage.
 		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
@@ -475,7 +475,7 @@ namespace glsample {
 			/*	Border clamped to max value, it makes the outside area.	*/
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-			const float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f}; // FIXME:
+			const float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 			glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
 			glBindTexture(GL_TEXTURE_2D, 0);
@@ -591,7 +591,7 @@ namespace glsample {
 
 				glUseProgram(0);
 
-				/*	Downscale for creating blurred version.	*/
+				/*	Downscale for creating a cheap blurred version, using the pixel bilinear filtering for each power of 2.	*/
 				// TODO fix downscale.
 				if (this->ambientOcclusionSettingComponent->downScale) {
 					/*	Downscale the image.	*/

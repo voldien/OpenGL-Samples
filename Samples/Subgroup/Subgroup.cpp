@@ -16,7 +16,7 @@ namespace glsample {
 	 */
 	class SubGroup : public GLSampleWindow {
 	  public:
-		SubGroup() : GLSampleWindow() { this->setTitle("GameOfLife - Compute"); }
+		SubGroup() : GLSampleWindow() { this->setTitle("SubGroup - Compute"); }
 
 		/*	Framebuffers.	*/
 		unsigned int gameoflife_framebuffer;
@@ -189,7 +189,7 @@ int main(int argc, const char **argv) {
 	try {
 		const std::vector<const char *> required_extension = {"GL_KHR_shader_subgroup"};
 		GLSample<glsample::SubGroup> sample;
-		sample.run(argc, argv,required_extension);
+		sample.run(argc, argv, required_extension);
 	} catch (const std::exception &ex) {
 
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;

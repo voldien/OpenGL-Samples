@@ -205,7 +205,6 @@ namespace glsample {
 
 					/*  Delete  */
 					glDeleteFramebuffers(1, &shadowFramebuffer);
-					// TODO add error message.
 					throw RuntimeException("Failed to create framebuffer, {}",
 										   (const char *)glewGetErrorString(frstat));
 				}

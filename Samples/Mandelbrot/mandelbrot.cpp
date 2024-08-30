@@ -38,7 +38,7 @@ namespace glsample {
 		unsigned int mandelbrot_framebuffer;
 		unsigned int mandelbrot_program;
 		unsigned int julia_program;
-		unsigned int mandelbrot_texture; // TODO add round robin.
+		unsigned int mandelbrot_texture;
 		unsigned int mandelbrot_texture_width;
 		unsigned int mandelbrot_texture_height;
 

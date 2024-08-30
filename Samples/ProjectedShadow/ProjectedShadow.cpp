@@ -24,8 +24,8 @@ namespace glsample {
 		ProjectedShadow() : GLSampleWindow() {
 			this->setTitle("Projected Shadow");
 
-			this->shadowProjectedSettingComponent =
-				std::make_shared<AlphaClippingSettingComponent>(this->uniformStageBuffer);
+			this->shadowProjectedSettingComponent = std::make_shared<ShadowProjectionSettingComponent>(
+				this->uniformStageBuffer, this->projectShadowUniformBuffer);
 			this->addUIComponent(this->shadowProjectedSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -93,18 +93,19 @@ namespace glsample {
 		const std::string vertexShadowShaderPath = "Shaders/projectedshadow/projectedshadow.vert.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/projectedshadow/projectedshadow.frag.spv";
 
-		class AlphaClippingSettingComponent : public nekomimi::UIComponent {
+		class ShadowProjectionSettingComponent : public nekomimi::UIComponent {
 		  public:
-			AlphaClippingSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
+			ShadowProjectionSettingComponent(struct uniform_buffer_block &uniform, struct UniformProjectShadow &shadow)
+				: uniform(uniform), shadow(shadow) {
 				this->setName("NormalMap Settings");
 			}
 
 			void draw() override {
 
 				ImGui::TextUnformatted("Projected Shadow Setting");
-				// TODO add support for plane
-				// ImGui::DragFloat3("Normal", &this->uniform.ambientColor[0]);
-				// ImGui::DragFloat3("Position", &this->uniform.ambientColor[0]);
+
+				ImGui::DragFloat3("Normal", &this->shadow.planeNormal[0]);
+				ImGui::DragFloat3("Position", &this->shadow.lightPosition[0]);
 
 				ImGui::TextUnformatted("Material Settings");
 				ImGui::ColorEdit4("Light Color", &this->uniform.lightColor[0],
@@ -125,8 +126,9 @@ namespace glsample {
 
 		  private:
 			struct uniform_buffer_block &uniform;
+			struct UniformProjectShadow &shadow;
 		};
-		std::shared_ptr<AlphaClippingSettingComponent> shadowProjectedSettingComponent;
+		std::shared_ptr<ShadowProjectionSettingComponent> shadowProjectedSettingComponent;
 
 		void Release() override {
 			/*	*/

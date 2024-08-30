@@ -348,7 +348,7 @@ namespace glsample {
 					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 					/*	Setup the shadow.	*/
-					// TODO enbable.
+					glEnableVertexAttribArrayARB(4);
 					glVertexAttribI1i(4, i);
 					this->scene.render();
 
