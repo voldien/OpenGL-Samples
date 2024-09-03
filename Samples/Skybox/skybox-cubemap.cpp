@@ -83,10 +83,10 @@ namespace glsample {
 
 		void Initialize() override {
 			// TODO: fix
-			//const std::vector<std::string> cubemapPaths = {"asset/X+.png", "asset/X-.png", "asset/Y+.png",
+			// const std::vector<std::string> cubemapPaths = {"asset/X+.png", "asset/X-.png", "asset/Y+.png",
 			//											   "asset/Y-.png", "asset/Z+.png", "asset/Z-.png"};
 			size_t count = this->getResult()["texture"].count();
-			if(count != 6){
+			if (count != 6) {
 				throw InvalidArgumentException("Must be 6 file paths - Found {}", count);
 			}
 			const std::vector<std::string> cubemapPaths = this->getResult()["texture"].as<std::vector<std::string>>();

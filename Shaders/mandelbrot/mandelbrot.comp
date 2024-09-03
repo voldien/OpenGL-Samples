@@ -35,7 +35,7 @@ vec4 computeMandel(in vec2 uv) {
 
 	const vec2 c = vec2(ubo.c, ubo.ci);
 	vec2 z = vec2(4.0 * uv - 2);
-	 z = vec2(0);
+	z = vec2(0);
 
 	const float max_range = lthreadhold * lthreadhold;
 	int i = 0;

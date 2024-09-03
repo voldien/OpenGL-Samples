@@ -53,7 +53,6 @@ namespace glsample {
 			PointLight pointLights[4];
 
 			float shininess = 8;
-			bool useBlinn = true;
 		} uniformStageBuffer;
 
 		/*	*/
@@ -107,7 +106,7 @@ namespace glsample {
 
 				ImGui::TextUnformatted("Material Setting");
 				ImGui::DragFloat("Shinnes", &this->uniform.shininess);
-				ImGui::Checkbox("Blinn", &this->uniform.useBlinn);
+				ImGui::Checkbox("Use Blinn (!Phong)", &this->useBlinn);
 
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("Rotate", &this->useAnimate);

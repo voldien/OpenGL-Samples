@@ -458,7 +458,7 @@ namespace glsample {
 	  public:
 		PanoramicGLSample() : GLSample<Panoramic>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Skybox Texture File Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}

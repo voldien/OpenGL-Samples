@@ -591,7 +591,8 @@ namespace glsample {
 
 				glUseProgram(0);
 
-				/*	Downscale for creating a cheap blurred version, using the pixel bilinear filtering for each power of 2.	*/
+				/*	Downscale for creating a cheap blurred version, using the pixel bilinear filtering for each power
+				 * of 2.	*/
 				// TODO fix downscale.
 				if (this->ambientOcclusionSettingComponent->downScale) {
 					/*	Downscale the image.	*/
@@ -706,7 +707,7 @@ namespace glsample {
 			{
 				glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				void *uniformPointer = glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * uniformBufferAlignedSize,
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferAlignedSize,
 					this->uniformBufferAlignedSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				memcpy(uniformPointer, &this->uniformStageBlock, sizeof(uniformStageBlock));

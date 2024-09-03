@@ -39,15 +39,16 @@ void main() {
 
 	/*	*/
 	const float attenuation = 1.0 / (pointlightUBO.point_light[InstanceID].constant_attenuation +
-							   pointlightUBO.point_light[InstanceID].linear_attenuation * dist +
-							   pointlightUBO.point_light[InstanceID].qudratic_attenuation * (dist * dist));
+									 pointlightUBO.point_light[InstanceID].linear_attenuation * dist +
+									 pointlightUBO.point_light[InstanceID].qudratic_attenuation * (dist * dist));
 
 	/*	*/
 	const float contribution = max(dot(normal, -normalize(diffVertex)), 0.0);
 
 	const vec4 pointLightColors = attenuation * pointlightUBO.point_light[InstanceID].color * contribution *
-							pointlightUBO.point_light[InstanceID].range *
-							pointlightUBO.point_light[InstanceID].intensity;
+								  pointlightUBO.point_light[InstanceID].range *
+								  pointlightUBO.point_light[InstanceID].intensity;
 
-	fragColor = color * pointLightColors;
+	fragColor = color * pointlightUBO.point_light[InstanceID].color * contribution * 100;
+	fragColor.a = 1;
 }

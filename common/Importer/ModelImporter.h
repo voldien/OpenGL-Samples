@@ -249,6 +249,8 @@ class FVDECLSPEC ModelImporter {
 
 	void loadTexturesFromMaterials(aiMaterial *material);
 
+	void convert2Adjcent(const aiMesh* mesh, std::vector<unsigned int>& indices);
+
   public:
 	const std::vector<NodeObject *> getNodes() const noexcept { return this->nodes; }
 	const std::vector<ModelSystemObject> &getModels() const noexcept { return this->models; }

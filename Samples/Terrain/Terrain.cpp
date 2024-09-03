@@ -5,6 +5,7 @@
 #include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderLoader.h>
+#include <Skybox.h>
 #include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -20,11 +21,10 @@ namespace glsample {
 	class SimpleTerrain : public GLSampleWindow {
 	  public:
 		SimpleTerrain() : GLSampleWindow() {
-			this->setTitle("Terrain");
+			this->setTitle("Simple Terrain");
 
-			this->simpleOceanSettingComponent =
-				std::make_shared<SimpleOceanSettingComponent>(this->uniform_stage_buffer);
-			this->addUIComponent(this->simpleOceanSettingComponent);
+			this->terrainSettingComponent = std::make_shared<TerrainSettingComponent>(this->uniform_stage_buffer);
+			this->addUIComponent(this->terrainSettingComponent);
 
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
@@ -59,6 +59,7 @@ namespace glsample {
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 position;
+			
 		} uniformLight;
 
 		struct UniformOceanBufferBlock {
@@ -81,7 +82,8 @@ namespace glsample {
 			UniformSkyBoxBufferBlock ocean;
 		} uniform_stage_buffer;
 
-		MeshObject skybox;
+		Skybox skybox;
+		// MeshObject skybox;
 		MeshObject terrain;
 		MeshObject plan;
 
@@ -131,9 +133,9 @@ namespace glsample {
 			// glDeleteTextures(1, &this->skybox_panoramic);
 		}
 
-		class SimpleOceanSettingComponent : public nekomimi::UIComponent {
+		class TerrainSettingComponent : public nekomimi::UIComponent {
 		  public:
-			SimpleOceanSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
+			TerrainSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Terrain Settings");
 			}
 
@@ -179,7 +181,7 @@ namespace glsample {
 		  private:
 			struct uniform_buffer_block &uniform;
 		};
-		std::shared_ptr<SimpleOceanSettingComponent> simpleOceanSettingComponent;
+		std::shared_ptr<TerrainSettingComponent> terrainSettingComponent;
 
 		void Initialize() override {
 
@@ -317,8 +319,6 @@ namespace glsample {
 								  (getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
 								  this->uniformBufferSize);
 
-				/*	Draw Skybox.	*/
-
 				glDisable(GL_CULL_FACE);
 
 				/*	Draw terrain.	*/
@@ -332,33 +332,8 @@ namespace glsample {
 				glBindVertexArray(0);
 			}
 
-			/*	*/
-			{
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize + 0,
-								  this->skyboxUniformSize);
+			this->skybox.Render(this->camera);
 
-				glUseProgram(this->skybox_program);
-
-				glDisable(GL_CULL_FACE);
-				glDisable(GL_BLEND);
-				glEnable(GL_DEPTH_TEST);
-				glStencilMask(GL_FALSE);
-				glDepthFunc(GL_LEQUAL);
-
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->terrain_diffuse_texture);
-
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->skybox.vao);
-				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
-
-				glStencilMask(GL_TRUE);
-
-				glUseProgram(0);
-			}
 			// glEnable(GL_DEPTH_TEST);
 			// TODO disable depth write.
 			// glDisable(GL_BLEND);
@@ -405,7 +380,7 @@ namespace glsample {
 	  public:
 		TerrainGLSample() : GLSample<SimpleTerrain>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("T,skybox-texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
 		}
 	};
 } // namespace glsample

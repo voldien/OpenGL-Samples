@@ -105,7 +105,7 @@ namespace glsample {
 				this->skybox_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
-			
+
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->skybox_program);
 			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");

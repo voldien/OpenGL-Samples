@@ -193,15 +193,18 @@ namespace glsample {
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->multipass_texture_width,
 							 this->multipass_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+
+				FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
 
 				glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -254,6 +257,9 @@ namespace glsample {
 
 				glDisable(GL_CULL_FACE);
 
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 				this->scene.render();
 
 				this->skybox.Render(this->camera);
@@ -265,7 +271,6 @@ namespace glsample {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
 
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glViewport(0, 0, width, height);
 
 			/*	Transfer each target to default framebuffer.	*/
@@ -297,6 +302,7 @@ namespace glsample {
 
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
+			this->uniformStageBuffer.modelView = (this->uniformStageBuffer.view * this->uniformStageBuffer.model);
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 
@@ -314,7 +320,7 @@ namespace glsample {
 	  public:
 		MultiPassGLSample() : GLSample<MultiPass>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Skybox Texture File Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}

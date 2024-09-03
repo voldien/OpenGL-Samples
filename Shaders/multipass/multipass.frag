@@ -20,9 +20,11 @@ layout(binding = 4) uniform sampler2D AlphaMaskedTexture;
 
 void main() {
 
+	/*	*/
 	Diffuse = texture(DiffuseTexture, uv).rgba;
 	Diffuse.a *= texture(AlphaMaskedTexture, uv).r;
 
+	/*	*/
 	WorldSpace = vec4(vertex.xyz, 1);
 	TextureCoord = vec4(uv, 0, 0);
 

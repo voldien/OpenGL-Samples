@@ -21,11 +21,12 @@ namespace glsample {
 			this->setTitle("Deferred Rendering");
 
 			/*	Setting Window.	*/
-			this->deferredSettingComponent = std::make_shared<DeferredSettingComponent>(this->uniformStageBuffer);
+			this->deferredSettingComponent =
+				std::make_shared<DeferredSettingComponent>(this->uniformStageBuffer, this->directionalLights);
 			this->addUIComponent(this->deferredSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(15.f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -42,6 +43,7 @@ namespace glsample {
 			glm::vec3 position;
 			float range;
 			glm::vec4 color;
+
 			/*	*/
 			float intensity;
 			float constant_attenuation;
@@ -50,9 +52,9 @@ namespace glsample {
 		} PointLight;
 
 		typedef struct directional_light_t {
-			glm::vec3 directiona;
-			float intensity;
-			glm::vec4 color;
+			glm::vec3 directiona = glm::vec3(1, 1, 1);
+			float intensity = 1;
+			glm::vec4 color = glm::vec4(1, 1, 1, 1);
 		} DirectionalLight;
 
 		std::vector<PointLight> pointLights;
@@ -69,10 +71,11 @@ namespace glsample {
 		unsigned int deferred_texture_width;
 		unsigned int deferred_texture_height;
 		std::vector<unsigned int> deferred_textures; /*	Albedo, WorldSpace, Normal, */
-		unsigned int depthTexture;
+		unsigned int depthstencil_texture;
 
 		/*	*/
 		unsigned int deferred_pointlight_program;
+		unsigned int deferred_pointlight_debug_program;
 		unsigned int deferred_directional_program;
 		unsigned int multipass_program;
 		unsigned int instance_program;
@@ -95,8 +98,10 @@ namespace glsample {
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
 
 		/*	Deferred Rendering Shader Path.	*/
-		const std::string vertexDeferredShaderPath = "Shaders/deferred/deferred.vert.spv";
-		const std::string fragmentDeferredShaderPath = "Shaders/deferred/deferred.frag.spv";
+		const std::string vertexDeferredPointShaderPath = "Shaders/deferred/deferred_point.vert.spv";
+		const std::string fragmentDeferredPointShaderPath = "Shaders/deferred/deferred_point.frag.spv";
+
+		const std::string fragmentDeferredPointDebugShaderPath = "Shaders/deferred/deferred_point_debug.frag.spv";
 		/*	*/
 		const std::string vertexDeferredDirectionalShaderPath = "Shaders/deferred/deferred_directional.vert.spv";
 		const std::string fragmentDeferredDirectionalShaderPath = "Shaders/deferred/deferred_directional.frag.spv";
@@ -110,7 +115,9 @@ namespace glsample {
 
 		class DeferredSettingComponent : public nekomimi::UIComponent {
 		  public:
-			DeferredSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
+			DeferredSettingComponent(struct uniform_buffer_block &uniform,
+									 std::vector<DirectionalLight> &direction_lights)
+				: uniform(uniform), direction_lights(direction_lights) {
 				this->setName("Deferred Settings");
 			}
 
@@ -120,6 +127,7 @@ namespace glsample {
 				if (ImGui::DragInt("Number of Directional Lights", &nrDirectionalLights)) {
 					// TODO add
 				}
+
 				// ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
 				// ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				// ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
@@ -127,6 +135,9 @@ namespace glsample {
 				if (ImGui::DragInt("Number of PointLights", &nrPointLights, 1, 0, 64)) {
 					// TODO add
 				}
+
+				ImGui::ColorEdit4("Color", &this->direction_lights[0].color[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -137,8 +148,10 @@ namespace glsample {
 			bool showWireFrame = false;
 			bool showGBuffers = false;
 			bool showLight = false;
+
 			int nrPointLights = 1;
 			int nrDirectionalLights = 1;
+			std::vector<DirectionalLight> &direction_lights;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -153,7 +166,7 @@ namespace glsample {
 			glDeleteProgram(this->skybox_program);
 
 			/*	*/
-			glDeleteTextures(1, &this->depthTexture);
+			glDeleteTextures(1, &this->depthstencil_texture);
 			glDeleteTextures(this->deferred_textures.size(), this->deferred_textures.data());
 
 			/*	*/
@@ -184,9 +197,11 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				const std::vector<uint32_t> vertex_source_deferred_point =
-					IOUtil::readFileData<uint32_t>(vertexDeferredShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(vertexDeferredPointShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_source_deferred_point =
-					IOUtil::readFileData<uint32_t>(fragmentDeferredShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(fragmentDeferredPointShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_source_deferred_point_debug =
+					IOUtil::readFileData<uint32_t>(fragmentDeferredPointDebugShaderPath, this->getFileSystem());
 
 				const std::vector<uint32_t> vertex_source_deferred_light =
 					IOUtil::readFileData<uint32_t>(vertexDeferredDirectionalShaderPath, this->getFileSystem());
@@ -221,6 +236,9 @@ namespace glsample {
 				this->deferred_pointlight_program = ShaderLoader::loadGraphicProgram(
 					compilerOptions, &vertex_source_deferred_point, &fragment_source_deferred_point);
 
+				this->deferred_pointlight_debug_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_source_deferred_point, &fragment_source_deferred_point_debug);
+
 				this->deferred_directional_program = ShaderLoader::loadGraphicProgram(
 					compilerOptions, &vertex_source_deferred_light, &fragment_source_deferred_light);
 
@@ -254,17 +272,31 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Setup graphic pipeline.	*/
+			glUseProgram(this->deferred_pointlight_debug_program);
+			uniform_buffer_index =
+				glGetUniformBlockIndex(this->deferred_pointlight_debug_program, "UniformBufferBlock");
+			uniform_buffer_pointlight_index =
+				glGetUniformBlockIndex(this->deferred_pointlight_program, "UniformBufferLight");
+
+			glUniformBlockBinding(this->deferred_pointlight_program, uniform_buffer_index,
+								  this->uniform_buffer_binding);
+			glUniformBlockBinding(this->deferred_pointlight_program, uniform_buffer_pointlight_index,
+								  this->uniform_pointlight_buffer_binding);
+			glUseProgram(0);
+
+			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->deferred_directional_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->deferred_pointlight_program, "UniformBufferBlock");
+			uniform_buffer_index = glGetUniformBlockIndex(this->deferred_directional_program, "UniformBufferBlock");
 			int uniform_buffer_directional_index =
 				glGetUniformBlockIndex(this->deferred_directional_program, "UniformBufferLight");
-			glUniform1i(glGetUniformLocation(this->deferred_pointlight_program, "AlbedoTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->deferred_pointlight_program, "WorldTexture"), 1);
-			glUniform1i(glGetUniformLocation(this->deferred_pointlight_program, "NormalTexture"), 3);
+			glUniform1i(glGetUniformLocation(this->deferred_directional_program, "AlbedoTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->deferred_directional_program, "NormalTexture"), 3);
+
 			glUniformBlockBinding(this->deferred_directional_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
-			glUniformBlockBinding(this->deferred_pointlight_program, uniform_buffer_directional_index,
+			glUniformBlockBinding(this->deferred_directional_program, uniform_buffer_directional_index,
 								  this->uniform_pointlight_buffer_binding);
+
 			glUseProgram(0);
 
 			/*	Setup graphic pipeline.	*/
@@ -315,7 +347,7 @@ namespace glsample {
 				std::vector<ProceduralGeometry::Vertex> planVertices;
 				std::vector<ProceduralGeometry::Vertex> sphereVertices;
 				std::vector<unsigned int> planIndices, sphereIndices;
-				ProceduralGeometry::generateSphere(10, sphereVertices, sphereIndices, 16, 16);
+				ProceduralGeometry::generateSphere(1, sphereVertices, sphereIndices, 16, 16);
 				ProceduralGeometry::generatePlan(1, planVertices, planIndices);
 
 				/*	Create array buffer, for rendering static geometry.	*/
@@ -383,7 +415,7 @@ namespace glsample {
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
 
 				this->deferred_textures.resize(4);
-				glGenTextures(1, &this->depthTexture);
+				glGenTextures(1, &this->depthstencil_texture);
 				glGenTextures(this->deferred_textures.size(), this->deferred_textures.data());
 				this->onResize(this->width(), this->height());
 			}
@@ -391,15 +423,16 @@ namespace glsample {
 			/*	Setup lights.	*/
 			for (size_t i = 0; i < this->pointLights.size(); i++) {
 				/*	*/
-				this->pointLights[i].range = 60.0f;
+				this->pointLights[i].range = 8.0f;
 				this->pointLights[i].position = glm::vec3(i * -2.0f, 0.5f, i * -2.5f) * 5.0f + glm::vec3(2.0f);
 				this->pointLights[i].color =
-					glm::vec4(std::fabs(std::cos(i)), std::fabs(std::sin(i)), std::fabs(cos(i)), 1);
+					glm::vec4(std::fabs(std::cos(i)), std::fabs(std::sin(i)) + 0.1, std::fabs(cos(i)), 1);
 				this->pointLights[i].constant_attenuation = 1.7f;
 				this->pointLights[i].linear_attenuation = 1.5f;
 				this->pointLights[i].qudratic_attenuation = 0.19f;
 				this->pointLights[i].intensity = 1.5f;
 			}
+			directionalLights.push_back(DirectionalLight());
 		}
 
 		void onResize(int width, int height) override {
@@ -414,7 +447,7 @@ namespace glsample {
 			for (size_t i = 0; i < this->deferred_textures.size(); i++) {
 
 				glBindTexture(GL_TEXTURE_2D, this->deferred_textures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, this->deferred_texture_width, this->deferred_texture_height,
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->deferred_texture_width, this->deferred_texture_height,
 							 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -434,13 +467,13 @@ namespace glsample {
 				drawAttach[i] = GL_COLOR_ATTACHMENT0 + i;
 			}
 
-			/*	*/
-
-			glBindTexture(GL_TEXTURE_2D, this->depthTexture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->deferred_texture_width,
-						 this->deferred_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+			/*	Depth/Stencil.	*/
+			glBindTexture(GL_TEXTURE_2D, this->depthstencil_texture);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, this->deferred_texture_width,
+						 this->deferred_texture_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
 			glBindTexture(GL_TEXTURE_2D, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
+								   this->depthstencil_texture, 0);
 
 			glDrawBuffers(drawAttach.size(), drawAttach.data());
 
@@ -453,6 +486,7 @@ namespace glsample {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 			/*	*/
+			this->camera.setFar(2000.0f);
 			this->camera.setAspect((float)width / (float)height);
 		}
 
@@ -477,7 +511,7 @@ namespace glsample {
 				/*	*/
 				glViewport(0, 0, this->deferred_texture_width, this->deferred_texture_height);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 				/*	*/
 				glUseProgram(this->multipass_program);
@@ -517,7 +551,6 @@ namespace glsample {
 								  this->uniformLightBufferSize);
 
 				/*	*/
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				glViewport(0, 0, width, height);
 				glClear(GL_COLOR_BUFFER_BIT);
 
@@ -540,25 +573,30 @@ namespace glsample {
 
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-				// this->skybox.Render(this->camera);
-
 				glBindVertexArray(this->sphere.vao);
 
 				/*	Draw directional lights.	*/
-				glDisable(GL_DEPTH_TEST);
-				glDisable(GL_CULL_FACE);
-				glUseProgram(this->deferred_directional_program);
-				glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
-												  (void *)this->plan.indices_offset, 1, this->plan.vertex_offset);
+				if (this->deferredSettingComponent->nrDirectionalLights > 0) {
+					glDisable(GL_DEPTH_TEST);
+					glDisable(GL_CULL_FACE);
+					glUseProgram(this->deferred_directional_program);
+					glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
+													  (void *)this->plan.indices_offset, 1, this->plan.vertex_offset);
+				}
 				/*	Draw point lights.	*/
-				glEnable(GL_DEPTH_TEST);
-				glEnable(GL_CULL_FACE);
-				glUseProgram(this->deferred_pointlight_program);
-				glDrawElementsInstancedBaseVertex(
-					GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT, (void *)this->sphere.indices_offset,
-					this->deferredSettingComponent->nrPointLights, this->sphere.vertex_offset);
+				if (this->deferredSettingComponent->nrPointLights > 0) {
+					glEnable(GL_DEPTH_TEST);
+					glDisable(GL_CULL_FACE);
+
+					glUseProgram(this->deferred_pointlight_program);
+					glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT,
+													  (void *)this->sphere.indices_offset,
+													  this->deferredSettingComponent->nrPointLights,
+													  this->sphere.vertex_offset);
+				}
 
 				glBindVertexArray(0);
+				glUseProgram(0);
 			}
 
 			/*	*/
@@ -568,39 +606,72 @@ namespace glsample {
 			}
 
 			if (this->deferredSettingComponent->showLight) {
-				glUseProgram(this->deferred_pointlight_program);
-
 				glBindVertexArray(this->sphere.vao);
 				glDisable(GL_BLEND);
-				/*	Draw point lights.	*/
-				glDrawElementsInstancedBaseVertex(
-					GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT, (void *)this->sphere.indices_offset,
-					this->deferredSettingComponent->nrPointLights, this->sphere.vertex_offset);
+
 				/*	Draw directional lights.	*/
-				glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
-												  (void *)this->plan.indices_offset, 1, this->plan.vertex_offset);
+				if (this->deferredSettingComponent->nrDirectionalLights > 0) {
+					glDisable(GL_DEPTH_TEST);
+					glDisable(GL_CULL_FACE);
+					glUseProgram(this->deferred_directional_program);
+					glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
+													  (void *)this->plan.indices_offset, 1, this->plan.vertex_offset);
+				}
+				/*	Draw point lights.	*/
+				if (this->deferredSettingComponent->nrPointLights > 0) {
+					glEnable(GL_DEPTH_TEST);
+					glDisable(GL_CULL_FACE);
+
+					glUseProgram(this->deferred_pointlight_debug_program);
+					glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT,
+													  (void *)this->sphere.indices_offset,
+													  this->deferredSettingComponent->nrPointLights,
+													  this->sphere.vertex_offset);
+				}
+
 				glBindVertexArray(0);
 				glUseProgram(0);
 			}
 
 			/*	Blit image targets to screen.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
+			{
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
 
-			if (this->deferredSettingComponent->showGBuffers) {
+				glViewport(0, 0, width, height);
 
-				/*	Transfer each target to default framebuffer.	*/
-				const float halfW = (width / 4.0f);
-				const float halfH = (height / 4.0f);
-				for (size_t i = 0; i < this->deferred_textures.size(); i++) {
-					glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
-					glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height,
-									  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW,
-									  halfH + (i / 2) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-				}
+				glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height, 0, 0,
+								  this->width(), this->height(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			/*	*/
+			this->skybox.Render(this->camera);
+
+			/*	Blit image targets to screen.	*/
+			{
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
+
+				glViewport(0, 0, width, height);
+
+				glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height, 0, 0,
+								  this->width(), this->height(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+				if (this->deferredSettingComponent->showGBuffers) {
+
+					/*	Transfer each target to default framebuffer.	*/
+					const float halfW = (width / 4.0f);
+					const float halfH = (height / 4.0f);
+					for (size_t i = 0; i < this->deferred_textures.size(); i++) {
+						glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+						glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height,
+										  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW,
+										  halfH + (i / 2) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+					}
+				}
+			}
 		}
 
 		void update() override {
@@ -612,11 +683,12 @@ namespace glsample {
 			/*	*/
 			{
 				this->uniformStageBuffer.model = glm::mat4(1.0f);
-				this->uniformStageBuffer.model = glm::rotate(
-					this->uniformStageBuffer.model, glm::radians(elapsedTime * 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-				this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.95f));
+				this->uniformStageBuffer.model =
+					glm::rotate(this->uniformStageBuffer.model, glm::radians(0 * 5.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.00f));
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
+				this->uniformStageBuffer.modelView = (this->uniformStageBuffer.model);
 				this->uniformStageBuffer.modelViewProjection =
 					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			}
@@ -652,7 +724,7 @@ namespace glsample {
 	  public:
 		DeferredGLSample() : GLSample<Deferred>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Skybox Texture File Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}

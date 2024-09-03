@@ -1,4 +1,3 @@
-#include "Core/math/Random.h"
 #include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>
@@ -391,6 +390,7 @@ namespace glsample {
 			}
 
 			/*	Skybox	*/
+			//this->skybox->render(this-camera);
 			{
 
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,

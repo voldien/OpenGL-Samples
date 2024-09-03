@@ -78,6 +78,8 @@ Usage:
 - **Point Shadow Light**
 ![PointLightShadow](https://github.com/voldien/OpenGL-Samples/assets/9608088/8e4e4374-71a3-45ad-9f93-87e8528cbfeb)
 
+- [**Shadow Projection**](Samples/ProjectedShadow/)
+
 - **Shadow Map Variance**
 
 - **Shadow Volume**

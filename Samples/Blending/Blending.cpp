@@ -5,7 +5,6 @@
 #include <ImageImport.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -23,7 +22,7 @@ namespace glsample {
 			this->addUIComponent(this->blendingSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(15.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 

@@ -179,9 +179,6 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			/*	*/
-			this->uniformStageBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glViewport(0, 0, width, height);

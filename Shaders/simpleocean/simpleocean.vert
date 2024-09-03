@@ -80,7 +80,7 @@ vec3 computeGerstnerWaves(const in float time, in const Wave wave) {
 	return vec3(x, height, y);
 }
 
-//TODO: compute
+// TODO: compute
 vec3 computeTangent(const in float time, in const Wave w) { return vec3(0); }
 
 void main() {

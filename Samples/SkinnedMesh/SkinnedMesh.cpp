@@ -117,6 +117,7 @@ namespace glsample {
 			glDeleteProgram(this->skinned_graphic_program);
 			glDeleteProgram(this->skinned_debug_weight_program);
 			glDeleteProgram(this->skinned_bone_program);
+			glDeleteProgram(this->axis_orientation_program);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
@@ -127,25 +128,25 @@ namespace glsample {
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			{
-				/*	*/
+				/*	Main skinned shaders.	*/
 				const std::vector<uint32_t> skinned_vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexSkinnedShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> skinned_fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentSkinnedShaderPath, this->getFileSystem());
 
-				/*	*/
+				/*	Skinned bone debug */
 				const std::vector<uint32_t> skinned_debug_vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexSkinnedDebugShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> skinned_debug_fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentSkinnedDebugShaderPath, this->getFileSystem());
 
-				/*	*/
+				/*	Skinned bone weight.	*/
 				const std::vector<uint32_t> skinned_bone_vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexSkinnedBoneShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> skinned_bone_fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentSkinnedBoneShaderPath, this->getFileSystem());
 
-				/*	*/ // TODO:
+				/*	Bone Axis	*/
 				const std::vector<uint32_t> axis_vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexAxisShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> axis_bone_fragment_binary =
@@ -172,6 +173,7 @@ namespace glsample {
 					ShaderLoader::loadGraphicProgram(compilerOptions, &axis_vertex_binary, &axis_bone_fragment_binary);
 			}
 
+			/*	*/
 			glUseProgram(this->skinned_graphic_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->skinned_graphic_program, "UniformBufferBlock");
 			int uniform_skeleton_buffer_index =
@@ -182,6 +184,7 @@ namespace glsample {
 								  this->uniform_skeleton_buffer_binding);
 			glUseProgram(0);
 
+			/*	*/
 			glUseProgram(this->skinned_debug_weight_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->skinned_debug_weight_program, "UniformBufferBlock");
 			uniform_skeleton_buffer_index =
@@ -192,9 +195,16 @@ namespace glsample {
 								  this->uniform_skeleton_buffer_binding);
 			glUseProgram(0);
 
+			/*	*/
 			glUseProgram(this->skinned_bone_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->skinned_bone_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skinned_bone_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	*/
+			glUseProgram(this->axis_orientation_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->axis_orientation_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->axis_orientation_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Create all uniform buffers.	*/
@@ -259,13 +269,15 @@ namespace glsample {
 
 				glUseProgram(this->skinned_graphic_program);
 
-				scene.render();
+				this->scene.render();
 
+				/*	*/
 				if (this->skinnedSettingComponent->showBone) {
 					glUseProgram(this->skinned_bone_program);
 					glUseProgram(0);
 				}
 
+				/*	*/
 				if (this->skinnedSettingComponent->showWeight) {
 					glUseProgram(this->skinned_debug_weight_program);
 					glDepthFunc(GL_LEQUAL);
@@ -274,6 +286,7 @@ namespace glsample {
 					glUseProgram(0);
 				}
 
+				/*	*/
 				if (this->skinnedSettingComponent->showAxis) {
 					glUseProgram(this->axis_orientation_program);
 
@@ -291,6 +304,7 @@ namespace glsample {
 			/*	Update Camera.	*/
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
+			this->scene.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			{

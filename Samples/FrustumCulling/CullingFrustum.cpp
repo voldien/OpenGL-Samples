@@ -572,8 +572,6 @@ namespace glsample {
 
 				glDrawElementsInstanced(GL_LINES, this->boundingBox.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
 										nrDrawInstances);
-
-				// const GeometryObject &refMesh = this->refGeometry[node->geometryObjectIndex[i]];
 			}
 			glBindVertexArray(0);
 		}
@@ -583,7 +581,7 @@ namespace glsample {
 	  public:
 		FrustumCullingGLSample() : GLSample<FrustumCulling>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza.fbx"))(
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Skybox Texture File Path",
 				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}

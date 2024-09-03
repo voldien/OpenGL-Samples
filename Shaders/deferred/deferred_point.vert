@@ -17,7 +17,6 @@ ubo;
 struct point_light {
 	vec3 position;
 	float range;
-
 	vec4 color;
 	
 	float intensity;

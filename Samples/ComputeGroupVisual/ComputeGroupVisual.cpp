@@ -20,6 +20,7 @@ namespace glsample {
 	  public:
 		ComputeGroupVisual() : GLSampleWindow() {
 			this->setTitle("ComputeGroupVisual");
+
 			this->computeGroupVisualSettingComponent =
 				std::make_shared<ComputeGroupVisualSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->computeGroupVisualSettingComponent);
@@ -57,7 +58,9 @@ namespace glsample {
 
 			/*	*/
 			unsigned int nrFaces;
+			unsigned int nrElements;
 			float delta;
+			float scale = 0.3f;
 
 		} uniformStageBuffer;
 
@@ -201,6 +204,9 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformBufferSize = Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
 
+			GLint SSBO_align_offset;
+			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &SSBO_align_offset);
+
 			/*	*/
 			GLint storageMaxSize;
 			glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &storageMaxSize);
@@ -224,7 +230,7 @@ namespace glsample {
 			const size_t maxInstances = (size_t)Math::product<int>(maxWorkGroupCount, 3) *
 										(size_t)Math::product<int>(this->localWorkGroupSize, 3);
 			this->uniformInstanceMemorySize =
-				fragcore::Math::align(maxInstances * sizeof(InstanceData), (size_t)minMapBufferSize);
+				fragcore::Math::align(maxInstances * sizeof(InstanceData), (size_t)SSBO_align_offset);
 
 			glGenBuffers(1, &this->uniform_instance_buffer);
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer);
@@ -323,7 +329,7 @@ namespace glsample {
 
 			/*	Wait in till the */
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT |
-							GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+							GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_ALL_BARRIER_BITS);
 
 			{
 
@@ -370,6 +376,8 @@ namespace glsample {
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 
 				this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
+				this->uniformStageBuffer.nrElements =
+					fragcore::Math::sum(this->computeGroupVisualSettingComponent->workgroupSize, 3);
 
 				this->uniformStageBuffer.model = glm::mat4(1.0f);
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();

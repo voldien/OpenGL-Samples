@@ -50,7 +50,9 @@ namespace glsample {
 
 	  public:
 		const std::vector<NodeObject *> &getNodes() const noexcept { return this->nodes; }
+
 		const std::vector<MeshObject> &getMeshes() const noexcept { return this->refGeometry; }
+		std::vector<MeshObject> &getMeshes() noexcept { return this->refGeometry; }
 
 	  public:
 		/*	TODO add queue structure.	*/

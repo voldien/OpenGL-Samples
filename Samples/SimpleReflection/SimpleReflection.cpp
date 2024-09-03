@@ -114,8 +114,8 @@ namespace glsample {
 
 		CameraController camera;
 
-		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/phongblinn/phong.frag.spv";
+		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn_directional_light.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/phongblinn/phong_directional_light.frag.spv";
 
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";

@@ -155,6 +155,13 @@ namespace glsample {
 			this->scene = Scene::loadFrom(modelLoader);
 		}
 
+		void onResize(int width, int height) override {
+
+			/*	*/
+			this->camera.setFar(2000.0f);
+			this->camera.setAspect((float)width / (float)height);
+		}
+		
 		void draw() override {
 
 			int width, height;
@@ -197,7 +204,7 @@ namespace glsample {
 
 			/*	*/
 			this->uniform_stage_buffer.model = glm::mat4(1.0f);
-			this->uniform_stage_buffer.model = glm::scale(this->uniform_stage_buffer.model, glm::vec3(1.95f));
+			this->uniform_stage_buffer.model = glm::scale(this->uniform_stage_buffer.model, glm::vec3(1.05f));
 			this->uniform_stage_buffer.view = this->camera.getViewMatrix();
 			this->uniform_stage_buffer.modelViewProjection =
 				this->uniform_stage_buffer.proj * this->uniform_stage_buffer.view * this->uniform_stage_buffer.model;

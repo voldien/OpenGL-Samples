@@ -283,8 +283,8 @@ namespace glsample {
 			}
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
-			this->uniformStageBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
+			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
+
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			this->uniformStageBuffer.ViewProj = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;

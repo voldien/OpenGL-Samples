@@ -884,3 +884,9 @@ TextureAssetObject *ModelImporter::initTexture(aiTexture *texture, unsigned int 
 	}
 	return mTexture;
 }
+
+struct Face {
+	uint Indices[3];
+};
+
+void ModelImporter::convert2Adjcent(const aiMesh *paiMesh, std::vector<unsigned int> &Indices) {}

@@ -1,15 +1,17 @@
 #include "GLSampleSession.h"
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
+#include <Scene.h>
 #include <ShaderLoader.h>
+#include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-#include <Scene.h>
 
 namespace glsample {
 
@@ -27,7 +29,7 @@ namespace glsample {
 			this->addUIComponent(this->shadowSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(10.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -36,19 +38,23 @@ namespace glsample {
 			glm::mat4 view;
 			glm::mat4 proj;
 			glm::mat4 modelView;
-			glm::mat4 ViewProjection;
 			glm::mat4 modelViewProjection;
 
-			/*	light source.	*/
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			/*	Light source.	*/
+			glm::vec4 direction = glm::vec4(0.7, 0.7, 1, 1);
+			glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
+			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
+			glm::vec4 ambientColor = glm::vec4(0.3, 0.3, 0.3, 1);
+			glm::vec4 viewDir;
+
+			float shininess = 8;
 
 		} uniform;
 
 		/*	*/
 		MeshObject plan;
 
+		Skybox skybox;
 		Scene scene;
 
 		/*	Uniform buffer.	*/
@@ -65,6 +71,7 @@ namespace glsample {
 		unsigned int multipass_texture;
 		unsigned int depthstencil_texture;
 
+		int skybox_program;
 		int volumeshadow_program;
 		int graphic_program;
 
@@ -78,8 +85,10 @@ namespace glsample {
 			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::Checkbox("Use Shadow", &this->useShadow);
+				ImGui::Checkbox("Show Graphic", &this->showGraphic);
 
 				/*	*/
 				ImGui::TextUnformatted("Debug Seting");
@@ -89,20 +98,26 @@ namespace glsample {
 
 			bool showWireFrame = false;
 			bool showVolume = false;
+			bool useShadow = true;
+			bool showGraphic = true;
 
 		  private:
 			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<StencilVolumeShadowSettingComponent> shadowSettingComponent;
 
-		/*	*/
-		const std::string vertexGraphicShaderPath = "Shaders/phongblinn/phong.vert.spv";
-		const std::string fragmentGraphicShaderPath = "Shaders/phongblinn/phongblinn.frag.spv";
+		/*	Graphic shader.	*/
+		const std::string vertexGraphicShaderPath = "Shaders/phongblinn/phongblinn_directional_light.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/phongblinn/phong_directional_light.frag.spv";
 
-		/*	Shadow shader paths.	*/
+		/*	Shadow volume extraction.	*/
 		const std::string vertexShadowShaderPath = "Shaders/volumeshadow/volumeshadow.vert.spv";
 		const std::string geomtryShadowShaderPath = "Shaders/volumeshadow/volumeshadow.geom.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/volumeshadow/volumeshadow.frag.spv";
+
+		/*	Skybox Shader Path.	*/
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 		void Release() override {
 			glDeleteProgram(this->volumeshadow_program);
@@ -116,10 +131,9 @@ namespace glsample {
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
 
-			// glDeleteTextures(1, (const GLuint *)&this->gl_texture);
-
 			glDeleteVertexArrays(1, &this->plan.vao);
 			glDeleteBuffers(1, &this->plan.vbo);
+			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
 		void Initialize() override {
@@ -131,7 +145,7 @@ namespace glsample {
 				/*	Load shader source data.	*/
 				const std::vector<uint32_t> graphic_vertex_source =
 					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> graphic_fragment_ocean_source =
+				const std::vector<uint32_t> graphic_fragment_source =
 					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
 				/*	*/
@@ -142,6 +156,12 @@ namespace glsample {
 				const std::vector<uint32_t> volume_shadow_fragment_source =
 					IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
+				/*	Load shader binaries.	*/
+				std::vector<uint32_t> vertex_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
+				std::vector<uint32_t> fragment_skybox_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
+
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
@@ -150,8 +170,12 @@ namespace glsample {
 					ShaderLoader::loadGraphicProgram(compilerOptions, &volume_shadow_vertex_source,
 													 &volume_shadow_fragment_source, &volume_shadow_geometry_source);
 				/*	Load shader programs.	*/
-				this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &graphic_vertex_source,
-																		 &graphic_fragment_ocean_source);
+				this->graphic_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &graphic_vertex_source, &graphic_fragment_source);
+
+				/*	Create skybox graphic pipeline program.	*/
+				this->skybox_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
 
 			/*	*/
@@ -166,6 +190,13 @@ namespace glsample {
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_shadow_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
+			/*	Setup graphic pipeline.	*/
+			glUseProgram(this->skybox_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUseProgram(0);
+
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -177,15 +208,11 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load Texture	*/
-			// TextureImporter textureImporter(this->getFileSystem());
-			// this->gl_texture = textureImporter.loadImage2D(this->texturePath);
-
 			{
 				/*	Load geometry.	*/
 				std::vector<ProceduralGeometry::Vertex> vertices;
 				std::vector<unsigned int> indices;
-				ProceduralGeometry::generateTorus(1, vertices, indices);
+				ProceduralGeometry::generatePlan(1, vertices, indices);
 
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenVertexArrays(1, &this->plan.vao);
@@ -226,20 +253,29 @@ namespace glsample {
 				glBindVertexArray(0);
 			}
 
+			/*	load Textures	*/
+			TextureImporter textureImporter(this->getFileSystem());
+			unsigned int skytexture = textureImporter.loadImage2D(panoramicPath);
+			skybox.Init(skytexture, this->skybox_program);
+
 			/*	*/
 			ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom(*modelLoader);
 
-			{
-				/*	Create multipass framebuffer.	*/
-				glGenFramebuffers(1, &this->graphic_framebuffer);
+			//TODO, fix geometry topology
+			for(size_t i = 0; i < scene.getMeshes().size(); i++){
+				scene.getMeshes()[i].primitiveType = GL_TRIANGLES_ADJACENCY;
+			}
 
-				/*	*/
+			/*	Create multipass framebuffer.	*/
+			{
+				glGenFramebuffers(1, &this->graphic_framebuffer);
 				glGenTextures(1, &this->multipass_texture);
+				/*	*/
 				this->onResize(this->width(), this->height());
 			}
-		} // namespace glsample
+		}
 
 		void onResize(int width, int height) override {
 
@@ -290,15 +326,15 @@ namespace glsample {
 			}
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			/*	*/
+			this->camera.setAspect((float)width / (float)height);
 		}
 
 		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);
-
-			/*	*/
-			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
@@ -318,89 +354,79 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			// Create stencil outline geometry from the light direction, Stencil shadow.
-			{
-				glEnable(GL_STENCIL_TEST);
-				glDisable(GL_DEPTH_TEST);
+			if (this->shadowSettingComponent->useShadow) {
+				{
+					glEnable(GL_STENCIL_TEST);
+					glDisable(GL_DEPTH_TEST);
+					glDisable(GL_BLEND_ADVANCED_COHERENT_NV);
 
-				glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-				glDepthMask(GL_FALSE);
-				glStencilFunc(GL_NEVER, 255, 0xFF);
-				glStencilMask(0xFF);
+					glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+					glDepthMask(GL_FALSE);
+					glStencilFunc(GL_NEVER, 255, 0xFF);
+					glStencilMask(0xFF);
 
-				// Set the stencil test per the depth fail algorithm
-				glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
-				glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
+					// Set the stencil test per the depth fail algorithm
+					glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+					glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
 
-				// Draw camera
-				glUseProgram(this->volumeshadow_program);
+					// Draw camera
+					glUseProgram(this->volumeshadow_program);
+					this->scene.render();
 
-				glBindVertexArray(this->plan.vao);
-				glDrawElementsBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
-										 (void *)(sizeof(unsigned int) * this->plan.indices_offset),
-										 this->plan.vertex_offset);
-				glBindVertexArray(0);
+					/*	*/
+					glEnable(GL_DEPTH_CLAMP);
+					glEnable(GL_CULL_FACE);
 
-				/*	*/
-				glEnable(GL_DEPTH_CLAMP);
-				glEnable(GL_CULL_FACE);
+					glDisable(GL_STENCIL_TEST);
+					glEnable(GL_DEPTH_TEST);
 
-				glDisable(GL_STENCIL_TEST);
-				glEnable(GL_DEPTH_TEST);
+					glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+					glDepthMask(GL_TRUE);
 
-				glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-				glDepthMask(GL_TRUE);
-
-				glUseProgram(0);
+					glUseProgram(0);
+				}
 			}
 
 			/*	Draw scene.	*/
-			{
+			if (this->shadowSettingComponent->showGraphic) {
 
 				glDisable(GL_STENCIL_TEST);
 
 				glUseProgram(this->graphic_program);
-
-				// glActiveTexture(GL_TEXTURE0);
-				// glBindTexture(GL_TEXTURE_2D, this->graphic_texture);
-
-				glBindVertexArray(this->plan.vao);
-				glDrawElementsBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
-										 (void *)(sizeof(unsigned int) * this->plan.indices_offset),
-										 this->plan.vertex_offset);
-				glBindVertexArray(0);
+				this->scene.render();
 				glUseProgram(0);
 			}
 
 			/*	Draw shadow.	*/
-			{
+			if (this->shadowSettingComponent->useShadow) {
 				glEnable(GL_STENCIL_TEST);
 				glUseProgram(this->graphic_program);
-
+				// Draw plan
 				glUseProgram(0);
 			}
 
-			/*	Draw volume geometry.	 */
+			/*	Draw */
 			if (this->shadowSettingComponent->showVolume) {
 
-				glDisable(GL_CULL_FACE);
-				glDisable(GL_STENCIL_TEST);
-				/*	Blend to see through in order to see the whole thing.	*/
-				glEnable(GL_BLEND);
-
 				glUseProgram(this->volumeshadow_program);
-				glBindVertexArray(this->plan.vao);
-				glDrawElementsBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
-										 (void *)(sizeof(unsigned int) * this->plan.indices_offset),
-										 this->plan.vertex_offset);
-				glBindVertexArray(0);
+
+				glDisable(GL_STENCIL_TEST);
+				glEnable(GL_DEPTH_TEST);
+
+				/*	Blending.	*/
+				glEnable(GL_BLEND);
+				glBlendEquation(GL_FUNC_ADD);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				this->scene.render();
 				glUseProgram(0);
 			}
+
+			this->skybox.Render(this->camera);
+
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-			/*	*/
-			glViewport(0, 0, width, height);
-
-			// Transfer the result. (blit)
+			/* Transfer the result. (blit)	*/
 			{
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->graphic_framebuffer);
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -424,9 +450,12 @@ namespace glsample {
 			this->uniform.model = glm::mat4(1.0f);
 			this->uniform.model =
 				glm::rotate(this->uniform.model, glm::radians(0 * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniform.model = glm::scale(this->uniform.model, glm::vec3(40.95f));
+			this->uniform.model = glm::scale(this->uniform.model, glm::vec3(1.95f));
 			this->uniform.view = this->camera.getViewMatrix();
+			this->uniform.proj = this->camera.getProjectionMatrix();
+
 			this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
+			this->uniform.viewDir = glm::vec4(this->camera.getLookDirection(), 0.0f);
 
 			/*	*/
 			{
@@ -444,8 +473,8 @@ namespace glsample {
 	  public:
 		VolumeShadowGLSample() : GLSample<VolumeShadow>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"))(
-				"S,skybox", "SkyboxPath", cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"))(
+			options("S,skybox", "SkyboxPath",
+					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
 		}
 	};

@@ -39,7 +39,7 @@ namespace glsample {
 			glm::vec4 cameraPosition;
 			glm::vec4 subsurfaceColor = glm::vec4(0.095, 0.012f, 0.012f, 1.0f);
 
-			/*	*/
+			/*	Settings.	*/
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
 			float sigma = 9.0f;

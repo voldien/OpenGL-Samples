@@ -10,15 +10,15 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 view;
 	mat4 proj;
 	mat4 modelView;
-	mat4 ViewProjection;
 	mat4 modelViewProjection;
 
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
+	vec4 specularColor;
 	vec4 ambientColor;
-	vec4 cameraPosition;
+	vec4 viewDir;
 }
 ubo;
 
-void main() { vertex = (ubo.model * vec4(Vertex, 1)).xyz; }
+void main() { vertex = Vertex; }
