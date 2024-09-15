@@ -1,0 +1,340 @@
+#include "Core/math/NormalDistribution.h"
+#include <GL/glew.h>
+#include <GLSample.h>
+#include <GLSampleWindow.h>
+#include <Importer/ImageImport.h>
+#include <ShaderLoader.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+namespace glsample {
+
+	/**
+	 * @brief
+	 *
+	 */
+	class ParticleSystem : public GLSampleWindow {
+	  public:
+		ParticleSystem() : GLSampleWindow() {
+			this->setTitle("Particle-System");
+			this->particleSystemSettingComponent =
+				std::make_shared<ParticleSystemSettingComponent>(this->uniformStageBuffer);
+
+			this->addUIComponent(this->particleSystemSettingComponent);
+		}
+
+		/*	*/
+		const unsigned int localInvoke = 32;
+		unsigned int nrParticles = localInvoke * 256;
+		const size_t nrParticleBuffers = 3;
+		size_t ParticleMemorySize = nrParticles * sizeof(Particle);
+
+		/*	*/
+		unsigned int vao_particle;
+		unsigned int vbo_particle;
+
+		/*	*/
+		unsigned int particle_texture;
+
+		int localWorkGroupSize[3];
+
+		/*	*/
+		unsigned int particle_graphic_program;
+		unsigned int particle_compute_program;
+
+		typedef struct particle_setting_t {
+			float speed = 1.0f;
+			float lifetime = 5.0f;
+			float gravity = 9.82f;
+		} ParticleSetting;
+
+		struct uniform_buffer_block {
+			alignas(16) glm::mat4 model;
+			alignas(16) glm::mat4 view;
+			alignas(16) glm::mat4 proj;
+			alignas(16) glm::mat4 modelView;
+			alignas(16) glm::mat4 modelViewProjection;
+
+			/*	*/
+			ParticleSetting particleSetting;
+
+			/*	*/
+			float delta;
+
+		} uniformStageBuffer;
+
+		typedef struct particle_t {
+			glm::vec4 position; /*	Position (XYZ), time	*/
+			glm::vec4 velocity; /*	Velocity.	*/
+		} Particle;
+		CameraController camera;
+
+		int particle_read_buffer_binding = 1;
+		int particle_write_buffer_binding = 2;
+		/*	*/
+		unsigned int uniform_buffer_binding = 0;
+		unsigned int uniform_buffer;
+		const size_t nrUniformBuffer = 3;
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
+
+		class ParticleSystemSettingComponent : public nekomimi::UIComponent {
+
+		  public:
+			ParticleSystemSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
+				this->setName("Particle Settings");
+			}
+			void draw() override {
+				ImGui::DragFloat("Speed", &this->uniform.particleSetting.speed, 1, 0.0f, 100.0f);
+				ImGui::DragFloat("LifeTime", &this->uniform.particleSetting.lifetime, 1, 0.0f, 10.0f);
+			}
+
+		  private:
+			struct uniform_buffer_block &uniform;
+		};
+		std::shared_ptr<ParticleSystemSettingComponent> particleSystemSettingComponent;
+
+		/*	*/
+		const std::string vertexParticleShaderPath = "Shaders/particle-system/particle.vert";
+		const std::string fragmentParticleShaderPath = "Shaders/particle-system/particle.frag";
+		/*	*/
+		const std::string computeParticleSimulationShaderPath = "Shaders/particle-system/particle.comp";
+
+		void Release() override {
+			/*	*/
+			glDeleteProgram(this->particle_graphic_program);
+			glDeleteProgram(this->particle_compute_program);
+
+			glDeleteTextures(1, &this->particle_texture);
+
+			/*	*/
+			glDeleteBuffers(1, &this->uniform_buffer);
+			glDeleteVertexArrays(1, &this->vao_particle);
+			glDeleteBuffers(1, &this->vbo_particle);
+		}
+
+		void Initialize() override {
+
+			const std::string spriteTexture = this->getResult()["texture"].as<std::string>();
+
+			/*	*/
+			{
+				std::vector<char> vertex_binary =
+					glsample::IOUtil::readFileString(vertexParticleShaderPath, this->getFileSystem());
+				std::vector<char> fragment_binary =
+					glsample::IOUtil::readFileString(fragmentParticleShaderPath, this->getFileSystem());
+
+				/*	*/
+				std::vector<char> compute_binary =
+					glsample::IOUtil::readFileString(computeParticleSimulationShaderPath, this->getFileSystem());
+
+				/*	Load shader	*/
+				this->particle_graphic_program = ShaderLoader::loadGraphicProgram(&vertex_binary, &fragment_binary);
+				this->particle_compute_program = ShaderLoader::loadComputeProgram({&compute_binary});
+			}
+
+			/*	*/
+			TextureImporter textureImporter(this->getFileSystem());
+			this->particle_texture = textureImporter.loadImage2D(spriteTexture);
+
+			/*	Setup graphic render pipeline.	*/
+			glUseProgram(this->particle_graphic_program);
+			glUniform1i(glGetUniformLocation(this->particle_graphic_program, "spriteTexture"), 0);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->particle_graphic_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->particle_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	Setup particle simulation pipeline.	*/
+			glUseProgram(this->particle_compute_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->particle_compute_program, "UniformBufferBlock");
+			int particle_buffer_read_index = glGetUniformBlockIndex(this->particle_compute_program, "ReadBuffer");
+			int particle_buffer_write_index = glGetUniformBlockIndex(this->particle_compute_program, "WriteBuffer");
+			glGetProgramiv(this->particle_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
+
+			glUniformBlockBinding(this->particle_compute_program, uniform_buffer_index, this->uniform_buffer_binding);
+			/*	*/
+			glShaderStorageBlockBinding(this->particle_compute_program, particle_buffer_read_index,
+										this->particle_read_buffer_binding);
+			glShaderStorageBlockBinding(this->particle_compute_program, particle_buffer_write_index,
+										this->particle_write_buffer_binding);
+
+			glUseProgram(0);
+
+			/*	*/
+			GLint minMapBufferSize;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			uniformBufferSize = Math::align<size_t>(uniformBufferSize, minMapBufferSize);
+
+			/*	*/
+			glGenBuffers(1, &this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBufferData(GL_UNIFORM_BUFFER, uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+			/*	*/
+			glGenBuffers(1, &this->vbo_particle);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, vbo_particle);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, ParticleMemorySize * nrParticleBuffers, nullptr, GL_DYNAMIC_DRAW);
+
+			/*	*/
+			Particle *particle_buffer =
+				(Particle *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, ParticleMemorySize * nrParticleBuffers,
+											 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+			RandomUniform<float> randomUniform;
+			/*	*/
+			for (int i = 0; i < nrParticles * nrParticleBuffers; i++) {
+				particle_buffer[i].position =
+					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
+							  Random::normalizeRand<float>() * 100.0f,
+							  Random::normalizeRand<float>() * uniformStageBuffer.particleSetting.lifetime);
+				particle_buffer[i].velocity =
+					glm::vec4(Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f,
+							  Random::normalizeRand<float>() * 100.0f, Random::normalizeRand<float>() * 100.0f);
+			}
+			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+			/*	Create array buffer, for rendering static geometry.	*/
+			glGenVertexArrays(1, &this->vao_particle);
+			glBindVertexArray(this->vao_particle);
+
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_particle);
+			/*	*/
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle), nullptr);
+
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle),
+								  reinterpret_cast<void *>(sizeof(float) * 4));
+
+			glBindVertexArray(0);
+
+			fragcore::resetErrorFlag();
+		}
+
+		void draw() override {
+
+			int width, height;
+			this->getSize(&width, &height);
+			glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
+
+			const size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrParticleBuffers;
+			const size_t write_buffer_index = (this->getFrameCount() + 0) % this->nrParticleBuffers;
+
+			/*	Compute particles.	*/
+			{
+
+				const uint nrWorkGroupsX = std::ceil((float)this->nrParticles / (float)this->localWorkGroupSize[0]);
+
+				/*	Bind uniform buffer.	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, uniform_buffer,
+								  (this->getFrameCount() % nrUniformBuffer) * this->uniformBufferSize,
+								  this->uniformBufferSize);
+
+				/*	Bind read particle buffer.	*/
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_read_buffer_binding, this->vbo_particle,
+								  ((this->getFrameCount()) % nrParticleBuffers) * ParticleMemorySize,
+								  ParticleMemorySize);
+
+				/*	Bind write particle buffer.	*/
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_write_buffer_binding, this->vbo_particle,
+								  ((this->getFrameCount() + 1) % this->nrParticleBuffers) * this->ParticleMemorySize,
+								  this->ParticleMemorySize);
+
+				/*	*/
+				glUseProgram(this->particle_compute_program);
+
+				/*	*/
+				glDispatchCompute(nrParticles / localInvoke, 1, 1);
+
+				glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+			}
+
+			/*	Draw Particles.	*/
+			{
+				/*	*/
+				glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				/*	*/
+				glViewport(0, 0, width, height);
+
+				glActiveTexture(GL_TEXTURE0 + 0);
+				glBindTexture(GL_TEXTURE_2D, particle_texture);
+
+				glUseProgram(this->particle_graphic_program);
+				glEnable(GL_BLEND);
+				glBlendEquation(GL_FUNC_ADD);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glDisable(GL_DEPTH_TEST);
+
+				glEnable(GL_PROGRAM_POINT_SIZE_ARB);
+				glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
+				glPointParameteri(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
+				glPointParameterf(GL_POINT_SIZE_MIN_ARB, 1.0f);
+				glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE_ARB, 1.0f);
+
+				/*	Draw triangle	*/
+				glBindVertexArray(this->vao_particle);
+				glBindVertexBuffer(0, this->vbo_particle,
+								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * ParticleMemorySize,
+								   sizeof(Particle));
+				glBindVertexBuffer(1, this->vbo_particle,
+								   ((this->getFrameCount() + 0) % this->nrParticleBuffers) * ParticleMemorySize,
+								   sizeof(Particle));
+
+				glDrawArrays(GL_POINTS, 0, this->nrParticles);
+				glBindVertexArray(0);
+
+				glUseProgram(0);
+			}
+		}
+
+		void update() override {
+			/*	*/
+			this->uniformStageBuffer.proj =
+				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+
+			float elapsedTime = getTimer().getElapsed<float>();
+			camera.update(getTimer().deltaTime<float>());
+
+			this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
+
+			this->uniformStageBuffer.model = glm::mat4(1.0f);
+			this->uniformStageBuffer.view = camera.getViewMatrix();
+			this->uniformStageBuffer.modelViewProjection =
+				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+
+			{
+				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+
+				void *uniformPointer = glMapBufferRange(
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * uniformBufferSize,
+					this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+
+				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(uniformStageBuffer));
+				glUnmapBuffer(GL_UNIFORM_BUFFER);
+			}
+		}
+	};
+
+	class ParticleSystemGLSample : public GLSample<ParticleSystem> {
+	  public:
+		ParticleSystemGLSample() : GLSample<ParticleSystem>() {}
+		void customOptions(cxxopts::OptionAdder &options) override {
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));
+		}
+	};
+
+} // namespace glsample
+
+int main(int argc, const char **argv) {
+	try {
+		glsample::ParticleSystemGLSample sample;
+
+		sample.run(argc, argv);
+
+	} catch (const std::exception &ex) {
+
+		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+}

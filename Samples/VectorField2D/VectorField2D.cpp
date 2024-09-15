@@ -157,7 +157,7 @@ namespace glsample {
 		/*	Particle Simulation in Vector Field.	*/
 		const std::string particleMotionForceComputeShaderPath = "Shaders/vectorfield/apply_force_2D.comp.spv";
 
-		/*	*/
+		/*	Motion vector graphic shader.	*/
 		const std::string vectorFieldVertexShaderPath = "Shaders/vectorfield/vectorField.vert.spv";
 		const std::string vectorFieldGeometryShaderPath = "Shaders/vectorfield/motion2D.geom.spv";
 		const std::string vectorFieldFragmentPath = "Shaders/vectorfield/vectorField.frag.spv";
@@ -188,40 +188,40 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	*/
-				std::vector<uint32_t> vertex_source =
+				std::vector<uint32_t> vertex_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->particleVertexShaderPath, this->getFileSystem());
-				std::vector<uint32_t> geometry_source =
+				std::vector<uint32_t> geometry_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->particleGeometryShaderPath, this->getFileSystem());
-				std::vector<uint32_t> fragment_source =
+				std::vector<uint32_t> fragment_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->particleFragmentShaderPath, this->getFileSystem());
 
 				/*	Load Graphic Program.	*/
-				this->particle_graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source,
-																				  &fragment_source, &geometry_source);
+				this->particle_graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary,
+																				  &fragment_binary, &geometry_binary);
 
 				/*	*/
-				const std::vector<uint32_t> compute_particle_source_binary =
+				const std::vector<uint32_t> compute_particle_binary_binary =
 					IOUtil::readFileData<uint32_t>(this->particleComputeShaderPath, this->getFileSystem());
 
-				const std::vector<uint32_t> compute_motion_source_binary =
+				const std::vector<uint32_t> compute_motion_binary_binary =
 					IOUtil::readFileData<uint32_t>(this->particleMotionForceComputeShaderPath, this->getFileSystem());
 
 				/*	Load Compute.	*/
 				this->particle_compute_program =
-					ShaderLoader::loadComputeProgram(compilerOptions, &compute_particle_source_binary);
+					ShaderLoader::loadComputeProgram(compilerOptions, &compute_particle_binary_binary);
 				this->particle_motion_force_compute_program =
-					ShaderLoader::loadComputeProgram(compilerOptions, &compute_motion_source_binary);
+					ShaderLoader::loadComputeProgram(compilerOptions, &compute_motion_binary_binary);
 
 				/*	Vector field.	*/
-				vertex_source =
+				vertex_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldVertexShaderPath, this->getFileSystem());
-				geometry_source = glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldGeometryShaderPath,
+				geometry_binary = glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldGeometryShaderPath,
 																		   this->getFileSystem());
-				fragment_source =
+				fragment_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->vectorFieldFragmentPath, this->getFileSystem());
 
 				this->vector_field_graphic_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_source, &fragment_source, &geometry_source);
+					compilerOptions, &vertex_binary, &fragment_binary, &geometry_binary);
 			}
 
 			/*	*/

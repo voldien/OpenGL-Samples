@@ -66,6 +66,7 @@ namespace glsample {
 	  protected:
 		int normalDefault = -1;
 		int diffuseDefault = -1;
+		int roughnessSpecularDefault = -1;
 		int emissionDefault = -1;
 
 	  public:

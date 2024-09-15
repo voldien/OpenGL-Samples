@@ -39,14 +39,14 @@ void main() {
 
 	/*	Compute directional light	*/
 	[[unroll]] for (int i = 0; i < 4; i++) {
-		vec3 diffVertex = (ubo.point_light[i].position - vertex);
-		float dist = length(diffVertex);
+		const vec3 diffVertex = (ubo.point_light[i].position - vertex);
+		const float dist = length(diffVertex);
 
-		float attenuation =
+		const float attenuation =
 			1.0 / (ubo.point_light[i].constant_attenuation + ubo.point_light[i].linear_attenuation * dist +
 				   ubo.point_light[i].qudratic_attenuation * (dist * dist));
 
-		float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
+		const float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
 
 		pointLightColors += attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range *
 							ubo.point_light[i].intensity;

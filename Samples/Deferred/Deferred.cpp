@@ -8,7 +8,6 @@
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -196,16 +195,16 @@ namespace glsample {
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				const std::vector<uint32_t> vertex_source_deferred_point =
+				const std::vector<uint32_t> vertex_binary_deferred_point =
 					IOUtil::readFileData<uint32_t>(vertexDeferredPointShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source_deferred_point =
+				const std::vector<uint32_t> fragment_binary_deferred_point =
 					IOUtil::readFileData<uint32_t>(fragmentDeferredPointShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source_deferred_point_debug =
+				const std::vector<uint32_t> fragment_binary_deferred_point_debug =
 					IOUtil::readFileData<uint32_t>(fragmentDeferredPointDebugShaderPath, this->getFileSystem());
 
-				const std::vector<uint32_t> vertex_source_deferred_light =
+				const std::vector<uint32_t> vertex_binary_deferred_light =
 					IOUtil::readFileData<uint32_t>(vertexDeferredDirectionalShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source_deferred_light =
+				const std::vector<uint32_t> fragment_binary_deferred_light =
 					IOUtil::readFileData<uint32_t>(fragmentDeferredDirectionalShaderPath, this->getFileSystem());
 
 				/*	Load shader binaries.	*/
@@ -234,13 +233,13 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->deferred_pointlight_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_source_deferred_point, &fragment_source_deferred_point);
+					compilerOptions, &vertex_binary_deferred_point, &fragment_binary_deferred_point);
 
 				this->deferred_pointlight_debug_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_source_deferred_point, &fragment_source_deferred_point_debug);
+					compilerOptions, &vertex_binary_deferred_point, &fragment_binary_deferred_point_debug);
 
 				this->deferred_directional_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_source_deferred_light, &fragment_source_deferred_light);
+					compilerOptions, &vertex_binary_deferred_light, &fragment_binary_deferred_light);
 
 				/*	Load shader	*/
 				this->multipass_program =
@@ -342,12 +341,12 @@ namespace glsample {
 			modelLoader.loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom(modelLoader);
 
-			/*	Load Light geometry.	*/
+			/*	Load Light geometry and combine.	*/
 			{
 				std::vector<ProceduralGeometry::Vertex> planVertices;
 				std::vector<ProceduralGeometry::Vertex> sphereVertices;
 				std::vector<unsigned int> planIndices, sphereIndices;
-				ProceduralGeometry::generateSphere(1, sphereVertices, sphereIndices, 16, 16);
+				ProceduralGeometry::generateSphere(1, sphereVertices, sphereIndices, 8, 8);
 				ProceduralGeometry::generatePlan(1, planVertices, planIndices);
 
 				/*	Create array buffer, for rendering static geometry.	*/
@@ -420,7 +419,7 @@ namespace glsample {
 				this->onResize(this->width(), this->height());
 			}
 
-			/*	Setup lights.	*/
+			/*	Setup init lights.	*/
 			for (size_t i = 0; i < this->pointLights.size(); i++) {
 				/*	*/
 				this->pointLights[i].range = 8.0f;
@@ -432,7 +431,7 @@ namespace glsample {
 				this->pointLights[i].qudratic_attenuation = 0.19f;
 				this->pointLights[i].intensity = 1.5f;
 			}
-			directionalLights.push_back(DirectionalLight());
+			this->directionalLights.push_back(DirectionalLight());
 		}
 
 		void onResize(int width, int height) override {
@@ -478,7 +477,7 @@ namespace glsample {
 			glDrawBuffers(drawAttach.size(), drawAttach.data());
 
 			/*  Validate if created properly.*/
-			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			const int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
@@ -633,7 +632,7 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			/*	Blit image targets to screen.	*/
+			/*	Blit image target depth result to default framebuffer.	*/
 			{
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);

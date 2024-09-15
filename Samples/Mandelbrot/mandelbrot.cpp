@@ -6,7 +6,6 @@
 #include <ShaderCompiler.h>
 #include <ShaderLoader.h>
 #include <glm/glm.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -20,7 +19,7 @@ namespace glsample {
 			this->setTitle("MandelBrot Compute");
 
 			/*	*/
-			this->mandelbrotSettingComponent = std::make_shared<MandelBrotSettingComponent>(this->params);
+			this->mandelbrotSettingComponent = std::make_shared<MandelBrotSettingComponent>(this->stageBuffer);
 			this->addUIComponent(this->mandelbrotSettingComponent);
 		}
 
@@ -31,7 +30,7 @@ namespace glsample {
 			float c = 0;	   /*	*/
 			float ci = 1;	   /*	*/
 			int nrSamples = 128;
-		} params;
+		} stageBuffer;
 
 		/*	*/
 		const size_t round_robin_size = 2;
@@ -163,7 +162,7 @@ namespace glsample {
 			glDrawBuffers(1, &drawAttach);
 
 			/*  Validate if created properly.*/
-			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			const int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
@@ -220,7 +219,7 @@ namespace glsample {
 			void *uniformPointer =
 				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount()) % nrUniformBuffer) * uniformBufferSize,
 								 uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(uniformPointer, &params, sizeof(params));
+			memcpy(uniformPointer, &stageBuffer, sizeof(stageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
 			/*	Update Position.	*/
@@ -233,13 +232,13 @@ namespace glsample {
 				}
 
 				if (this->getInput().getMouseReleased(Input::MouseButton::LEFT_BUTTON)) {
-					params.posX = params.mousePosX;
-					params.posY = params.mousePosY;
+					stageBuffer.posX = stageBuffer.mousePosX;
+					stageBuffer.posY = stageBuffer.mousePosY;
 				}
 
 				if (this->getInput().getMouseDown(Input::MouseButton::RIGHT_BUTTON)) {
 					this->getInput().getMousePosition(&prev_zoom_X, nullptr);
-					prev_zoom_zoom = params.zoom;
+					prev_zoom_zoom = stageBuffer.zoom;
 				}
 
 				if (this->getInput().getMouseReleased(Input::MouseButton::RIGHT_BUTTON)) {
@@ -250,13 +249,13 @@ namespace glsample {
 					if (this->getInput().getMousePressed(Input::MouseButton::LEFT_BUTTON)) {
 						const int deltaX = -(x - prev_move_X);
 						const int deltaY = (y - prev_move_Y);
-						params.mousePosX = params.posX + deltaX;
-						params.mousePosY = params.posY + deltaY;
+						stageBuffer.mousePosX = stageBuffer.posX + deltaX;
+						stageBuffer.mousePosY = stageBuffer.posY + deltaY;
 					}
 					if (this->getInput().getMousePressed(Input::MouseButton::RIGHT_BUTTON)) {
 						const int deltaZoomX = -(x - prev_zoom_X);
 
-						params.zoom = prev_zoom_zoom + deltaZoomX * 0.0001f;
+						stageBuffer.zoom = prev_zoom_zoom + deltaZoomX * 0.0001f;
 					}
 				}
 			}

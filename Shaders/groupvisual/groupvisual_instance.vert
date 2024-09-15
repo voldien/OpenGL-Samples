@@ -24,8 +24,9 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 
-	/*	*/
+	/*	Settings.	*/
 	uint nrFaces;
+	uint nrElements;
 	float delta;
 	float scale;
 }

@@ -5,7 +5,7 @@ IF(NOT TARGET cxxopts)
 	FetchContent_Declare(cxxopts_source
 		GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
 		GIT_TAG v3.2.1
-	) # or whatever tag you want
+	)
 
 	FetchContent_GetProperties(cxxopts_source)
 

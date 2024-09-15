@@ -151,11 +151,11 @@ namespace glsample {
 
 			{
 				/*	Load shader source.	*/
-				const std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexBillBoardShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> geomtry_source =
+				const std::vector<uint32_t> geomtry_binary =
 					IOUtil::readFileData<uint32_t>(this->geomtryBillBoardShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentBillBoardShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -163,17 +163,17 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->billboarding_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source,
-																			  &fragment_source, &geomtry_source);
+				this->billboarding_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary,
+																			  &fragment_binary, &geomtry_binary);
 
 				/*	Load shader	*/
-				const std::vector<char> simple_terrain_vertex_source =
+				const std::vector<char> simple_terrain_vertex_binary =
 					IOUtil::readFileString(vertexTerrainShaderPath, this->getFileSystem());
-				const std::vector<char> simple_terrain_fragment_source =
+				const std::vector<char> simple_terrain_fragment_binary =
 					IOUtil::readFileString(fragmentTerrainShaderPath, this->getFileSystem());
 
 				this->terrain_program =
-					ShaderLoader::loadGraphicProgram(&simple_terrain_vertex_source, &simple_terrain_fragment_source);
+					ShaderLoader::loadGraphicProgram(&simple_terrain_vertex_binary, &simple_terrain_fragment_binary);
 
 				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> vertex_skybox_binary =

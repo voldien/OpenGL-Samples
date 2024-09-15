@@ -28,11 +28,14 @@ namespace glsample {
 
 	void Scene::init() {
 
+		const unsigned char normalForward[] = {127, 127, 255, 255};
+		const unsigned char white[] = {127, 127, 255, 255};
+		const unsigned char black[] = {127, 127, 255, 255};
+
 		/*	Create white texture.	*/
 		FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)&this->normalDefault));
 		FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, this->normalDefault));
-		const unsigned char white[] = {127, 127, 255, 255};
-		FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white));
+		FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, normalForward));
 		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
 		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
 		/*	Border clamped to max value, it makes the outside area.	*/
@@ -129,13 +132,14 @@ namespace glsample {
 
 			if (useBlending) {
 				glEnable(GL_BLEND);
-				/*	*/
-				glBlendFuncSeparatei(0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-				glBlendEquation(GL_FUNC_ADD);
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_FALSE);
 
+				/*	*/
+				glBlendFuncSeparatei(0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+				glBlendEquation(GL_FUNC_ADD);
 			} else {
+				/*	*/
 				glDisable(GL_BLEND);
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_TRUE);

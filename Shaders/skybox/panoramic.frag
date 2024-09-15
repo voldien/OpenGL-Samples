@@ -7,7 +7,7 @@ layout(location = 0) in vec3 vVertex;
 
 layout(binding = 0) uniform sampler2D panorama;
 
-layout(set = 0, binding = 1, std140) uniform UniformBufferBlock {
+layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
 	mat4 modelViewProjection;
 	vec4 tintColor;

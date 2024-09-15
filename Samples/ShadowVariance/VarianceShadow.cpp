@@ -17,9 +17,14 @@ namespace glsample {
 	  public:
 		VarianceShadow() : GLSampleWindow() {
 			this->setTitle("VarianceShadow");
-			shadowSettingComponent =
+
+			this->shadowSettingComponent =
 				std::make_shared<BasicShadowMapSettingComponent>(this->uniform, this->shadowTexture);
-			this->addUIComponent(shadowSettingComponent);
+			this->addUIComponent(this->shadowSettingComponent);
+
+			/*	Default camera position and orientation.	*/
+			this->camera.setPosition(glm::vec3(15.5f));
+			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct uniform_buffer_block {
@@ -115,37 +120,41 @@ namespace glsample {
 
 		void Initialize() override {
 
+			/*	*/
+			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
+
 			{
 				/*	*/
-				std::vector<uint32_t> vertex_source =
+				std::vector<uint32_t> vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-				std::vector<uint32_t> fragment_source =
+				std::vector<uint32_t> fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
 				/*	*/
-				std::vector<uint32_t> vertex_shadow_source =
+				std::vector<uint32_t> vertex_shadow_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-				std::vector<uint32_t> fragment_shadow_source =
+				std::vector<uint32_t> fragment_shadow_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				std::vector<char> vertex_source_T =
-					fragcore::ShaderCompiler::convertSPIRV(vertex_source, compilerOptions);
-				std::vector<char> fragment_source_T =
-					fragcore::ShaderCompiler::convertSPIRV(fragment_source, compilerOptions);
+				std::vector<char> vertex_binary_T =
+					fragcore::ShaderCompiler::convertSPIRV(vertex_binary, compilerOptions);
+				std::vector<char> fragment_binary_T =
+					fragcore::ShaderCompiler::convertSPIRV(fragment_binary, compilerOptions);
 
-				std::vector<char> vertex_shadow_source_T =
-					fragcore::ShaderCompiler::convertSPIRV(vertex_shadow_source, compilerOptions);
-				std::vector<char> fragment_shadow_source_T =
-					fragcore::ShaderCompiler::convertSPIRV(fragment_shadow_source, compilerOptions);
+				std::vector<char> vertex_shadow_binary_T =
+					fragcore::ShaderCompiler::convertSPIRV(vertex_shadow_binary, compilerOptions);
+				std::vector<char> fragment_shadow_binary_T =
+					fragcore::ShaderCompiler::convertSPIRV(fragment_shadow_binary, compilerOptions);
 
 				/*	Load shaders	*/
-				this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_source_T, &fragment_source_T);
+				this->graphic_program = ShaderLoader::loadGraphicProgram(&vertex_binary_T, &fragment_binary_T);
 				this->shadow_program =
-					ShaderLoader::loadGraphicProgram(&vertex_shadow_source_T, &fragment_shadow_source_T);
+					ShaderLoader::loadGraphicProgram(&vertex_shadow_binary_T, &fragment_shadow_binary_T);
 			}
 
 			/*	load Textures	*/
@@ -215,19 +224,19 @@ namespace glsample {
 			}
 
 			/*	*/
-			ModelImporter modelLoader(FileSystem::getFileSystem());
-			modelLoader.loadContent(modelPath, 0);
+			ModelImporter modelLoader = new ModelImporter(this->getFileSystem());
+			modelLoader->loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(*modelLoader);
 
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+
 		void draw() override {
 
-			update();
 			int width, height;
 			getSize(&width, &height);
-
-			this->uniform.proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -329,9 +338,9 @@ namespace glsample {
 	  public:
 		VarianceShadowGLSample(int argc, const char **argv) : GLSample<VarianceShadow>(argc, argv) {}
 		virtual void commandline(cxxopts::OptionAdder &options) override {
-			options.add_options("Texture-Sample")("T,texture", "Texture Path",
-												  cxxopts::value<std::string>()->default_value("texture.png"))(
-				"N,normal map", "Texture Path", cxxopts::value<std::string>()->default_value("texture.png"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
+				"S,skybox", "Skybox Texture File Path",
+				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
 		}
 	};
 

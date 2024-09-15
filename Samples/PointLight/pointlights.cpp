@@ -23,7 +23,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct point_light_source_t {
+		typedef struct point_light_binary_t {
 			glm::vec3 position;
 			float range;
 			glm::vec4 color;

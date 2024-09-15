@@ -6,7 +6,6 @@
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
 #include <glm/glm.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -129,7 +128,7 @@ namespace glsample {
 			glDrawBuffers(1, &drawAttach);
 
 			/*  Validate if created properly.*/
-			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			const int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}

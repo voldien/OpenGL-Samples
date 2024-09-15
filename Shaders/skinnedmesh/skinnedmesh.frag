@@ -14,14 +14,10 @@ layout(location = 3) in vec3 FragIN_tangent;
 
 layout(binding = 0) uniform sampler2D DiffuseTexture;
 
-float computeLightContributionFactor(in const vec3 direction, in const vec3 normalInput) {
-	return max(0.0, dot(normalInput, -normalize(direction)));
-}
-
 void main() {
 	/*	Compute directional light	*/
-	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, FragIN_normal) * ubo.lightColor;
+	const vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, FragIN_normal) * ubo.lightColor;
 
 	/*	*/
-	fragColor = texture(DiffuseTexture, FragIN_uv); // * ubo.tintColor * (ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor);
 }

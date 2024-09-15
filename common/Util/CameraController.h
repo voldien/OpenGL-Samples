@@ -17,9 +17,11 @@
 #include "Core/Math3D.h"
 #include "Util/Frustum.h"
 #include "flythrough_camera.h"
+#include <Input.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_mouse.h>
+#include <SDLInput.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
@@ -75,17 +77,11 @@ namespace glsample {
 
 			/*	*/
 			if (!alt && this->enable_Look) {
-
 				flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime,
 										 current_speed, 0.5f * activated, this->fov, xDiff, yDiff, w, a, s, d, 0, 0, 0);
 
 				/*	*/
-				const Vector3 position = Vector3(this->pos[0], this->pos[1], this->pos[2]);
-				const Vector3 look = Vector3(this->look[0], this->look[1], this->look[2]).normalized();
-				const Vector3 up = Vector3(this->up[0], this->up[1], this->up[2]).normalized();
-				const Vector3 right = look.cross(up).normalized();
-
-				this->calcFrustumPlanes(position, look, up, right);
+				this->updateFrustum();
 			}
 		}
 
@@ -104,6 +100,7 @@ namespace glsample {
 		void setPosition(const glm::vec3 &position) noexcept {
 			this->pos = position;
 			this->update();
+			this->updateFrustum();
 		}
 
 		const glm::vec3 &getUp() const noexcept { return this->up; }
@@ -111,6 +108,7 @@ namespace glsample {
 		void lookAt(const glm::vec3 &position) noexcept {
 			this->look = glm::normalize(position - this->getPosition());
 			this->update();
+			this->updateFrustum();
 		}
 
 		bool hasMoved() const noexcept { return true; }
@@ -119,6 +117,16 @@ namespace glsample {
 		void update() noexcept {
 			flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], 0, 0,
 									 0.5f * activated, this->fov, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+		}
+
+		void updateFrustum() {
+			/*	*/
+			const Vector3 position = Vector3(this->pos[0], this->pos[1], this->pos[2]);
+			const Vector3 look = Vector3(this->look[0], this->look[1], this->look[2]).normalized();
+			const Vector3 up = Vector3(this->up[0], this->up[1], this->up[2]).normalized();
+			const Vector3 right = look.cross(up).normalized();
+
+			this->calcFrustumPlanes(position, look, up, right);
 		}
 
 	  private:

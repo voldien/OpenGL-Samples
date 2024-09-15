@@ -1,3 +1,4 @@
+#include "Core/Math.h"
 #include "GLSampleWindow.h"
 #include "RenderDesc.h"
 #include "ShaderLoader.h"
@@ -8,7 +9,6 @@
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -26,12 +26,12 @@ namespace glsample {
 			this->addUIComponent(this->computeGroupVisualSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(15.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		/*	*/
-		MeshObject CubeMesh;
+		MeshObject sphereMesh;
 
 		int localWorkGroupSize[3];
 
@@ -66,8 +66,6 @@ namespace glsample {
 
 		CameraController camera;
 
-		size_t instanceBatch = 0;
-
 		/*	*/
 		unsigned int visual_indirect_buffer_binding = 3;
 		unsigned int uniform_buffer_binding = 0;
@@ -79,7 +77,7 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceMemorySize = 0;
-		size_t maxGroupSize[3] = {16, 16, 16};
+		const size_t maxGroupSize[3] = {16, 16, 16};
 
 		class ComputeGroupVisualSettingComponent : public nekomimi::UIComponent {
 
@@ -120,6 +118,7 @@ namespace glsample {
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
+			glDeleteBuffers(1, &this->uniform_instance_buffer);
 			glDeleteBuffers(1, &this->indirect_buffer);
 		}
 
@@ -132,14 +131,14 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	*/
-				const std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 				/*	Load Graphic Program.	*/
 				this->compute_visual_instance_graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 
 				/*	*/
 				const std::vector<uint32_t> compute_visual_binary =
@@ -159,10 +158,11 @@ namespace glsample {
 			glUniformBlockBinding(this->compute_visual_instance_graphic_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			/*	*/
-			const int uniform_instance_buffer_index =
-				glGetUniformBlockIndex(this->compute_visual_instance_graphic_program, "UniformInstanceBlock");
-			glUniformBlockBinding(this->compute_visual_instance_graphic_program, uniform_instance_buffer_index,
-								  this->uniform_instance_buffer_binding);
+			const int uniform_instance_buffer_index = glGetProgramResourceIndex(
+				this->compute_visual_instance_graphic_program, GL_SHADER_STORAGE_BLOCK, "UniformInstanceBlock");
+			glShaderStorageBlockBinding(this->compute_visual_instance_graphic_program, uniform_instance_buffer_index,
+										this->uniform_instance_buffer_binding);
+
 			glUseProgram(0);
 
 			{
@@ -208,11 +208,6 @@ namespace glsample {
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &SSBO_align_offset);
 
 			/*	*/
-			GLint storageMaxSize;
-			glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &storageMaxSize);
-			this->instanceBatch = storageMaxSize / sizeof(InstanceData);
-
-			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
@@ -239,48 +234,13 @@ namespace glsample {
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 			/*  */
-			{
-				/*	Load geometry.	*/
-				std::vector<ProceduralGeometry::Vertex> vertices;
-				std::vector<unsigned int> indices;
-				ProceduralGeometry::generateSphere(1.0f, vertices, indices);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenVertexArrays(1, &this->CubeMesh.vao);
-				glBindVertexArray(this->CubeMesh.vao);
-
-				/*	*/
-				glGenBuffers(1, &this->CubeMesh.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, CubeMesh.ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
-							 GL_STATIC_DRAW);
-				this->CubeMesh.nrIndicesElements = indices.size();
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenBuffers(1, &this->CubeMesh.vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, CubeMesh.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-							 GL_STATIC_DRAW);
-
-				/*	*/
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-				/*	*/
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(sizeof(glm::vec3)));
-
-				/*	*/
-				glEnableVertexAttribArray(2);
-				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(sizeof(glm::vec3) + sizeof(glm::vec2)));
-
-				glBindVertexArray(0);
-			}
+			Common::loadSphere(this->sphereMesh, 1, 8, 8);
 
 			/*	*/
-			this->uniformStageBuffer.nrFaces = this->CubeMesh.nrIndicesElements;
+			this->uniformStageBuffer.nrFaces = this->sphereMesh.nrIndicesElements;
+			this->uniformStageBuffer.nrElements =
+				fragcore::Math::product(this->computeGroupVisualSettingComponent->workgroupSize, 3) *
+				fragcore::Math::product<int>(localWorkGroupSize, 3);
 
 			fragcore::resetErrorFlag();
 		}
@@ -292,14 +252,15 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			const size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrUniformBuffer;
-			const size_t write_buffer_index = (this->getFrameCount() + 0) % this->nrUniformBuffer;
-
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
 							  this->uniformBufferSize);
 
 			if (this->computeGroupVisualSettingComponent->needUpdate) {
+
+				refreshWholeRoundRobinBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer, this->nrUniformBuffer,
+											 &this->uniformStageBuffer, this->uniformBufferSize,
+											 sizeof(this->uniformStageBuffer));
 
 				glUseProgram(this->compute_group_visual_compute_program);
 
@@ -329,7 +290,7 @@ namespace glsample {
 
 			/*	Wait in till the */
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT |
-							GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_ALL_BARRIER_BITS);
+							GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 			{
 
@@ -339,9 +300,11 @@ namespace glsample {
 				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
 								  this->uniform_instance_buffer, 0, this->uniformInstanceMemorySize);
 
+				/*	*/
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_FRONT);
 				glFrontFace(GL_CW);
+
 				/*	*/
 				glDisable(GL_BLEND);
 				glBlendEquation(GL_FUNC_ADD);
@@ -355,7 +318,7 @@ namespace glsample {
 							  this->computeGroupVisualSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw Items.	*/
-				glBindVertexArray(this->CubeMesh.vao);
+				glBindVertexArray(this->sphereMesh.vao);
 
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->indirect_buffer);
 				glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr);
@@ -377,7 +340,8 @@ namespace glsample {
 
 				this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
 				this->uniformStageBuffer.nrElements =
-					fragcore::Math::sum(this->computeGroupVisualSettingComponent->workgroupSize, 3);
+					fragcore::Math::product(this->computeGroupVisualSettingComponent->workgroupSize, 3) *
+					fragcore::Math::product<int>(localWorkGroupSize, 3);
 
 				this->uniformStageBuffer.model = glm::mat4(1.0f);
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();
@@ -386,6 +350,7 @@ namespace glsample {
 			}
 
 			/*	Bind buffer and update region with new data.	*/
+
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer = glMapBufferRange(
@@ -393,6 +358,7 @@ namespace glsample {
 				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
 			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
+
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};

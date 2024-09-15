@@ -2,18 +2,21 @@
 
 namespace glsample {
 
-	Frustum::Frustum() noexcept = default;
+	Frustum::Frustum() noexcept {}
 
-	Frustum::Frustum(const Frustum &other) noexcept = default;
+	Frustum::Frustum(const Frustum &other) noexcept {}
 
 	void Frustum::calcFrustumPlanes(const Vector3 &position, const Vector3 &look, const Vector3 &up,
 									const Vector3 &right) {
 
-		const float halfVSide = this->getFar() * tanf(this->getFOV() * .5f);
-		const float halfHSide = halfVSide * getAspect();
+		/*	*/
+		const float halfVSide = this->getFar() * tanf(this->getFOV() * 0.5f);
+		const float halfHSide = halfVSide * this->getAspect();
 
-		Vector3 frontMultFar = this->getFar() * look;
+		/*	*/
+		const Vector3 frontMultFar = this->getFar() * look;
 
+		/*	*/
 		this->planes[NEAR_PLANE] = {position + this->getNear() * look, look};
 		this->planes[FAR_PLANE] = {position + frontMultFar, -look};
 
@@ -26,9 +29,9 @@ namespace glsample {
 	Frustum::Intersection Frustum::checkPoint(const Vector3 &pos) const noexcept {
 
 		/*	Iterate through each plane.	*/
-		for (int x = 0; x < 6; x++) {
+		for (unsigned int x = 0; x < FrustumPlanes::NPLANES; x++) {
 			if (fragcore::GeometryUtility::TestPlanesPoint(planes[x], pos)) {
-				return Out;
+				return Intersection::Out;
 			}
 		}
 		return In;
@@ -38,10 +41,10 @@ namespace glsample {
 
 		Frustum::Intersection result = Frustum::In;
 
-		for (int i = 0; i < 6; i++) {
+		for (unsigned int i = 0; i < FrustumPlanes::NPLANES; i++) {
 
-			if (fragcore::GeometryUtility::TestPlanesAABB(this->planes[i], AABB::createMinMax(min, max))) {
-				return Out;
+			if (!fragcore::GeometryUtility::TestPlanesAABB(this->planes[i], AABB::createMinMax(min, max))) {
+				return Intersection::Out;
 			}
 		}
 
@@ -54,7 +57,7 @@ namespace glsample {
 
 	Frustum::Intersection Frustum::intersectionOBB(const Vector3 &u, const Vector3 &v,
 												   const Vector3 &w) const noexcept {
-		return Out;
+		return Intersection::Out;
 	}
 	Frustum::Intersection Frustum::intersectionOBB(const OBB &obb) const noexcept { return Out; }
 
@@ -63,15 +66,17 @@ namespace glsample {
 	}
 
 	Frustum::Intersection Frustum::intersectionSphere(const BoundingSphere &sphere) const noexcept {
-		for (int i = 0; i < 6; i++) {
+		for (unsigned int i = 0; i < (unsigned int)FrustumPlanes::NPLANES; i++) {
 			if (fragcore::GeometryUtility::TestPlanesSphere(planes[i], sphere)) {
-				return Out;
+				return Intersection::Out;
 			}
 		}
-		return In;
+		return Intersection::In;
 	}
 
-	Frustum::Intersection Frustum::intersectPlane(const Plane<float> &plane) const noexcept { return In; }
+	Frustum::Intersection Frustum::intersectPlane(const Plane<float> &plane) const noexcept { return Intersection::In; }
 
-	Frustum::Intersection Frustum::intersectionFrustum(const Frustum &frustum) const noexcept { return In; }
+	Frustum::Intersection Frustum::intersectionFrustum(const Frustum &frustum) const noexcept {
+		return Intersection::In;
+	}
 } // namespace glsample

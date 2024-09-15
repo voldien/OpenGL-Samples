@@ -47,7 +47,7 @@ void main() {
 	const int nrPlanes = 6;
 
 	[[unroll]] for (int i = 0; i < nrPlanes; i++) {
-		
+
 		if (intersectionAABB(vec3(0), vec3(0)) == 0) {
 			// Assign
 			// Atomic

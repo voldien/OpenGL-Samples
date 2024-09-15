@@ -6,7 +6,6 @@
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -122,15 +121,15 @@ namespace glsample {
 		void Initialize() override {
 
 			/*	*/
-			const std::vector<uint32_t> vertex_source =
+			const std::vector<uint32_t> vertex_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
+			const std::vector<uint32_t> fragment_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
 			/*	*/
-			const std::vector<uint32_t> vertex_shadow_source =
+			const std::vector<uint32_t> vertex_shadow_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_shadow_source =
+			const std::vector<uint32_t> fragment_shadow_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -138,9 +137,9 @@ namespace glsample {
 			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shaders	*/
-			this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+			this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 			this->shadow_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_source, &fragment_shadow_source);
+				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary, &fragment_shadow_binary);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -194,7 +193,7 @@ namespace glsample {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTexture, 0);
-				int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+				const int frstat = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 				if (frstat != GL_FRAMEBUFFER_COMPLETE) {
 
 					/*  Delete  */

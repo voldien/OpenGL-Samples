@@ -78,6 +78,7 @@ namespace glsample {
 		unsigned int graphic_program;
 		unsigned int graphic_pfc_program;
 		unsigned int shadow_program;
+		unsigned int shadow_alpha_clip_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
@@ -144,6 +145,8 @@ namespace glsample {
 		const std::string vertexShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.vert.spv";
 		const std::string geomtryShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.geom.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.frag.spv";
+		const std::string fragmentShadowAlphaClipShaderPath =
+			"Shaders/shadowpointlight/pointlightshadow_alphaclip.frag.spv";
 
 		void Release() override {
 			glDeleteProgram(this->graphic_program);
@@ -162,20 +165,22 @@ namespace glsample {
 
 			{
 				/*	*/
-				const std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_pcf_source =
+				const std::vector<uint32_t> fragment_pcf_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentGraphicPCFShaderPath, this->getFileSystem());
 
 				/*	*/
-				const std::vector<uint32_t> vertex_shadow_source =
+				const std::vector<uint32_t> vertex_shadow_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> geometry_shadow_source =
+				const std::vector<uint32_t> geometry_shadow_binary =
 					IOUtil::readFileData<uint32_t>(this->geomtryShadowShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_shadow_source =
+				const std::vector<uint32_t> fragment_shadow_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_shadow_alpha_clip_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentShadowAlphaClipShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -183,12 +188,15 @@ namespace glsample {
 
 				/*	Load shaders	*/
 				this->graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 				this->graphic_pfc_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_pcf_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_pcf_binary);
 
 				this->shadow_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_shadow_source, &fragment_shadow_source, &geometry_shadow_source);
+					compilerOptions, &vertex_shadow_binary, &fragment_shadow_binary, &geometry_shadow_binary);
+				this->shadow_alpha_clip_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary,
+													 &fragment_shadow_alpha_clip_binary, &geometry_shadow_binary);
 			}
 
 			/*	load Textures	*/

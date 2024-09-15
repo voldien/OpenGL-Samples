@@ -6,25 +6,7 @@ layout(location = 1) in vec4 inVelocity;
 
 layout(location = 0) out vec4 velocity;
 
-struct particle_setting {
-	float speed;
-	float lifetime;
-	float gravity;
-};
-
-layout(binding = 0) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
-
-	particle_setting setting;
-
-	/*	*/
-	float deltaTime;
-}
-ubo;
+#include "particle_base.glsl"
 
 void main() {
 

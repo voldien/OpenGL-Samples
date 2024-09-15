@@ -8,7 +8,6 @@
 #include <Scene.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -22,7 +21,7 @@ namespace glsample {
 			this->setTitle("MultiPass");
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(15.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -224,7 +223,7 @@ namespace glsample {
 			glDrawBuffers(drawAttach.size(), drawAttach.data());
 
 			/*  Validate if created properly.*/
-			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			const int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}

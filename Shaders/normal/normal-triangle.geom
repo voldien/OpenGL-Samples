@@ -35,7 +35,8 @@ void main() {
 								 0.5 * (gl_in[0].gl_Position.xyz - gl_in[1].gl_Position.xyz) +
 								 0.5 * (gl_in[0].gl_Position.xyz - gl_in[2].gl_Position.xyz);
 
-	[[unroll]] for (int i = 0; i < 3; i++) {
+	const int NrPoints = 3;
+	[[unroll]] for (int i = 0; i < NrPoints; i++) {
 		gl_Position = ubo.ViewProj * vec4(triangle_center, 1.0);
 		normalColor = axisColor[i];
 		EmitVertex();

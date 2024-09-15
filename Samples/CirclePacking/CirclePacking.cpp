@@ -128,16 +128,16 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	*/
-				const std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->particleVertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> geometry_source =
+				const std::vector<uint32_t> geometry_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->particleGeometryShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->particleFragmentShaderPath, this->getFileSystem());
 
 				/*	Load Graphic Program.	*/
-				this->particle_graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source,
-																				  &fragment_source, &geometry_source);
+				this->particle_graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary,
+																				  &fragment_binary, &geometry_binary);
 
 				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> circle_packing_compute_binary =

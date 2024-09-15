@@ -7,40 +7,7 @@ layout(location = 1) in vec3 Normal_ES_in[];
 
 layout(location = 0) out vec4 LightColor_FS_in;
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 viewProjection;
-	mat4 modelViewProjection;
-
-	/*	Material	*/
-	vec4 diffuseColor;
-
-	/*	Light source.	*/
-	vec4 direction;
-	vec4 lightColor;
-	vec4 ambientColor;
-	
-	vec4 gEyeWorldPos;
-	float tessLevel;
-}
-ubo;
-struct OutputPatch {
-	vec3 WorldPos_B030;
-	vec3 WorldPos_B021;
-	vec3 WorldPos_B012;
-	vec3 WorldPos_B003;
-	vec3 WorldPos_B102;
-	vec3 WorldPos_B201;
-	vec3 WorldPos_B300;
-	vec3 WorldPos_B210;
-	vec3 WorldPos_B120;
-	vec3 WorldPos_B111;
-	vec3 Normal[3];
-	vec2 TexCoord[3];
-};
+#include "gouraud_base.glsl"
 
 layout(location = 4) in patch OutputPatch oPatch;
 
@@ -75,11 +42,11 @@ void main() {
 	const float vPow2 = pow(v, 2);
 	const float wPow2 = pow(w, 2);
 
-	const vec3 WorldPos_FS_in = oPatch.WorldPos_B300 * wPow3 + oPatch.WorldPos_B030 * uPow3 + oPatch.WorldPos_B003 * vPow3 +
-					 oPatch.WorldPos_B210 * 3.0 * wPow2 * u + oPatch.WorldPos_B120 * 3.0 * w * uPow2 +
-					 oPatch.WorldPos_B201 * 3.0 * wPow2 * v + oPatch.WorldPos_B021 * 3.0 * uPow2 * v +
-					 oPatch.WorldPos_B102 * 3.0 * w * vPow2 + oPatch.WorldPos_B012 * 3.0 * u * vPow2 +
-					 oPatch.WorldPos_B111 * 6.0 * w * u * v;
+	const vec3 WorldPos_FS_in = oPatch.WorldPos_B300 * wPow3 + oPatch.WorldPos_B030 * uPow3 +
+								oPatch.WorldPos_B003 * vPow3 + oPatch.WorldPos_B210 * 3.0 * wPow2 * u +
+								oPatch.WorldPos_B120 * 3.0 * w * uPow2 + oPatch.WorldPos_B201 * 3.0 * wPow2 * v +
+								oPatch.WorldPos_B021 * 3.0 * uPow2 * v + oPatch.WorldPos_B102 * 3.0 * w * vPow2 +
+								oPatch.WorldPos_B012 * 3.0 * u * vPow2 + oPatch.WorldPos_B111 * 6.0 * w * u * v;
 
 	gl_Position = ubo.viewProjection * vec4(WorldPos_FS_in, 1.0);
 }

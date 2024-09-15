@@ -19,11 +19,11 @@ void main() {
 
 	/*  */
 	fragColor = textureLod(AlbedoTexture, uv, 0);
+	/*	*/
 	fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
-
 	/*  */
 	fragColor = pow(fragColor, vec4(1.0 / ubo.gamma));
 
 	/*  */
-	fragColor = texture(AlbedoTexture, uv);// * pow();
+	fragColor = texture(AlbedoTexture, uv);
 }

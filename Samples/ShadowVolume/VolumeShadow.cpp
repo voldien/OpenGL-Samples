@@ -11,7 +11,6 @@
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -143,17 +142,17 @@ namespace glsample {
 
 			{
 				/*	Load shader source data.	*/
-				const std::vector<uint32_t> graphic_vertex_source =
+				const std::vector<uint32_t> graphic_vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> graphic_fragment_source =
+				const std::vector<uint32_t> graphic_fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
 
 				/*	*/
-				const std::vector<uint32_t> volume_shadow_vertex_source =
+				const std::vector<uint32_t> volume_shadow_vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> volume_shadow_geometry_source =
+				const std::vector<uint32_t> volume_shadow_geometry_binary =
 					IOUtil::readFileData<uint32_t>(this->geomtryShadowShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> volume_shadow_fragment_source =
+				const std::vector<uint32_t> volume_shadow_fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
 				/*	Load shader binaries.	*/
@@ -167,11 +166,11 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				this->volumeshadow_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &volume_shadow_vertex_source,
-													 &volume_shadow_fragment_source, &volume_shadow_geometry_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &volume_shadow_vertex_binary,
+													 &volume_shadow_fragment_binary, &volume_shadow_geometry_binary);
 				/*	Load shader programs.	*/
 				this->graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &graphic_vertex_source, &graphic_fragment_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &graphic_vertex_binary, &graphic_fragment_binary);
 
 				/*	Create skybox graphic pipeline program.	*/
 				this->skybox_program =

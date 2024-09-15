@@ -15,9 +15,6 @@
 #include <cstdint>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <iostream>
-#include <queue>
-#include <vector>
 
 namespace glsample {
 
@@ -104,6 +101,10 @@ namespace glsample {
 		const std::string vertexBoundingShaderPath = "Shaders/bounding/boundingbox.vert.spv";
 		const std::string fragmentBoundingShaderPath = "Shaders/bounding/boundingbox.frag.spv";
 
+		const std::string vertexHyperplanShaderPath = "Shaders/svm/hyperplane.vert.spv";
+		const std::string geometryHyperplanShaderPath = "Shaders/svm/hyperplane.geom.spv";
+		const std::string fragmentHyperplanShaderPath = "Shaders/svm/hyperplane.frag.spv";
+
 		const std::string vertexBlendShaderPath = "Shaders/blending/blending.vert.spv";
 		const std::string fragmentBlendShaderPath = "Shaders/blending/blending.frag.spv";
 
@@ -158,9 +159,9 @@ namespace glsample {
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				const std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_binary =
 					IOUtil::readFileData<uint32_t>(vertexInstanceShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_binary =
 					IOUtil::readFileData<uint32_t>(fragmentInstanceShaderPath, this->getFileSystem());
 
 				/*	Load shader binaries.	*/
@@ -181,7 +182,7 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 
 				/*	Load shader	*/
 				this->wireframe_program =
@@ -439,6 +440,7 @@ namespace glsample {
 		void onResize(int width, int height) override {
 
 			/*	Update camera	*/
+			this->camera.setFar(1500);
 			this->camera.setAspect((float)width / (float)height);
 		}
 
@@ -512,8 +514,6 @@ namespace glsample {
 			}
 		}
 
-		std::queue<const NodeObject *> mainCameraNodeQueue;
-
 		void update() override {
 
 			this->physic_interface->sync();
@@ -549,16 +549,17 @@ namespace glsample {
 				uint8_t *uniform_instance_buffer_pointer = (uint8_t *)glMapBufferRange(
 					GL_SHADER_STORAGE_BUFFER,
 					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformInstanceSize,
-					this->uniformInstanceSize,
-					GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+					this->uniformInstanceSize, GL_MAP_WRITE_BIT);
 
 				for (size_t i = 0; i < rigidbodies.size(); i++) {
 					glm::mat4 model = glm::mat4(1);
 					model = glm::translate(model, glm::vec3(rigidbodies[i]->getPosition().x(),
 															rigidbodies[i]->getPosition().y(),
 															rigidbodies[i]->getPosition().z()));
+
 					const glm::quat roat(rigidbodies[i]->getOrientation().w(), rigidbodies[i]->getOrientation().x(),
 										 rigidbodies[i]->getOrientation().y(), rigidbodies[i]->getOrientation().z());
+
 					model = model * glm::toMat4(roat);
 
 					memcpy(&uniform_instance_buffer_pointer[i * sizeof(glm::mat4)], &model[0][0], sizeof(model));

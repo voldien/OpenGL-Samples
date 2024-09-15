@@ -147,13 +147,13 @@ namespace glsample {
 
 			{
 				/*	Load shader source data.	*/
-				const std::vector<uint32_t> vertex_simple_ocean_source =
+				const std::vector<uint32_t> vertex_simple_ocean_binary =
 					IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_simple_ocean_source =
+				const std::vector<uint32_t> fragment_simple_ocean_binary =
 					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_binary =
 					IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_binary =
 					IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -161,10 +161,10 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader programs.	*/
-				this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_simple_ocean_source,
-																		 &fragment_simple_ocean_source);
+				this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_simple_ocean_binary,
+																		 &fragment_simple_ocean_binary);
 				this->skybox_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 			}
 
 			/*	Setup graphic pipeline settings.    */

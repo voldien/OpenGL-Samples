@@ -16,4 +16,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-void main() { gl_Position = ubo.viewProjection * (ubo.shadowProject * (ubo.model * vec4(Vertex, 1.0))); }
+void main() {
+	const vec4 project_vertex = (ubo.shadowProject * (ubo.model * vec4(Vertex, 1.0)));
+	gl_Position = ubo.viewProjection * project_vertex;
+}

@@ -30,17 +30,19 @@ layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(set = 0, binding = 1) buffer AABBInstanceBlock { AABB aabb[]; }
+layout(set = 0, binding = 1) restrict buffer AABBInstanceBlock { AABB aabb[]; }
 aabb;
 
 /*  output data.    */
-layout(set = 0, binding = 2) buffer CulledResult { culling result[]; }
+layout(set = 0, binding = 2) restrict buffer CulledResult { culling result[]; }
 culled;
 
 uint intersectionAABB(const in Plane plane, const in AABB aabb) {
+	/*	*/
 	const vec3 center = (aabb.max - aabb.min) * 0.5;
 	const vec3 extents = (aabb.max - center);
 
+	/*	*/
 	const float r = extents.x * abs(plane.normal.x) + extents.y * abs(plane.normal.y) + extents.z * abs(plane.normal.z);
 
 	return -r >= dot(plane.normal, center) - plane.d ? 1 : 0;
@@ -48,6 +50,7 @@ uint intersectionAABB(const in Plane plane, const in AABB aabb) {
 
 void main() {
 
+	/*	*/
 	const uint aabb_index = gl_GlobalInvocationID.x;
 	if (aabb_index >= ubo.aabb_count) {
 		return;
@@ -57,6 +60,7 @@ void main() {
 
 	uint count = 0;
 	[[unroll]] for (int i = 0; i < nrPlanees; i++) {
+		
 		/*	*/
 		count += intersectionAABB(ubo.planes[i], instance);
 	}

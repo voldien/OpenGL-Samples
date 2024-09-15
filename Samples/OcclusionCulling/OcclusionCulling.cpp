@@ -11,7 +11,6 @@
 #include <Scene.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -139,9 +138,9 @@ namespace glsample {
 			/*	*/
 			{
 				/*	Load shader source.	*/
-				const std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 				/*	*/
@@ -151,7 +150,7 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->normalMapping_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 			}
 
 			/*	Setup graphic pipeline.	*/

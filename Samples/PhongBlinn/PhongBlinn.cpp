@@ -6,7 +6,6 @@
 #include <ImageImport.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -23,7 +22,7 @@ namespace glsample {
 			this->addUIComponent(this->phongblinnSettingComponent);
 
 			/*	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(15.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -145,11 +144,11 @@ namespace glsample {
 
 			{
 				/*	Load shader source.	*/
-				const std::vector<uint32_t> vertex_phongblinn_source_binary =
+				const std::vector<uint32_t> vertex_phongblinn_binary_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_phong_source_binary =
+				const std::vector<uint32_t> fragment_phong_binary_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentPhongShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_blinn_source_binary =
+				const std::vector<uint32_t> fragment_blinn_binary_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentBlinnShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -158,10 +157,10 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->phong_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_phongblinn_source_binary, &fragment_phong_source_binary);
+					compilerOptions, &vertex_phongblinn_binary_binary, &fragment_phong_binary_binary);
 
 				this->blinn_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_phongblinn_source_binary, &fragment_blinn_source_binary);
+					compilerOptions, &vertex_phongblinn_binary_binary, &fragment_blinn_binary_binary);
 			}
 
 			/*	Setup graphic pipeline.	*/

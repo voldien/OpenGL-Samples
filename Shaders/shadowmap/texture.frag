@@ -68,7 +68,7 @@ void main() {
 
 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
 
-	vec4 lighting = (ubo.ambientColor + (ubo.lightColor * contriubtion + spec) * shadow) * color;
+	const vec4 lighting = (ubo.ambientColor + (ubo.lightColor * contriubtion + spec) * shadow) * color;
 
 	fragColor = lighting;
 }

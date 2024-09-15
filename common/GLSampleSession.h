@@ -16,6 +16,7 @@
 #pragma once
 #include "Core/math3D/LinAlg.h"
 #include "IOUtil.h"
+
 #include <GL/glew.h>
 #include <cxxopts.hpp>
 #include <glm/matrix.hpp>

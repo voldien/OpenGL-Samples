@@ -1,6 +1,6 @@
+#include "common.glsl"
 
-
-const int MAX_BONES = 512;
+layout(constant_id = 1) const int MAX_BONES = 512;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -10,13 +10,13 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
-	/*	Tint color.	*/
-	vec4 tintColor;
-
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
+
+	/*	Material color.	*/
+	vec4 tintColor;
 }
 ubo;
 

@@ -5,7 +5,7 @@
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
+
 
 namespace glsample {
 
@@ -142,13 +142,13 @@ namespace glsample {
 			const std::string reflectionTexturePath = "asset/tessellation_heightmap.png";
 
 			/*	*/
-			const std::vector<uint32_t> vertex_source =
+			const std::vector<uint32_t> vertex_binary =
 				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_source =
+			const std::vector<uint32_t> fragment_binary =
 				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> control_source =
+			const std::vector<uint32_t> control_binary =
 				IOUtil::readFileData<uint32_t>(this->ControlShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> evolution_source =
+			const std::vector<uint32_t> evolution_binary =
 				IOUtil::readFileData<uint32_t>(this->EvoluationShaderPath, this->getFileSystem());
 
 			const std::vector<uint32_t> vertex_skybox_binary =
@@ -161,8 +161,8 @@ namespace glsample {
 			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shader	*/
-			this->grass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source,
-																   nullptr, &control_source, &evolution_source);
+			this->grass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary,
+																   nullptr, &control_binary, &evolution_binary);
 
 			this->skybox_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);

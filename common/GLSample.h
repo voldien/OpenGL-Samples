@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Common.h"
 #include "GLRendererInterface.h"
 #include "GLSampleSession.h"
 #include "GLSampleWindow.h"
@@ -140,7 +141,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		}
 		/*	*/
 		if (!all_required) {
-			this->sampleRef->getLogger().info("Bye Bye ^_^");
+			this->sampleRef->getLogger().info("Bye Bye ^^");
 			delete this->sampleRef;
 			return;
 		}

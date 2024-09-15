@@ -3,17 +3,7 @@
 
 layout(local_size_x = 32, local_size_y = 1) in;
 
-struct particle_t {
-	vec3 position;
-	float time;
-	vec4 velocity;
-};
-
-struct particle_setting {
-	float speed;
-	float lifetime;
-	float gravity;
-};
+#include "particle_base.glsl"
 
 /*	*/
 layout(std430, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
@@ -21,20 +11,6 @@ readBuffer;
 /*	*/
 layout(std430, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]; }
 writeBuffer;
-
-layout(binding = 0) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
-
-	particle_setting setting;
-
-	/*	*/
-	float deltaTime;
-}
-ubo;
 
 float rand(vec2 co) {
 	highp float a = 12.9898;
@@ -61,7 +37,7 @@ void main() {
 	const float deltaTime = ubo.setting.speed * ubo.deltaTime;
 
 	/*	*/
-	vec3 v = vel.xyz + (force_impulse)*k_v * deltaTime;
+	vec3 v = vel.xyz + force_impulse * k_v * deltaTime;
 	vec3 nextPosition = position + v * deltaTime;
 
 	/*	Reset particle when expired.	*/

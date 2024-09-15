@@ -13,13 +13,38 @@ layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(set = 0, binding = 2, std430) readonly buffer RaySampler { vec2 AB[]; }
-raySampler;
-#define MAX_RECURSION 10
+struct vertexData {
+	vec3 position;
+	vec3 normal;
+	// vec3 tangent;
+};
 
 layout(binding = 0, rgba8) uniform writeonly image2D renderTexture;
 layout(binding = 1, rgba16f) uniform readonly image2D backgroundTexture;
 
+layout(set = 0, binding = 2, std430) readonly buffer RaySampler { vec2 AB[]; }
+raySampler;
+
+/*	*/
+layout(std430, set = 0, binding = 13) readonly buffer IndicesBuffer { uint indices[]; }
+indices;
+
+/*	*/
+layout(std430, set = 0, binding = 4) readonly buffer VertexBuffer { vertexData vertices[]; }
+vertices;
+
+#define MAX_RECURSION 10
+
+struct Intersection {
+	float t;
+	float u, v;	   // barycentric coordinates of the intersection
+	uint instPrim; // instance index (12 bit) and primitive index (20 bit)
+};
+
+struct Ray {
+	vec3 O, D, rD;	  // in OpenCL, each of these will be wspadded to 16 bytes
+	Intersection hit; // total ray size: 64 bytes
+};
 
 vec2 inverse_equirectangular(vec3 direction) {
 	const vec2 invAtan = vec2(0.1591, 0.3183);
@@ -29,8 +54,45 @@ vec2 inverse_equirectangular(vec3 direction) {
 	return uv;
 }
 
+bool IntersectAABB(const in Ray ray, const vec3 bmin, const vec3 bmax) {
+	float tx1 = (bmin.x - ray.O.x) / ray.D.x, tx2 = (bmax.x - ray.O.x) / ray.D.x;
+	float tmin = min(tx1, tx2), tmax = max(tx1, tx2);
+	float ty1 = (bmin.y - ray.O.y) / ray.D.y, ty2 = (bmax.y - ray.O.y) / ray.D.y;
+	tmin = max(tmin, min(ty1, ty2)), tmax = min(tmax, max(ty1, ty2));
+	float tz1 = (bmin.z - ray.O.z) / ray.D.z, tz2 = (bmax.z - ray.O.z) / ray.D.z;
+	tmin = max(tmin, min(tz1, tz2)), tmax = min(tmax, max(tz1, tz2));
+	return tmax >= tmin && tmin < length(ray.rD) && tmax > 0;
+}
+
+/*
+void IntersectTri(in Ray ray, const Tri &tri) {
+	const vec3 edge1 = tri.vertex1 - tri.vertex0;
+	const vec3 edge2 = tri.vertex2 - tri.vertex0;
+	const vec3 h = cross(ray.D, edge2);
+	const float a = dot(edge1, h);
+	if (a > -0.0001f && a < 0.0001f) {
+		return; // ray parallel to triangle
+	}
+	const float f = 1 / a;
+	const vec3 s = ray.O - tri.vertex0;
+	const float u = f * dot(s, h);
+	if (u < 0 || u > 1) {
+		return;
+	}
+	const vec3 q = cross(s, edge1);
+	const float v = f * dot(ray.D, q);
+	if (v < 0 || u + v > 1) {
+		return;
+	}
+	const float t = f * dot(edge2, q);
+	if (t > 0.0001f) {
+		ray.t = min(ray.t, t);
+	}
+}
+*/
+
 void main() {
-    
+
 	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 	const ivec2 ImageSize = imageSize(renderTexture);
 

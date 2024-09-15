@@ -6,7 +6,6 @@
 #include <ShaderCompiler.h>
 #include <ShaderLoader.h>
 #include <glm/glm.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -113,14 +112,12 @@ namespace glsample {
 				/*	Load shader	*/
 				this->sort_mergesort_program = ShaderLoader::loadComputeProgram(compilerOptions, &mergesort_binary);
 
-				const std::vector<uint32_t> julia_source =
+				const std::vector<uint32_t> julia_binary =
 					IOUtil::readFileData<uint32_t>(this->computeJuliaShaderPath, this->getFileSystem());
 
-				const std::vector<char> julia_binary =
-					fragcore::ShaderCompiler::convertSPIRV(julia_source, compilerOptions);
 
 				/*	Load shader	*/
-				this->julia_program = ShaderLoader::loadComputeProgram({&julia_binary});
+				this->julia_program = ShaderLoader::loadComputeProgram(compilerOptions, &julia_binary);
 			}
 
 			/*	*/

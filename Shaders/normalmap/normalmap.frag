@@ -18,7 +18,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
-	/*	*/
+	/*	Material Settings.	*/
 	vec4 tintColor;
 
 	/*	Light source.	*/
@@ -62,5 +62,6 @@ void main() {
 	const float spec = pow(max(dot(alteredNormal, halfwayDir), 0.0), ubo.shininess);
 
 	/*	*/
-	fragColor = texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor + specularColor * spec);
+	fragColor =
+		texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor + specularColor * spec);
 }

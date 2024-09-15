@@ -5,7 +5,6 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ShaderLoader.h>
-#include <iostream>
 
 namespace glsample {
 
@@ -32,13 +31,13 @@ namespace glsample {
 
 		{
 			/*	*/
-			const std::vector<uint32_t> pbr_vertex_source =
+			const std::vector<uint32_t> pbr_vertex_binary =
 				IOUtil::readFileData<uint32_t>(this->PBRvertexShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> pbr_fragment_source =
+			const std::vector<uint32_t> pbr_fragment_binary =
 				IOUtil::readFileData<uint32_t>(this->PBRfragmentShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> pbr_control_source =
+			const std::vector<uint32_t> pbr_control_binary =
 				IOUtil::readFileData<uint32_t>(this->PBRControlShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> pbr_evolution_source =
+			const std::vector<uint32_t> pbr_evolution_binary =
 				IOUtil::readFileData<uint32_t>(this->PBREvoluationShaderPath, this->getFileSystem());
 
 			const std::vector<uint32_t> vertex_skybox_binary =
@@ -53,8 +52,8 @@ namespace glsample {
 
 			/*	Load shader	*/
 			this->physical_based_rendering_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &pbr_vertex_source, &pbr_fragment_source, nullptr,
-												 &pbr_control_source, &pbr_evolution_source);
+				ShaderLoader::loadGraphicProgram(compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary, nullptr,
+												 &pbr_control_binary, &pbr_evolution_binary);
 
 			/*	Create skybox graphic pipeline program.	*/
 			this->skybox_program =

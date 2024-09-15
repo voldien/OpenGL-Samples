@@ -8,12 +8,11 @@ layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 #include "base.glsl"
 
 /*	*/
-layout(std430, binding = 1) readonly coherent buffer ReadBuffer { particle_t particle[]; }
+layout(std430, set = 0, binding = 1) readonly restrict buffer ReadBuffer { particle_t particle[]; }
 readBuffer;
 /*	*/
-layout(std430, binding = 2) writeonly coherent buffer WriteBuffer { particle_t particle[]; }
+layout(std430, set = 0, binding = 2) writeonly restrict buffer WriteBuffer { particle_t particle[]; }
 writeBuffer;
-
 
 void main() {
 
@@ -61,6 +60,7 @@ void main() {
 
 		/*	Final position update.	*/
 		position.xy = clamp(position.xy, min, max);
+		
 		/*	Update particle.	*/
 		writeBuffer.particle[pindex].position.xy = position;
 		// writeBuffer.particle[pindex].time = readBuffer.particle[pindex].time - ubo.deltaTime;

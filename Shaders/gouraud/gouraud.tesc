@@ -7,41 +7,7 @@ layout(vertices = 1) out;
 layout(location = 0) in vec3 WorldPos_CS_in[];
 layout(location = 1) in vec3 Normal_CS_in[];
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 viewProjection;
-	mat4 modelViewProjection;
-
-	/*	Material	*/
-	vec4 diffuseColor;
-
-	/*	Light source.	*/
-	vec4 direction;
-	vec4 lightColor;
-	vec4 ambientColor;
-
-	vec4 gEyeWorldPos;
-	float tessLevel;
-}
-ubo;
-
-struct OutputPatch {
-	vec3 WorldPos_B030;
-	vec3 WorldPos_B021;
-	vec3 WorldPos_B012;
-	vec3 WorldPos_B003;
-	vec3 WorldPos_B102;
-	vec3 WorldPos_B201;
-	vec3 WorldPos_B300;
-	vec3 WorldPos_B210;
-	vec3 WorldPos_B120;
-	vec3 WorldPos_B111;
-	vec3 Normal[3];
-	vec2 TexCoord[3];
-};
+#include "gouraud_base.glsl"
 
 layout(location = 4) out patch OutputPatch oPatch;
 
@@ -51,6 +17,7 @@ vec3 ProjectToPlane(vec3 Point, vec3 PlanePoint, vec3 PlaneNormal) {
 	vec3 d = Len * PlaneNormal;
 	return (Point - d);
 }
+
 void CalcPositions() {
 	// The original vertices stay the same
 	oPatch.WorldPos_B030 = WorldPos_CS_in[0];

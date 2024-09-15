@@ -60,7 +60,7 @@ void main() {
 		c.radius += growth;
 
 		current_circle_state.circles[pindex] = c;
-	}else{
+	} else {
 		// Swap it the place.
 	}
 }

@@ -13,7 +13,6 @@ layout(location = 1) out vec3 FragIN_normal;
 layout(location = 2) out vec3 FragIN_tangent;
 layout(location = 3) out vec3 FragIN_bitangent;
 
-
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -37,16 +36,15 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-
 void main() {
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
 	FragIN_normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	FragIN_tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
 	FragIN_uv = TextureCoord;
 
-	vec3 Mnormal = normalize(FragIN_normal);
+	const vec3 Mnormal = normalize(FragIN_normal);
 	vec3 Ttangent = normalize(FragIN_tangent);
-	
+
 	Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
 	FragIN_bitangent = cross(Ttangent, Mnormal);
 }

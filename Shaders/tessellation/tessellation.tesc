@@ -58,6 +58,4 @@ void main() {
 	gl_TessLevelOuter[1] = GetTessLevel(EyeToVertexDistance2, EyeToVertexDistance0) * ubo.tessLevel;
 	gl_TessLevelOuter[2] = GetTessLevel(EyeToVertexDistance0, EyeToVertexDistance1) * ubo.tessLevel;
 	gl_TessLevelInner[0] = gl_TessLevelOuter[2];
-
-	// gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 }

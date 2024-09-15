@@ -109,8 +109,7 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SimpleReflection)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/MineCraft)
 
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SimpleParticleSystem)
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/particle-system)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ParticleSystem)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Grass)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Ocean)
@@ -123,21 +122,23 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VariableRateShading)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/OcclusionCulling)
 
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SVM)
+#ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SVM)
 
 # Compute Shader Based Samples
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Mandelbrot)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ReactionDiffusion)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ComputeGroupVisual)
 
 ############## Work In Progress ####################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField2D)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/OpticalFlow)
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ComputeGroupVisual)
+
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/InfinateWorld)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/RayTracing)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Sort)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/CirclePacking)
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/NBodySimulation)
+
 
 ####################################
 # Shader Source Files
@@ -167,7 +168,7 @@ FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${SPIRV}
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
-		COMMAND glslc -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex --target-spv=spv1.3 -x glsl -O -Werror -g --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
+		COMMAND glslc -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-spv=spv1.3 -x glsl -O -Werror -g --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
 		DEPENDS ${GLSL})
 	LIST(APPEND SPIRV_BINARY_FILES ${SPIRV})
 ENDFOREACH(GLSL)

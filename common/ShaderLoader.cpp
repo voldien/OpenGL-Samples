@@ -22,8 +22,9 @@ using namespace glsample;
 
 int ShaderLoader::loadGraphicProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
 									 const std::vector<uint32_t> *vertex, const std::vector<uint32_t> *fragment,
-									 const std::vector<uint32_t> *geometry, const std::vector<uint32_t> *tesselationc,
-									 const std::vector<uint32_t> *tesselatione) {
+									 const std::vector<uint32_t> *geometry,
+									 const std::vector<uint32_t> *tessela1ion_control,
+									 const std::vector<uint32_t> *tesselation_evolution) {
 
 	if (glSpecializeShaderARB) {
 		/*	Load SPIRV.	*/
@@ -53,28 +54,31 @@ int ShaderLoader::loadGraphicProgram(const fragcore::ShaderCompiler::CompilerCon
 		geometry_source.insert(geometry_source.end(), geometry_source_code.begin(), geometry_source_code.end());
 	}
 
-	std::vector<char> tesse_c_source;
-	if (tesselationc) {
+	std::vector<char> tesse_control_source;
+	if (tessela1ion_control) {
 
 		const std::vector<char> geometry_source_code =
-			fragcore::ShaderCompiler::convertSPIRV(*tesselationc, compilerOptions);
-		tesse_c_source.insert(tesse_c_source.end(), geometry_source_code.begin(), geometry_source_code.end());
+			fragcore::ShaderCompiler::convertSPIRV(*tessela1ion_control, compilerOptions);
+		tesse_control_source.insert(tesse_control_source.end(), geometry_source_code.begin(),
+									geometry_source_code.end());
 	}
 
-	std::vector<char> tesse_e_source;
-	if (tesselatione) {
+	std::vector<char> tesse_evolution_source;
+	if (tesselation_evolution) {
 
 		const std::vector<char> geometry_source_code =
-			fragcore::ShaderCompiler::convertSPIRV(*tesselatione, compilerOptions);
-		tesse_e_source.insert(tesse_e_source.end(), geometry_source_code.begin(), geometry_source_code.end());
+			fragcore::ShaderCompiler::convertSPIRV(*tesselation_evolution, compilerOptions);
+		tesse_evolution_source.insert(tesse_evolution_source.end(), geometry_source_code.begin(),
+									  geometry_source_code.end());
 	}
 
-	return loadGraphicProgram(&vertex_source, &fragment_source, &geometry_source, &tesse_c_source, &tesse_e_source);
+	return ShaderLoader::loadGraphicProgram(&vertex_source, &fragment_source, &geometry_source, &tesse_control_source,
+											&tesse_evolution_source);
 }
 
 int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std::vector<char> *fragment,
-									 const std::vector<char> *geometry, const std::vector<char> *tesselationc,
-									 const std::vector<char> *tesselatione) {
+									 const std::vector<char> *geometry, const std::vector<char> *tesselation_control,
+									 const std::vector<char> *tesselation_evolution) {
 	fragcore::resetErrorFlag();
 
 	const int program = glCreateProgram();
@@ -108,14 +112,14 @@ int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std:
 		fragcore::checkError();
 	}
 
-	if (tesselationc && tesselationc->size() > 0) {
-		shader_tesc = loadShader(*tesselationc, GL_TESS_CONTROL_SHADER);
+	if (tesselation_control && tesselation_control->size() > 0) {
+		shader_tesc = loadShader(*tesselation_control, GL_TESS_CONTROL_SHADER);
 		glAttachShader(program, shader_tesc);
 		fragcore::checkError();
 	}
 
-	if (tesselatione && tesselatione->size() > 0) {
-		shader_tese = loadShader(*tesselatione, GL_TESS_EVALUATION_SHADER);
+	if (tesselation_evolution && tesselation_evolution->size() > 0) {
+		shader_tese = loadShader(*tesselation_evolution, GL_TESS_EVALUATION_SHADER);
 		glAttachShader(program, shader_tese);
 		fragcore::checkError();
 	}
@@ -161,12 +165,13 @@ finished:
 }
 
 int ShaderLoader::loadComputeProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
-									 const std::vector<uint32_t> *compute) {
+									 const std::vector<uint32_t> *compute_binary) {
 
 	std::vector<char> compute_source;
-	if (compute) {
+	if (compute_binary) {
 
-		const std::vector<char> vertex_source_code = fragcore::ShaderCompiler::convertSPIRV(*compute, compilerOptions);
+		const std::vector<char> vertex_source_code =
+			fragcore::ShaderCompiler::convertSPIRV(*compute_binary, compilerOptions);
 		compute_source.insert(compute_source.end(), vertex_source_code.begin(), vertex_source_code.end());
 	}
 
@@ -181,7 +186,7 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 	fragcore::checkError();
 
 	int lstatus;
-	const int shader_compute = loadShader(*computePaths[0], GL_COMPUTE_SHADER);
+	const int shader_compute = ShaderLoader::loadShader(*computePaths[0], GL_COMPUTE_SHADER);
 
 	/*	*/
 	glAttachShader(program, shader_compute);

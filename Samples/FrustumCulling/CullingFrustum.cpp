@@ -1,3 +1,4 @@
+#include "Core/Math.h"
 #include "Core/Math3D.h"
 #include "GLSampleSession.h"
 #include "Scene.h"
@@ -49,11 +50,11 @@ namespace glsample {
 			this->addUIComponent(this->frustumCullingSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(15.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 
 			/*	*/
-			this->camera_observe_frustum.setPosition(glm::vec3(200.5f));
+			this->camera_observe_frustum.setPosition(glm::vec3(100.5f));
 			this->camera_observe_frustum.lookAt(glm::vec3(0.f));
 			/*	*/
 			this->camera_observe_frustum.enableNavigation(false);
@@ -81,6 +82,7 @@ namespace glsample {
 		MeshObject boundingBox;
 		MeshObject frustum;
 		MeshObject plan;
+		MeshObject frustumPlanes;
 		SceneFrustum scene; /*	World Scene.	*/
 
 		/*	*/
@@ -115,6 +117,9 @@ namespace glsample {
 
 		const std::string vertexBoundingShaderPath = "Shaders/bounding/boundingbox.vert.spv";
 		const std::string fragmentBoundingShaderPath = "Shaders/bounding/boundingbox.frag.spv";
+
+		const std::string vertexHyperplaneShaderPath = "Shaders/blending/blending.vert.spv";
+		const std::string fragmentHyperplaneShaderPath = "Shaders/blending/blending.frag.spv";
 
 		const std::string vertexBlendShaderPath = "Shaders/blending/blending.vert.spv";
 		const std::string fragmentBlendShaderPath = "Shaders/blending/blending.frag.spv";
@@ -181,9 +186,9 @@ namespace glsample {
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				const std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_graphic_binary =
 					IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_graphic_binary =
 					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
 
 				/*	Load shader binaries.	*/
@@ -214,7 +219,7 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary, &fragment_graphic_binary);
 
 				/*	Load shader	*/
 				this->wireframe_program =
@@ -258,7 +263,7 @@ namespace glsample {
 				/*	*/
 				GLint uniformMaxSize;
 				glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
-				this->instanceBatch = uniformMaxSize / sizeof(glm::mat4);
+				this->instanceBatch = std::min<size_t>(uniformMaxSize / sizeof(glm::mat4), 512);
 
 				this->uniformInstanceSize =
 					fragcore::Math::align(this->instanceBatch * sizeof(glm::mat4), (size_t)minMapBufferSize);
@@ -280,15 +285,15 @@ namespace glsample {
 				// TODO: add helper method to merge multiple.
 				std::vector<ProceduralGeometry::Vertex> wireCubeVertices;
 				std::vector<unsigned int> wireCubeIndices;
-				ProceduralGeometry::generateCube(1, wireCubeVertices, wireCubeIndices);
+				ProceduralGeometry::generateCube(1, wireCubeVertices, wireCubeIndices, 1);
 
 				std::vector<ProceduralGeometry::Vertex> planCubeVertices;
 				std::vector<unsigned int> planCubeIndices;
 				ProceduralGeometry::generatePlan(1, planCubeVertices, planCubeIndices);
 
 				std::vector<ProceduralGeometry::Vertex> frustumVertices;
-				Matrix4x4 proj = Matrix4x4();
-				camera.getProjectionMatrix();
+				/*	Update frustum geometry.	*/
+				const Matrix4x4 proj = GLM2E(camera.getProjectionMatrix());
 				ProceduralGeometry::createFrustum(frustumVertices, proj);
 
 				/*	Create array buffer, for rendering static geometry.	*/
@@ -347,9 +352,12 @@ namespace glsample {
 
 		void onResize(int width, int height) override {
 
-			/*	Update camera	*/
+			/*	Update camera aspect	*/
 			this->camera.setAspect((float)width / (float)height);
 			this->camera_observe_frustum.setAspect((float)width / (float)height);
+
+			this->camera.setFar(2000.0f);
+			this->camera_observe_frustum.setFar(2000.0f);
 
 			/*	Update frustum geometry.	*/
 			const Matrix4x4 proj = GLM2E(camera.getProjectionMatrix());
@@ -368,7 +376,9 @@ namespace glsample {
 							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformBufferSize * this->nrCameras,
 							  this->uniformBufferSize);
 
-			secondCameraNodeQueue = this->mainCameraNodeQueue;
+			/*	*/
+			this->secondCameraNodeQueue = this->mainCameraNodeQueue;
+
 			/*	Draw from main camera */
 			{
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -378,9 +388,7 @@ namespace glsample {
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				glUseProgram(this->graphic_program);
-
 				this->scene.render();
-
 				glUseProgram(0);
 
 				if (this->frustumCullingSettingComponent->showBounds) {
@@ -406,6 +414,7 @@ namespace glsample {
 					const int subY = height * 0.7;
 					const int subWidth = width * 0.3;
 					const int subHeight = height * 0.3;
+
 					glViewport(subX, subY, subWidth, subHeight);
 					glClearColor(0.05f, 0.05f, 0.05f, 0.0f);
 					glScissor(subX, subY, subWidth, subHeight);
@@ -420,7 +429,7 @@ namespace glsample {
 
 					if (this->frustumCullingSettingComponent->showFrustum) {
 						glUseProgram(this->bounding_program);
-						renderFrustum(this->camera_observe_frustum);
+						this->renderFrustum(this->camera_observe_frustum);
 						glUseProgram(0);
 					}
 
@@ -510,6 +519,8 @@ namespace glsample {
 			/*	*/
 			glBindVertexArray(this->boundingBox.vao);
 
+			glDrawElementsInstanced(GL_TRIANGLES, this->frustum.nrIndicesElements, GL_UNSIGNED_INT,
+									(const void *)this->frustum.indices_offset, 1);
 			glBindVertexArray(0);
 		}
 
@@ -542,6 +553,7 @@ namespace glsample {
 				}
 			}
 
+			/*	Transfer new */
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
 				uint8_t *uniform_instance_buffer_pointer = (uint8_t *)glMapBufferRange(
@@ -557,22 +569,32 @@ namespace glsample {
 
 			glBindVertexArray(this->boundingBox.vao);
 
+			/*	*/
+			glDisable(GL_CULL_FACE);
+			glEnable(GL_DEPTH_TEST);
+			glDepthMask(GL_FALSE);
+
+			/*	Blending.	*/
+			glEnable(GL_BLEND);
+			glBlendEquation(GL_FUNC_ADD);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 			for (size_t x = 0; x < instance_model_matrices.size(); x += this->instanceBatch) {
 
 				/*	*/
 				const NodeObject *node = this->scene.getNodes()[x];
 				const size_t nrDrawInstances = std::min(instance_model_matrices.size() - x, this->instanceBatch);
 
-				glDisable(GL_DEPTH_TEST);
-
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_binding,
 								  this->uniform_instance_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize,
 								  this->uniformInstanceSize);
 
-				glDrawElementsInstanced(GL_LINES, this->boundingBox.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+				glDrawElementsInstanced(GL_TRIANGLES, this->boundingBox.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
 										nrDrawInstances);
 			}
+
+			glDepthMask(GL_TRUE);
 			glBindVertexArray(0);
 		}
 	};

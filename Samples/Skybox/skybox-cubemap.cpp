@@ -92,9 +92,9 @@ namespace glsample {
 			const std::vector<std::string> cubemapPaths = this->getResult()["texture"].as<std::vector<std::string>>();
 			{
 				/*	Load shader binaries.	*/
-				std::vector<uint32_t> vertex_source =
+				std::vector<uint32_t> vertex_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-				std::vector<uint32_t> fragment_source =
+				std::vector<uint32_t> fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
 				/*	*/
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -103,7 +103,7 @@ namespace glsample {
 
 				/*	Create skybox graphic pipeline program.	*/
 				this->skybox_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 			}
 
 			/*	Setup graphic pipeline.	*/

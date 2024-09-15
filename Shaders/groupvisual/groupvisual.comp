@@ -22,7 +22,7 @@ layout(binding = 0) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 
-	/*	*/
+	/*	Settings.	*/
 	uint nrFaces;
 	uint nrElements;
 	float delta;
@@ -31,7 +31,7 @@ layout(binding = 0) uniform UniformBufferBlock {
 ubo;
 
 /* Indirect drawing count	*/
-layout(std430, binding = 1) coherent buffer IndirectWrite {
+layout(set = 0, binding = 1) buffer IndirectWrite {
 	uint count;
 	uint instanceCount;
 	uint firstIndex;
@@ -45,36 +45,26 @@ writeBuffer;
 
 void main() {
 
+	/*	construct translate scale matrix.	*/
+	mat4 transform = mat4(1);
+	transform[3][0] = gl_GlobalInvocationID.x;
+	transform[3][1] = gl_GlobalInvocationID.y;
+	transform[3][2] = gl_GlobalInvocationID.z;
+	const float scale = ubo.scale;
+	transform[0][0] = scale;
+	transform[1][1] = scale;
+	transform[2][2] = scale;
+
 	uint pindex = gl_GlobalInvocationID.x;
 	if (gl_GlobalInvocationID.x == 0) {
 		instances.instanceCount = 0;
 	}
 	barrier(); // Wait till all threads reach this point
 
-	uint globalIndex = 0;
-	uint localIndex = 0;
-
-	mat4 transform = mat4(1);
-	transform[3][0] = gl_GlobalInvocationID.x;
-	transform[3][1] = gl_GlobalInvocationID.y;
-	transform[3][2] = gl_GlobalInvocationID.z;
-
-	const float scale = ubo.scale;
-	transform[0][0] = scale;
-	transform[1][1] = scale;
-	transform[2][2] = scale;
-
-	// TODO:
-	// atomicAdd(instances.instanceCount, 1);
-
-	// const uint instance_index =
-	//	gl_GlobalInvocationID.z * (gl_NumWorkGroups.x * gl_NumWorkGroups.y * gl_WorkGroupSize.x * gl_WorkGroupSize.y) +
-	//	gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x) + gl_GlobalInvocationID.x;
-
-	const uint instance_index = atomicAdd(instances.instanceCount, 1);
-	barrier(); // Wait till all threads reach this point
-
-	// atomicAdd(instances.instanceCount, 1);
+	// TOOD: improve
+	const uint instance_index =
+		gl_GlobalInvocationID.z * (gl_NumWorkGroups.x * gl_NumWorkGroups.y * gl_WorkGroupSize.x * gl_WorkGroupSize.y) +
+		gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x) + gl_GlobalInvocationID.x;
 
 	writeBuffer.instance[instance_index].model = transform;
 	writeBuffer.instance[instance_index].color = vec4(vec3(gl_GlobalInvocationID.xyz) * 0.05, 1);
@@ -85,6 +75,6 @@ void main() {
 		instances.firstIndex = 0;
 		instances.baseVertex = 0;
 		instances.baseInstance = 0;
-		// instances.instanceCount = ubo.nrElements;
+		instances.instanceCount = ubo.nrElements;
 	}
 }

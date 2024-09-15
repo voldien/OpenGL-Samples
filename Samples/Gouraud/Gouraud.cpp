@@ -5,7 +5,6 @@
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -62,7 +61,7 @@ namespace glsample {
 
 				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Levels", &this->uniform.tessLevel, 1, 0.0f, 6.0f);
-				ImGui::Checkbox("Catmull-Clark", &this->subdivionsCatmullClark);
+				ImGui::Checkbox("Catmull-Clark", &this->useSubdivionsCatmullClark);
 
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -70,7 +69,7 @@ namespace glsample {
 			}
 
 			bool showWireFrame = false;
-			bool subdivionsCatmullClark = true;
+			bool useSubdivionsCatmullClark = true;
 			bool useAnimation = false;
 
 		  private:
@@ -83,14 +82,14 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(uniform_buffer_block);
+		size_t uniformbufferSize = sizeof(uniform_buffer_block);
 
 		/*	*/
 		MeshObject sphere;
 
 		/*	*/
-		unsigned int gouraud_program;
-		unsigned int simple_tessellation_program;
+		unsigned int gouraud_catmull_program;
+		unsigned int gouraud_tessellation_program;
 
 		/*	*/
 		CameraController camera;
@@ -98,15 +97,20 @@ namespace glsample {
 		/*	*/
 		const std::string vertexGouraudShaderPath = "Shaders/gouraud/gouraud.vert.spv";
 		const std::string fragmentGouraudShaderPath = "Shaders/gouraud/gouraud.frag.spv";
-		const std::string ControlGouraudShaderPath = "Shaders/gouraud/gouraud.tesc.spv";
-		const std::string EvoluationGouraudShaderPath = "Shaders/gouraud/gouraud.tese.spv";
+		const std::string controlGouraudShaderPath = "Shaders/gouraud/gouraud.tesc.spv";
+		const std::string evoluationGouraudShaderPath = "Shaders/gouraud/gouraud.tese.spv";
 
-		// const std::string ControlShaderPath = "Shaders/gouraud/gouraud.tesc.spv";
+		/*	*/
+		const std::string catmullControlGouraudShaderPath = "Shaders/gouraud/gouraud_catmull.tesc.spv";
+		const std::string catmullEvoluationGouraudShaderPath = "Shaders/gouraud/gouraud_catmull.tese.spv";
+
+		// const std::string ControlShaderPath = "Shaders/gouraud/gouraud.tesc.spv"; catmull
 		// const std::string EvoluationShaderPath = "Shaders/gouraud/gouraud.tese.spv";
 
 		void Release() override {
 			/*	*/
-			glDeleteProgram(this->gouraud_program);
+			glDeleteProgram(this->gouraud_catmull_program);
+			glDeleteProgram(this->gouraud_tessellation_program);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
 
@@ -119,87 +123,62 @@ namespace glsample {
 		void Initialize() override {
 
 			{
-				/*	*/
-				const std::vector<uint32_t> vertex_gouraud_binary =
+
+				const std::vector<uint32_t> gouraud_vertex_gouraud_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexGouraudShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_binary =
+				const std::vector<uint32_t> gouraud_fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentGouraudShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> control_binary =
-					IOUtil::readFileData<uint32_t>(this->ControlGouraudShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> evolution_binary =
-					IOUtil::readFileData<uint32_t>(this->EvoluationGouraudShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> gouraud_control_binary =
+					IOUtil::readFileData<uint32_t>(this->controlGouraudShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> gouraud_evolution_binary =
+					IOUtil::readFileData<uint32_t>(this->evoluationGouraudShaderPath, this->getFileSystem());
+
+				const std::vector<uint32_t> catmull_control_binary =
+					IOUtil::readFileData<uint32_t>(this->catmullControlGouraudShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> catmull_evolution_binary =
+					IOUtil::readFileData<uint32_t>(this->catmullEvoluationGouraudShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->gouraud_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_gouraud_binary, &fragment_binary, nullptr,
-													 &control_binary, &evolution_binary);
+				this->gouraud_tessellation_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &gouraud_vertex_gouraud_binary, &gouraud_fragment_binary, nullptr,
+					&gouraud_control_binary, &gouraud_evolution_binary);
+
+				/*	Load shader	*/
+				this->gouraud_catmull_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &gouraud_vertex_gouraud_binary, &gouraud_fragment_binary, nullptr,
+					&catmull_control_binary, &catmull_evolution_binary);
 			}
 
 			/*	Setup Shader.	*/
-			glUseProgram(this->gouraud_program);
-			this->uniform_buffer_index = glGetUniformBlockIndex(this->gouraud_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->gouraud_program, this->uniform_buffer_index, 0);
+			glUseProgram(this->gouraud_tessellation_program);
+			this->uniform_buffer_index =
+				glGetUniformBlockIndex(this->gouraud_tessellation_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->gouraud_tessellation_program, this->uniform_buffer_index, 0);
+			glUseProgram(0);
+
+			/*	Setup Shader.	*/
+			glUseProgram(this->gouraud_catmull_program);
+			this->uniform_buffer_index = glGetUniformBlockIndex(this->gouraud_catmull_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->gouraud_catmull_program, this->uniform_buffer_index, 0);
 			glUseProgram(0);
 
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformSize = Math::align(this->uniformSize, (size_t)minMapBufferSize);
+			this->uniformbufferSize = Math::align(this->uniformbufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformbufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			{
-				std::vector<ProceduralGeometry::Vertex> vertices;
-				std::vector<unsigned int> indices;
-				ProceduralGeometry::generateSphere(1, vertices, indices, 8, 8);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenVertexArrays(1, &this->sphere.vao);
-				glBindVertexArray(this->sphere.vao);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenBuffers(1, &this->sphere.vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, sphere.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-							 GL_STATIC_DRAW);
-
-				/*	*/
-				glGenBuffers(1, &this->sphere.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sphere.ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
-							 GL_STATIC_DRAW);
-				this->sphere.nrIndicesElements = indices.size();
-
-				/*	Vertex.	*/
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-				/*	UV.	*/
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(12));
-
-				/*	Normal.	*/
-				glEnableVertexAttribArray(2);
-				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(20));
-
-				/*	Tangent.	*/
-				glEnableVertexAttribArray(3);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(32));
-
-				glBindVertexArray(0);
-			}
+			Common::loadSphere(this->sphere, 1, 8, 8);
 		}
 
 		void onResize(int width, int height) override {
@@ -219,13 +198,14 @@ namespace glsample {
 
 			{
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformSize,
-								  this->uniformSize);
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformbufferSize,
+								  this->uniformbufferSize);
 
-				if (this->gouraudSettingComponent->subdivionsCatmullClark) {
-					glUseProgram(this->gouraud_program);
+				/*	*/
+				if (this->gouraudSettingComponent->useSubdivionsCatmullClark) {
+					glUseProgram(this->gouraud_catmull_program);
 				} else {
-					glUseProgram(this->simple_tessellation_program);
+					glUseProgram(this->gouraud_tessellation_program);
 				}
 
 				glEnable(GL_CULL_FACE);
@@ -270,8 +250,8 @@ namespace glsample {
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				void *uniformPointer = glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
-					this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformbufferSize,
+					this->uniformbufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}

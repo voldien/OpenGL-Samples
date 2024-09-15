@@ -184,20 +184,20 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader source.	*/
-				const std::vector<uint32_t> vertex_ssao_source =
+				const std::vector<uint32_t> vertex_ssao_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexSSAOShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_ssao_source =
+				const std::vector<uint32_t> fragment_ssao_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentSSAOShaderPath, this->getFileSystem());
 
 				/*	Load shader source.	*/
-				const std::vector<uint32_t> vertex_ssao_depth_only_source =
+				const std::vector<uint32_t> vertex_ssao_depth_only_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexSSAODepthOnlyShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_ssao_depth_onlysource =
 					IOUtil::readFileData<uint32_t>(this->fragmentSSAODepthOnlyShaderPath, this->getFileSystem());
 
-				const std::vector<uint32_t> vertex_multi_pass_source =
+				const std::vector<uint32_t> vertex_multi_pass_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexMultiPassShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_multi_pass_source =
+				const std::vector<uint32_t> fragment_multi_pass_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentMultiPassShaderPath, this->getFileSystem());
 
 				/*	*/
@@ -208,15 +208,15 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->ssao_world_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_source, &fragment_ssao_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_binary, &fragment_ssao_binary);
 
 				/*	Load shader	*/
 				this->ssao_depth_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_ssao_depth_only_source, &fragment_ssao_depth_onlysource);
+					compilerOptions, &vertex_ssao_depth_only_binary, &fragment_ssao_depth_onlysource);
 
 				/*	Load shader	*/
-				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_multi_pass_source,
-																		   &fragment_multi_pass_source);
+				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_multi_pass_binary,
+																		   &fragment_multi_pass_binary);
 
 				/*	Load shader	*/
 				this->texture_program =
@@ -484,7 +484,7 @@ namespace glsample {
 			glDrawBuffers(drawAttach.size(), drawAttach.data());
 
 			/*  Validate if created properly.*/
-			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			const int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
@@ -707,7 +707,8 @@ namespace glsample {
 			{
 				glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				void *uniformPointer = glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferAlignedSize,
+					GL_UNIFORM_BUFFER,
+					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferAlignedSize,
 					this->uniformBufferAlignedSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				memcpy(uniformPointer, &this->uniformStageBlock, sizeof(uniformStageBlock));

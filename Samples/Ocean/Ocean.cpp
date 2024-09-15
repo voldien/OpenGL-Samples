@@ -6,7 +6,6 @@
 #include <ShaderLoader.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -185,29 +184,29 @@ namespace glsample {
 				/*	Load source code for the ocean shader.	*/
 				const std::vector<uint32_t> vertex_ocean_binary =
 					IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_binary =
 					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> control_source =
+				const std::vector<uint32_t> control_binary =
 					IOUtil::readFileData<uint32_t>(tesscShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> evolution_source =
+				const std::vector<uint32_t> evolution_binary =
 					IOUtil::readFileData<uint32_t>(teseShaderPath, this->getFileSystem());
 
 				/*	Load source code for spectrum compute shader.	*/
-				const std::vector<uint32_t> compute_spectrum_source =
+				const std::vector<uint32_t> compute_spectrum_binary =
 					IOUtil::readFileData<uint32_t>(computeShaderPath, this->getFileSystem());
 				/*	Load source code for fast furious transform.	*/
-				const std::vector<uint32_t> compute_kff_source =
+				const std::vector<uint32_t> compute_kff_binary =
 					IOUtil::readFileData<uint32_t>(computeKFFShaderPath, this->getFileSystem());
 
 				/*	Load graphic program for skybox.	*/
 				this->ocean_graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ocean_binary, &fragment_source, nullptr,
-													 &control_source, &evolution_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ocean_binary, &fragment_binary, nullptr,
+													 &control_binary, &evolution_binary);
 
 				/*	Load compute shader program.	*/
 				this->spectrum_compute_program =
-					ShaderLoader::loadComputeProgram(compilerOptions, &compute_spectrum_source);
-				this->kff_compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_kff_source);
+					ShaderLoader::loadComputeProgram(compilerOptions, &compute_spectrum_binary);
+				this->kff_compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_kff_binary);
 
 				/*	Load shader binaries.	*/
 				std::vector<uint32_t> vertex_skybox_binary =

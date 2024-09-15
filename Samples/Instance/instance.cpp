@@ -5,7 +5,6 @@
 #include <ShaderLoader.h>
 #include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -289,7 +288,7 @@ namespace glsample {
 				}
 			}
 
-			/*	*/ /*	*/
+			/*	*/
 			this->uniformData.proj = this->camera.getProjectionMatrix();
 			this->uniformData.model = glm::mat4(1.0f);
 			this->uniformData.view = this->camera.getViewMatrix();

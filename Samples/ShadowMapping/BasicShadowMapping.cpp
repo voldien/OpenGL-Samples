@@ -3,10 +3,10 @@
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>
+#include <Importer/Scene.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -54,11 +54,13 @@ namespace glsample {
 		unsigned int diffuse_texture;
 
 		std::vector<MeshObject> refObj;
+		Scene scene;
 
 		/*	*/
 		unsigned int graphic_program;
 		unsigned int graphic_pfc_program;
 		unsigned int shadow_program;
+		unsigned int shadow_alpha_clip_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_shadow_buffer_binding = 0;
@@ -66,6 +68,7 @@ namespace glsample {
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformBufferSize = sizeof(uniform_buffer_block);
+		const int shadowBinding = 8;
 
 		CameraController camera;
 
@@ -77,6 +80,7 @@ namespace glsample {
 			}
 
 			void draw() override {
+
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
@@ -87,6 +91,7 @@ namespace glsample {
 				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
+				ImGui::Checkbox("Shadow Alpha Clipping", &this->shadowClip);
 				ImGui::TextUnformatted("Depth Texture");
 				ImGui::Image(reinterpret_cast<ImTextureID>(this->depth), ImVec2(512, 512));
 			}
@@ -95,6 +100,7 @@ namespace glsample {
 			unsigned int &depth;
 			bool showWireFrame = false;
 			bool use_pcf;
+			bool shadowClip = false;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -109,6 +115,11 @@ namespace glsample {
 		/*	*/
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
+		const std::string fragmentClippingShadowShaderPath = "Shaders/shadowmap/shadowmap_alpha.frag.spv";
+
+		/*	*/
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 		void Release() override {
 			glDeleteProgram(this->graphic_program);
@@ -132,17 +143,17 @@ namespace glsample {
 
 			{
 				/*	*/
-				const std::vector<uint32_t> vertex_source =
+				const std::vector<uint32_t> vertex_graphic_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexGraphicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_source =
+				const std::vector<uint32_t> fragment_graphic_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentGraphicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_pfc_source =
+				const std::vector<uint32_t> fragment_graphic_pfc_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentPCFGraphicShaderPath, this->getFileSystem());
 
 				/*	*/
-				const std::vector<uint32_t> vertex_shadow_source =
+				const std::vector<uint32_t> vertex_shadow_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexShadowShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_shadow_source =
+				const std::vector<uint32_t> fragment_shadow_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentShadowShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -151,11 +162,11 @@ namespace glsample {
 
 				/*	Load shaders	*/
 				this->graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_source);
-				this->graphic_pfc_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_source, &fragment_pfc_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary, &fragment_graphic_binary);
+				this->graphic_pfc_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary,
+																			 &fragment_graphic_pfc_binary);
 				this->shadow_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_source, &fragment_shadow_source);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary, &fragment_shadow_binary);
 			}
 
 			/*	load Textures	*/
@@ -170,11 +181,19 @@ namespace glsample {
 									  this->uniform_shadow_buffer_binding);
 				glUseProgram(0);
 
+				glUseProgram(this->shadow_alpha_clip_program);
+				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "DiffuseTexture"), 0);
+				uniform_buffer_shadow_index =
+					glGetUniformBlockIndex(this->shadow_alpha_clip_program, "UniformBufferBlock");
+				glUniformBlockBinding(this->shadow_alpha_clip_program, uniform_buffer_shadow_index,
+									  this->uniform_shadow_buffer_binding);
+				glUseProgram(0);
+
 				/*	Setup graphic pipeline.	*/
 				glUseProgram(this->graphic_program);
 				int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 				glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-				glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 1);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), shadowBinding);
 				glUniformBlockBinding(this->graphic_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
 				glUseProgram(0);
@@ -183,7 +202,7 @@ namespace glsample {
 				glUseProgram(this->graphic_pfc_program);
 				uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), 0);
-				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), 1);
+				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), shadowBinding);
 				glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
 				glUseProgram(0);
@@ -243,10 +262,9 @@ namespace glsample {
 			}
 
 			/*	*/
-			ModelImporter modelLoader(FileSystem::getFileSystem());
-			modelLoader.loadContent(modelPath, 0);
-
-			ImportHelper::loadModelBuffer(modelLoader, refObj);
+			ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
+			modelLoader->loadContent(modelPath, 0);
+			this->scene = Scene::loadFrom(*modelLoader);
 		}
 
 		void onResize(int width, int height) override {
@@ -262,7 +280,7 @@ namespace glsample {
 
 			{
 
-				/*	Compute light matrices.	*/
+				/*	Compute light matrix.	*/
 				float near_plane = -this->shadowSettingComponent->distance / 2.0f,
 					  far_plane = this->shadowSettingComponent->distance / 2.0f;
 				glm::mat4 lightProjection =
@@ -288,19 +306,24 @@ namespace glsample {
 
 				glClear(GL_DEPTH_BUFFER_BIT);
 				glViewport(0, 0, shadowWidth, shadowHeight);
-				glUseProgram(this->shadow_program);
+				if (this->shadowSettingComponent->shadowClip) {
+					glUseProgram(this->shadow_alpha_clip_program);
+				} else {
+					glUseProgram(this->shadow_program);
+				}
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				glCullFace(GL_FRONT);
 				glEnable(GL_CULL_FACE);
 
 				/*	Setup the shadow.	*/
-				glBindVertexArray(this->refObj[0].vao);
-				for (size_t i = 0; i < this->refObj.size(); i++) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
-											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
-											 this->refObj[i].vertex_offset);
-				}
-				glBindVertexArray(0);
+				this->scene.render();
+				// glBindVertexArray(this->refObj[0].vao);
+				// for (size_t i = 0; i < this->refObj.size(); i++) {
+				// 	glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+				// 							 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+				// 							 this->refObj[i].vertex_offset);
+				// }
+				// glBindVertexArray(0);
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 
@@ -335,16 +358,18 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + 1);
+				glActiveTexture(GL_TEXTURE0 + shadowBinding);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
-				glBindVertexArray(this->refObj[0].vao);
-				for (size_t i = 0; i < this->refObj.size(); i++) {
-					glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
-											 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
-											 this->refObj[i].vertex_offset);
-				}
-				glBindVertexArray(0);
+				this->scene.render();
+
+				// glBindVertexArray(this->refObj[0].vao);
+				// for (size_t i = 0; i < this->refObj.size(); i++) {
+				// 	glDrawElementsBaseVertex(GL_TRIANGLES, this->refObj[i].nrIndicesElements, GL_UNSIGNED_INT,
+				// 							 (void *)(sizeof(unsigned int) * this->refObj[i].indices_offset),
+				// 							 this->refObj[i].vertex_offset);
+				// }
+				// glBindVertexArray(0);
 				glUseProgram(0);
 			}
 		}
@@ -355,7 +380,6 @@ namespace glsample {
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			// this->mvp.model = glm::scale(this->mvp.model, glm::vec3(1.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBuffer.modelViewProjection =

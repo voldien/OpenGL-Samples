@@ -24,7 +24,8 @@ namespace glsample {
 
 	using namespace fragcore;
 
-	/*
+	/**
+	 * @brief Positive
 	 *
 	 */
 	class FVDECLSPEC Frustum : public Camera<float> {
@@ -33,9 +34,9 @@ namespace glsample {
 		 *	Intersection.
 		 */
 		enum Intersection : unsigned int {
-			Out = 0,	   /*	Outside frustum completly.*/
-			In = 1,		   /*	Inside frustum completly.*/
-			Intersect = 2, /*	Intresecting frustum planes.	*/
+			Out = 0,	   /*	Outside frustum completly - Positive.*/
+			In = 1,		   /*	Inside frustum completly - Negative.*/
+			Intersect = 2, /*	Intresecting frustum planes- Partially.	*/
 		};
 
 		/**
@@ -48,6 +49,7 @@ namespace glsample {
 			RIGHT_PLANE = 3,  /*	*/
 			NEAR_PLANE = 4,	  /*	*/
 			FAR_PLANE = 5,	  /*	*/
+			NPLANES = 6
 		};
 
 		/**
@@ -60,7 +62,8 @@ namespace glsample {
 		const Plane<float> &getPlane(int index) const { return this->planes[index]; }
 
 		/**
-		 *	Comput the frustum planes.
+		 *	Comput the frustum planes,
+		 *	planes normal pointing positive towards the frustum volume.
 		 */
 		virtual void calcFrustumPlanes(const Vector3 &position, const Vector3 &look, const Vector3 &up,
 									   const Vector3 &right);

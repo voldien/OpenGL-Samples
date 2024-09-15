@@ -7,7 +7,6 @@
 #include <ShaderCompiler.h>
 #include <ShaderLoader.h>
 #include <glm/glm.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -90,19 +89,15 @@ namespace glsample {
 			ModelViewer::Initialize();
 			{
 				/*	Load shader binaries.	*/
-				const std::vector<uint32_t> optical_flow_source =
+				const std::vector<uint32_t> optical_flow_binary =
 					IOUtil::readFileData<uint32_t>(this->computeMandelbrotShaderPath, this->getFileSystem());
 
 				/*	*/
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
-
-				const std::vector<char> optical_flow_binary =
-					fragcore::ShaderCompiler::convertSPIRV(optical_flow_source, compilerOptions);
-
 				/*	Load shader	*/
-				this->opticalflow_program = ShaderLoader::loadComputeProgram({&optical_flow_binary});
+				this->opticalflow_program = ShaderLoader::loadComputeProgram(compilerOptions, optical_flow_binary);
 			}
 
 			/*	*/
@@ -154,7 +149,7 @@ namespace glsample {
 			glDrawBuffers(1, &drawAttach);
 
 			/*  Validate if created properly.*/
-			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			const int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
@@ -185,7 +180,6 @@ namespace glsample {
 
 				glBindImageTexture(0, this->opticalTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 				glBindImageTexture(1, this->color_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
-
 
 				glDispatchCompute(std::ceil(this->color_texture_width / (float)localWorkGroupSize[0]),
 								  std::ceil(this->color_texture_height / (float)localWorkGroupSize[1]), 1);

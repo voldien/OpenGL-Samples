@@ -4,6 +4,9 @@
 #extension GL_ARB_uniform_buffer_object : enable
 
 layout(location = 0) in vec3 Vertex;
+layout(location = 1) in vec2 TextureCoord;
+
+layout(location = 0) out vec2 OutTextureCoord;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -23,4 +26,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-void main() { gl_Position = ubo.lightSpaceMatrix * ubo.model * vec4(Vertex, 1.0); }
+void main() {
+	gl_Position = ubo.lightSpaceMatrix * ubo.model * vec4(Vertex, 1.0);
+	OutTextureCoord = TextureCoord;
+}
