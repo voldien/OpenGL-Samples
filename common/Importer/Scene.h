@@ -1,28 +1,44 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2023 Valdemar Lindberg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
 #pragma once
 #include "Core/UIDObject.h"
 #include "GLSampleSession.h"
 #include "ImportHelper.h"
 #include "ModelImporter.h"
+#include <deque>
 
 namespace glsample {
 
-	enum class TextureType {
+	enum TextureType : unsigned int {
 		Diffuse = 0,	/*	*/
 		Normal = 1,		/*	*/
-		Mask = 2,		/*	*/
+		AlphaMask = 2,	/*	*/
 		Specular = 3,	/*	*/
 		Emission = 4,	/*	*/
 		Reflection = 5, /*	*/
 		Displacement,
 	};
 
-	enum class TexturePBRType {
-		Albedo,
-		Normal,
-		Metal,
-		Roughness,
-		AmbientOcclusion,
-		Displacement,
+	enum class TexturePBRType : unsigned int {
+		Albedo = 0,		  /*	*/
+		Normal,			  /*	*/
+		Metal,			  /*	*/
+		Roughness,		  /*	*/
+		AmbientOcclusion, /*	*/
+		Displacement,	  /*	*/
 	};
 
 	/**
@@ -56,6 +72,7 @@ namespace glsample {
 
 	  public:
 		/*	TODO add queue structure.	*/
+		std::deque<const NodeObject *> renderQueue;
 
 		std::vector<NodeObject *> nodes;
 		std::vector<MeshObject> refGeometry;
@@ -63,7 +80,7 @@ namespace glsample {
 		std::vector<MaterialObject> materials;
 		std::vector<animation_object_t> animations;
 
-	  protected:
+	  protected: /*	Default texture if texture from material is missing.*/
 		int normalDefault = -1;
 		int diffuseDefault = -1;
 		int roughnessSpecularDefault = -1;

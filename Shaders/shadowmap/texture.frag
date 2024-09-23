@@ -47,12 +47,12 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 
 	float shadow = textureProj(ShadowTexture, projCoords, 0).r;
 
-	if (projCoords.z > 1.0) {
-		shadow = 0.0;
-	}
-	if (fragPosLightSpace.w > 1) {
-		shadow = 0;
-	}
+	// if (projCoords.z > 1.0) {
+	// 	shadow = 0.0;
+	// }
+	// if (fragPosLightSpace.w > 1) {
+	// 	shadow = 0;
+	// }
 
 	return (1.0 - shadow);
 }

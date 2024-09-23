@@ -75,7 +75,7 @@ namespace glsample {
 		unsigned int uniform_instance_buffer;
 		unsigned int indirect_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(uniform_buffer_block);
+		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceMemorySize = 0;
 		const size_t maxGroupSize[3] = {16, 16, 16};
 
@@ -202,7 +202,7 @@ namespace glsample {
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
+			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, minMapBufferSize);
 
 			GLint SSBO_align_offset;
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &SSBO_align_offset);
@@ -210,7 +210,7 @@ namespace glsample {
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniformStageBuffer), &this->uniformStageBuffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -253,14 +253,13 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+							  this->uniformAlignBufferSize);
 
 			if (this->computeGroupVisualSettingComponent->needUpdate) {
 
 				refreshWholeRoundRobinBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer, this->nrUniformBuffer,
-											 &this->uniformStageBuffer, this->uniformBufferSize,
-											 sizeof(this->uniformStageBuffer));
+											 &this->uniformStageBuffer, this->uniformAlignBufferSize);
 
 				glUseProgram(this->compute_group_visual_compute_program);
 
@@ -354,8 +353,8 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+				this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
 			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 

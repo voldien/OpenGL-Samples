@@ -61,6 +61,10 @@ void main() {
 	/*	Update the current cell state.	*/
 	imageStore(currentCellsTexture, pixel_coords, uvec4(result));
 
+	/*	Apply gamma correction.	*/
+	const float gamma = 2.2;
+	const vec3 finalColor = pow(color[sum], vec3(1.0 / gamma));
+
 	/*	Update the render texture in order to display as a texture.	*/
-	imageStore(renderTexture, pixel_coords, vec4(color[sum], 1));
+	imageStore(renderTexture, pixel_coords, vec4(finalColor.rgb, 1));
 }

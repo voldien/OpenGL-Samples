@@ -1,3 +1,18 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2023 Valdemar Lindberg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
 #pragma once
 #include "Core/math3D/LinAlg.h"
 #include <Core/IO/IFileSystem.h>
@@ -20,7 +35,6 @@
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <utility>
 
 namespace glsample {}
 
@@ -64,13 +78,13 @@ typedef struct material_object_t : public AssetObject {
 	float shinininess;
 	float shinininessStrength;
 	float opacity;
-	int blend_mode;
+	int blend_mode;	/*	aiBlendMode*/
 	int wireframe_mode;
-	int culling_both_side_mode;
+	bool culling_both_side_mode;
 
 	// TODO add texture
 
-	unsigned int shade_model;
+	unsigned int shade_model;	/*	aiShadingMode	*/
 } MaterialObject;
 
 typedef struct node_object_t : public AssetObject {
@@ -176,7 +190,6 @@ typedef struct curve_t : public AssetObject {
 typedef struct animation_object_t : public AssetObject {
 	std::vector<Curve> curves;
 	float durtation;
-
 } AnimationObject;
 
 typedef struct light_object_t : public AssetObject {
@@ -249,7 +262,7 @@ class FVDECLSPEC ModelImporter {
 
 	void loadTexturesFromMaterials(aiMaterial *material);
 
-	void convert2Adjcent(const aiMesh* mesh, std::vector<unsigned int>& indices);
+	void convert2Adjcent(const aiMesh *mesh, std::vector<unsigned int> &indices);
 
   public:
 	const std::vector<NodeObject *> getNodes() const noexcept { return this->nodes; }

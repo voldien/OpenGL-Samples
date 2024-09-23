@@ -141,42 +141,10 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			{
-				/*	Load geometry.	*/
-				std::vector<ProceduralGeometry::Vertex> vertices;
-				std::vector<unsigned int> indices;
-				ProceduralGeometry::generateCube(1, vertices, indices);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenVertexArrays(1, &this->planGeometry.vao);
-				glBindVertexArray(this->planGeometry.vao);
-
-				/*	Create indices buffer.	*/
-				glGenBuffers(1, &this->planGeometry.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planGeometry.ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
-							 GL_STATIC_DRAW);
-				this->planGeometry.nrIndicesElements = indices.size();
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenBuffers(1, &this->planGeometry.vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, planGeometry.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-							 GL_STATIC_DRAW);
-
-				/*	Set Vertex attribute location and size.	*/
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(0));
-
-				/*	Set UV attribute location and size.	*/
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(12));
-
-				glBindVertexArray(0);
-			}
+			/*	Load geometry.	*/
+			Common::loadCube(this->planGeometry, 1, 1, 1);
 		}
+		
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {

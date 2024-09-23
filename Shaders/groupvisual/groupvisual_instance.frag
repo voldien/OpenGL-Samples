@@ -34,11 +34,6 @@ ubo;
 
 void main() {
 
-	const vec3 N = normalize(normal);
-	const float contribution = max(dot(N, normalize(ubo.direction.xyz)), 0.0);
-
-	const vec4 LightColors = contribution * ubo.lightColor;
-
 	fragColor = instanceColor; //* LightColors;// (ubo.ambientColor + LightColors + LightSpecular) *
 							   // texture(DiffuseTexture, uv) * instanceColor * 2.5;
 }

@@ -13,6 +13,7 @@ layout(location = 3) in vec3 FragIN_tangent;
 #include "skinnedmesh_common.glsl"
 
 layout(binding = 0) uniform sampler2D DiffuseTexture;
+layout(binding = 1) uniform sampler2D NormalTexture;
 
 void main() {
 	/*	Compute directional light	*/

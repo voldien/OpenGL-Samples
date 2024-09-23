@@ -89,6 +89,50 @@ void Common::loadSphere(MeshObject &sphereMesh, const float radius, const int sl
 	sphereMesh.nrVertices = vertices.size();
 }
 
+void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segmentX, const int segmentY) {
+	std::vector<ProceduralGeometry::Vertex> vertices;
+	std::vector<unsigned int> indices;
+	ProceduralGeometry::generateCube(scale, vertices, indices, segmentX);
+
+	/*	Create array buffer, for rendering static geometry.	*/
+	glGenVertexArrays(1, &cubeMesh.vao);
+	glBindVertexArray(cubeMesh.vao);
+
+	/*	Create array buffer, for rendering static geometry.	*/
+	glGenBuffers(1, &cubeMesh.vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, cubeMesh.vbo);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+				 GL_STATIC_DRAW);
+
+	/*	*/
+	glGenBuffers(1, &cubeMesh.ibo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeMesh.ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
+
+	/*	Vertex.	*/
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+
+	/*	UV.	*/
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(12));
+
+	/*	Normal.	*/
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(20));
+
+	/*	Tangent.	*/
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(32));
+
+	glBindVertexArray(0);
+
+	cubeMesh.nrIndicesElements = indices.size();
+	cubeMesh.indices_offset = 0;
+	cubeMesh.vertex_offset = 0;
+	cubeMesh.nrVertices = vertices.size();
+}
+
 void glsample::refreshWholeRoundRobinBuffer(unsigned int bufferType, unsigned int buffer, const unsigned int robin,
 											const void *data, const size_t alignSize, const size_t bufferSize,
 											const size_t offset) {

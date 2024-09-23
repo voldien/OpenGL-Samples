@@ -11,6 +11,8 @@ layout(location = 1) out vec2 UV;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
 
+layout(constant_id = 0) const int MaxWaves = 64;
+
 struct Wave {
 	float wavelength;
 	float amplitude;
@@ -51,7 +53,7 @@ vec3 computeNormal(const in float time) {
 	float normalX = 0;
 	float normalY = 0;
 
-	for (int i = 0; i < min(ubo.nrWaves, 64); i++) {
+	for (int i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
 
 		const Wave w = ubo.waves[i];
 
@@ -63,6 +65,7 @@ vec3 computeNormal(const in float time) {
 
 	return vec3(normalX, 1, normalY);
 }
+
 float computeHeight(const in float time, in const Wave w) {
 	return w.amplitude * sin(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed);
 }
@@ -73,7 +76,7 @@ vec3 computeGerstnerWaves(const in float time, in const Wave wave) {
 	float x = Vertex.x;
 	float y = Vertex.y;
 
-	for (int i = 0; i < ubo.nrWaves; i++) {
+	for (int i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
 		height += computeHeight(ubo.time, ubo.waves[i]);
 	}
 
@@ -81,16 +84,33 @@ vec3 computeGerstnerWaves(const in float time, in const Wave wave) {
 }
 
 // TODO: compute
-vec3 computeTangent(const in float time, in const Wave w) { return vec3(0); }
+vec3 computeTangent(const in float time) {
+	float normalX = 0;
+	float normalY = 0;
+
+	for (int i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
+
+		const Wave w = ubo.waves[i];
+
+		normalX += -(w.wavelength * w.direction.x * w.amplitude *
+					 cos(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed));
+		normalY += -(w.wavelength * w.direction.y * w.amplitude *
+					 cos(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed));
+	}
+
+	return Tangent.xyz;// vec3(normalX, 1, normalY);
+}
 
 void main() {
 
 	float height = 0;
-	for (int i = 0; i < min(ubo.nrWaves, 64); i++) {
+	
+	for (int i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
 		height += computeHeight(ubo.time, ubo.waves[i]);
 	}
 
 	const vec3 surface_normal = normalize(computeNormal(ubo.time));
+	const vec3 surface_tangent = normalize(computeTangent(ubo.time));
 
 	const vec3 surface_vertex = Vertex + Normal * height;
 

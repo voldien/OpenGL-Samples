@@ -98,7 +98,7 @@ namespace glsample {
 		unsigned int uniform_instance_buffer;
 		const size_t nrUniformBuffers = 3;
 		const size_t nrCameras = 2;
-		size_t uniformBufferSize = sizeof(uniform_buffer_block);
+		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformLightBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceSize = 0;
 
@@ -249,12 +249,12 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize = fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffers * this->nrCameras, nullptr,
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffers * this->nrCameras, nullptr,
 						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -373,8 +373,8 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformBufferSize * this->nrCameras,
-							  this->uniformBufferSize);
+							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize * this->nrCameras,
+							  this->uniformAlignBufferSize);
 
 			/*	*/
 			this->secondCameraNodeQueue = this->mainCameraNodeQueue;
@@ -400,9 +400,9 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformBufferSize * this->nrCameras +
-								  this->uniformBufferSize,
-							  this->uniformBufferSize);
+							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize * this->nrCameras +
+								  this->uniformAlignBufferSize,
+							  this->uniformAlignBufferSize);
 
 			if (this->frustumCullingSettingComponent->showFrustumView) {
 
@@ -473,12 +473,12 @@ namespace glsample {
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				uint8_t *uniformPointer = (uint8_t *)glMapBufferRange(
 					GL_UNIFORM_BUFFER,
-					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformBufferSize * this->nrCameras,
-					this->uniformBufferSize * this->nrCameras, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformAlignBufferSize * this->nrCameras,
+					this->uniformAlignBufferSize * this->nrCameras, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
 				/*	*/
 				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
-				memcpy(&uniformPointer[this->uniformBufferSize], &copy, sizeof(copy));
+				memcpy(&uniformPointer[this->uniformAlignBufferSize], &copy, sizeof(copy));
 
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}
@@ -513,6 +513,7 @@ namespace glsample {
 					}
 				}
 			}
+			this->getLogger().info("Culling Render {0}", mainCameraNodeQueue.size());
 		}
 
 		void renderFrustum(const CameraController &camera) {

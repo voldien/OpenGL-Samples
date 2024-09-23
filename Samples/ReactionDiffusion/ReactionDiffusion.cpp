@@ -1,3 +1,4 @@
+#include "Common.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -23,8 +24,6 @@ namespace glsample {
 				std::make_shared<ReactionDiffusionSettingComponent>(this->uniformBuffer);
 			this->addUIComponent(this->reactionDiffusionSettingComponent);
 		}
-
-		// std::vectorfloat kernelAs[4][4]
 
 		struct reaction_diffusion_param_t {
 			float kernelA[4][4] = {{0.05, 0.2, 0.05, 0}, {0.2, -1, 0.2, 0}, {0.05, 0.2, 0.05, 0}, {0, 0, 0, 0}};
@@ -60,7 +59,7 @@ namespace glsample {
 		unsigned int image_output_binding = 2;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(uniformBuffer);
+		size_t uniformAlignBufferSize = sizeof(uniformBuffer);
 
 		unsigned int nthTexture = 0;
 
@@ -139,12 +138,12 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize = Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			{
@@ -157,6 +156,7 @@ namespace glsample {
 				/*	Create init framebuffers.	*/
 				this->onResize(this->width(), this->height());
 			}
+
 		}
 
 		void onResize(int width, int height) override {
@@ -231,8 +231,8 @@ namespace glsample {
 			{
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-								  this->uniformBufferSize);
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+								  this->uniformAlignBufferSize);
 
 				glUseProgram(this->reactiondiffusion_program);
 
@@ -280,8 +280,8 @@ namespace glsample {
 			/*	Update uniform.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+				this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformBuffer, sizeof(this->uniformBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}

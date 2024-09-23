@@ -20,9 +20,8 @@ namespace glsample {
 		InfiniteWorld() : GLSampleWindow() {
 			this->setTitle("ComputeGroupVisual");
 
-			this->computeGroupVisualSettingComponent =
-				std::make_shared<ComputeGroupVisualSettingComponent>(this->uniformStageBuffer);
-			this->addUIComponent(this->computeGroupVisualSettingComponent);
+			this->infinateSettingComponent = std::make_shared<InfinateSettingComponent>(this->uniformStageBuffer);
+			this->addUIComponent(this->infinateSettingComponent);
 
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(15.5f));
@@ -36,7 +35,7 @@ namespace glsample {
 
 		/*	Shader pipeline programs.	*/
 		unsigned int compute_visual_instance_graphic_program;
-		unsigned int compute_group_visual_compute_program;
+		unsigned int infinate_world_chunck_constructor_compute_program;
 
 		typedef struct _instance_data_t {
 			glm::mat4 model;
@@ -75,35 +74,31 @@ namespace glsample {
 		unsigned int uniform_instance_buffer;
 		unsigned int indirect_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(uniform_buffer_block);
+		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceMemorySize = 0;
 		const size_t maxGroupSize[3] = {16, 16, 16};
-		const size_t indirect_buffer_count = 32;
+		const size_t indirect_buffer_element_count = 32;
 
-		class ComputeGroupVisualSettingComponent : public nekomimi::UIComponent {
+		class InfinateSettingComponent : public nekomimi::UIComponent {
 
 		  public:
-			ComputeGroupVisualSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
-				this->setName("Compute Group Visual Settings");
+			InfinateSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
+				this->setName("Infinate Settings");
 			}
 			void draw() override {
 
-				if (ImGui::InputInt3("WorkGroup", this->workgroupSize)) {
-					needUpdate = true;
-				}
 				/*	*/
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
 			bool showWireFrame = false;
-			int workgroupSize[3] = {2, 2, 2};
-			bool needUpdate = true;
+			int workgroupSize[3] = {32, 32, 1};
 
 		  private:
 			struct uniform_buffer_block &uniform;
 		};
-		std::shared_ptr<ComputeGroupVisualSettingComponent> computeGroupVisualSettingComponent;
+		std::shared_ptr<InfinateSettingComponent> infinateSettingComponent;
 
 		/*	Texture shaders paths.	*/
 		const std::string vertexShaderPath = "Shaders/groupvisual/groupvisual_instance.vert.spv";
@@ -115,7 +110,7 @@ namespace glsample {
 		void Release() override {
 			/*	*/
 			glDeleteProgram(this->compute_visual_instance_graphic_program);
-			glDeleteProgram(this->compute_group_visual_compute_program);
+			glDeleteProgram(this->infinate_world_chunck_constructor_compute_program);
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -132,21 +127,21 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	*/
-				const std::vector<uint32_t> vertex_binary =
+				const std::vector<uint32_t> vertex_graphic_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_binary =
+				const std::vector<uint32_t> fragment_graphic_binary =
 					glsample::IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 
 				/*	Load Graphic Program.	*/
 				this->compute_visual_instance_graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary, &fragment_graphic_binary);
 
 				/*	*/
 				const std::vector<uint32_t> compute_visual_binary =
 					IOUtil::readFileData<uint32_t>(this->groupVisualComputeShaderPath, this->getFileSystem());
 
 				/*	Load Compute.	*/
-				this->compute_group_visual_compute_program =
+				this->infinate_world_chunck_constructor_compute_program =
 					ShaderLoader::loadComputeProgram(compilerOptions, &compute_visual_binary);
 			}
 
@@ -167,26 +162,26 @@ namespace glsample {
 			glUseProgram(0);
 
 			{
-				glUseProgram(this->compute_group_visual_compute_program);
-				const int uniform_compute_index =
-					glGetUniformBlockIndex(this->compute_group_visual_compute_program, "UniformBufferBlock");
+				glUseProgram(this->infinate_world_chunck_constructor_compute_program);
+				const int uniform_compute_index = glGetUniformBlockIndex(
+					this->infinate_world_chunck_constructor_compute_program, "UniformBufferBlock");
 
 				const int instance_data_write_index = glGetProgramResourceIndex(
-					this->compute_group_visual_compute_program, GL_SHADER_STORAGE_BLOCK, "InstanceModel");
+					this->infinate_world_chunck_constructor_compute_program, GL_SHADER_STORAGE_BLOCK, "InstanceModel");
 
-				const int indirect_buffer_index = glGetProgramResourceIndex(this->compute_group_visual_compute_program,
-																			GL_SHADER_STORAGE_BLOCK, "IndirectWrite");
+				const int indirect_buffer_index = glGetProgramResourceIndex(
+					this->infinate_world_chunck_constructor_compute_program, GL_SHADER_STORAGE_BLOCK, "IndirectWrite");
 
 				/*	*/
-				glUniformBlockBinding(this->compute_group_visual_compute_program, uniform_compute_index,
+				glUniformBlockBinding(this->infinate_world_chunck_constructor_compute_program, uniform_compute_index,
 									  this->uniform_buffer_binding);
 				/*	*/
-				glShaderStorageBlockBinding(this->compute_group_visual_compute_program, instance_data_write_index,
-											this->uniform_instance_buffer_binding);
-				glShaderStorageBlockBinding(this->compute_group_visual_compute_program, indirect_buffer_index,
-											this->visual_indirect_buffer_binding);
+				glShaderStorageBlockBinding(this->infinate_world_chunck_constructor_compute_program,
+											instance_data_write_index, this->uniform_instance_buffer_binding);
+				glShaderStorageBlockBinding(this->infinate_world_chunck_constructor_compute_program,
+											indirect_buffer_index, this->visual_indirect_buffer_binding);
 
-				glGetProgramiv(this->compute_group_visual_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
+				glGetProgramiv(this->infinate_world_chunck_constructor_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
 							   this->localWorkGroupSize);
 				glUseProgram(0);
 			}
@@ -203,18 +198,18 @@ namespace glsample {
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = Math::align<size_t>(this->uniformBufferSize, minMapBufferSize);
+			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, minMapBufferSize);
 
 			GLint SSBO_align_offset;
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &SSBO_align_offset);
 
 			size_t indirect_buffer_size =
-				indirect_buffer_count * sizeof(DrawElementsIndirectCommand) * this->nrUniformBuffer;
+				indirect_buffer_element_count * sizeof(DrawElementsIndirectCommand) * this->nrUniformBuffer;
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniformStageBuffer), &this->uniformStageBuffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -239,6 +234,7 @@ namespace glsample {
 
 			/*  */
 			Common::loadSphere(this->sphereMesh, 1, 8, 8);
+
 			/*	*/
 			this->uniformStageBuffer.nrFaces = this->sphereMesh.nrIndicesElements;
 
@@ -253,29 +249,25 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize,
-							  this->uniformBufferSize);
+							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+							  this->uniformAlignBufferSize);
 
-			if (this->computeGroupVisualSettingComponent->needUpdate) {
-
-				glUseProgram(this->compute_group_visual_compute_program);
+			{
+				glUseProgram(this->infinate_world_chunck_constructor_compute_program);
 
 				/*	*/
 				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
 								  this->uniform_instance_buffer, 0, this->uniformInstanceMemorySize);
 				/*	*/
 				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->visual_indirect_buffer_binding, this->indirect_buffer,
-								  0, sizeof(IndirectDrawElement));
+								  0, sizeof(IndirectDrawElement) * 32);
 
 				/*	*/
-				const size_t Xinvoke = this->computeGroupVisualSettingComponent->workgroupSize[0];
-				const size_t Yinvoke = this->computeGroupVisualSettingComponent->workgroupSize[1];
-				const size_t Zinvoke = this->computeGroupVisualSettingComponent->workgroupSize[2];
-				glDispatchCompute(Xinvoke, Yinvoke, Zinvoke);
+				const size_t Xinvoke = this->infinateSettingComponent->workgroupSize[0];
+				const size_t Yinvoke = this->infinateSettingComponent->workgroupSize[1];
+				glDispatchCompute(Xinvoke, Yinvoke, 1);
 
 				glUseProgram(0);
-
-				this->computeGroupVisualSettingComponent->needUpdate = false;
 			}
 
 			/*	*/
@@ -289,7 +281,6 @@ namespace glsample {
 							GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
 			{
-
 				glUseProgram(this->compute_visual_instance_graphic_program);
 
 				/*	*/
@@ -308,14 +299,13 @@ namespace glsample {
 				glEnable(GL_DEPTH_TEST);
 
 				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK,
-							  this->computeGroupVisualSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				glPolygonMode(GL_FRONT_AND_BACK, this->infinateSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw Items.	*/
 				glBindVertexArray(this->sphereMesh.vao);
 
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->indirect_buffer);
-				glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, this->indirect_buffer_count,
+				glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, this->indirect_buffer_element_count,
 											sizeof(DrawElementsIndirectCommand));
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 				glBindVertexArray(0);
@@ -335,7 +325,7 @@ namespace glsample {
 
 				this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
 				this->uniformStageBuffer.nrElements =
-					fragcore::Math::product(this->computeGroupVisualSettingComponent->workgroupSize, 3) * 8 * 8 * 8;
+					fragcore::Math::product(this->infinateSettingComponent->workgroupSize, 3) * 8 * 8 * 8;
 
 				this->uniformStageBuffer.model = glm::mat4(1.0f);
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();
@@ -347,8 +337,8 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+				this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
 			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);

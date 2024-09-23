@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <glm/fwd.hpp>
-#include <new>
 #include <sys/types.h>
 #include <utility>
 
@@ -83,12 +82,6 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 
 	this->filepath = fs::path(fileSystem->getAbsolutePath(path.c_str())).parent_path();
 
-	/*	Load file content. */
-	// Ref<IO> io = Ref<IO>(fileSystem->openFile(path.c_str(), IO::IOMode::READ));
-	// std::vector<char> bufferIO = fragcore::IOUtil::readFile<char>(io);
-	// io->close();
-	// bufferIO.clear();
-
 	/*	*/
 	const aiScene *pScene =
 		importer.ReadFile(path.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_GenBoundingBoxes);
@@ -105,7 +98,6 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 		this->global = aiMatrix4x4ToGlm(&pScene->mRootNode->mTransformation);
 
 		this->initScene(pScene);
-		// importer.FreeScene();
 
 	} else {
 		throw RuntimeException("Failed to load model: {}", path);
@@ -131,7 +123,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 	/*	*/
 	std::thread process_textures_thread([&]() {
-		// /*	*/
+		/*	*/
 		if (scene->HasTextures()) {
 
 			this->textures.resize(scene->mNumTextures);
@@ -146,6 +138,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 				this->textureIndexMapping[scene->mTextures[i]->mFilename.C_Str()] = i;
 			}
 		}
+		/*	*/
 		for (size_t x = 0; x < scene->mNumMaterials; x++) {
 			this->loadTexturesFromMaterials(scene->mMaterials[x]);
 		}
@@ -209,7 +202,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 	process_textures_thread.join();
 	process_animation_light_camera_thread.join();
 
-	// /*	*/
+	/*	*/
 	if (scene->HasMaterials()) {
 		/*	Extract additional texture */
 
@@ -452,6 +445,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 				for (uint x = 0; x < bonecount; x++) {
 					/*	Check weight.	*/
 					if (boneData[bonecount + x] == 0.0) {
+
 						uint32_t *vertexUint = (uint32_t *)&boneData[x];
 						*vertexUint = BoneIndex;
 
@@ -657,6 +651,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	}	  /**/
 
 	/*	Assign shader attributes.	*/
+
 	/*	Color.	*/
 	if (pmaterial->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
 		material->ambient = color;
@@ -777,7 +772,7 @@ AnimationObject *ModelImporter::initAnimation(const aiAnimation *pAnimation, uns
 	;
 
 	for (size_t i = 0; i < pAnimation->mNumChannels; i++) {
-		aiNodeAnim *nodeAnimation = pAnimation->mChannels[i];
+		const aiNodeAnim *nodeAnimation = pAnimation->mChannels[i];
 
 		if (nodeAnimation->mNumPositionKeys > 0) {
 			Curve positionCurve;

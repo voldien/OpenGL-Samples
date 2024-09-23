@@ -7,6 +7,8 @@ layout(location = 0) out vec4 Diffuse;
 layout(location = 1) out vec4 WorldSpace;
 layout(location = 2) out vec4 TextureCoord;
 layout(location = 3) out vec3 Normal;
+layout(location = 4) out vec4 Roughness_Metalic;
+layout(location = 5) out vec3 Specular;
 
 layout(location = 0) in vec4 vertex;
 layout(location = 1) in vec2 uv;
@@ -17,6 +19,9 @@ layout(location = 4) in vec3 bitangent;
 layout(binding = 2) uniform sampler2D DiffuseTexture;
 layout(binding = 3) uniform sampler2D NormalTexture;
 layout(binding = 4) uniform sampler2D AlphaMaskedTexture;
+layout(binding = 5) uniform sampler2D RoughnessTexture;
+layout(binding = 6) uniform sampler2D MetalicTexture;
+layout(binding = 7) uniform sampler2D EmissionTexture;
 
 void main() {
 

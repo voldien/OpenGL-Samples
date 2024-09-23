@@ -11,7 +11,6 @@
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <vector>
 
 namespace glsample {
 
@@ -80,7 +79,7 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformPhongAlignSize;
 		size_t uniformProjectShadowAlignSize;
-		size_t uniformBufferSize = sizeof(uniform_buffer_block);
+		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
@@ -204,13 +203,13 @@ namespace glsample {
 			this->uniformProjectShadowAlignSize =
 				fragcore::Math::align(sizeof(this->projectShadowUniformBuffer), (size_t)minMapBufferSize);
 			/*	*/
-			this->uniformBufferSize =
+			this->uniformAlignBufferSize =
 				(this->uniformPhongAlignSize * this->uniformStageBuffer.size()) + this->uniformProjectShadowAlignSize;
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	load Textures	*/
@@ -322,7 +321,7 @@ namespace glsample {
 
 					/*	*/
 					const size_t plane_buffer_offset =
-						(this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
+						(this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize +
 						this->uniformPhongAlignSize * 1;
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 									  plane_buffer_offset, this->uniformPhongAlignSize);
@@ -347,7 +346,7 @@ namespace glsample {
 
 					/*	*/
 					const size_t main_object_buffer_offset =
-						(this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
+						(this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize +
 						this->uniformPhongAlignSize * 0;
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 									  main_object_buffer_offset, this->uniformPhongAlignSize);
@@ -370,7 +369,7 @@ namespace glsample {
 				{
 					/*	*/
 					const size_t shadow_buffer_offset =
-						(this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
+						(this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize +
 						this->uniformPhongAlignSize * this->uniformStageBuffer.size();
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 									  shadow_buffer_offset, this->uniformProjectShadowAlignSize);
@@ -444,8 +443,8 @@ namespace glsample {
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				uint8_t *uniformPointer = (uint8_t *)glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-					this->uniformBufferSize,
+					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+					this->uniformAlignBufferSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
 				/*	*/
@@ -500,7 +499,7 @@ namespace glsample {
 
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny.obj"));
+				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny/bunny.obj"));
 		}
 	};
 } // namespace glsample

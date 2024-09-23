@@ -51,9 +51,9 @@ namespace glsample {
 		}
 		T getFar() const noexcept { return this->far; }
 
-		T getFOV() const noexcept { return this->fov; }
-		void setFOV(const T FOV) noexcept {
-			this->fov = FOV;
+		T getFOV() const noexcept { return this->fov_degree; }
+		void setFOV(const T FOV_degree) noexcept {
+			this->fov_degree = FOV_degree;
 			this->updateProjectionMatrix();
 		}
 
@@ -66,9 +66,9 @@ namespace glsample {
 		}
 
 	  protected:
-		T fov = 80.0f;
+		T fov_degree = 80.0f;
 		T aspect = 16.0f / 9.0f;
-		T near = 0.2f;
+		T near = 0.15f;
 		T far = 1500.0f;
 		glm::mat4 proj;
 	};

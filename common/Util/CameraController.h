@@ -78,7 +78,8 @@ namespace glsample {
 			/*	*/
 			if (!alt && this->enable_Look) {
 				flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime,
-										 current_speed, 0.5f * activated, this->fov, xDiff, yDiff, w, a, s, d, 0, 0, 0);
+										 current_speed, 0.5f * activated, this->fov_degree, xDiff, yDiff, w, a, s, d, 0,
+										 0, 0);
 
 				/*	*/
 				this->updateFrustum();
@@ -93,6 +94,9 @@ namespace glsample {
 			glm::quat rotation =
 				glm::quatLookAt(glm::normalize(this->getLookDirection()), glm::normalize(this->getUp()));
 			return glm::toMat4(rotation);
+		}
+		const glm::mat4 getViewTranslationMatrix() const noexcept {
+			return glm::translate(glm::mat4(1), -this->getPosition());
 		}
 
 		const glm::vec3 &getLookDirection() const noexcept { return this->look; }
@@ -116,7 +120,7 @@ namespace glsample {
 	  protected:
 		void update() noexcept {
 			flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], 0, 0,
-									 0.5f * activated, this->fov, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+									 0.5f * activated, this->fov_degree, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 		}
 
 		void updateFrustum() {

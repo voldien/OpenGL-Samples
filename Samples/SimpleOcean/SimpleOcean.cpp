@@ -1,3 +1,4 @@
+#include "Core/Math.h"
 #include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>
@@ -9,7 +10,6 @@
 #include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -31,19 +31,11 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct UniformSkyBoxBufferBlock {
-			glm::mat4 proj;
-			glm::mat4 modelViewProjection;
-			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			float exposure = 1.0f;
-			float gamma = 2.2;
-		};
-
 		static const size_t nrMaxWaves = 64;
 
 		typedef struct wave_t {
-			glm::vec4 waveAmpSpeed;
-			glm::vec4 direction;
+			glm::vec4 waveAmpSpeed; /*	*/
+			glm::vec4 direction;	/*	*/
 		} Wave;
 
 		struct UniformOceanBufferBlock {
@@ -61,8 +53,10 @@ namespace glsample {
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 position;
 
+			/*	*/
 			Wave waves[nrMaxWaves];
 
+			/*	*/
 			int nrWaves = 16;
 			float time = 0.0f;
 
@@ -74,15 +68,13 @@ namespace glsample {
 
 		/*	Combined uniform block.	*/
 		struct uniform_buffer_block {
-			UniformSkyBoxBufferBlock skybox; /*	*/
-			UniformOceanBufferBlock ocean;	 /*	*/
+			UniformOceanBufferBlock ocean; /*	*/
 
 		} uniform_stage_buffer;
 
 		/*	*/
 		MeshObject plan;
-		MeshObject skybox;
-		Skybox _skybox;
+		Skybox skybox;
 
 		/*	*/
 		unsigned int normal_texture;
@@ -96,8 +88,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(uniform_buffer_block);
-		size_t skyboxUniformSize = 0;
+		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t oceanUniformSize = 0;
 
 		class SimpleOceanSettingComponent : public nekomimi::UIComponent {
@@ -148,11 +139,6 @@ namespace glsample {
 				ImGui::ColorEdit4("Ocean Base Color", &this->uniform.ocean.oceanColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
-				ImGui::TextUnformatted("Skybox");
-				ImGui::ColorEdit4("Tint", &this->uniform.skybox.tintColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat("Exposure", &this->uniform.skybox.exposure);
-				ImGui::DragFloat("Gamma", &this->uniform.skybox.gamma);
 				/*	*/
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -236,104 +222,36 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->reflection_texture = textureImporter.loadImage2D(panoramicPath);
+			this->reflection_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::Raw);
+			this->skybox.Init(this->reflection_texture, this->skybox_program);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->oceanUniformSize = Math::align(sizeof(UniformOceanBufferBlock), (size_t)minMapBufferSize);
-			this->skyboxUniformSize = Math::align(sizeof(UniformSkyBoxBufferBlock), (size_t)minMapBufferSize);
-			this->uniformBufferSize =
-				Math::align(this->skyboxUniformSize + this->oceanUniformSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize = Math::align(this->oceanUniformSize, (size_t)minMapBufferSize);
 
 			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generatePlan(1, vertices, indices, 512, 512);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*  Create index buffer.    */
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
-
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
-
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
-
-			std::vector<ProceduralGeometry::Vertex> verticesCube;
-			std::vector<unsigned int> indicesCube;
-			ProceduralGeometry::generateCube(1, verticesCube, indicesCube);
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->skybox.vao);
-			glBindVertexArray(this->skybox.vao);
-
-			/*	*/
-			glGenBuffers(1, &this->skybox.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, skybox.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCube.size() * sizeof(indicesCube[0]), indicesCube.data(),
-						 GL_STATIC_DRAW);
-			this->skybox.nrIndicesElements = indicesCube.size();
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->skybox.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, skybox.vbo);
-			glBufferData(GL_ARRAY_BUFFER, verticesCube.size() * sizeof(ProceduralGeometry::Vertex), verticesCube.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
-
-			glBindVertexArray(0);
+			Common::loadPlan(this->plan, 1, 1024, 1024);
 
 			/*	Initilize Waves.	*/
 			for (int i = 0; i < nrMaxWaves; i++) {
 
-				float waveLength = 0;
-				float waveAmplitude = 0;
+				float waveLength = (i * 2.2 + 1);
+				float waveAmplitude = 0.3f / (i + 1);
+				float waveSpeed = (i + 1) * 0.1f;
 
-				this->uniform_stage_buffer.ocean.waves[i].waveAmpSpeed = glm::vec4((i * 1.2 + 1), 0.1f / (i + 1), 2, 0);
+				this->uniform_stage_buffer.ocean.waves[i].waveAmpSpeed =
+					glm::vec4(waveLength, waveAmplitude, waveSpeed, 0);
 
-				this->uniform_stage_buffer.ocean.waves[i].direction = glm::normalize(glm::vec4(rand(), rand(), 0, 0));
+				this->uniform_stage_buffer.ocean.waves[i].direction = glm::normalize(glm::vec4(
+					2 * fragcore::Math::random<float>() - 1.0, 2 * fragcore::Math::random<float>() - 1.0, 0, 0));
 			}
 		}
 
@@ -359,8 +277,7 @@ namespace glsample {
 			{
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize +
-									  this->skyboxUniformSize,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 								  this->oceanUniformSize);
 
 				glUseProgram(this->simpleOcean_program);
@@ -390,34 +307,7 @@ namespace glsample {
 			}
 
 			/*	Skybox	*/
-			//this->skybox->render(this-camera);
-			{
-
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformBufferSize + 0,
-								  this->skyboxUniformSize);
-
-				glUseProgram(this->skybox_program);
-
-				glDisable(GL_CULL_FACE);
-				glDisable(GL_BLEND);
-				glEnable(GL_DEPTH_TEST);
-				glStencilMask(GL_FALSE);
-				glDepthFunc(GL_LEQUAL);
-
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->reflection_texture);
-
-				/*	Draw triangle.	*/
-				glBindVertexArray(this->skybox.vao);
-				glDrawElements(GL_TRIANGLES, this->skybox.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
-
-				glStencilMask(GL_TRUE);
-
-				glUseProgram(0);
-			}
+			this->skybox.Render(this->camera);
 		}
 
 		void update() override {
@@ -432,7 +322,7 @@ namespace glsample {
 				this->uniform_stage_buffer.ocean.model = glm::rotate(this->uniform_stage_buffer.ocean.model,
 																	 glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 				this->uniform_stage_buffer.ocean.model =
-					glm::scale(this->uniform_stage_buffer.ocean.model, glm::vec3(2000.95f));
+					glm::scale(this->uniform_stage_buffer.ocean.model, glm::vec3(4000.95f));
 
 				this->uniform_stage_buffer.ocean.view = this->camera.getViewMatrix();
 				this->uniform_stage_buffer.ocean.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
@@ -444,26 +334,15 @@ namespace glsample {
 				this->uniform_stage_buffer.ocean.time = elapsedTime;
 			}
 
-			/*	Update skybox uniforms.	*/
-			{
-				glm::quat rotation = glm::quatLookAt(glm::normalize(this->camera.getLookDirection()),
-													 glm::normalize(this->camera.getUp()));
-				this->uniform_stage_buffer.skybox.proj = this->uniform_stage_buffer.ocean.proj;
-				this->uniform_stage_buffer.skybox.modelViewProjection =
-					(this->uniform_stage_buffer.skybox.proj * glm::mat4_cast(rotation));
-			}
-
 			/*  */
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			uint8_t *uniformPointer = static_cast<uint8_t *>(glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformBufferSize,
-				this->uniformBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT));
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+				this->uniformAlignBufferSize,
+				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT));
 
-			/*	Copy skybox.	*/
-			memcpy(uniformPointer + 0, &this->uniform_stage_buffer.skybox, sizeof(this->uniform_stage_buffer.skybox));
 			/*	*/
-			memcpy(uniformPointer + this->skyboxUniformSize, &this->uniform_stage_buffer.ocean,
-				   sizeof(this->uniform_stage_buffer.ocean));
+			memcpy(uniformPointer, &this->uniform_stage_buffer.ocean, sizeof(this->uniform_stage_buffer.ocean));
 
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}

@@ -66,6 +66,7 @@ void main() {
 	/*	Compute directional light	*/
 	const vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, Mnormal) * ubo.lightColor;
 
+	/*	*/
 	const vec3 viewDir = normalize(ubo.position.xyz - vertex);
 	const vec3 diffVertex = (ubo.position.xyz - vertex);
 	const vec3 lightDir = normalize(diffVertex);
@@ -75,8 +76,8 @@ void main() {
 	const vec4 specular = ubo.specularColor * spec;
 
 	/*	*/
-	vec3 reflection = normalize(reflect(viewDir, Mnormal));
-	vec2 reflection_uv = inverse_equirectangular(reflection);
+	const vec3 reflection = normalize(reflect(viewDir, Mnormal));
+	const vec2 reflection_uv = inverse_equirectangular(reflection);
 
 	/*	*/
 	float fresnel = max(dot(Mnormal, viewDir), 0);

@@ -84,7 +84,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformBufferSize = sizeof(uniform_buffer_block);
+		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
@@ -228,12 +228,12 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformBufferSize = fragcore::Math::align(this->uniformBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize = fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	 Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformBufferSize * this->nrUniformBuffer * this->nrPointLights,
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer * this->nrPointLights,
 						 nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -341,8 +341,8 @@ namespace glsample {
 					/*	*/
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 									  ((this->getFrameCount() % this->nrUniformBuffer) * this->nrPointLights + i) *
-										  this->uniformBufferSize,
-									  this->uniformBufferSize);
+										  this->uniformAlignBufferSize,
+									  this->uniformAlignBufferSize);
 
 					glBindFramebuffer(GL_FRAMEBUFFER, this->pointShadowFrameBuffers[i]);
 
@@ -369,8 +369,8 @@ namespace glsample {
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  ((this->getFrameCount() % this->nrUniformBuffer) * this->nrPointLights) *
-									  this->uniformBufferSize,
-								  this->uniformBufferSize);
+									  this->uniformAlignBufferSize,
+								  this->uniformAlignBufferSize);
 				/*	*/
 				glViewport(0, 0, width, height);
 
@@ -422,8 +422,8 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			uint8_t *uniformPointer = (uint8_t *)glMapBufferRange(
 				GL_UNIFORM_BUFFER,
-				(((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->nrPointLights) * this->uniformBufferSize,
-				this->uniformBufferSize * this->nrPointLights, GL_MAP_WRITE_BIT);
+				(((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->nrPointLights) * this->uniformAlignBufferSize,
+				this->uniformAlignBufferSize * this->nrPointLights, GL_MAP_WRITE_BIT);
 			glm::mat4 PointView[6];
 
 			/*	*/
@@ -463,7 +463,7 @@ namespace glsample {
 				this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
 				this->uniform.lightPosition = glm::vec4(this->camera.getPosition(), 0.0f);
 
-				memcpy(&uniformPointer[i * this->uniformBufferSize], &this->uniform, sizeof(this->uniform));
+				memcpy(&uniformPointer[i * this->uniformAlignBufferSize], &this->uniform, sizeof(this->uniform));
 			}
 
 			glUnmapBuffer(GL_UNIFORM_BUFFER);

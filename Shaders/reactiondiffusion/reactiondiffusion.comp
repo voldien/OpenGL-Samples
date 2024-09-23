@@ -108,6 +108,10 @@ void main() {
 	/*	Display the color.	*/
 	const vec4 pixel = vec4(pA / ABmag, abs(diverageA - diverageB) / ABmag, pB / ABmag, 1);
 
+	/*	Apply gamma correction.	*/
+	const float gamma = 2.2;
+	const vec4 finalColor = pow(pixel, vec4(1.0 / gamma));
+
 	// TODO forward the diverage to a buffer to be drawn
-	imageStore(img_output, pixel_coords, pixel);
+	imageStore(img_output, pixel_coords, finalColor);
 }

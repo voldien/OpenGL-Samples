@@ -152,6 +152,7 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 									 reinterpret_cast<void *>(refModel_base.boneWeightOffset));
 
 		} else {
+			
 			glDisableVertexAttribArrayARB(4);
 			glDisableVertexAttribArrayARB(5);
 		}

@@ -9,7 +9,6 @@
 #include <ShaderLoader.h>
 #include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 #include <random>
 
 namespace glsample {
@@ -103,12 +102,14 @@ namespace glsample {
 
 			void draw() override {
 
+				ImGui::TextUnformatted("Ambient Occlusion Settings");
 				ImGui::DragFloat("Intensity", &this->uniform.intensity, 0.1f, 0.0f);
 				ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
 				ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
 				ImGui::DragFloat("Bias", &this->uniform.bias, 0.01f, 0, 1);
 				ImGui::Checkbox("DownSample", &this->downScale);
 				ImGui::Checkbox("Use Depth Only", &this->useDepthOnly);
+
 				ImGui::TextUnformatted("Debugging");
 				ImGui::Checkbox("Show Only AO", &this->showAOOnly);
 				ImGui::Checkbox("Show GBuffer", &this->showGBuffers);
@@ -142,8 +143,8 @@ namespace glsample {
 			"Shaders/ambientocclusion/ambientocclusion_depthonly.frag.spv";
 
 		/*	*/
-		const std::string vertexTextureShaderPath = "Shaders/postprocessingeffects/overlay.vert.spv";
-		const std::string fragmentTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
+		const std::string vertexOverlayShaderPath = "Shaders/postprocessingeffects/overlay.vert.spv";
+		const std::string fragmentOverlayTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
 
 		void Release() override {
 			this->scene.release();
@@ -202,9 +203,9 @@ namespace glsample {
 
 				/*	*/
 				const std::vector<uint32_t> texture_vertex_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexTextureShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->vertexOverlayShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> texture_fragment_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentTextureShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->fragmentOverlayTextureShaderPath, this->getFileSystem());
 
 				/*	Load shader	*/
 				this->ssao_world_program =
@@ -289,50 +290,7 @@ namespace glsample {
 			this->scene = Scene::loadFrom(modelLoader);
 
 			/*	Load geometry.	*/
-			{
-
-				std::vector<ProceduralGeometry::Vertex> vertices;
-				std::vector<unsigned int> indices;
-				ProceduralGeometry::generatePlan(1, vertices, indices, 1, 1);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenVertexArrays(1, &this->plan.vao);
-				glBindVertexArray(this->plan.vao);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenBuffers(1, &this->plan.vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-							 GL_STATIC_DRAW);
-
-				/*	*/
-				glGenBuffers(1, &this->plan.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
-							 GL_STATIC_DRAW);
-				this->plan.nrIndicesElements = indices.size();
-
-				/*	Vertex.	*/
-				glEnableVertexAttribArrayARB(0);
-				glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-				/*	UV.	*/
-				glEnableVertexAttribArrayARB(1);
-				glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-										 reinterpret_cast<void *>(12));
-
-				/*	Normal.	*/
-				glEnableVertexAttribArrayARB(2);
-				glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-										 reinterpret_cast<void *>(20));
-
-				/*	Tangent.	*/
-				glEnableVertexAttribArrayARB(3);
-				glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-										 reinterpret_cast<void *>(32));
-
-				glBindVertexArray(0);
-			}
+			Common::loadPlan(this->plan, 1, 1, 1);
 
 			/*	FIXME: improve vectors.		*/
 			{
@@ -403,8 +361,9 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 
+			/*	Create multipass framebuffer.	*/
 			{
-				/*	Create multipass framebuffer.	*/
+
 				glGenFramebuffers(1, &this->multipass_framebuffer);
 				glGenFramebuffers(1, &this->ssao_framebuffer);
 
@@ -673,8 +632,8 @@ namespace glsample {
 				for (size_t i = 0; i < this->multipass_textures.size(); i++) {
 					glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
 					glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
-									  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW,
-									  halfH + (i / 2) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+									  (i % 2) * (halfW), (i / 2.0f) * halfH, halfW + (i % 2) * halfW,
+									  halfH + (i / 2.0f) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 				}
 			}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);

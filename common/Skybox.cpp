@@ -1,4 +1,5 @@
 #include "Skybox.h"
+#include "Common.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <ProceduralGeometry.h>
@@ -12,7 +13,10 @@ using namespace fragcore;
 namespace glsample {
 
 	Skybox::Skybox() {}
-	Skybox::~Skybox() {}
+	Skybox::~Skybox() {
+		glDeleteBuffers(1, &this->SkyboxCube.vbo);
+		glDeleteBuffers(1, &this->SkyboxCube.ibo);
+	}
 
 	void Skybox::Init(unsigned int texture, unsigned int program) {
 
@@ -28,31 +32,7 @@ namespace glsample {
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		/*	Load geometry.	*/
-		std::vector<ProceduralGeometry::Vertex> vertices;
-		std::vector<unsigned int> indices;
-		ProceduralGeometry::generateCube(1.0f, vertices, indices);
-
-		/*	Create array buffer, for rendering static geometry.	*/
-		glGenVertexArrays(1, &this->SkyboxCube.vao);
-		glBindVertexArray(this->SkyboxCube.vao);
-
-		/*	*/
-		glGenBuffers(1, &this->SkyboxCube.ibo);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SkyboxCube.ibo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-		this->SkyboxCube.nrIndicesElements = indices.size();
-
-		/*	Create array buffer, for rendering static geometry.	*/
-		glGenBuffers(1, &this->SkyboxCube.vbo);
-		glBindBuffer(GL_ARRAY_BUFFER, SkyboxCube.vbo);
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-					 GL_STATIC_DRAW);
-
-		/*	*/
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-		glBindVertexArray(0);
+		Common::loadCube(this->SkyboxCube, 1, 1, 1);
 
 		this->skybox_texture_panoramic = texture;
 		this->skybox_program = program;
@@ -100,8 +80,12 @@ namespace glsample {
 			glUseProgram(this->skybox_program);
 
 			/*	*/
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
+			if (glBindTextureUnit) {
+				glBindTextureUnit(0, this->skybox_texture_panoramic);
+			} else {
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
+			}
 
 			/*	Draw triangle.	*/
 			glBindVertexArray(this->SkyboxCube.vao);

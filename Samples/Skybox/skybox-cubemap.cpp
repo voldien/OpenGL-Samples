@@ -8,7 +8,6 @@
 #include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -82,14 +81,13 @@ namespace glsample {
 		}
 
 		void Initialize() override {
-			// TODO: fix
-			// const std::vector<std::string> cubemapPaths = {"asset/X+.png", "asset/X-.png", "asset/Y+.png",
-			//											   "asset/Y-.png", "asset/Z+.png", "asset/Z-.png"};
+
 			size_t count = this->getResult()["texture"].count();
 			if (count != 6) {
 				throw InvalidArgumentException("Must be 6 file paths - Found {}", count);
 			}
 			const std::vector<std::string> cubemapPaths = this->getResult()["texture"].as<std::vector<std::string>>();
+
 			{
 				/*	Load shader binaries.	*/
 				std::vector<uint32_t> vertex_binary =

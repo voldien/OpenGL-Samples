@@ -7,7 +7,14 @@
 using namespace fragcore;
 using namespace glsample;
 
-TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesystem) {}
+TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesystem) { /*	TODO: create PBO */
+	glCreateBuffers(3, this->pbos.data());
+	// glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbos[0]);
+	// glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbos[1]);
+	// glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbos[2]);
+}
+
+TextureImporter::~TextureImporter() { glDeleteBuffers(3, this->pbos.data()); }
 
 int TextureImporter::loadImage2D(const std::string &path, const ColorSpace colorSpace) {
 
@@ -21,7 +28,6 @@ int TextureImporter::loadImage2D(const std::string &path, const ColorSpace color
 
 int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace) {
 	// TODO add PBO support.
-	// TODO add srgb
 
 	GLenum target = GL_TEXTURE_2D;
 	GLuint texture;
@@ -29,7 +35,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 	GLenum format, internalformat, type;
 
 	switch (image.getFormat()) {
-	case TextureFormat::RGB24:
+	case TextureFormat::RGB24: /*	Multiple Channels.	*/
 		format = GL_RGB;
 		internalformat = GL_RGBA8;
 		type = GL_UNSIGNED_BYTE;
@@ -61,10 +67,36 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		type = GL_FLOAT;
 		internalformat = GL_RGBA16F;
 		break;
-	case TextureFormat::Alpha8:
+
+	case TextureFormat::Alpha8: /*	Single Channel.	*/
 		format = GL_RED;
 		type = GL_UNSIGNED_BYTE;
 		internalformat = GL_R8;
+		break;
+	case TextureFormat::RFloat:
+		format = GL_RED;
+		type = GL_FLOAT;
+		internalformat = GL_R32F;
+		break;
+	case TextureFormat::R16:
+		format = GL_RED_INTEGER;
+		type = GL_SHORT;
+		internalformat = GL_R16I;
+		break;
+	case TextureFormat::R16U:
+		format = GL_RED_INTEGER;
+		type = GL_UNSIGNED_SHORT;
+		internalformat = GL_R16UI;
+		break;
+	case TextureFormat::R32:
+		format = GL_RED_INTEGER;
+		type = GL_INT;
+		internalformat = GL_R32I;
+		break;
+	case TextureFormat::R32U:
+		format = GL_RED_INTEGER;
+		type = GL_UNSIGNED_INT;
+		internalformat = GL_R32UI;
 		break;
 	default:
 		throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));
@@ -82,7 +114,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		// 	internalformat = GL_RGBA16F;
 		// 	break;
 		case GL_R8:
-			internalformat = GL_SR8_EXT;
+			internalformat = GL_SR8_EXT; // GL_SLUMINANCE
 			break;
 		default:
 			throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));
@@ -93,9 +125,11 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));
 
+	/*	Offload with PBO buffer.	*/
+
 	/*	*/
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glPixelStorei(GL_PACK_ALIGNMENT, 4);
+	FVALIDATE_GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+	FVALIDATE_GL_CALL(glPixelStorei(GL_PACK_ALIGNMENT, 4));
 
 	/*	wrap and filter	*/
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT));
@@ -108,7 +142,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 
 	FVALIDATE_GL_CALL(glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
 
-	float border[4] = {1, 1, 1, 1};
+	const float border[4] = {1, 1, 1, 1};
 	FVALIDATE_GL_CALL(glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, &border[0]));
 
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MIN_LOD, 1));
@@ -147,8 +181,8 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));
 
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glPixelStorei(GL_PACK_ALIGNMENT, 4);
+	FVALIDATE_GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+	FVALIDATE_GL_CALL(glPixelStorei(GL_PACK_ALIGNMENT, 4));
 
 	/*	wrap and filter	*/
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT));
@@ -163,7 +197,7 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 
 	FVALIDATE_GL_CALL(glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
 
-	float border[4] = {1, 1, 1, 1};
+	const float border[4] = {1, 1, 1, 1};
 	FVALIDATE_GL_CALL(glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, &border[0]));
 
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MIN_LOD, 1));
@@ -195,8 +229,8 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 			internalformat = GL_RGBA8;
 			type = GL_UNSIGNED_BYTE;
 			break;
-		default:
-			throw RuntimeException("Invalid");
+		default: // TODO: fix memory leak
+			throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));
 		}
 
 		FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internalformat, image.width(),
