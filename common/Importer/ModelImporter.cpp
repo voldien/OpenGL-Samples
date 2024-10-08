@@ -1,7 +1,5 @@
 #include "ModelImporter.h"
 #include "Core/Math.h"
-#include "Core/math3D/AABB.h"
-#include "GeometryUtil.h"
 #include "assimp/Importer.hpp"
 #include <Core/IO/IOUtil.h>
 #include <assimp/material.h>
@@ -768,8 +766,7 @@ AnimationObject *ModelImporter::initAnimation(const aiAnimation *pAnimation, uns
 
 	unsigned int channel_index = 0;
 
-	clip.durtation = pAnimation->mDuration;
-	;
+	clip.duration = pAnimation->mDuration;
 
 	for (size_t i = 0; i < pAnimation->mNumChannels; i++) {
 		const aiNodeAnim *nodeAnimation = pAnimation->mChannels[i];

@@ -1,3 +1,4 @@
+#include "GLSampleSession.h"
 #include <AL/al.h>
 #include <AL/alc.h>
 #include <GL/glew.h>
@@ -91,6 +92,7 @@ namespace glsample {
 		unsigned int videoFramebuffer;
 		unsigned int vbo;
 		unsigned vao;
+		MeshObject plane;
 
 		/*	Audio.	*/ // TODO fix
 		fragcore::AudioClip *clip;
@@ -136,8 +138,6 @@ namespace glsample {
 											  {-1.0f, 1.0f, 0.0f, 0.0f, 1.0f},
 											  {1.0f, -1.0f, 0.0f, 1.0f, 1.0f},
 											  {1.0f, 1.0f, 0.0f, 1.0f, 0.0f}};
-
-		// TODO add support to toggle between quad and blit.
 
 		std::string error_message(int result) {
 			char buf[AV_ERROR_MAX_STRING_SIZE];
@@ -223,100 +223,103 @@ namespace glsample {
 				throw cxxexcept::RuntimeException("Failed to find a video stream in {}.", path);
 			}
 
-			/*	*/
-			if (audio_st) {
-				AVCodecParameters *pAudioCodecParam = audio_st->codecpar;
+			/*	Audio Configuration.	*/
+			{
+				/*	*/
+				if (audio_st) {
+					AVCodecParameters *pAudioCodecParam = audio_st->codecpar;
 
-				/*  Create audio clip.  */
-				AVCodec *audioCodec = avcodec_find_decoder(pAudioCodecParam->codec_id);
-				this->pAudioCtx = avcodec_alloc_context3(audioCodec);
-				if (!this->pAudioCtx)
-					throw cxxexcept::RuntimeException("Failed to create audio decode context");
+					/*  Create audio clip.  */
+					AVCodec *audioCodec = avcodec_find_decoder(pAudioCodecParam->codec_id);
+					this->pAudioCtx = avcodec_alloc_context3(audioCodec);
+					if (!this->pAudioCtx)
+						throw cxxexcept::RuntimeException("Failed to create audio decode context");
 
-				result = avcodec_parameters_to_context(this->pAudioCtx, pAudioCodecParam);
+					result = avcodec_parameters_to_context(this->pAudioCtx, pAudioCodecParam);
+					if (result < 0) {
+						char buf[AV_ERROR_MAX_STRING_SIZE];
+						av_strerror(result, buf, sizeof(buf));
+						throw cxxexcept::RuntimeException("Failed to set codec parameters : {}", buf);
+					}
+
+					result = avcodec_open2(this->pAudioCtx, audioCodec, nullptr);
+					if (result < 0) {
+						char buf[AV_ERROR_MAX_STRING_SIZE];
+						av_strerror(result, buf, sizeof(buf));
+						throw cxxexcept::RuntimeException("Failed to retrieve info from stream info : {}", buf);
+					}
+
+					this->audio_bit_rate = pAudioCodecParam->bit_rate;
+					this->audio_sample_rate = pAudioCodecParam->sample_rate;
+					this->audio_channel = pAudioCodecParam->channels;
+				}
+
+				AVCodecParameters *pVideoCodecParam = video_st->codecpar;
+
+				AVCodec *pVideoCodec = avcodec_find_decoder(pVideoCodecParam->codec_id);
+				if (pVideoCodec == nullptr) {
+					throw cxxexcept::RuntimeException("failed to find decoder");
+				}
+				/*	*/
+				this->pVideoCtx = avcodec_alloc_context3(pVideoCodec);
+				if (this->pVideoCtx == nullptr) {
+					throw cxxexcept::RuntimeException("Failed to allocate video decoder context");
+				}
+				/*	*/
+				result = avcodec_parameters_to_context(this->pVideoCtx, pVideoCodecParam);
 				if (result < 0) {
 					char buf[AV_ERROR_MAX_STRING_SIZE];
 					av_strerror(result, buf, sizeof(buf));
 					throw cxxexcept::RuntimeException("Failed to set codec parameters : {}", buf);
 				}
-
-				result = avcodec_open2(this->pAudioCtx, audioCodec, nullptr);
-				if (result < 0) {
+				/*	*/
+				if ((result = avcodec_open2(this->pVideoCtx, pVideoCodec, nullptr)) != 0) {
 					char buf[AV_ERROR_MAX_STRING_SIZE];
 					av_strerror(result, buf, sizeof(buf));
 					throw cxxexcept::RuntimeException("Failed to retrieve info from stream info : {}", buf);
 				}
 
-				this->audio_bit_rate = pAudioCodecParam->bit_rate;
-				this->audio_sample_rate = pAudioCodecParam->sample_rate;
-				this->audio_channel = pAudioCodecParam->channels;
+				this->video_width = this->pVideoCtx->width;
+				this->video_height = this->pVideoCtx->height;
+
+				this->frame = av_frame_alloc();
+				this->frameoutput = av_frame_alloc();
+
+				if (this->frame == nullptr || this->frameoutput == nullptr) {
+					throw cxxexcept::RuntimeException("Failed to allocate frame");
+				}
+
+				/*	*/
+				const size_t m_bufferSize =
+					av_image_get_buffer_size(AV_PIX_FMT_RGBA, this->pVideoCtx->width, this->pVideoCtx->height, 4);
+				av_image_alloc(this->frameoutput->data, this->frameoutput->linesize, this->pVideoCtx->width,
+							   this->pVideoCtx->height, AV_PIX_FMT_RGBA, 4);
+
+				/*	*/
+				this->sws_ctx = sws_getContext(
+					this->pVideoCtx->width, this->pVideoCtx->height, this->pVideoCtx->pix_fmt, this->pVideoCtx->width,
+					this->pVideoCtx->height, AV_PIX_FMT_RGBA, SWS_BICUBIC, nullptr, nullptr, nullptr);
+				if (this->sws_ctx == nullptr) {
+				}
+				// Initialize SWR context
+				this->swrContext = swr_alloc_set_opts(nullptr, pAudioCtx->channel_layout, AV_SAMPLE_FMT_FLT,
+													  pAudioCtx->sample_rate, pAudioCtx->channel_layout,
+													  pAudioCtx->sample_fmt, pAudioCtx->sample_rate, 0, nullptr);
+
+				if ((result = swr_init(swrContext)) != 0) {
+					char buf[AV_ERROR_MAX_STRING_SIZE];
+					av_strerror(result, buf, sizeof(buf));
+					throw cxxexcept::RuntimeException("Failed to init SWR : {}", buf);
+				}
+
+				if ((result = av_samples_alloc_array_and_samples(&destBuffer, &destBufferLinesize, 2, 4096,
+																 AV_SAMPLE_FMT_FLT, 0)) < 0) {
+					char buf[AV_ERROR_MAX_STRING_SIZE];
+					av_strerror(result, buf, sizeof(buf));
+					throw cxxexcept::RuntimeException("Failed to allocate ({}) : {}", result, buf);
+				}
 			}
 
-			AVCodecParameters *pVideoCodecParam = video_st->codecpar;
-
-			/*	*/
-			AVCodec *pVideoCodec = avcodec_find_decoder(pVideoCodecParam->codec_id);
-			if (pVideoCodec == nullptr) {
-				throw cxxexcept::RuntimeException("failed to find decoder");
-			}
-			/*	*/
-			this->pVideoCtx = avcodec_alloc_context3(pVideoCodec);
-			if (this->pVideoCtx == nullptr) {
-				throw cxxexcept::RuntimeException("Failed to allocate video decoder context");
-			}
-			/*	*/
-			result = avcodec_parameters_to_context(this->pVideoCtx, pVideoCodecParam);
-			if (result < 0) {
-				char buf[AV_ERROR_MAX_STRING_SIZE];
-				av_strerror(result, buf, sizeof(buf));
-				throw cxxexcept::RuntimeException("Failed to set codec parameters : {}", buf);
-			}
-			/*	*/
-			if ((result = avcodec_open2(this->pVideoCtx, pVideoCodec, nullptr)) != 0) {
-				char buf[AV_ERROR_MAX_STRING_SIZE];
-				av_strerror(result, buf, sizeof(buf));
-				throw cxxexcept::RuntimeException("Failed to retrieve info from stream info : {}", buf);
-			}
-
-			this->video_width = this->pVideoCtx->width;
-			this->video_height = this->pVideoCtx->height;
-
-			this->frame = av_frame_alloc();
-			this->frameoutput = av_frame_alloc();
-
-			if (this->frame == nullptr || this->frameoutput == nullptr) {
-				throw cxxexcept::RuntimeException("Failed to allocate frame");
-			}
-
-			/*	*/
-			const size_t m_bufferSize =
-				av_image_get_buffer_size(AV_PIX_FMT_RGBA, this->pVideoCtx->width, this->pVideoCtx->height, 4);
-			av_image_alloc(this->frameoutput->data, this->frameoutput->linesize, this->pVideoCtx->width,
-						   this->pVideoCtx->height, AV_PIX_FMT_RGBA, 4);
-
-			/*	*/
-			this->sws_ctx = sws_getContext(this->pVideoCtx->width, this->pVideoCtx->height, this->pVideoCtx->pix_fmt,
-										   this->pVideoCtx->width, this->pVideoCtx->height, AV_PIX_FMT_RGBA,
-										   SWS_BICUBIC, nullptr, nullptr, nullptr);
-			if (this->sws_ctx == nullptr) {
-			}
-			// Initialize SWR context
-			this->swrContext = swr_alloc_set_opts(nullptr, pAudioCtx->channel_layout, AV_SAMPLE_FMT_FLT,
-												  pAudioCtx->sample_rate, pAudioCtx->channel_layout,
-												  pAudioCtx->sample_fmt, pAudioCtx->sample_rate, 0, nullptr);
-
-			if ((result = swr_init(swrContext)) != 0) {
-				char buf[AV_ERROR_MAX_STRING_SIZE];
-				av_strerror(result, buf, sizeof(buf));
-				throw cxxexcept::RuntimeException("Failed to init SWR : {}", buf);
-			}
-
-			if ((result = av_samples_alloc_array_and_samples(&destBuffer, &destBufferLinesize, 2, 4096,
-															 AV_SAMPLE_FMT_FLT, 0)) < 0) {
-				char buf[AV_ERROR_MAX_STRING_SIZE];
-				av_strerror(result, buf, sizeof(buf));
-				throw cxxexcept::RuntimeException("Failed to allocate ({}) : {}", result, buf);
-			}
 			/*	*/
 			this->frame_timer = av_gettime() / 1000000.0;
 		}
@@ -344,7 +347,6 @@ namespace glsample {
 				this->audioSource->loop(false);
 				this->audioSource->setVolume(1.0f);
 				this->mSource = this->audioSource->getNativePtr();
-				// alSourcef(this->mSource, AL_PITCH, 144.0f / 23.97f);
 
 				this->mAudioBuffers.resize(8);
 				FAOPAL_VALIDATE(alGenBuffers(this->mAudioBuffers.size(), this->mAudioBuffers.data()));
@@ -375,6 +377,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Create array buffer, for rendering static geometry.	*/
+			// Common::loadPlan(this->plan,1);
 			glGenVertexArrays(1, &this->vao);
 			glBindVertexArray(this->vao);
 
@@ -394,7 +397,8 @@ namespace glsample {
 			glBindVertexArray(0);
 
 			/*	Allocate buffers.	*/
-			this->videoStageBufferMemorySize = this->video_width * this->video_height * 4;
+			const size_t pixelSize = 4;
+			this->videoStageBufferMemorySize = this->video_width * this->video_height * pixelSize;
 			glGenBuffers(1, &videoStagingTextureBuffer);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStagingTextureBuffer);
 			glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStageBufferMemorySize * this->nrVideoFrames, nullptr,
@@ -432,7 +436,7 @@ namespace glsample {
 			}
 
 			/*  Validate if created properly.*/
-			int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			const int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
@@ -532,7 +536,7 @@ namespace glsample {
 							void *uniformPointer = glMapBufferRange(
 								GL_PIXEL_UNPACK_BUFFER_ARB, this->nthVideoFrame * this->videoStageBufferMemorySize,
 								this->videoStageBufferMemorySize,
-								GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT); // TODO fix access bit
+								GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
 							/*	Upload the image to staging.	*/
 							memcpy(uniformPointer, this->frameoutput->data[0], this->videoStageBufferMemorySize);

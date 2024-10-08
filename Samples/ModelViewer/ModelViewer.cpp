@@ -106,7 +106,8 @@ namespace glsample {
 
 		/*	*/
 		glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-						  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize, this->uniformAlignBufferSize);
+						  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
+						  this->uniformAlignBufferSize);
 
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		/*	Set render viewport size in pixels.	*/
@@ -116,15 +117,10 @@ namespace glsample {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		{
-			/*	Disable depth and culling of faces.	*/
-			glDisable(GL_DEPTH_TEST);
-			glDisable(GL_CULL_FACE);
 
 			/*	Bind shader pipeline.	*/
 			glUseProgram(this->physical_based_rendering_program);
-
 			this->scene.render();
-
 			glUseProgram(0);
 		}
 

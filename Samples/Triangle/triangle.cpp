@@ -2,7 +2,6 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ShaderLoader.h>
-#include <iostream>
 
 namespace glsample {
 
@@ -84,7 +83,7 @@ namespace glsample {
 			/*	Set render viewport size in pixels.	*/
 			glViewport(0, 0, width, height);
 
-			/*	Clear default framebuffer color attachment.	*/
+			/*	Clear default framebuffers' color attachment.	*/
 			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
 

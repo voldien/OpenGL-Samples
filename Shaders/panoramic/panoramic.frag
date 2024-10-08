@@ -6,6 +6,8 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec2 uv;
 layout(location = 2) in vec3 normal;
+layout(location = 3) in vec3 ViewDir;
+
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -30,7 +32,7 @@ layout(binding = 0) uniform sampler2D DiffuseTexture;
 
 void main() {
 
-	const vec3 viewDir = ubo.viewDir.xyz;
+	const vec3 viewDir = ViewDir;
 
 	// Compute directional light
 	vec4 pointLightColors = vec4(0);

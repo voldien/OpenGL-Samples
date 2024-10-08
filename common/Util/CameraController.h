@@ -56,13 +56,18 @@ namespace glsample {
 
 			SDL_GetMouseState(&x, &y);
 
-			const float xDiff = -(xprev - x) * this->xspeed;
-			const float yDiff = -(yprev - y) * this->yspeed;
-			xprev = x;
-			yprev = y;
+			float xDiff = 0;
+			float yDiff = 0;
+
+			if (this->enable_Look) {
+				float xDiff = -(xprev - x) * this->xspeed;
+				float yDiff = -(yprev - y) * this->yspeed;
+				xprev = x;
+				yprev = y;
+			}
 
 			/*	*/
-			if (!enable_Navigation) {
+			if (!this->enable_Navigation) {
 				w = false;
 				a = false;
 				s = false;
@@ -76,7 +81,7 @@ namespace glsample {
 			}
 
 			/*	*/
-			if (!alt && this->enable_Look) {
+			if (!alt && (this->enable_Look || this->enable_Navigation)) {
 				flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime,
 										 current_speed, 0.5f * activated, this->fov_degree, xDiff, yDiff, w, a, s, d, 0,
 										 0, 0);

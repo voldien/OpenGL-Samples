@@ -50,7 +50,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube ShadowTexture, int index) {
+float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube ShadowTexture, const in int index) {
 
 	const vec3 frag2Light = (fragPosLightSpace - ubo.point_light[index].position);
 

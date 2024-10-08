@@ -65,7 +65,7 @@ namespace glsample {
 
 	void Scene::render() {
 
-		// TODO sort materials and geomtry.
+		// TODO sort materials and geometry.
 		this->sortRenderQueue();
 
 		/*	Iterate through each node.	*/

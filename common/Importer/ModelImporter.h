@@ -189,7 +189,7 @@ typedef struct curve_t : public AssetObject {
 
 typedef struct animation_object_t : public AssetObject {
 	std::vector<Curve> curves;
-	float durtation;
+	float duration;
 } AnimationObject;
 
 typedef struct light_object_t : public AssetObject {

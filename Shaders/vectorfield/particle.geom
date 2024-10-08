@@ -29,7 +29,7 @@ void main() {
 	const vec2 cUV[] = vec2[](vec2(1.0, 1.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(0.0, 0.0));
 
 	/*  Create Billboard quad.    */
-	for (i = 0; i < gl_in.length(); i++) {
+	[[unroll]] for (i = 0; i < gl_in.length(); i++) {
 		/*	*/
 		[[unroll]] for (j = 0; j < noffsets; j++) {
 

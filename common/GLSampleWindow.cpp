@@ -1,4 +1,5 @@
 #include "GLSampleWindow.h"
+#include "Core/Library.h"
 #include "FPSCounter.h"
 #include "spdlog/common.h"
 #include <GLRendererInterface.h>
@@ -6,6 +7,8 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_mouse.h>
+#include <exception>
+#include <renderdoc_app.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
 #include <spdlog/spdlog.h>
@@ -146,6 +149,18 @@ void GLSampleWindow::debug(bool enable) {
 	} else {
 		this->logger->set_level(spdlog::level::info);
 	}
+
+	RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+	try {
+		fragcore::Library library("librenderdoc.so");
+		pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)library.getfunc("RENDERDOC_GetAPI");
+		int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+		assert(ret == 1);
+	} catch (const std::exception &ex) {
+	}
+
+	//pRENDERDOC_TriggerCapture
+	// if(rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
 }
 
 void GLSampleWindow::captureScreenShot() {

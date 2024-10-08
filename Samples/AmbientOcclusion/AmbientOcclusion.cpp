@@ -32,7 +32,6 @@ namespace glsample {
 		}
 		static const int maxKernels = 64;
 
-		// TODO later - combine uniform buffer stage.
 		struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;

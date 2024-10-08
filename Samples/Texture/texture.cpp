@@ -6,7 +6,6 @@
 #include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 
@@ -165,7 +164,7 @@ namespace glsample {
 				/*	Activate texture graphic pipeline.	*/
 				glUseProgram(this->texture_program);
 
-				/*	Disable culling of faces, allows faces to be visable from both directions.	*/
+				/*	Disable culling of faces, allows faces to be visible from both directions.	*/
 				glDisable(GL_CULL_FACE);
 
 				/*	active and bind texture to texture unit 0.	*/

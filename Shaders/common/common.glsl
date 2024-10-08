@@ -1,5 +1,6 @@
 #include "material.glsl"
 #include "noise.glsl"
+#include "fog.glsl"
 
 vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const float dist) {
 
@@ -25,40 +26,7 @@ vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const float dist) {
 	return bump;
 }
 
-float getExpToLinear(const in float start, const in float end, const in float expValue) {
-	return ((2.0f * start) / (end + start - expValue * (end - start)));
-}
 
-float getFogFactor(const in uint fogtype) {
-
-	// const float near = ubo.CameraNear;
-	// const float far = ubo.CameraFar;
-
-	// const float endFog = ubo.fogEnd / (far - near);
-	// const float startFog = ubo.fogStart / (far - near);
-	// const float densityFog = ubo.fogDensity;
-
-	// const float z = getExpToLinear(near, far, gl_FragCoord.z);
-
-	// switch (fogtype) {
-	// case 1:
-	// 	return 1.0 - clamp((endFog - z) / (endFog - startFog), 0.0, 1.0);
-	// case 2:
-	// 	return 1.0 - clamp(exp(-(densityFog * z)), 0.0, 1.0);
-	// case 3:
-	// 	return 1.0 - clamp(exp(-(densityFog * z * densityFog * z)), 0.0, 1.0);
-	// // case 4:
-	// //	float dist = z * (far - near);
-	// //	float b = 0.5;
-	// //	float c = 0.9;
-	// //	return clamp(c * exp(-getCameraPosition().y * b) * (1.0 - exp(-dist * getCameraDirection().y * b)) /
-	// //					 getCameraDirection().y,
-	// //				 0.0, 1.0);
-	// default:
-	// 	return 0.0;
-	// }
-	return 0;
-}
 
 float computeLightContributionFactor(const in vec3 direction, const in vec3 normalInput) {
 	return max(0.0, dot(-normalInput, direction));

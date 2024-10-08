@@ -13,7 +13,6 @@
 
 namespace glsample {
 
-	// TODO rename to simple terrain.
 	/**
 	 * @brief
 	 *

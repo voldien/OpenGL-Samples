@@ -10,7 +10,6 @@ IF(PKG_CONFIG_FOUND)
 	PKG_CHECK_MODULES(SWRESAMPLE QUIET libswresample)
 ELSE()
 	MESSAGE(ERROR "Could not find AV Libraries.")
-
 	# TODO add logic for handling if pkg-config not available.
 ENDIF()
 

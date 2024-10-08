@@ -29,7 +29,6 @@ for url in download_asset_urls:
 	resp = urlopen(req)
 
 	file = BytesIO(resp.read())
-	# TODO, save copy of the downloaded.
 
 	with ZipFile(file) as zfile:
 		# Extract subfolder

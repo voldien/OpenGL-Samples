@@ -210,3 +210,5 @@ lint/tmp/
 *.hprof
 *.cache
 *.spv
+
+asset/

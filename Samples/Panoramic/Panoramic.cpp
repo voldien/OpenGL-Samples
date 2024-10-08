@@ -27,8 +27,10 @@ namespace glsample {
 			this->addUIComponent(this->panoramicSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
-			this->camera.lookAt(glm::vec3(0.f));
+			this->camera.setPosition(glm::vec3(0.0f));
+
+			this->camera.enableLook(false);
+			this->camera.enableNavigation(true);
 		}
 
 		struct uniform_buffer_block {

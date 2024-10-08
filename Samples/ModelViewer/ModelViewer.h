@@ -6,7 +6,6 @@
 #include <GLSampleWindow.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
-#include <iostream>
 
 namespace glsample {
 
@@ -24,7 +23,7 @@ namespace glsample {
 			float intensity;
 			float constant_attenuation;
 			float linear_attenuation;
-			float qudratic_attenuation;
+			float quadratic_attenuation;
 		};
 
 		struct light_settings {
@@ -32,6 +31,7 @@ namespace glsample {
 			glm::vec4 specularColor;
 			glm::vec4 direction;
 			glm::vec4 lightColor;
+			/*	*/
 			struct point_light pointLights[4];
 
 			float gamma;
@@ -140,7 +140,7 @@ namespace glsample {
 			struct uniform_buffer_block &uniform;
 			bool lightvisible[4] = {true, true, true, true};
 		};
-		
+
 		std::shared_ptr<ModelViewerSettingComponent> modelviewerSettingComponent;
 
 		void Release() override;

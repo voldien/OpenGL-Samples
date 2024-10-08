@@ -13,8 +13,7 @@ IF(PKG_CONFIG_FOUND)
 	MESSAGE(STATUS "Found pkg-config: ${PKG_CONFIG_EXECUTABLE} -- version ${PKG_CONFIG_VERSION_STRING}.")
 	PKG_CHECK_MODULES(SDL2 QUIET sdl2)
 ELSE()
-	MESSAGE(ERROR "")
-	# TODO add logic for handling if pkg-config not available.
+	MESSAGE(ERROR "Required library not found")
 ENDIF()
 
 
@@ -109,8 +108,6 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SimpleReflection)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/MineCraft)
 
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ParticleSystem)
-
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Grass)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Ocean)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Terrain)
@@ -162,13 +159,18 @@ FILE(GLOB_RECURSE GLSL_SOURCE_FILES
 ####################################
 FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	GET_FILENAME_COMPONENT(FILE_NAME ${GLSL} ABSOLUTE)
+
+	IF(CMAKE_BUILD_TYPE STREQUAL "Release")
+		SET(SPIRV_BUILD_SETTINGS -O)
+	ELSE()
+		SET(SPIRV_BUILD_SETTINGS -g -O0)
+	ENDIF()
 	
-	#TODO: enable debug for debug build.
 	SET(SPIRV "${FILE_NAME}.spv")
 	ADD_CUSTOM_COMMAND(
 		OUTPUT ${SPIRV}
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
-		COMMAND glslc -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-spv=spv1.3 -x glsl -O -Werror -g --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
+		COMMAND glslc -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-spv=spv1.3 -x glsl ${SPIRV_BUILD_SETTINGS} -Werror --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
 		DEPENDS ${GLSL})
 	LIST(APPEND SPIRV_BINARY_FILES ${SPIRV})
 ENDFOREACH(GLSL)

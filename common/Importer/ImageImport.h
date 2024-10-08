@@ -23,7 +23,7 @@
 namespace glsample {
 
 	enum class ColorSpace {
-		SRGB, /*	*/
+		SRGB, /*	SRGB encoded.	*/
 		Raw,  /*	Linear.	*/
 	};
 
@@ -36,7 +36,6 @@ namespace glsample {
 		TextureImporter(fragcore::IFileSystem *filesystem);
 		virtual ~TextureImporter();
 
-		// TODO add colorspace
 		int loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::Raw);
 		int loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::Raw);
 

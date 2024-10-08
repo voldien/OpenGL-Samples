@@ -132,33 +132,44 @@ finished:
 	fragcore::checkError();
 
 	if (lstatus != GL_TRUE) {
+
 		char log[4096];
 		glGetProgramInfoLog(program, sizeof(log), nullptr, log);
 		fragcore::checkError();
-		// TODO FIXME
+
 		throw cxxexcept::RuntimeException("Failed to link program: {}", log);
 	}
 
 	/*	Remove shader resources not needed after linking.	*/
 	if (glIsShader(shader_vertex)) {
 		glDetachShader(program, shader_vertex);
+		fragcore::checkError();
 		glDeleteShader(shader_vertex);
+		fragcore::checkError();
 	}
 	if (glIsShader(shader_fragment)) {
 		glDetachShader(program, shader_fragment);
+		fragcore::checkError();
 		glDeleteShader(shader_fragment);
+		fragcore::checkError();
 	}
 	if (glIsShader(shader_geometry)) {
 		glDetachShader(program, shader_geometry);
+		fragcore::checkError();
 		glDeleteShader(shader_geometry);
+		fragcore::checkError();
 	}
 	if (glIsShader(shader_tesc)) {
 		glDetachShader(program, shader_tesc);
+		fragcore::checkError();
 		glDeleteShader(shader_tesc);
+		fragcore::checkError();
 	}
 	if (glIsShader(shader_tese)) {
 		glDetachShader(program, shader_tese);
+		fragcore::checkError();
 		glDeleteShader(shader_tese);
+		fragcore::checkError();
 	}
 
 	return program;
@@ -198,6 +209,8 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 
 	glGetProgramiv(program, GL_LINK_STATUS, &lstatus);
 	fragcore::checkError();
+
+	/*	*/
 	if (lstatus != GL_TRUE) {
 		char log[4096];
 		glGetProgramInfoLog(program, sizeof(log), nullptr, log);
@@ -208,7 +221,9 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 
 	if (glIsShader(shader_compute)) {
 		glDetachShader(program, shader_compute);
+		fragcore::checkError();
 		glDeleteShader(shader_compute);
+		fragcore::checkError();
 	}
 
 	return program;
@@ -333,7 +348,7 @@ int ShaderLoader::loadShader(const std::vector<char> &source, const int type) {
 	const unsigned int shader = glCreateShader(type);
 	fragcore::checkError();
 
-	/*	Load as Spirv if data is spirv file and supported.	*/
+	/*	Load as Spirv if data is Spirv file and supported.	*/
 	if (spirv_magic_number == magic_number && glSpecializeShaderARB) {
 		glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, source.data(), source.size());
 		glSpecializeShaderARB(shader, "main", 0, 0, 0);

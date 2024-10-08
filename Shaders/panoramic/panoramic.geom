@@ -14,6 +14,7 @@ layout(location = 2) in vec3 InNormal[];
 layout(location = 0) out vec3 OutVertex;
 layout(location = 1) out vec2 OutUV;
 layout(location = 2) out vec3 OutNormal;
+layout(location = 3) out vec3 ViewDir;
 
 layout(constant_id = 0) const int NrLayers = 6;
 layout(constant_id = 1) const int NrFaces = 3;
@@ -37,16 +38,21 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
+/*	Based on the cubemap layer direction.	*/
+const vec3 view_directions[6] = {vec3(1, 0, 0),	 vec3(-1, 0, 0), vec3(0, 1, 0),
+								 vec3(0, -1, 0), vec3(0, 0, 1),	 vec3(0.0, 0.0, -1)};
+
 void main() {
 
-	[[unroll]]for (int face = 0; face < NrLayers; ++face) {
-		gl_Layer = face;			// built-in variable that specifies to which face we render.
-		 [[unroll]]for (int i = 0; i < NrFaces; ++i) // for each triangle vertex
+	[[unroll]] for (int face = 0; face < NrLayers; ++face) {
+		gl_Layer = face;							 // built-in variable that specifies to which face we render.
+		[[unroll]] for (int i = 0; i < NrFaces; ++i) // for each triangle vertex
 		{
 			OutVertex = gl_in[i].gl_Position.xyz;
 			gl_Position = (ubo.ViewProjection[gl_Layer]) * gl_in[i].gl_Position;
 			OutUV = InUV[i];
 			OutNormal = InNormal[i];
+			ViewDir =  view_directions[face]; //(ubo.view * vec4(view_directions[face], 0)).xyz;
 			EmitVertex();
 		}
 		EndPrimitive();
