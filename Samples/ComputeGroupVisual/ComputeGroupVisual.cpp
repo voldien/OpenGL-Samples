@@ -1,5 +1,5 @@
-#include "Core/Math.h"
 #include "GLSampleWindow.h"
+#include "Math/Math.h"
 #include "RenderDesc.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>

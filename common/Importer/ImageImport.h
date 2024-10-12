@@ -14,8 +14,8 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include <Core/IO/FileSystem.h>
-#include <Core/IO/IFileSystem.h>
+#include <IO/FileSystem.h>
+#include <IO/IFileSystem.h>
 #include <ImageLoader.h>
 #include <string>
 #include <vector>

@@ -16,8 +16,8 @@
 #pragma once
 #include "FPSCounter.h"
 #include "SDLInput.h"
-#include <Core/IO/IFileSystem.h>
 #include <Core/Time.h>
+#include <IO/IFileSystem.h>
 #include <MIMIWindow.h>
 #include <ProceduralGeometry.h>
 #include <cxxopts.hpp>
@@ -80,7 +80,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void setCommandResult(cxxopts::ParseResult &result) noexcept { this->parseResult = result; }
 
 	fragcore::SDLInput &getInput() noexcept { return this->input; }
-	const fragcore::SDLInput &getInput()const  noexcept { return this->input; }
+	const fragcore::SDLInput &getInput() const noexcept { return this->input; }
 
 	// const fragcore::GLRendererInterface *getRenderInterface();
 

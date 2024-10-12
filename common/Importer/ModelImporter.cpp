@@ -1,7 +1,7 @@
 #include "ModelImporter.h"
-#include "Core/Math.h"
+#include "Math/Math.h"
 #include "assimp/Importer.hpp"
-#include <Core/IO/IOUtil.h>
+#include <IO/IOUtil.h>
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
 #include <assimp/types.h>
@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <glm/fwd.hpp>
 #include <sys/types.h>
+#include <thread>
 #include <utility>
 
 namespace fs = std::filesystem;

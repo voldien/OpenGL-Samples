@@ -14,8 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Core/math3D/LinAlg.h"
-#include "IOUtil.h"
+#include <FragCore.h>
 
 #include <GL/glew.h>
 #include <cxxopts.hpp>

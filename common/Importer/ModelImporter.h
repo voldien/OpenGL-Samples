@@ -14,9 +14,9 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Core/math3D/LinAlg.h"
-#include <Core/IO/IFileSystem.h>
-#include <Core/math3D/AABB.h>
+#include "Math3D/LinAlg.h"
+#include <IO/IFileSystem.h>
+#include <Math3D/AABB.h>
 #include <assimp/Importer.hpp>
 #include <assimp/anim.h>
 #include <assimp/camera.h>
@@ -78,13 +78,13 @@ typedef struct material_object_t : public AssetObject {
 	float shinininess;
 	float shinininessStrength;
 	float opacity;
-	int blend_mode;	/*	aiBlendMode*/
+	int blend_mode; /*	aiBlendMode*/
 	int wireframe_mode;
 	bool culling_both_side_mode;
 
 	// TODO add texture
 
-	unsigned int shade_model;	/*	aiShadingMode	*/
+	unsigned int shade_model; /*	aiShadingMode	*/
 } MaterialObject;
 
 typedef struct node_object_t : public AssetObject {

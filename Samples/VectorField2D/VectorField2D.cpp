@@ -1,4 +1,4 @@
-#include "Core/math/NormalDistribution.h"
+#include "Math/NormalDistribution.h"
 #include "GLSampleWindow.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>

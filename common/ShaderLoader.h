@@ -14,7 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include <Core/IO/IOUtil.h>
+#include <IO/IOUtil.h>
 #include <ShaderCompiler.h>
 
 namespace glsample {

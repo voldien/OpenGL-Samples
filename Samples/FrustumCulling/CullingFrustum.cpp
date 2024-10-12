@@ -1,6 +1,6 @@
-#include "Core/Math.h"
-#include "Core/Math3D.h"
 #include "GLSampleSession.h"
+#include "Math/Math.h"
+#include "Math3D/Math3D.h"
 #include "Scene.h"
 #include "Util/CameraController.h"
 #include <GL/glew.h>
@@ -249,13 +249,14 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize =
+				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffers * this->nrCameras, nullptr,
-						 GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffers * this->nrCameras,
+						 nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Setup instance buffer.	*/
@@ -373,7 +374,8 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize * this->nrCameras,
+							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize *
+								  this->nrCameras,
 							  this->uniformAlignBufferSize);
 
 			/*	*/
@@ -400,7 +402,8 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize * this->nrCameras +
+							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize *
+									  this->nrCameras +
 								  this->uniformAlignBufferSize,
 							  this->uniformAlignBufferSize);
 
@@ -473,7 +476,8 @@ namespace glsample {
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				uint8_t *uniformPointer = (uint8_t *)glMapBufferRange(
 					GL_UNIFORM_BUFFER,
-					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformAlignBufferSize * this->nrCameras,
+					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformAlignBufferSize *
+						this->nrCameras,
 					this->uniformAlignBufferSize * this->nrCameras, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
 				/*	*/

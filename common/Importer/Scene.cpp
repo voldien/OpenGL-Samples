@@ -71,7 +71,7 @@ namespace glsample {
 		/*	Iterate through each node.	*/
 
 		//	for (size_t x = 0; x < this->renderQueue.size(); x++) {
-		for (const NodeObject *node : renderQueue) {
+		for (const NodeObject *node : this->renderQueue) {
 
 			/*	*/
 			// const NodeObject *node = this->renderQueue[x];
@@ -137,6 +137,8 @@ namespace glsample {
 			/*	*/
 			const bool useBlending = material.opacity < 1.0f || material.maskTextureIndex >= 0;
 
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
 			/*	*/
 			if (useBlending) {
 				glEnable(GL_BLEND);
@@ -158,8 +160,8 @@ namespace glsample {
 			if (material.culling_both_side_mode) {
 				glDisable(GL_CULL_FACE);
 			} else {
-				glDisable(GL_CULL_FACE);
 				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
 			}
 
 			const MeshObject &refMesh = this->refGeometry[node->geometryObjectIndex[i]];

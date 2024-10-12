@@ -15,10 +15,10 @@
  */
 #pragma once
 #include "Camera.h"
-#include "Core/math3D/BoundingSphere.h"
-#include <Core/math3D/Plane.h>
 #include <FragCore.h>
 #include <GeometryUtil.h>
+#include <Math3D/BoundingSphere.h>
+#include <Math3D/Plane.h>
 
 namespace glsample {
 

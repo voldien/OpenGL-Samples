@@ -1,4 +1,3 @@
-#include "Core/Math.h"
 #include "ModelImporter.h"
 #include "Scene.h"
 #include "Skybox.h"

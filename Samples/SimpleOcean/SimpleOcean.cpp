@@ -1,4 +1,3 @@
-#include "Core/Math.h"
 #include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>

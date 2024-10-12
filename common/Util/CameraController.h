@@ -14,7 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Core/Math3D.h"
+#include "Math3D/Math3D.h"
 #include "Util/Frustum.h"
 #include "flythrough_camera.h"
 #include <Input.h>
@@ -59,15 +59,15 @@ namespace glsample {
 			float xDiff = 0;
 			float yDiff = 0;
 
-			if (this->enable_Look) {
-				float xDiff = -(xprev - x) * this->xspeed;
-				float yDiff = -(yprev - y) * this->yspeed;
+			if (this->enabled_Look) {
+				xDiff = -(xprev - x) * this->xspeed;
+				yDiff = -(yprev - y) * this->yspeed;
 				xprev = x;
 				yprev = y;
 			}
 
 			/*	*/
-			if (!this->enable_Navigation) {
+			if (!this->enabled_Navigation) {
 				w = false;
 				a = false;
 				s = false;
@@ -81,7 +81,7 @@ namespace glsample {
 			}
 
 			/*	*/
-			if (!alt && (this->enable_Look || this->enable_Navigation)) {
+			if (!alt && (this->enabled_Look || this->enabled_Navigation)) {
 				flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime,
 										 current_speed, 0.5f * activated, this->fov_degree, xDiff, yDiff, w, a, s, d, 0,
 										 0, 0);
@@ -91,8 +91,8 @@ namespace glsample {
 			}
 		}
 
-		void enableNavigation(const bool enable) noexcept { this->enable_Navigation = enable; }
-		void enableLook(const bool enable) noexcept { this->enable_Look = enable; }
+		void enableNavigation(const bool enable) noexcept { this->enabled_Navigation = enable; }
+		void enableLook(const bool enable) noexcept { this->enabled_Look = enable; }
 
 		const glm::mat4 &getViewMatrix() const noexcept { return this->view; }
 		const glm::mat4 getRotationMatrix() const noexcept {
@@ -146,8 +146,8 @@ namespace glsample {
 
 		float fastSpeed = 2.5f;
 
-		bool enable_Navigation = true;
-		bool enable_Look = true;
+		bool enabled_Navigation = true;
+		bool enabled_Look = true;
 
 		int x, y, xprev, yprev;
 
