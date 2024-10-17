@@ -61,6 +61,8 @@ Usage:
 ![Subsurface Scattering](https://github.com/voldien/OpenGL-Samples/assets/9608088/ac752bfc-cc72-49ae-a9d6-2c729cd07c2d)
  
 - [**Normal**] (Samples/Normal)
+![Normal](https://github.com/user-attachments/assets/d06d37ca-71d3-4346-91ef-266bc043a4f9)
+
 
 - **Blinn - Phong**
 ![PhongBlinn](https://github.com/voldien/OpenGL-Samples/assets/9608088/e14e4035-1639-4532-a316-65c8c879abf9)
@@ -71,14 +73,20 @@ Usage:
 - **Terrain**
 
 - **Shadow Map**
-![BasicShadowMap](https://github.com/voldien/OpenGL-Samples/assets/9608088/bd5f11f4-4f3c-4038-a998-9a50fa7eb743)
+![BasicShadowMapp](https://github.com/user-attachments/assets/f4596f70-1f89-4595-912c-dd3848c0788c)
+
 
 - **Shadow Map PCF**
+![BasicShadowMap PCF](https://github.com/user-attachments/assets/1097b804-c8d5-46df-b032-b4e29df7ae58)
+![BasicShadowMap PCF](https://github.com/user-attachments/assets/cae348e3-9c2a-4443-8119-02f018fc0109)
+
 
 - **Point Shadow Light**
-![PointLightShadow](https://github.com/voldien/OpenGL-Samples/assets/9608088/8e4e4374-71a3-45ad-9f93-87e8528cbfeb)
+![PointLightShadow](https://github.com/user-attachments/assets/daaf91b3-b0ee-4b55-a182-ad326b0e2634)
 
 - [**Shadow Projection**](Samples/ProjectedShadow/)
+
+![ProjectedShadow](https://github.com/user-attachments/assets/d1a17f8e-21c5-42e3-8e4a-094bbe3d8a0b)
 
 - **Shadow Map Variance**
 
@@ -95,10 +103,6 @@ Usage:
 - **MipMap Visual**
 ![MipMapVisual](https://github.com/voldien/OpenGL-Samples/assets/9608088/ea0714f4-4971-42ad-80db-4d567dc29b03)
 
-- **Simple Particle System**
-
-- **Particle System**
-
 - **Multipass**
 ![AmbientOcclusion](https://github.com/voldien/OpenGL-Samples/assets/9608088/6c156319-7617-43aa-af08-93d709bc07e9)
 
@@ -112,7 +116,10 @@ Usage:
 
 - **Physical Based Rendering**
 
-- **Morph (Blend Shape)**
+- **Panoramic**
+![Panoramic](https://github.com/user-attachments/assets/3431b44d-0932-49cb-a96e-7cc6b4bbd8f2)
+![Panoramic](https://github.com/user-attachments/assets/dd618200-ea77-4844-a56f-7b863878864f)
+
 
 - [**Skinned Mesh**](Samples/SkinnedMesh/)
 
@@ -134,8 +141,17 @@ Usage:
 - [**ReactionDiffusion**](Samples/ReactionDiffusion)
 
 - [**Vector Field 2D**](Samples/VectorField2D/)
+![VectorField2D](https://github.com/user-attachments/assets/43b3da51-83d6-4b51-ae06-792b01493c2a)
 
 - **Support Vector Machine**
+
+- **Compute Group Visual**
+![ComputeGroup](https://github.com/user-attachments/assets/a06d9256-05fa-4e16-9621-e2f7b473c9c5)
+
+
+- **Rigidbody**
+![RigidBody](https://github.com/user-attachments/assets/74e55eea-8f19-4a80-82b1-e88952334db0)
+
 
 ## Build Instruction
 
