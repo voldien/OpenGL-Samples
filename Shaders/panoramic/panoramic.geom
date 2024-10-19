@@ -40,7 +40,7 @@ ubo;
 
 /*	Based on the cubemap layer direction.	*/
 const vec3 view_directions[6] = {vec3(1, 0, 0),	 vec3(-1, 0, 0), vec3(0, 1, 0),
-								 vec3(0, -1, 0), vec3(0, 0, 1),	 vec3(0.0, 0.0, -1)};
+								 vec3(0, -1, 0), vec3(0, 0, -1),	 vec3(0.0, 0.0, 1)};
 
 void main() {
 
@@ -52,7 +52,7 @@ void main() {
 			gl_Position = (ubo.ViewProjection[gl_Layer]) * gl_in[i].gl_Position;
 			OutUV = InUV[i];
 			OutNormal = InNormal[i];
-			ViewDir =  view_directions[face]; //(ubo.view * vec4(view_directions[face], 0)).xyz;
+			ViewDir = (ubo.ViewProjection[face] * vec4(view_directions[face], 0)).xyz;
 			EmitVertex();
 		}
 		EndPrimitive();

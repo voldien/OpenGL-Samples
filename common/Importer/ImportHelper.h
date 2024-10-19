@@ -37,6 +37,8 @@ namespace glsample {
 		 */
 		static void loadTextures(ModelImporter &modelLoader, std::vector<TextureAssetObject> &textures);
 
+		static void convertBumpMaterial2Normal(ModelImporter &modelLoader);
+
 		// static void mergeGeometry(std::vector<ProceduralGeometry::Vertex> wireCubeVertices,
 		//						  std::vector<unsigned int> wireCubeIndices);
 	};

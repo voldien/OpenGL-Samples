@@ -35,7 +35,7 @@ void main() {
 	const vec3 srcNormal = normalize(texture(NormalTexture, uv).rgb);
 	const vec3 randVec = texture(NormalRandomize, uv * noiseScale).xyz;
 
-	/*	*/
+	/*	Normal.	*/
 	const vec3 tangent = normalize(randVec - srcNormal * dot(randVec, srcNormal));
 	const vec3 bitangent = cross(srcNormal, tangent);
 	const mat3 TBN = mat3(tangent, bitangent, srcNormal);

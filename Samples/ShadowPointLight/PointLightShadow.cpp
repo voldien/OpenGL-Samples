@@ -62,6 +62,7 @@ namespace glsample {
 			/*	*/
 			glm::vec4 pcfFilters[20];
 			float diskRadius = 25.0f;
+			int samples = 1;
 		} uniform;
 
 		/*	Point light shadow maps.	*/
@@ -69,8 +70,8 @@ namespace glsample {
 		std::vector<unsigned int> pointShadowTextures;
 
 		/*	*/
-		unsigned int shadowWidth = 1024;
-		unsigned int shadowHeight = 1024;
+		unsigned int shadowWidth = 1024 * 2;
+		unsigned int shadowHeight = 1024 * 2;
 
 		Scene scene;
 
@@ -101,6 +102,7 @@ namespace glsample {
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
 
 				ImGui::DragFloat("Disk Radius", &this->uniform.diskRadius, 1, 0.0f, 1000.0f);
+				ImGui::DragInt("PCF Samples ", &this->uniform.samples, 1, 0, 16);
 				ImGui::TextUnformatted("Depth Texture");
 
 				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
@@ -228,7 +230,8 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize =
+				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	 Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -375,6 +378,7 @@ namespace glsample {
 				glViewport(0, 0, width, height);
 
 				/*	*/
+				glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 				if (this->shadowSettingComponent->use_pcf) {
@@ -422,16 +426,14 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			uint8_t *uniformPointer = (uint8_t *)glMapBufferRange(
 				GL_UNIFORM_BUFFER,
-				(((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->nrPointLights) * this->uniformAlignBufferSize,
+				(((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->nrPointLights) *
+					this->uniformAlignBufferSize,
 				this->uniformAlignBufferSize * this->nrPointLights, GL_MAP_WRITE_BIT);
 			glm::mat4 PointView[6];
 
 			/*	*/
 			for (size_t i = 0; i < this->nrPointLights; i++) {
 				const glm::vec3 lightPosition = this->uniform.pointLights[i].position;
-				/*	*/
-				const glm::mat4 model = glm::mat4(1.0f);
-				const glm::mat4 translation = glm::translate(model, this->uniform.pointLights[i].position);
 
 				PointView[0] =
 					glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
@@ -474,8 +476,7 @@ namespace glsample {
 	  public:
 		PointLightShadowGLSample() : GLSample<PointLightShadow>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};
 

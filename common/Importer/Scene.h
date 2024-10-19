@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Core/NoCopyable.h"
 #include "Core/UIDObject.h"
 #include "GLSampleSession.h"
 #include "ImportHelper.h"
@@ -41,13 +42,22 @@ namespace glsample {
 		Displacement,	  /*	*/
 	};
 
+	enum RenderQueue {
+		Background = 500,	 /*  */
+		Geometry = 1000,	 /*  */
+		AlphaTest = 1500,	 /*  */
+		GeometryLast = 1600, /*  */
+		Transparent = 2000,	 /*  */
+		Overlay = 3000,		 /*  */
+	};
+
 	/**
 	 * @brief
 	 *
 	 */
 	class Scene : public fragcore::UIDObject {
 	  public:
-		Scene() { this->init(); }
+		Scene();
 		virtual ~Scene();
 
 		virtual void init();
@@ -70,7 +80,10 @@ namespace glsample {
 		const std::vector<MeshObject> &getMeshes() const noexcept { return this->refGeometry; }
 		std::vector<MeshObject> &getMeshes() noexcept { return this->refGeometry; }
 
-	  public:
+	  protected:
+		int computeMaterialPriority(const MaterialObject &material) const noexcept;
+
+	  protected:
 		/*	TODO add queue structure.	*/
 		std::deque<const NodeObject *> renderQueue;
 
@@ -87,8 +100,6 @@ namespace glsample {
 		int emissionDefault = -1;
 
 	  public:
-		// Template
-
 		template <typename T = Scene> static T loadFrom(ModelImporter &importer) {
 
 			T scene;

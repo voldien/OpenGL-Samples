@@ -77,7 +77,7 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceMemorySize = 0;
-		const size_t maxGroupSize[3] = {16, 16, 16};
+		const size_t maxGroupSize[3] = {24, 24, 24};
 
 		class ComputeGroupVisualSettingComponent : public nekomimi::UIComponent {
 
@@ -271,9 +271,12 @@ namespace glsample {
 								  0, sizeof(IndirectDrawElement));
 
 				/*	*/
-				const size_t Xinvoke = this->computeGroupVisualSettingComponent->workgroupSize[0];
-				const size_t Yinvoke = this->computeGroupVisualSettingComponent->workgroupSize[1];
-				const size_t Zinvoke = this->computeGroupVisualSettingComponent->workgroupSize[2];
+				const size_t Xinvoke = Math::clamp<size_t>(this->computeGroupVisualSettingComponent->workgroupSize[0],
+														   1, this->maxGroupSize[0]);
+				const size_t Yinvoke = Math::clamp<size_t>(this->computeGroupVisualSettingComponent->workgroupSize[1],
+														   1, this->maxGroupSize[1]);
+				const size_t Zinvoke = Math::clamp<size_t>(this->computeGroupVisualSettingComponent->workgroupSize[2],
+														   1, this->maxGroupSize[2]);
 				glDispatchCompute(Xinvoke, Yinvoke, Zinvoke);
 
 				glUseProgram(0);
@@ -330,7 +333,6 @@ namespace glsample {
 
 		void update() override {
 
-			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	Update uniforms.	*/
@@ -338,6 +340,7 @@ namespace glsample {
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 
 				this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
+				// TODO: add clamping, within
 				this->uniformStageBuffer.nrElements =
 					fragcore::Math::product(this->computeGroupVisualSettingComponent->workgroupSize, 3) *
 					fragcore::Math::product<int>(localWorkGroupSize, 3);

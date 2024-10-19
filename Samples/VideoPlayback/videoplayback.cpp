@@ -134,10 +134,10 @@ namespace glsample {
 		const std::string vertexShaderPath = "Shaders/videoplayback/videoplayback.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/videoplayback/videoplayback.frag.spv";
 
-		const std::vector<Vertex> vertices = {{-1.0f, -1.0f, 0.0f, 0.0f, 0.0f},
-											  {-1.0f, 1.0f, 0.0f, 0.0f, 1.0f},
-											  {1.0f, -1.0f, 0.0f, 1.0f, 1.0f},
-											  {1.0f, 1.0f, 0.0f, 1.0f, 0.0f}};
+		const std::vector<Vertex> vertices = {{{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
+											  {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
+											  {{1.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
+											  {{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}};
 
 		std::string error_message(int result) {
 			char buf[AV_ERROR_MAX_STRING_SIZE];

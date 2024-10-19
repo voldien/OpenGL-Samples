@@ -1,4 +1,3 @@
-#include "Input.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -114,7 +113,6 @@ namespace glsample {
 
 				const std::vector<uint32_t> julia_binary =
 					IOUtil::readFileData<uint32_t>(this->computeJuliaShaderPath, this->getFileSystem());
-
 
 				/*	Load shader	*/
 				this->julia_program = ShaderLoader::loadComputeProgram(compilerOptions, &julia_binary);
@@ -264,9 +262,9 @@ namespace glsample {
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount()) % nrUniformBuffer) * uniformAlignBufferSize,
-								 uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount()) % nrUniformBuffer) * uniformAlignBufferSize,
+				uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &params, sizeof(params));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}

@@ -1,3 +1,4 @@
+#include "Math/Math.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "imgui.h"
@@ -9,7 +10,9 @@
 #include <ModelImporter.h>
 #include <ModelViewer.h>
 #include <ShaderLoader.h>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 
 namespace glsample {
 
@@ -29,7 +32,7 @@ namespace glsample {
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(0.0f));
 
-			this->camera.enableLook(false);
+			this->camera.enableLook(true);
 			this->camera.enableNavigation(true);
 		}
 
@@ -353,28 +356,25 @@ namespace glsample {
 			/*	*/
 			const glm::vec3 cameraPosition = this->camera.getPosition();
 
-			const glm::vec3 cameraUp = this->camera.getUp();
-			const glm::vec3 cameraForward = this->camera.getLookDirection();
-
+			/*	*/
 			this->uniformStageBuffer.ViewProjection[0] =
 				glm::lookAt(cameraPosition, cameraPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
 			this->uniformStageBuffer.ViewProjection[1] =
-
 				glm::lookAt(cameraPosition, cameraPosition + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+			/*	*/
 			this->uniformStageBuffer.ViewProjection[2] =
-
 				glm::lookAt(cameraPosition, cameraPosition + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
 			this->uniformStageBuffer.ViewProjection[3] =
-
 				glm::lookAt(cameraPosition, cameraPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
+			/*	*/
 			this->uniformStageBuffer.ViewProjection[4] =
-
 				glm::lookAt(cameraPosition, cameraPosition + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0));
 			this->uniformStageBuffer.ViewProjection[5] =
-
 				glm::lookAt(cameraPosition, cameraPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0));
 
 			for (int i = 0; i < 6; i++) {
+				this->uniformStageBuffer.ViewProjection[i] = glm::rotate(
+					this->uniformStageBuffer.ViewProjection[i], glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 				this->uniformStageBuffer.ViewProjection[i] =
 					pointPer * glm::scale(this->uniformStageBuffer.ViewProjection[i], glm::vec3(1, 1, 1));
 			}

@@ -116,7 +116,7 @@ namespace glsample {
 		  public:
 			DeferredSettingComponent(struct uniform_buffer_block &uniform,
 									 std::vector<DirectionalLight> &direction_lights)
-				: uniform(uniform), direction_lights(direction_lights) {
+				: direction_lights(direction_lights), uniform(uniform) {
 				this->setName("Deferred Settings");
 			}
 

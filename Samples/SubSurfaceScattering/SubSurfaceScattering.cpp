@@ -70,7 +70,7 @@ namespace glsample {
 		class BasicShadowMapSettingComponent : public nekomimi::UIComponent {
 		  public:
 			BasicShadowMapSettingComponent(struct uniform_buffer_block &uniform, unsigned int &depth)
-				: uniform(uniform), depth(depth) {
+				: depth(depth), uniform(uniform) {
 				this->setName("SubSurface Scattering Settings");
 			}
 			void draw() override {

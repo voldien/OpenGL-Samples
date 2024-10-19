@@ -4,7 +4,6 @@
 #extension GL_ARB_uniform_buffer_object : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 
@@ -42,14 +41,17 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 cameraPosition;
 
 	point_light point_light[4];
+	vec4 PCFFilters[20];
+	float diskRadius;
+	int samples;
 }
 ubo;
 
 void main() {
 
-	[[unroll]]for (int face = 0; face < 6; ++face) {
-		gl_Layer = face;			// built-in variable that specifies to which face we render.
-		 [[unroll]]for (int i = 0; i < 3; ++i) // for each triangle vertex
+	[[unroll]] for (int face = 0; face < 6; ++face) {
+		gl_Layer = face;					   // built-in variable that specifies to which face we render.
+		[[unroll]] for (int i = 0; i < 3; ++i) // for each triangle vertex
 		{
 			FragVertex = gl_in[i].gl_Position;
 			FIndex = GIndex[i];

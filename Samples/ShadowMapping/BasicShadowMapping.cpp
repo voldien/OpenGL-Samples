@@ -51,8 +51,6 @@ namespace glsample {
 		size_t shadowWidth = 4096;
 		size_t shadowHeight = 4096;
 
-		unsigned int diffuse_texture;
-
 		std::vector<MeshObject> refObj;
 		Scene scene;
 
@@ -75,7 +73,7 @@ namespace glsample {
 		class BasicShadowMapSettingComponent : public nekomimi::UIComponent {
 		  public:
 			BasicShadowMapSettingComponent(struct uniform_buffer_block &uniform, unsigned int &depth)
-				: uniform(uniform), depth(depth) {
+				: depth(depth), uniform(uniform) {
 				this->setName("Basic Shadow Mapping Settings");
 			}
 
@@ -137,8 +135,6 @@ namespace glsample {
 		}
 
 		void Initialize() override {
-
-			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			{
@@ -172,10 +168,6 @@ namespace glsample {
 				this->shadow_alpha_clip_program = ShaderLoader::loadGraphicProgram(
 					compilerOptions, &vertex_shadow_binary, &fragment_shadow_alpha_binary);
 			}
-
-			/*	load Textures	*/
-			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			{
 				/*	Setup shadow graphic pipeline.	*/
@@ -215,12 +207,14 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize =
+				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			// Create uniform buffer.
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			{
@@ -285,8 +279,8 @@ namespace glsample {
 			{
 
 				/*	Compute light matrix.	*/
-				float near_plane = -this->shadowSettingComponent->distance / 2.0f,
-					  far_plane = this->shadowSettingComponent->distance / 2.0f;
+				const float near_plane = -(this->shadowSettingComponent->distance / 2.0f) * 2;
+				const float far_plane = (this->shadowSettingComponent->distance / 2.0f) * 2;
 				glm::mat4 lightProjection =
 					glm::ortho(-this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
 							   -this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
@@ -351,10 +345,6 @@ namespace glsample {
 				glPolygonMode(GL_FRONT_AND_BACK, this->shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
-
-				/*	*/
 				glActiveTexture(GL_TEXTURE0 + shadowBinding);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
@@ -379,7 +369,8 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-				this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				this->uniformAlignBufferSize,
+				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
@@ -389,8 +380,7 @@ namespace glsample {
 	  public:
 		ShadowMappingGLSample() : GLSample<BasicShadowMapping>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};
 

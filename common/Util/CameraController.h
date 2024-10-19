@@ -50,6 +50,7 @@ namespace glsample {
 			bool d = state[SDL_SCANCODE_D];
 			const bool alt = state[SDL_SCANCODE_LALT];
 			const bool shift = state[SDL_SCANCODE_LSHIFT];
+			const bool space = state[SDL_SCANCODE_SPACE];
 
 			// mouse movement.
 			SDL_PumpEvents(); // make sure we have the latest mouse state.

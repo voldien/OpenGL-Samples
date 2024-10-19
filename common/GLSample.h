@@ -20,7 +20,9 @@
 #include "GLSampleWindow.h"
 #include "IOUtil.h"
 #include "IRenderer.h"
+#include "TaskScheduler/IScheduler.h"
 #include "Util/CameraController.h"
+#include "fragcore/modules/taskscheduler/TaskSch/TaskScheduler.h"
 #include <GLHelper.h>
 #include <GeometryUtil.h>
 #include <ProceduralGeometry.h>
@@ -33,8 +35,6 @@
  * @tparam T
  */
 template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampleSession {
-	// TODO: add static_assert if derived from sample.
-
   public:
 	GLSample() noexcept {
 		// TODO set working directory to exec path.
@@ -104,8 +104,11 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		const int msaa = result["multi-sample"].as<int>();
 		const int display_index = result["display"].as<int>();
 
+		fragcore::Ref<fragcore::IScheduler> schedular =
+			fragcore::Ref<fragcore::IScheduler>(new fragcore::TaskScheduler(2));
+
 		/*	Create filesystem that the asset will be read from.	*/
-		this->activeFileSystem = fragcore::FileSystem::createFileSystem();
+		this->activeFileSystem = fragcore::FileSystem::createFileSystem(schedular);
 		const std::string filesystemPath = result["filesystem"].as<std::string>();
 		if (!this->activeFileSystem->isDirectory(filesystemPath.c_str())) {
 
@@ -145,7 +148,6 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 			delete this->sampleRef;
 			return;
 		}
-
 		/*	Internal initialize.	*/
 		this->sampleRef->setFileSystem(activeFileSystem);
 
@@ -170,7 +172,8 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 			height = display.height();
 		}
 		this->sampleRef->setSize(width, height);
-		// this->sampleRef->vsync(vsync);
+		this->sampleRef->vsync(vsync);
+		this->sampleRef->setColorSpace(gammacorrection);
 		this->sampleRef->setFullScreen(fullscreen);
 
 		this->sampleRef->show();

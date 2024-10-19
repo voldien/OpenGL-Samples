@@ -170,14 +170,14 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize =
+				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 		}
 
 		void draw() override {
 
 			int width, height;
 			this->getSize(&width, &height);
-
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -234,7 +234,8 @@ namespace glsample {
 				/*	*/
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				void *uniformPointer = glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+					GL_UNIFORM_BUFFER,
+					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 					this->uniformAlignBufferSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
@@ -248,10 +249,7 @@ namespace glsample {
 		ConditionalDrawGLSample() : GLSample<ConditionalDraw>() {}
 
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
-				"N,normal-texture", "NormalMap Path",
-				cxxopts::value<std::string>()->default_value("asset/normalmap.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}
 	};
 

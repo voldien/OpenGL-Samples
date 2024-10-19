@@ -159,7 +159,8 @@ namespace glsample {
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_share_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_share_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
@@ -285,8 +286,6 @@ namespace glsample {
 				/*	Blending.	*/
 				glEnable(GL_BLEND);
 				glBlendEquation(GL_FUNC_ADD);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
@@ -339,7 +338,8 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_share_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-				this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				this->uniformAlignBufferSize,
+				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 

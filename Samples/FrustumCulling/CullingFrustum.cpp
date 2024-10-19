@@ -26,7 +26,12 @@ namespace glsample {
 
 		void render() override { Scene::render(); }
 
-		void render(std::queue<const NodeObject *> &queue) { Scene::render(); }
+		void render(std::queue<const NodeObject *> &queue) {
+			while (!queue.empty()) {
+				Scene::renderNode(queue.front());
+				queue.pop();
+			}
+		}
 
 		void renderNode(const NodeObject *node) override {
 
@@ -390,7 +395,7 @@ namespace glsample {
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				glUseProgram(this->graphic_program);
-				this->scene.render();
+				this->scene.render(this->mainCameraNodeQueue);
 				glUseProgram(0);
 
 				if (this->frustumCullingSettingComponent->showBounds) {
@@ -450,8 +455,6 @@ namespace glsample {
 		std::queue<const NodeObject *> secondCameraNodeQueue;
 
 		void update() override {
-
-			const float elapsedTime = this->getTimer().getElapsed<float>();
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
@@ -517,6 +520,7 @@ namespace glsample {
 					}
 				}
 			}
+
 			this->getLogger().info("Culling Render {0}", mainCameraNodeQueue.size());
 		}
 

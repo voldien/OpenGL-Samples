@@ -45,6 +45,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	point_light point_light[4];
 	vec4 PCFFilters[20];
 	float diskRadius;
+	int samples;
 }
 ubo;
 

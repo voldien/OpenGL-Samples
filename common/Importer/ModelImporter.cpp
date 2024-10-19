@@ -1,5 +1,6 @@
 #include "ModelImporter.h"
 #include "Math/Math.h"
+#include "TaskScheduler/IScheduler.h"
 #include "assimp/Importer.hpp"
 #include <IO/IOUtil.h>
 #include <assimp/material.h>
@@ -120,6 +121,8 @@ void ModelImporter::clear() noexcept {
 
 void ModelImporter::initScene(const aiScene *scene) {
 
+	fragcore::IScheduler* schedular;
+
 	/*	*/
 	std::thread process_textures_thread([&]() {
 		/*	*/
@@ -137,6 +140,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 				this->textureIndexMapping[scene->mTextures[i]->mFilename.C_Str()] = i;
 			}
 		}
+
 		/*	*/
 		for (size_t x = 0; x < scene->mNumMaterials; x++) {
 			this->loadTexturesFromMaterials(scene->mMaterials[x]);
@@ -153,11 +157,6 @@ void ModelImporter::initScene(const aiScene *scene) {
 			/*	*/
 			for (size_t x = 0; x < scene->mNumMeshes; x++) {
 				this->initMesh(scene->mMeshes[x], x);
-			}
-
-			/*	*/
-			for (size_t x = 0; x < scene->mNumMeshes; x++) {
-				this->initBoneSkeleton(scene->mMeshes[x], x);
 			}
 
 			for (size_t x = 0; x < scene->mNumMeshes; x++) {
@@ -177,6 +176,11 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 	/*	*/
 	std::thread process_animation_light_camera_thread([&]() {
+		/*	*/
+		for (size_t x = 0; x < scene->mNumMeshes; x++) {
+			this->initBoneSkeleton(scene->mMeshes[x], x);
+		}
+
 		if (scene->HasAnimations()) {
 			for (size_t x = 0; x < scene->mNumAnimations; x++) {
 				this->initAnimation(scene->mAnimations[x], x);
@@ -297,6 +301,7 @@ SkeletonSystem *ModelImporter::initBoneSkeleton(const aiMesh *mesh, unsigned int
 
 			skeleton.bones[BoneName] = bone;
 		}
+
 		this->skeletons.push_back(skeleton);
 		return &this->skeletons.back();
 	}
@@ -524,7 +529,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	pmesh->vertexData = vertices;
 	pmesh->vertexStride = StrideSize;
 	pmesh->primitiveType = aimesh->mPrimitiveTypes;
-	pmesh->name = std::move(std::string(aimesh->mName.C_Str()));
+	pmesh->name = std::string(aimesh->mName.C_Str());
 
 	return pmesh;
 }
@@ -693,7 +698,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 
 	aiBlendMode blendfunc;
 	if (pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc) == aiReturn::aiReturn_SUCCESS) {
-		material->blend_mode = blendfunc;
+		material->blend_func_mode = blendfunc;
 	}
 
 	int twosided;
@@ -810,7 +815,7 @@ AnimationObject *ModelImporter::initAnimation(const aiAnimation *pAnimation, uns
 	return &this->animations.back();
 }
 LightObject *ModelImporter::initLight(const aiLight *light, unsigned int index) {
-	LightObject *lightOb;
+	LightObject *lightOb = nullptr;
 
 	return lightOb;
 }
@@ -883,3 +888,31 @@ struct Face {
 };
 
 void ModelImporter::convert2Adjcent(const aiMesh *paiMesh, std::vector<unsigned int> &Indices) {}
+
+std::vector<MaterialObject *> ModelImporter::getMaterials(const size_t texture_index) noexcept {
+	std::vector<MaterialObject *> ref_materials;
+
+	for (size_t i = 0; i < getMaterials().size(); i++) {
+		bool found = false;
+		if (getMaterials()[i].diffuseIndex == texture_index) {
+			found = true;
+		}
+		if (getMaterials()[i].normalIndex == texture_index) {
+			found = true;
+		}
+		if (getMaterials()[i].emissionIndex == texture_index) {
+			found = true;
+		}
+		if (getMaterials()[i].heightbumpIndex == texture_index) {
+			found = true;
+		}
+		if (getMaterials()[i].specularIndex == texture_index) {
+			found = true;
+		}
+		/*	*/
+		if (found) {
+			ref_materials.push_back(&this->materials[i]);
+		}
+	}
+	return ref_materials;
+}

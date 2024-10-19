@@ -5,9 +5,12 @@
 
 namespace glsample {
 
+			Scene::Scene() { this->init(); }
+
 	Scene::~Scene() {}
 
 	void Scene::release() {
+
 		/*	*/
 		for (size_t i = 0; i < this->refGeometry.size(); i++) {
 			if (glIsVertexArray(this->refGeometry[i].vao)) {
@@ -21,6 +24,7 @@ namespace glsample {
 			}
 		}
 
+		/*	*/
 		for (size_t i = 0; i < this->refTexture.size(); i++) {
 			glDeleteTextures(1, &this->refTexture[i].texture);
 		}
@@ -35,7 +39,7 @@ namespace glsample {
 		std::vector<const unsigned char *> arrs = {normalForward, white, black};
 		std::vector<int *> texRef = {&this->normalDefault, &this->diffuseDefault, &this->roughnessSpecularDefault};
 
-		for (int i = 0; i < arrs.size(); i++) {
+		for (size_t i = 0; i < arrs.size(); i++) {
 
 			FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)texRef[i]));
 			FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, *texRef[i]));
@@ -65,14 +69,15 @@ namespace glsample {
 
 	void Scene::render() {
 
-		// TODO sort materials and geometry.
+		// TODO: sort materials and geometry.
 		this->sortRenderQueue();
+
+		// TODO: merge by shared geometries.
 
 		/*	Iterate through each node.	*/
 
 		//	for (size_t x = 0; x < this->renderQueue.size(); x++) {
 		for (const NodeObject *node : this->renderQueue) {
-
 			/*	*/
 			// const NodeObject *node = this->renderQueue[x];
 			this->renderNode(node);
@@ -138,15 +143,17 @@ namespace glsample {
 			const bool useBlending = material.opacity < 1.0f || material.maskTextureIndex >= 0;
 
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDepthFunc(GL_LESS);
 
 			/*	*/
 			if (useBlending) {
+				/*	*/
 				glEnable(GL_BLEND);
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_FALSE);
 
 				/*	*/
-				glBlendFuncSeparatei(0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 				glBlendEquation(GL_FUNC_ADD);
 
 			} else {
@@ -159,9 +166,24 @@ namespace glsample {
 			/*	*/
 			if (material.culling_both_side_mode) {
 				glDisable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
 			} else {
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_BACK);
+			}
+
+			// TODO: relocate
+			fragcore::resetErrorFlag();
+			int program;
+			glGetIntegerv(GL_CURRENT_PROGRAM, &program);
+			glValidateProgram(program);
+			fragcore::checkError();
+			int status;
+			glGetProgramiv(program, GL_VALIDATE_STATUS, &status);
+			if (!status) {
+				GLchar errorLog[1024] = {0};
+				glGetProgramInfoLog(program, 1024, NULL, errorLog);
+				std::cout << errorLog;
 			}
 
 			const MeshObject &refMesh = this->refGeometry[node->geometryObjectIndex[i]];
@@ -183,22 +205,40 @@ namespace glsample {
 
 			/*	*/
 			const NodeObject *node = this->nodes[x];
+			if (node->materialIndex.empty()) {
+				continue;
+			}
+
+			/*	*/
 			const bool validIndex = node->materialIndex[0] < this->materials.size();
 
 			if (validIndex) {
 				const MaterialObject *material = &this->materials[node->materialIndex[0]];
 				assert(material);
 
-				const bool useBlending = material->opacity < 1.0f || material->maskTextureIndex >= 0;
+				computeMaterialPriority(*material);
+
+				const bool useBlending =
+					(material->maskTextureIndex >= 0 &&
+					 material->maskTextureIndex < refTexture.size()); // || material->transparent.length() < 2;
+				// material->opacity < 1.0f ||
 				if (useBlending) {
 					this->renderQueue.push_back(node);
 				} else {
 					this->renderQueue.push_front(node);
 				}
+
 			} else {
-				this->renderQueue.push_front(node);
+				// Invalid
+				// this->renderQueue.push_front(node);
 			}
 		}
+	}
+
+	int Scene::computeMaterialPriority(const MaterialObject &material) const noexcept {
+		const bool useBlending = material.opacity < 1.0f || material.maskTextureIndex >= 0;
+
+		return useBlending * 1000;
 	}
 
 } // namespace glsample

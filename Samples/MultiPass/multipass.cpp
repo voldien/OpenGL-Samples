@@ -154,12 +154,14 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize =
+				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
@@ -213,7 +215,6 @@ namespace glsample {
 			}
 
 			/*	*/
-
 			glBindTexture(GL_TEXTURE_2D, this->depthTexture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
 						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -281,8 +282,8 @@ namespace glsample {
 			for (size_t i = 0; i < this->multipass_textures.size(); i++) {
 				glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
 				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
-								  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW, halfH + (i / 2) * halfH,
-								  GL_COLOR_BUFFER_BIT, GL_LINEAR);
+								  (i % 2) * (halfW), (i / 2.0f) * halfH, halfW + (i % 2) * halfW,
+								  halfH + (i / 2.0f) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 			}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
@@ -290,13 +291,10 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			// this->uniformStageBuffer.model = glm::rotate(
-			//	this->uniformStageBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(0.95f));
 
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();

@@ -1,7 +1,6 @@
 #include "GLSampleSession.h"
 #include "Math3D/Math3D.h"
 #include "PhysicDesc.h"
-#include "Scene.h"
 #include "Util/CameraController.h"
 #include <GL/glew.h>
 #include <GLSample.h>

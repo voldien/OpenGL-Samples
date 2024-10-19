@@ -25,9 +25,9 @@ namespace glsample {
 		const std::string fragmentShaderPath = "Shaders/triangle/triangle.frag.spv";
 
 		const std::vector<Vertex> vertices = {
-			{0.5f, -0.5f, 0.0f, 1.0f, 0.0f}, /*	Vertex (2), Color(3)	*/
-			{0.0f, 0.5f, 1.0f, 1.0f, 1.0f},	 /*	Vertex (2), Color(3)	*/
-			{-0.5f, -0.5f, 0.0f, 0.0f, 1.0f} /*	Vertex (2), Color(3)	*/
+			{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}}, /*	Vertex (2), Color(3)	*/
+			{{0.0f, 0.5f}, {1.0f, 1.0f, 1.0f}},	 /*	Vertex (2), Color(3)	*/
+			{{-0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}} /*	Vertex (2), Color(3)	*/
 		};
 
 		void Release() override {

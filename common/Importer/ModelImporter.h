@@ -55,7 +55,7 @@ typedef struct vertex_bone_buffer_t {
 typedef struct material_object_t : public AssetObject {
 	unsigned int program; // TODO: relocate.
 
-	/*	*/
+	/*	Texture index.	*/
 	int diffuseIndex = -1;
 	int normalIndex = -1;
 	int emissionIndex = -1;
@@ -78,11 +78,9 @@ typedef struct material_object_t : public AssetObject {
 	float shinininess;
 	float shinininessStrength;
 	float opacity;
-	int blend_mode; /*	aiBlendMode*/
+	int blend_func_mode; /*	aiBlendMode*/
 	int wireframe_mode;
 	bool culling_both_side_mode;
-
-	// TODO add texture
 
 	unsigned int shade_model; /*	aiShadingMode	*/
 } MaterialObject;
@@ -273,6 +271,8 @@ class FVDECLSPEC ModelImporter {
 
 	const std::vector<MaterialObject> &getMaterials() const noexcept { return this->materials; }
 	std::vector<MaterialObject> &getMaterials() noexcept { return this->materials; }
+
+	std::vector<MaterialObject *> getMaterials(const size_t texture_index) noexcept;
 
 	/*	*/
 	const std::vector<TextureAssetObject> &getTextures() const noexcept { return this->textures; }

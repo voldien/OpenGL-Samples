@@ -1,6 +1,7 @@
 #include "GLSampleWindow.h"
 #include "Core/Library.h"
 #include "FPSCounter.h"
+#include "SDL_video.h"
 #include "spdlog/common.h"
 #include <GLRendererInterface.h>
 #include <ImageLoader.h>
@@ -15,7 +16,6 @@
 
 using namespace glsample;
 
-// TODO add support for renderdoc
 unsigned int pboBuffer;
 
 GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::GfxBackEnd::ImGUI_OpenGL) {
@@ -26,7 +26,7 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 	stdout_sink->set_color_mode(spdlog::color_mode::always);
 	stdout_sink->set_pattern("[%Y-%m-%d %T.%e] [%^%l%$] %v");
 	stdout_sink->set_pattern("%g:%# [%^%l%$] %v");
-
+	/*	*/
 	this->logger = new spdlog::logger("glsample", {stdout_sink});
 	this->logger->set_level(spdlog::level::trace);
 
@@ -39,7 +39,6 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 
 	/*	*/
 	this->getRenderInterface()->setDebug(true);
-	// this->set
 
 	const int screen_grab_width_size = this->width();
 	const int screen_grab_height_size = this->height();
@@ -59,6 +58,8 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 
 	/*	Disable automatic framebuffer gamma correction, each application handle it manually.	*/
 	glDisable(GL_FRAMEBUFFER_SRGB);
+	/*	Disable multi sampling by default.	*/
+	glDisable(GL_MULTISAMPLE);
 }
 
 void GLSampleWindow::displayMenuBar() {}
@@ -139,7 +140,7 @@ void GLSampleWindow::setTitle(const std::string &title) {
 	nekomimi::MIMIWindow::setTitle(title + " - OpenGL version " + this->getRenderInterface()->getAPIVersion());
 }
 
-void GLSampleWindow::debug(bool enable) {
+void GLSampleWindow::debug(const bool enable) {
 	fragcore::GLRendererInterface *interface =
 		dynamic_cast<fragcore::GLRendererInterface *>(this->getRenderInterface().get());
 	interface->setDebug(enable);
@@ -156,10 +157,12 @@ void GLSampleWindow::debug(bool enable) {
 		pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)library.getfunc("RENDERDOC_GetAPI");
 		int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
 		assert(ret == 1);
+
 	} catch (const std::exception &ex) {
+		this->logger->warn(ex.what());
 	}
 
-	//pRENDERDOC_TriggerCapture
+	// pRENDERDOC_TriggerCapture
 	// if(rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
 }
 
@@ -189,7 +192,7 @@ void GLSampleWindow::captureScreenShot() {
 	/*	offload the image process and saving to filesystem.	*/
 	std::thread process_thread([imageSizeInBytes, screen_grab_width_size, screen_grab_height_size, pixelData]() {
 		/*	*/
-		fragcore::Image image(screen_grab_width_size, screen_grab_height_size, fragcore::TextureFormat::RGB24);
+		fragcore::Image image(screen_grab_width_size, screen_grab_height_size, fragcore::ImageFormat::RGB24);
 		image.setPixelData(pixelData, imageSizeInBytes);
 
 		// Application and time
@@ -213,6 +216,7 @@ void GLSampleWindow::captureScreenShot() {
 }
 
 void GLSampleWindow::setColorSpace(bool srgb) {}
+void GLSampleWindow::vsync(bool enable_vsync) { SDL_GL_SetSwapInterval(enable_vsync); }
 
 unsigned int GLSampleWindow::getShaderVersion() const {
 	const fragcore::GLRendererInterface *interface =

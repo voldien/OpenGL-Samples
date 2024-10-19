@@ -1,4 +1,6 @@
 #include "Input.h"
+#include "SDL_keycode.h"
+#include "SDL_scancode.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -130,7 +132,8 @@ namespace glsample {
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
@@ -216,9 +219,9 @@ namespace glsample {
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer =
-				glMapBufferRange(GL_UNIFORM_BUFFER, ((this->getFrameCount()) % nrUniformBuffer) * uniformAlignBufferSize,
-								 uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			void *uniformPointer = glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount()) % nrUniformBuffer) * uniformAlignBufferSize,
+				uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &stageBuffer, sizeof(stageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 
@@ -227,35 +230,37 @@ namespace glsample {
 				static int prev_move_X = 0, prev_move_Y = 0;
 				static int prev_zoom_X = 0, prev_zoom_zoom = 0;
 
-				if (this->getInput().getMouseDown(Input::MouseButton::LEFT_BUTTON)) {
-					this->getInput().getMousePosition(&prev_move_X, &prev_move_Y);
-				}
-
-				if (this->getInput().getMouseReleased(Input::MouseButton::LEFT_BUTTON)) {
-					stageBuffer.posX = stageBuffer.mousePosX;
-					stageBuffer.posY = stageBuffer.mousePosY;
-				}
-
-				if (this->getInput().getMouseDown(Input::MouseButton::RIGHT_BUTTON)) {
-					this->getInput().getMousePosition(&prev_zoom_X, nullptr);
-					prev_zoom_zoom = stageBuffer.zoom;
-				}
-
-				if (this->getInput().getMouseReleased(Input::MouseButton::RIGHT_BUTTON)) {
-				}
-
-				int x, y;
-				if (this->getInput().getMousePosition(&x, &y)) {
-					if (this->getInput().getMousePressed(Input::MouseButton::LEFT_BUTTON)) {
-						const int deltaX = -(x - prev_move_X);
-						const int deltaY = (y - prev_move_Y);
-						stageBuffer.mousePosX = stageBuffer.posX + deltaX;
-						stageBuffer.mousePosY = stageBuffer.posY + deltaY;
+				if (!this->getInput().getKeyPressed(SDL_SCANCODE_SPACE)) {
+					if (this->getInput().getMouseDown(Input::MouseButton::LEFT_BUTTON)) {
+						this->getInput().getMousePosition(&prev_move_X, &prev_move_Y);
 					}
-					if (this->getInput().getMousePressed(Input::MouseButton::RIGHT_BUTTON)) {
-						const int deltaZoomX = -(x - prev_zoom_X);
 
-						stageBuffer.zoom = prev_zoom_zoom + deltaZoomX * 0.0001f;
+					if (this->getInput().getMouseReleased(Input::MouseButton::LEFT_BUTTON)) {
+						stageBuffer.posX = stageBuffer.mousePosX;
+						stageBuffer.posY = stageBuffer.mousePosY;
+					}
+
+					if (this->getInput().getMouseDown(Input::MouseButton::RIGHT_BUTTON)) {
+						this->getInput().getMousePosition(&prev_zoom_X, nullptr);
+						prev_zoom_zoom = stageBuffer.zoom;
+					}
+
+					if (this->getInput().getMouseReleased(Input::MouseButton::RIGHT_BUTTON)) {
+					}
+
+					int x, y;
+					if (this->getInput().getMousePosition(&x, &y)) {
+						if (this->getInput().getMousePressed(Input::MouseButton::LEFT_BUTTON)) {
+							const int deltaX = -(x - prev_move_X);
+							const int deltaY = (y - prev_move_Y);
+							stageBuffer.mousePosX = stageBuffer.posX + deltaX;
+							stageBuffer.mousePosY = stageBuffer.posY + deltaY;
+						}
+						if (this->getInput().getMousePressed(Input::MouseButton::RIGHT_BUTTON)) {
+							const int deltaZoomX = -(x - prev_zoom_X);
+
+							stageBuffer.zoom = prev_zoom_zoom + deltaZoomX * 0.0001f;
+						}
 					}
 				}
 			}

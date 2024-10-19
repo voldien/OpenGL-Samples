@@ -23,7 +23,11 @@ int TextureImporter::loadImage2D(const std::string &path, const ColorSpace color
 	Image image = imageLoader.loadImage(io);
 	io->close();
 
-	return loadImage2DRaw(image, colorSpace);
+	int texture_index = this->loadImage2DRaw(image, colorSpace);
+	if (texture_index >= 0) {
+		glObjectLabel(GL_TEXTURE, texture_index, path.size(), path.data());
+	}
+	return texture_index;
 }
 
 int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace) {
@@ -35,65 +39,65 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 	GLenum format, internalformat, type;
 
 	switch (image.getFormat()) {
-	case TextureFormat::RGB24: /*	Multiple Channels.	*/
+	case ImageFormat::RGB24: /*	Multiple Channels.	*/
 		format = GL_RGB;
 		internalformat = GL_RGBA8;
 		type = GL_UNSIGNED_BYTE;
 		break;
-	case TextureFormat::BGR24:
+	case ImageFormat::BGR24:
 		format = GL_BGR;
 		internalformat = GL_RGBA8;
 		type = GL_UNSIGNED_BYTE;
 		break;
-	case TextureFormat::ARGB32:
+	case ImageFormat::ARGB32:
 		break;
-	case TextureFormat::BGRA32:
+	case ImageFormat::BGRA32:
 		format = GL_BGRA;
 		internalformat = GL_RGBA8;
 		type = GL_UNSIGNED_BYTE;
 		break;
-	case TextureFormat::RGBA32:
+	case ImageFormat::RGBA32:
 		format = GL_RGBA;
 		internalformat = GL_RGBA8;
 		type = GL_UNSIGNED_BYTE;
 		break;
-	case TextureFormat::RGBAFloat:
+	case ImageFormat::RGBAFloat:
 		format = GL_RGBA;
 		internalformat = GL_RGBA16F;
 		type = GL_FLOAT;
 		break;
-	case TextureFormat::RGBFloat:
+	case ImageFormat::RGBFloat:
 		format = GL_RGB;
 		type = GL_FLOAT;
 		internalformat = GL_RGBA16F;
 		break;
 
-	case TextureFormat::Alpha8: /*	Single Channel.	*/
+	case ImageFormat::Alpha8: /*	Single Channel.	*/
 		format = GL_RED;
 		type = GL_UNSIGNED_BYTE;
 		internalformat = GL_R8;
 		break;
-	case TextureFormat::RFloat:
+	case ImageFormat::RFloat:
 		format = GL_RED;
 		type = GL_FLOAT;
 		internalformat = GL_R32F;
 		break;
-	case TextureFormat::R16:
+	case ImageFormat::R16:
 		format = GL_RED_INTEGER;
 		type = GL_SHORT;
 		internalformat = GL_R16I;
 		break;
-	case TextureFormat::R16U:
+	case ImageFormat::R16U:
 		format = GL_RED_INTEGER;
 		type = GL_UNSIGNED_SHORT;
 		internalformat = GL_R16UI;
 		break;
-	case TextureFormat::R32:
+	case ImageFormat::R32:
 		format = GL_RED_INTEGER;
 		type = GL_INT;
 		internalformat = GL_R32I;
 		break;
-	case TextureFormat::R32U:
+	case ImageFormat::R32U:
 		format = GL_RED_INTEGER;
 		type = GL_UNSIGNED_INT;
 		internalformat = GL_R32UI;
@@ -216,15 +220,15 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 
 		GLenum format, internalformat, type;
 		switch (image.getFormat()) {
-		case TextureFormat::RGB24:
-		case TextureFormat::BGR24:
+		case ImageFormat::RGB24:
+		case ImageFormat::BGR24:
 			format = GL_BGR;
 			internalformat = GL_RGBA8;
 			type = GL_UNSIGNED_BYTE;
 			break;
-		case TextureFormat::RGBA32:
-		case TextureFormat::ARGB32:
-		case TextureFormat::BGRA32:
+		case ImageFormat::RGBA32:
+		case ImageFormat::ARGB32:
+		case ImageFormat::BGRA32:
 			format = GL_RGBA;
 			internalformat = GL_RGBA8;
 			type = GL_UNSIGNED_BYTE;

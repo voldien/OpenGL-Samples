@@ -90,6 +90,7 @@ void Common::loadSphere(MeshObject &sphereMesh, const float radius, const int sl
 }
 
 void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segmentX, const int segmentY) {
+
 	std::vector<ProceduralGeometry::Vertex> vertices;
 	std::vector<unsigned int> indices;
 	ProceduralGeometry::generateCube(scale, vertices, indices, segmentX);

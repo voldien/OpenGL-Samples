@@ -1,7 +1,9 @@
 #include "ImportHelper.h"
+#include "IO/FileIO.h"
 #include "ImageImport.h"
 #include "ModelImporter.h"
 #include <GL/glew.h>
+#include <ImageUtil.h>
 #include <ProceduralGeometry.h>
 #include <cstdint>
 #include <exception>
@@ -152,7 +154,7 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 									 reinterpret_cast<void *>(refModel_base.boneWeightOffset));
 
 		} else {
-			
+
 			glDisableVertexAttribArrayARB(4);
 			glDisableVertexAttribArrayARB(5);
 		}
@@ -214,24 +216,52 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 	glsample::TextureImporter textureImporter(modelLoader.getFileSystem());
 
-	for (size_t i = 0; i < Reftextures.size(); i++) {
-		TextureAssetObject &tex = Reftextures[i];
+	for (size_t texture_index = 0; texture_index < Reftextures.size(); texture_index++) {
+
+		std::vector<MaterialObject *> materials = modelLoader.getMaterials(texture_index);
+
+		TextureAssetObject &tex = Reftextures[texture_index];
 		ColorSpace colorSpace = ColorSpace::Raw;
+
+		/*	Determine color space, based on the texture usages.	*/
+		if (!materials.empty()) {
+			if (materials[0]->diffuseIndex == texture_index) {
+				colorSpace = ColorSpace::SRGB;
+			}
+		}
+
 		if (tex.data == nullptr) {
+
 			try {
 				std::cout << "Loading " << tex.filepath << std::endl;
-				tex.texture = textureImporter.loadImage2D(tex.filepath, colorSpace);
-				glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
+				fragcore::Ref<fragcore::IO> refIO =
+					fragcore::Ref<fragcore::IO>(new fragcore::FileIO(tex.filepath, FileIO::READ));
+
+				/*	*/
+				fragcore::ImageLoader imageLoader;
+
+				Image image = imageLoader.loadImage(refIO);
+
+				if (!materials.empty() && materials[0]->heightbumpIndex == texture_index) {
+					image = ImageUtil::convert2NormalMap(image);
+					materials[0]->heightbumpIndex = -1;
+					materials[0]->normalIndex = texture_index;
+				}
+
+				tex.texture = textureImporter.loadImage2DRaw(image, colorSpace);
+				if (tex.texture >= 0) {
+					glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
+				}
 
 			} catch (const std::exception &ex) {
 				std::cerr << "Failed to load: " << tex.filepath << " " << ex.what() << std::endl;
 			}
-
 		} else {
 
 			/*	Compressed data.	*/
 			if (tex.height == 0 && tex.dataSize > 0 && tex.data && tex.width > 0) {
 
+				/*	*/
 				fragcore::Ref<fragcore::IO> refIO = fragcore::Ref<fragcore::IO>(
 					new fragcore::BufferIO((const void *)tex.data, (unsigned long)tex.dataSize));
 
@@ -241,7 +271,11 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				try {
 
 					Image image = imageLoader.loadImage(refIO);
+
 					tex.texture = textureImporter.loadImage2DRaw(image, colorSpace);
+					if (tex.texture >= 0) {
+						glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
+					}
 				} catch (std::exception &ex) {
 					std::cerr << "Failed to load: " << ex.what() << std::endl;
 				}
@@ -250,12 +284,26 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 			} else {
 
 				/*	None-compressed.	*/
-				fragcore::Image image(tex.width, tex.height, TextureFormat::ARGB32);
+				fragcore::Image image(tex.width, tex.height, ImageFormat::ARGB32);
 				image.setPixelData(tex.data, image.getSize());
 
 				tex.texture = textureImporter.loadImage2DRaw(image);
+				if (tex.texture >= 0) {
+					glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
+				}
 			}
 		}
+
+		/*	*/
 	}
 	textures = Reftextures;
+}
+
+void ImportHelper::convertBumpMaterial2Normal(ModelImporter &modelLoader) {
+	std::vector<MaterialObject> &materials = modelLoader.getMaterials();
+
+	for (size_t i = 0; i < materials.size(); i++) {
+		if (materials[i].normalIndex >= 0) {
+		}
+	}
 }

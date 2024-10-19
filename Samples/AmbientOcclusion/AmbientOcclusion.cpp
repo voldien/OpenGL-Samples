@@ -5,6 +5,7 @@
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>
+#include <Math/NormalDistribution.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <glm/geometric.hpp>
@@ -38,6 +39,15 @@ namespace glsample {
 			glm::mat4 proj;
 			glm::mat4 modelView;
 			glm::mat4 modelViewProjection;
+
+			/*	Light source.	*/
+			glm::vec4 direction;
+			glm::vec4 lightColor;
+			glm::vec4 specularColor;
+			glm::vec4 ambientColor;
+			glm::vec4 viewDir;
+
+			float shininess;
 		} uniformStageBlock;
 
 		struct UniformSSAOBufferBlock {
@@ -641,7 +651,6 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			this->scene.update(this->getTimer().deltaTime<float>());
@@ -652,8 +661,6 @@ namespace glsample {
 			{
 
 				this->uniformStageBlock.model = glm::mat4(1.0f);
-				this->uniformStageBlock.model = glm::rotate(
-					this->uniformStageBlock.model, glm::radians(elapsedTime * 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 				this->uniformStageBlock.model = glm::scale(this->uniformStageBlock.model, glm::vec3(5.95f));
 				this->uniformStageBlock.view = this->camera.getViewMatrix();
 				this->uniformStageBlock.modelView = (this->uniformStageBlock.view * this->uniformStageBlock.model);

@@ -112,7 +112,7 @@ namespace glsample {
 
 		  public:
 			ParticleSystemSettingComponent(struct uniform_buffer_block &uniform, const size_t &nrParticleInternal)
-				: uniform(uniform), nrParticle(nrParticleInternal) {
+				: nrParticle(nrParticleInternal), uniform(uniform) {
 				this->setName("Particle Settings");
 			}
 			void draw() override {
@@ -496,8 +496,6 @@ namespace glsample {
 		}
 
 		void update() override {
-
-			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/

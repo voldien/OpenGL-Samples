@@ -77,7 +77,7 @@ namespace glsample {
 
 		  public:
 			SimpleOceanSettingComponent(struct UniformObjectBufferBlock &uniform, unsigned int &depth)
-				: uniform(uniform), depth(depth) {
+				: depth(depth), uniform(uniform) {
 				this->setName("Simple Reflection Settings");
 			}
 			void draw() override {
@@ -348,7 +348,6 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 			this->scene.update(this->getTimer().deltaTime<float>());
 

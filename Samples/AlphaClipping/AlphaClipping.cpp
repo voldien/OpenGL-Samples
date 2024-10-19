@@ -144,7 +144,7 @@ namespace glsample {
 			/*	Load geometry.	*/
 			Common::loadCube(this->planGeometry, 1, 1, 1);
 		}
-		
+
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
