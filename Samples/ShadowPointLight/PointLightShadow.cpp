@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -74,6 +75,7 @@ namespace glsample {
 		unsigned int shadowHeight = 1024 * 2;
 
 		Scene scene;
+		Skybox skybox;
 
 		/*	*/
 		unsigned int graphic_program;

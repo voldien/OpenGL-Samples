@@ -1,13 +1,13 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
-layout(triangles, equal_spacing, ccw) in;
+#extension GL_ARB_shading_language_include : enable
 
-layout(location = 0) in vec3 WorldPos_ES_in[];
-layout(location = 1) in vec3 Normal_ES_in[];
+layout(triangles, equal_spacing, ccw) in;
 
 layout(location = 0) out vec3 WorldPos_FS_in;
 layout(location = 1) out vec2 TexCoord_FS_in;
 layout(location = 2) out vec3 Normal_FS_in;
+layout(location = 3) out vec3 Tangent_FS_in;
 
 #include "common.glsl"
 #include "terrain_base.glsl"
@@ -28,8 +28,8 @@ void main() {
 	// Interpolate the attributes of the output vertex using the barycentric coordinates
 	TexCoord_FS_in = interpolate2D(oPatch.TexCoord[0], oPatch.TexCoord[1], oPatch.TexCoord[2]);
 	Normal_FS_in = normalize(interpolate3D(oPatch.Normal[0], oPatch.Normal[1], oPatch.Normal[2]));
-
 	/*	Tangent.	*/
+	Tangent_FS_in = normalize(interpolate3D(oPatch.Tangent[0], oPatch.Tangent[1], oPatch.Tangent[2]));
 
 	const float u = gl_TessCoord.x;
 	const float v = gl_TessCoord.y;
@@ -49,8 +49,14 @@ void main() {
 					 oPatch.WorldPos_B111 * 6.0 * w * u * v;
 
 	/*	Displace the vertex along the normal	*/
-	const float heightMapDisp = texture(gDisplacementMap, TexCoord_FS_in.xy).r;
-	//	WorldPos_FS_in += Normal_FS_in * heightMapDisp * ubo.gDispFactor;
+	const float heightMapDisp = 0;						// texture(gDisplacementMap, TexCoord_FS_in.xy).r;
+	WorldPos_FS_in += Normal_FS_in * heightMapDisp * 1; // ubo.gDispFactor;
+
+	// vec3 Mnormal = normalize(FragIN_normal);
+	// vec3 Ttangent = normalize(FragIN_tangent);
+
+	// Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
+	// FragIN_bitangent = cross(Ttangent, Mnormal);
 
 	gl_Position = ubo.viewProjection * vec4(WorldPos_FS_in, 1.0);
 }

@@ -1,3 +1,4 @@
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -14,6 +15,7 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
+	// TODO: rename
 	class BasicShadowMapping : public GLSampleWindow {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
@@ -48,17 +50,20 @@ namespace glsample {
 		/*	*/
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
-		size_t shadowWidth = 4096;
-		size_t shadowHeight = 4096;
+		size_t shadowWidth = 4096 * 2;
+		size_t shadowHeight = 4096 * 2;
 
-		std::vector<MeshObject> refObj;
 		Scene scene;
+		Skybox skybox;
+
+		unsigned int irradiance_texture;
 
 		/*	*/
 		unsigned int graphic_program;
 		unsigned int graphic_pfc_program;
 		unsigned int shadow_program;
 		unsigned int shadow_alpha_clip_program;
+		unsigned int skybox_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_shadow_buffer_binding = 0;
@@ -91,7 +96,7 @@ namespace glsample {
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
 				ImGui::Checkbox("Shadow Alpha Clipping", &this->useShadowClip);
 				ImGui::TextUnformatted("Depth Texture");
-				ImGui::Image(reinterpret_cast<ImTextureID>(this->depth), ImVec2(512, 512));
+				ImGui::Image(static_cast<ImTextureID>(this->depth), ImVec2(512, 512));
 			}
 
 			float distance = 50.0;
@@ -128,14 +133,11 @@ namespace glsample {
 			glDeleteTextures(1, &this->shadowTexture);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			glDeleteVertexArrays(1, &this->refObj[0].vao);
-			glDeleteBuffers(1, &this->refObj[0].vbo);
-			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
 		void Initialize() override {
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
 
 			{
 				/*	*/
@@ -167,6 +169,8 @@ namespace glsample {
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary, &fragment_shadow_binary);
 				this->shadow_alpha_clip_program = ShaderLoader::loadGraphicProgram(
 					compilerOptions, &vertex_shadow_binary, &fragment_shadow_alpha_binary);
+
+				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
 			}
 
 			{
@@ -263,6 +267,14 @@ namespace glsample {
 			ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom(*modelLoader);
+
+			/*	load Skybox Textures	*/
+			TextureImporter textureImporter(this->getFileSystem());
+			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
+			this->skybox.Init(skytexture, this->skybox_program);
+
+			ProcessData util(this->getFileSystem());
+			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
 		}
 
 		void onResize(int width, int height) override {
@@ -348,9 +360,14 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + shadowBinding);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
+				glActiveTexture(GL_TEXTURE0 + 10);
+				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+
 				this->scene.render();
 				glUseProgram(0);
 			}
+
+			this->skybox.Render(this->camera);
 		}
 
 		void update() override {
@@ -380,7 +397,9 @@ namespace glsample {
 	  public:
 		ShadowMappingGLSample() : GLSample<BasicShadowMapping>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
+				"S,skybox", "Skybox Texture File Path",
+				cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 

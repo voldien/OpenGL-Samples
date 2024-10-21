@@ -69,7 +69,7 @@ namespace glsample {
 		class FrustumCullingSettingComponent : public nekomimi::UIComponent {
 		  public:
 			FrustumCullingSettingComponent(struct uniform_buffer_block &uniform, unsigned int &depth)
-				: uniform(uniform), depth(depth) {
+				: depth(depth), uniform(uniform) {
 				this->setName("Frustum Culling Settings");
 			}
 
@@ -83,7 +83,7 @@ namespace glsample {
 				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
-				ImGui::Image(reinterpret_cast<ImTextureID>(this->depth), ImVec2(512, 512));
+				ImGui::Image(static_cast<ImTextureID>(this->depth), ImVec2(512, 512));
 			}
 
 			float distance = 50.0;

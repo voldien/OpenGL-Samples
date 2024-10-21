@@ -90,12 +90,14 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize =
+				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
@@ -119,7 +121,7 @@ namespace glsample {
 				palette[3] = GL_SHADING_RATE_1_INVOCATION_PER_4X4_PIXELS_NV;
 
 				/* fill the rest	*/
-				for (size_t i = 4; i < palSize; ++i) {
+				for (GLint i = 4; i < palSize; ++i) {
 					palette[i] = GL_SHADING_RATE_1_INVOCATION_PER_PIXEL_NV;
 				}
 
@@ -128,7 +130,7 @@ namespace glsample {
 
 				/*	 One palette with a constant rate	*/
 				GLenum *paletteFullRate = new GLenum[palSize];
-				for (size_t i = 0; i < palSize; ++i) {
+				for (GLint i = 0; i < palSize; ++i) {
 					paletteFullRate[i] = GL_SHADING_RATE_1_INVOCATION_PER_PIXEL_NV;
 				}
 
@@ -275,7 +277,7 @@ namespace glsample {
 			GLSampleSession::customOptions(options);
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Skybox Texture File Path",
-				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+				cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 

@@ -3,6 +3,7 @@
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
 #extension GL_EXT_control_flow_attributes : enable
+#extension GL_ARB_shading_language_include : enable
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;

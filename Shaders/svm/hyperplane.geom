@@ -9,8 +9,8 @@ layout(triangle_strip, max_vertices = 4) out;
 layout(location = 0) out vec2 out_texturecoord;
 layout(location = 1) out vec4 out_color;
 
-layout(location = 0) in vec4[] normalDistance; /*	normal (xyz), distance (w)	*/
-layout(location = 1) in vec4[] in_color;
+layout(location = 0) in vec4 normalDistance[]; /*	normal (xyz), distance (w)	*/
+layout(location = 1) in vec4 in_color[];	   /*	*/
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;

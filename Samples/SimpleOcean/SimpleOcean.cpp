@@ -240,7 +240,7 @@ namespace glsample {
 			Common::loadPlan(this->plan, 1, 1024, 1024);
 
 			/*	Initilize Waves.	*/
-			for (int i = 0; i < nrMaxWaves; i++) {
+			for (size_t i = 0; i < nrMaxWaves; i++) {
 
 				float waveLength = (i * 2.2 + 1);
 				float waveAmplitude = 0.3f / (i + 1);

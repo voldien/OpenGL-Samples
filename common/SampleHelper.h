@@ -19,6 +19,41 @@
 
 namespace glsample {
 
+	enum class FogType : unsigned int {
+		None,	/*	*/
+		Linear, /*	*/
+		Exp,	/*	*/
+		Exp2,	/*	*/
+		Height	/*	*/
+	};
+
+	typedef struct fog_settings_t {
+		glm::vec4 fogColor = glm::vec4(0.3, 0.3, 0.45, 1);
+
+		float cameraNear = 0.15f;
+		float cameraFar = 1000.0f;
+		float fogStart = 100;
+		float fogEnd = 1000;
+
+		float fogDensity = 0.1f;
+		FogType fogType = FogType::Exp;
+		float fogIntensity = 1.0f;
+		float fogHeight = 0;
+	} FogSettings;
+
+	typedef struct material_instance_t {
+		glm::mat4 model;
+
+		/*	Color attributes.	*/
+
+		/*	*/
+	} MaterialInstance;
+
+	typedef struct directional_light_t {
+		glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
+		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	} DirectionalLight;
+
 	template <typename T, int m, int n>
 	inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, n> &em) noexcept {
 		glm::mat<m, n, float, glm::precision::highp> mat;
@@ -29,6 +64,8 @@ namespace glsample {
 		}
 		return mat;
 	}
+
+	//template <typename A, class T...> struct align_uniform {};
 
 	template <typename T, int m>
 	inline glm::vec<m, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, 1> &em) noexcept {

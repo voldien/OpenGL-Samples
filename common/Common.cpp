@@ -43,6 +43,11 @@ void Common::loadPlan(MeshObject &planMesh, const float scale, const int segment
 	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(32));
 
 	glBindVertexArray(0);
+
+	planMesh.nrIndicesElements = indices.size();
+	planMesh.indices_offset = 0;
+	planMesh.vertex_offset = 0;
+	planMesh.nrVertices = vertices.size();
 }
 
 void Common::loadSphere(MeshObject &sphereMesh, const float radius, const int slices, const int segements) {

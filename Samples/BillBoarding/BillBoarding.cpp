@@ -1,4 +1,5 @@
 #include "GLSampleSession.h"
+#include "Math/NormalDistribution.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -52,18 +53,15 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		MeshObject terrain;
 		MeshObject billboard;
 		Skybox skybox;
 
 		/*	Textures.	*/
 		unsigned int billboard_diffuse_texture;
-		unsigned int ground_diffuse_texture;
-
 		/*	*/
 		unsigned int billboarding_program;
 		unsigned int skybox_program;
-		unsigned int terrain_program;
+		unsigned int hyperplane_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
@@ -113,8 +111,9 @@ namespace glsample {
 		const std::string fragmentBillBoardShaderPath = "Shaders/billboarding/billboarding.frag.spv";
 
 		/*	Simple Terrain.	*/
-		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert";
-		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag";
+		const std::string vertexHyperPlaneShaderPath = "Shaders/svm/hyperplane.vert.spv";
+		const std::string geometryHyperPlaneShaderPath = "Shaders/svm/hyperplane.geom.spv";
+		const std::string fragmentHyperPlaneShaderPath = "Shaders/svm/hyperplane.frag.spv";
 
 		/*	Skybox.	*/
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
@@ -124,19 +123,13 @@ namespace glsample {
 			/*	Delete graphic pipeline.	*/
 			glDeleteProgram(this->billboarding_program);
 			glDeleteProgram(this->skybox_program);
-			glDeleteProgram(this->terrain_program);
+			glDeleteProgram(this->hyperplane_program);
 
 			/*	Delete texture.	*/
 			glDeleteTextures(1, (const GLuint *)&this->billboard_diffuse_texture);
-			glDeleteTextures(1, (const GLuint *)&this->ground_diffuse_texture);
 
 			/*	Delete uniform buffer.	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			/*	Delete geometry data.	*/
-			glDeleteVertexArrays(1, &this->terrain.vao);
-			glDeleteBuffers(1, &this->terrain.vbo);
-			glDeleteBuffers(1, &this->terrain.ibo);
 
 			glDeleteVertexArrays(1, &this->billboard.vao);
 			glDeleteBuffers(1, &this->billboard.vbo);
@@ -145,7 +138,6 @@ namespace glsample {
 		void Initialize() override {
 
 			const std::string diffuseBillboardTexturePath = this->getResult()["texture"].as<std::string>();
-			const std::string diffuseGroundTexturePath = this->getResult()["ground-texture"].as<std::string>();
 			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
 
 			{
@@ -166,13 +158,16 @@ namespace glsample {
 																			  &fragment_binary, &geomtry_binary);
 
 				/*	Load shader	*/
-				const std::vector<char> simple_terrain_vertex_binary =
-					IOUtil::readFileString(vertexTerrainShaderPath, this->getFileSystem());
-				const std::vector<char> simple_terrain_fragment_binary =
-					IOUtil::readFileString(fragmentTerrainShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> vertex_hyperplane_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexHyperPlaneShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> geomtry_hyperplane_binary =
+					IOUtil::readFileData<uint32_t>(this->geometryHyperPlaneShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_hyperplane_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentHyperPlaneShaderPath, this->getFileSystem());
 
-				this->terrain_program =
-					ShaderLoader::loadGraphicProgram(&simple_terrain_vertex_binary, &simple_terrain_fragment_binary);
+				this->hyperplane_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_hyperplane_binary,
+													 &fragment_hyperplane_binary, &geomtry_hyperplane_binary);
 
 				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> vertex_skybox_binary =
@@ -197,11 +192,9 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Setup Terrain graphic pipeline.	*/
-			glUseProgram(this->terrain_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->terrain_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->terrain_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "NormalTexture"), 1);
-			glUniformBlockBinding(this->terrain_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUseProgram(this->hyperplane_program);
+			uniform_buffer_index = glGetUniformBlockIndex(this->hyperplane_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->hyperplane_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup graphic pipeline.	*/
@@ -215,7 +208,6 @@ namespace glsample {
 			TextureImporter textureImporter(this->getFileSystem());
 			this->billboard_diffuse_texture =
 				textureImporter.loadImage2D(diffuseBillboardTexturePath, ColorSpace::SRGB);
-			this->ground_diffuse_texture = textureImporter.loadImage2D(diffuseGroundTexturePath, ColorSpace::SRGB);
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath, ColorSpace::SRGB);
 			skybox.Init(skytexture, this->skybox_program);
 
@@ -231,86 +223,27 @@ namespace glsample {
 						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
+			/*	Load geometry -	Billboarding.	*/
 			{
-				/*	Load geometry.	*/
-				std::vector<ProceduralGeometry::Vertex> vertices;
-				std::vector<unsigned int> indices;
-				ProceduralGeometry::generatePlan(10, vertices, indices, 512, 512);
 
-				/*	Create Terrain Mesh Displacement.	*/
-				float noiseScale = 10.0f;
+				std::vector<ProceduralGeometry::Vertex> vertices(2048);
+				fragcore::RandomNormal<float> random_normal;
+
 				for (size_t i = 0; i < vertices.size(); i++) {
-					float height = 0;
-					for (size_t x = 0; x < 3; x++) {
-						height +=
-							Math::PerlinNoise(vertices[i].vertex[0] * noiseScale, vertices[i].vertex[1] * noiseScale) *
-							0.1f;
-						height += Math::PerlinNoise(vertices[i].vertex[0] * 2, vertices[i].vertex[1] * 2) * 0.6;
-					}
 
-					vertices[i].vertex[0] *= 20.0f;
-					vertices[i].vertex[1] *= 20.0f;
-					vertices[i].vertex[2] = height;
+					vertices[i].vertex[0] = random_normal.rand() * 100;
+					vertices[i].vertex[2] = random_normal.rand() * 100;
+					vertices[i].vertex[1] = 0;
 				}
 
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenVertexArrays(1, &this->terrain.vao);
-				glBindVertexArray(this->terrain.vao);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenBuffers(1, &this->terrain.vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, terrain.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-							 GL_STATIC_DRAW);
-
-				/*	*/
-				glGenBuffers(1, &this->terrain.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrain.ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(),
-							 GL_STATIC_DRAW);
-				this->terrain.nrIndicesElements = indices.size();
-
-				/*	Vertex.	*/
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-				/*	UV.	*/
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(12));
-
-				/*	Normal.	*/
-				glEnableVertexAttribArray(2);
-				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(20));
-
-				/*	Tangent.	*/
-				glEnableVertexAttribArray(3);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(32));
-
-				glBindVertexArray(0);
-
-				/*	Billboarding.	*/
-				/*	Create array buffer, for rendering static geometry.	*/
 				glGenVertexArrays(1, &this->billboard.vao);
 				glBindVertexArray(this->billboard.vao);
 
-				/*	Create array buffer, for rendering static geometry.	*/
-				glBindBuffer(GL_ARRAY_BUFFER, terrain.vbo);
+				glGenBuffers(1, &billboard.vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, billboard.vbo);
+				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
+							 GL_STATIC_DRAW);
 
-				std::vector<unsigned int> billboardIndices;
-				billboardIndices.resize(1024);
-				for (size_t i = 0; i < billboardIndices.size(); i++) {
-					billboardIndices[i] = std::abs(std::rand()) % vertices.size();
-				}
-				/*	*/
-				glGenBuffers(1, &this->billboard.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, billboard.ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, billboardIndices.size() * sizeof(indices[0]),
-							 billboardIndices.data(), GL_STATIC_DRAW);
-				this->billboard.nrIndicesElements = billboardIndices.size();
 				/*	Vertex.	*/
 				glEnableVertexAttribArray(0);
 				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
@@ -319,10 +252,7 @@ namespace glsample {
 			}
 		}
 
-		void onResize(int width, int height) override {
-			/*	*/
-			this->camera.setAspect((float)width / (float)height);
-		}
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
 
@@ -334,15 +264,13 @@ namespace glsample {
 			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			// TODO fix terrain.
-			/*	Draw terrain.	*/
 			{
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 								  this->uniformAlignBufferSize);
 
-				glUseProgram(this->terrain_program);
+				glUseProgram(this->hyperplane_program);
 
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_BACK);
@@ -354,17 +282,13 @@ namespace glsample {
 				/*	Blending.	*/
 				glDisable(GL_BLEND);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->ground_diffuse_texture);
-
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->billboardSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->terrain.vao);
-				glDrawElements(GL_TRIANGLES, this->terrain.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-				glBindVertexArray(0);
+				// glBindVertexArray(this->terrain.vao);
+				// glDrawElements(GL_TRIANGLES, this->terrain.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				// glBindVertexArray(0);
 			}
 
 			if (this->billboardSettingComponent->showBillBoards) {
@@ -409,7 +333,6 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
@@ -417,7 +340,7 @@ namespace glsample {
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
 			this->uniformStageBuffer.model =
 				glm::rotate(this->uniformStageBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(10.95f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(0.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
@@ -443,7 +366,7 @@ namespace glsample {
 					cxxopts::value<std::string>()->default_value("asset/stylized-ground.png"))(
 				"T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/stylized-tree.png"))(
 				"S,skybox", "Skybox Texture Path (Panoramic)",
-				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+				cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 

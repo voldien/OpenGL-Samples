@@ -48,6 +48,9 @@ namespace glsample {
 		/**/
 		virtual void RenderImGUI();
 
+	  public:
+		static int loadDefaultProgram(fragcore::IFileSystem *filesystem);
+
 	  private:
 		MeshObject SkyboxCube;
 		unsigned int skybox_program;

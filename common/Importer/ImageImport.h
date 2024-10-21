@@ -22,6 +22,11 @@
 
 namespace glsample {
 
+	enum class TextureCompression {
+		None,	/*	*/
+		Default /*	*/
+	};
+
 	enum class ColorSpace {
 		SRGB, /*	SRGB encoded.	*/
 		Raw,  /*	Linear.	*/

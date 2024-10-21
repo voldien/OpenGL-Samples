@@ -282,8 +282,9 @@ namespace glsample {
 			for (size_t i = 0; i < this->multipass_textures.size(); i++) {
 				glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
 				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
-								  (i % 2) * (halfW), (i / 2.0f) * halfH, halfW + (i % 2) * halfW,
-								  halfH + (i / 2.0f) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+								  (i % widthDivior) * (halfW), ((float)i / heightDivior) * halfH,
+								  halfW + (i % widthDivior) * halfW, halfH + ((float)i / heightDivior) * halfH,
+								  GL_COLOR_BUFFER_BIT, GL_LINEAR);
 			}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
@@ -319,7 +320,7 @@ namespace glsample {
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Skybox Texture File Path",
-				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+				cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 

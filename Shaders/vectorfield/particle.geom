@@ -1,6 +1,7 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_control_flow_attributes : enable
+#extension GL_ARB_shading_language_include : enable
 
 layout(points) in;
 layout(triangle_strip) out;

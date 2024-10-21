@@ -340,7 +340,7 @@ namespace glsample {
 		virtual void commandline(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Skybox Texture File Path",
-				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+				cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 

@@ -51,6 +51,7 @@ namespace glsample {
 		size_t vertex_offset = 0;
 		size_t indices_offset = 0;
 
+		unsigned int stride;
 		int primitiveType;
 
 		/*	*/

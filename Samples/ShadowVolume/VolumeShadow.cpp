@@ -473,7 +473,7 @@ namespace glsample {
 		VolumeShadowGLSample() : GLSample<VolumeShadow>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("S,skybox", "SkyboxPath",
-					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"))(
+					cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny/bunny.obj"));
 		}
 	};

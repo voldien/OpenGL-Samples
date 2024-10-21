@@ -114,14 +114,15 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		case GL_RGB8:
 			internalformat = GL_SRGB8;
 			break;
-		// case GL_RGBA16F:
-		// 	internalformat = GL_RGBA16F;
-		// 	break;
+		case GL_RGBA16F:
+			internalformat = GL_RGBA16F; // TODO:
+			break;
 		case GL_R8:
 			internalformat = GL_SR8_EXT; // GL_SLUMINANCE
 			break;
 		default:
-			throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));
+			throw RuntimeException("None Supported Format: {} ({})", magic_enum::enum_name(image.getFormat()),
+								   internalformat);
 		}
 	}
 

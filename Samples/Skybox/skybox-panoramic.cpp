@@ -221,7 +221,7 @@ namespace glsample {
 
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path",
-					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+					cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 } // namespace glsample

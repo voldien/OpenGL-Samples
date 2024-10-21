@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
+#extension GL_ARB_shading_language_include : enable
 
 layout(location = 0) in vec3 Vertex;
 layout(location = 1) in vec2 TextureCoord;

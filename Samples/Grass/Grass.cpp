@@ -340,7 +340,7 @@ namespace glsample {
 			// const std::string heightTexturePath = "asset/tessellation_heightmap.png";
 			// const std::string reflectionTexturePath = "asset/tessellation_heightmap.png";
 			options("T,skybox-texture", "Texture Path",
-					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+					cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 } // namespace glsample

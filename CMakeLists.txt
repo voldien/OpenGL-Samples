@@ -16,7 +16,6 @@ ELSE()
 	MESSAGE(ERROR "Required library not found")
 ENDIF()
 
-
 IF(OPENGL_FOUND)
 	MESSAGE(STATUS "OpenGL found: ${OPENGL_LIBRARIES}.")
 ENDIF()
@@ -27,13 +26,19 @@ IF(CMAKE_BUILD_TYPE STREQUAL "Release")
 	ADD_DEFINITIONS(-O2)
 	SET(CMAKE_RELEASE TRUE)
 	SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
+	SET(SIMD_FLAGS "-ftree-vectorize -ftree-slp-vectorize -ftree-vectorizer-verbose=10 -fopt-info-vec-optimized")
 ELSE()
 	MESSAGE(STATUS "Compile for debug.")
 	ADD_DEFINITIONS(-D_DEBUG)
 	ADD_DEFINITIONS(-g3 -O0)
 	SET(CMAKE_DEBUG TRUE)
 	ADD_DEFINITIONS(-D_GLIBCXX_ASSERTIONS)
+	SET(SIMD_FLAGS "-ftree-vectorize -ftree-slp-vectorize -ftree-vectorizer-verbose=10 -fopt-info-vec-optimized")
 ENDIF()
+
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${AVX_FLAGS}")
+SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${AVX_FLAGS}")
+SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${AVX_FLAGS}")
 
 # ###########################################
 # Backend libraries
@@ -126,6 +131,8 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField2D)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/OpticalFlow)
 
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/MarchingCube)
+
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/InfinateWorld)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/RayTracing)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Sort)
@@ -152,21 +159,33 @@ FILE(GLOB_RECURSE GLSL_SOURCE_FILES
 ####################################
 # SPIR-V Compiler
 ####################################
+FIND_PROGRAM(GLSLLANGVALIDATOR glslangValidator)
+FIND_PROGRAM(GLSLC glslc)
+
 FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	GET_FILENAME_COMPONENT(FILE_NAME ${GLSL} ABSOLUTE)
 
 	IF(CMAKE_BUILD_TYPE STREQUAL "Release")
 		SET(SPIRV_BUILD_SETTINGS -O)
 	ELSE()
-		SET(SPIRV_BUILD_SETTINGS -g -O0)
+		SET(SPIRV_BUILD_SETTINGS -g -Od)
 	ENDIF()
 	#glslangValidator
 	SET(SPIRV "${FILE_NAME}.spv")
-	ADD_CUSTOM_COMMAND(
-		OUTPUT ${SPIRV}
-		COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
-		COMMAND glslc -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-spv=spv1.3 -x glsl ${SPIRV_BUILD_SETTINGS} -Werror --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
-		DEPENDS ${GLSL})
+	IF(GLSLLANGVALIDATOR)
+		ADD_CUSTOM_COMMAND(
+			OUTPUT ${SPIRV}
+			COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
+			COMMAND ${GLSLLANGVALIDATOR} -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-env vulkan1.1 ${SPIRV_BUILD_SETTINGS} -o ${SPIRV} ${GLSL} 
+			DEPENDS ${GLSL})
+	ELSEIF(GLSLC)
+		ADD_CUSTOM_COMMAND(
+			OUTPUT ${SPIRV}
+			COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
+			COMMAND ${GLSLC} -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-spv=spv1.3 -x glsl ${SPIRV_BUILD_SETTINGS} -Werror --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
+			DEPENDS ${GLSL})
+	ENDIF()
+
 	LIST(APPEND SPIRV_BINARY_FILES ${SPIRV})
 ENDFOREACH(GLSL)
 

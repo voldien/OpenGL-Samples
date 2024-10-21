@@ -69,7 +69,7 @@ namespace glsample {
 		T fov_degree = 80.0f;
 		T aspect = 16.0f / 9.0f;
 		T near = 0.15f;
-		T far = 1500.0f;
+		T far = 1650.0f;
 		glm::mat4 proj;
 	};
 } // namespace glsample

@@ -1,6 +1,7 @@
 #include "Math/Math.h"
 #include "Scene.h"
 #include "Skybox.h"
+#include "Util/ProcessDataUtil.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -47,6 +48,7 @@ namespace glsample {
 			/*	Light source.	*/
 			glm::vec4 direction = glm::vec4(0.7, 0.7, 1, 1);
 			glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
+
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 ambientColor = glm::vec4(0.3, 0.3, 0.3, 1);
 			glm::vec4 viewDir;
@@ -63,7 +65,7 @@ namespace glsample {
 		unsigned int panoramicWidth = 1024;
 		unsigned int panoramicHeight = 1024;
 
-		unsigned int diffuse_texture;
+		unsigned int irradiance_texture;
 
 		MeshObject plan;
 		Scene scene;
@@ -89,9 +91,11 @@ namespace glsample {
 			}
 			void draw() override {
 
+				ImGui::TextUnformatted("Lightning");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				// ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::TextUnformatted("Material");
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
@@ -278,6 +282,9 @@ namespace glsample {
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
 			this->skybox.Init(skytexture, this->skybox_program);
 
+			ProcessData util(this->getFileSystem());
+			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
+
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
@@ -308,30 +315,37 @@ namespace glsample {
 
 				/*	*/
 				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-				glUseProgram(this->panoramic_program);
-				this->scene.render();
 
-				// this->skybox.Render(this->camera);
+				glUseProgram(this->panoramic_program);
+
+				glActiveTexture(GL_TEXTURE0 + 10);
+				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+
+				this->scene.render();
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			{
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-			glViewport(0, 0, width, height);
+				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+				glViewport(0, 0, width, height);
 
-			glCullFace(GL_BACK);
-			glDisable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+				glDisable(GL_CULL_FACE);
 
-			glActiveTexture(GL_TEXTURE0 + 0);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, this->panoramicCubeMapTexture);
+				glActiveTexture(GL_TEXTURE0 + 0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, this->panoramicCubeMapTexture);
 
-			/*	Draw panoramic.	*/
-			glUseProgram(this->graphic_cubemap_program);
-			glBindVertexArray(this->plan.vao);
-			glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
-			glBindVertexArray(0);
+				/*	Draw panoramic.	*/
+				glUseProgram(this->graphic_cubemap_program);
+				glBindVertexArray(this->plan.vao);
+				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(0);
 
-			glUseProgram(0);
+				glUseProgram(0);
+			}
+
+			// this->skybox.Render(this->camera);
 		}
 
 		void update() override {
@@ -399,7 +413,7 @@ namespace glsample {
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Skybox Texture File Path",
-				cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"));
+				cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 

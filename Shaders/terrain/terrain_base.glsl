@@ -1,3 +1,5 @@
+#include "fog.glsl"
+
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -14,6 +16,9 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 lightColor;
 	vec4 ambientColor;
 
+	FogSettings fogSettings;
+
+	/*	Tessellation Settings.	*/
 	vec4 gEyeWorldPos;
 	float tessLevel;
 }

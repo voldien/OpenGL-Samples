@@ -394,7 +394,7 @@ namespace glsample {
 		OceanGLSample() : GLSample<Ocean>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("S,skybox", "Skybox Texture File Path",
-					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"))(
+					cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"))(
 				"W,width", "Width", cxxopts::value<int>()->default_value("128"))(
 				"H,height", "Height", cxxopts::value<int>()->default_value("128"));
 		}

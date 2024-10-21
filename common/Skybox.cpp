@@ -1,5 +1,7 @@
 #include "Skybox.h"
 #include "Common.h"
+#include "IO/FileSystem.h"
+#include "IOUtil.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <ProceduralGeometry.h>
@@ -7,6 +9,7 @@
 #include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/matrix.hpp>
 
 using namespace fragcore;
 
@@ -39,7 +42,7 @@ namespace glsample {
 	}
 
 	void Skybox::Render(const CameraController &camera) {
-		this->Render((camera.getProjectionMatrix() * camera.getRotationMatrix()));
+		this->Render((camera.getProjectionMatrix() * glm::inverse(camera.getRotationMatrix())));
 	}
 
 	void Skybox::Render(const glm::mat4 &viewProj) {
@@ -121,6 +124,36 @@ namespace glsample {
 			ImGui::DragFloat("Exposure", &this->uniform_stage_buffer.exposure);
 			ImGui::DragFloat("Gamma", &this->uniform_stage_buffer.gamma);
 		}
+	}
+
+	int Skybox::loadDefaultProgram(fragcore::IFileSystem *filesystem) {
+
+		/*	*/
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
+		/*	Load shader binaries.	*/
+		const std::vector<uint32_t> vertex_skybox_binary =
+			IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, filesystem);
+		const std::vector<uint32_t> fragment_skybox_binary =
+			IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, filesystem);
+
+		/*	*/
+		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+		compilerOptions.glslVersion = 330;
+
+		/*	Create skybox graphic pipeline program.	*/
+		int skybox_program =
+			ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+
+		/*	Setup graphic pipeline.	*/
+		glUseProgram(skybox_program);
+		int uniform_buffer_index = glGetUniformBlockIndex(skybox_program, "UniformBufferBlock");
+		glUniformBlockBinding(skybox_program, uniform_buffer_index, 0);
+		glUniform1i(glGetUniformLocation(skybox_program, "panorama"), 0);
+		glUseProgram(0);
+
+		return skybox_program;
 	}
 
 } // namespace glsample

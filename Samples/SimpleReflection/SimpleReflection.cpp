@@ -90,7 +90,7 @@ namespace glsample {
 				/*	*/
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
-				ImGui::Image(reinterpret_cast<ImTextureID>(this->depth), ImVec2(512, 512));
+				ImGui::Image(static_cast<ImTextureID>(this->depth), ImVec2(512, 512));
 			}
 
 			bool showWireFrame = false;
@@ -381,7 +381,7 @@ namespace glsample {
 		void customOptions(cxxopts::OptionAdder &options) override {
 
 			options("S,skybox", "SkyboxPath",
-					cxxopts::value<std::string>()->default_value("asset/winter_lake_01_4k.exr"))(
+					cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"))(
 				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/rungholt/house.obj"));
 		}
 	};

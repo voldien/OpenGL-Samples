@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
+#extension GL_ARB_shading_language_include : enable
 
 layout(early_fragment_tests) in;
 
@@ -15,6 +16,9 @@ layout(location = 4) in vec4 lightSpace;
 
 layout(binding = 0) uniform sampler2D DiffuseTexture;
 layout(binding = 1) uniform sampler2DShadow ShadowTexture;
+layout(binding = 10) uniform sampler2D Irradiance;
+
+#include "common.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -68,7 +72,10 @@ void main() {
 
 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
 
-	const vec4 lighting = (ubo.ambientColor + (ubo.lightColor * contriubtion + spec) * shadow) * color;
+	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
+	const vec4 irradiance_color = texture(Irradiance, irradiance_uv).rgba;
+
+	const vec4 lighting = (ubo.ambientColor * irradiance_color + (ubo.lightColor * contriubtion + spec) * shadow) * color;
 
 	fragColor = lighting;
 }
