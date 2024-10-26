@@ -27,7 +27,7 @@ float getFogFactor(const in FogSettings fog_settings) {
 	const float startFog = fog_settings.fogStart / (far - near);
 	const float densityFog = fog_settings.fogDensity;
 
-	const float z = 0; // getExpToLinear(near, far, gl_FragCoord.z);
+	const float z = 0; //getExpToLinear(near, far, gl_FragCoord.z);
 
 	switch (fog_settings.fogType) {
 	case 1:

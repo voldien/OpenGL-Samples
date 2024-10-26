@@ -11,17 +11,16 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProj;
 	mat4 modelViewProjection;
 
-	/*	*/
-	vec4 tintColor;
-
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
-	vec4 ambientColor;
+
+	vec4 tintColor;
 
 	/*  */
 	vec4 cameraPosition;
 	vec2 scale;
+	vec4 offset;
 }
 ubo;
 

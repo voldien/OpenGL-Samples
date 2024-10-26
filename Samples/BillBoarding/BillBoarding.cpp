@@ -38,12 +38,12 @@ namespace glsample {
 			glm::mat4 ViewProj;
 			glm::mat4 modelViewProjection;
 
-			glm::vec4 tintColor = glm::vec4(1, 1, 1, 0.8f);
-
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+
+			/*	*/
+			glm::vec4 tintColor = glm::vec4(1, 1, 1, 0.8f);
 
 			/*	*/
 			glm::vec4 cameraPosition;
@@ -79,13 +79,14 @@ namespace glsample {
 			}
 
 			void draw() override {
-				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+
+				ImGui::TextUnformatted("Material Setting");
+				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("BillBoarding Setting");
@@ -244,6 +245,8 @@ namespace glsample {
 				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
 							 GL_STATIC_DRAW);
 
+				this->billboard.nrVertices = vertices.size();
+
 				/*	Vertex.	*/
 				glEnableVertexAttribArray(0);
 				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
@@ -322,7 +325,7 @@ namespace glsample {
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->billboard.vao);
-				glDrawElements(GL_POINTS, this->billboard.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glDrawArrays(GL_POINTS, 0, this->billboard.nrVertices);
 				glBindVertexArray(0);
 			}
 
@@ -338,8 +341,6 @@ namespace glsample {
 			/*	*/
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model =
-				glm::rotate(this->uniformStageBuffer.model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(0.95f));
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.modelViewProjection =

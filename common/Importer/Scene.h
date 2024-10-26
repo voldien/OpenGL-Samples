@@ -74,6 +74,8 @@ namespace glsample {
 
 		virtual void sortRenderQueue();
 
+		virtual void renderUI();
+
 	  public:
 		const std::vector<NodeObject *> &getNodes() const noexcept { return this->nodes; }
 

@@ -277,14 +277,18 @@ namespace glsample {
 			const size_t widthDivior = 2;
 			const size_t heightDivior = 2;
 
-			const float halfW = (width / 2.0f);
-			const float halfH = (height / 2.0f);
+			const float halfW = (width / (float)widthDivior);
+			const float halfH = (height / (float)heightDivior);
 			for (size_t i = 0; i < this->multipass_textures.size(); i++) {
+
 				glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+
+				const size_t dest_width = halfW + (i % widthDivior) * halfW;
+				const size_t dest_height = halfH + ((float)i / heightDivior) * halfH;
+
 				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
-								  (i % widthDivior) * (halfW), ((float)i / heightDivior) * halfH,
-								  halfW + (i % widthDivior) * halfW, halfH + ((float)i / heightDivior) * halfH,
-								  GL_COLOR_BUFFER_BIT, GL_LINEAR);
+								  (i % widthDivior) * (halfW), ((float)i / heightDivior) * halfH, dest_width,
+								  dest_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 			}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}

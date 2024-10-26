@@ -1,11 +1,12 @@
 #include "Scene.h"
 #include "GLHelper.h"
 #include "ModelImporter.h"
+#include "imgui.h"
 #include <GL/glew.h>
 
 namespace glsample {
 
-			Scene::Scene() { this->init(); }
+	Scene::Scene() { this->init(); }
 
 	Scene::~Scene() {}
 
@@ -239,6 +240,13 @@ namespace glsample {
 		const bool useBlending = material.opacity < 1.0f || material.maskTextureIndex >= 0;
 
 		return useBlending * 1000;
+	}
+
+	void Scene::renderUI() {
+		/*	*/
+		if(ImGui::TreeNode("Nodes")){
+			
+		}
 	}
 
 } // namespace glsample

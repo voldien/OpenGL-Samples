@@ -1,3 +1,4 @@
+#include "GLUIComponent.h"
 #include "Scene.h"
 #include "imgui.h"
 #include <GL/glew.h>
@@ -23,8 +24,7 @@ namespace glsample {
 			this->setTitle("ScreenSpace AmbientOcclusion");
 
 			/*	Setting Window.	*/
-			this->ambientOcclusionSettingComponent =
-				std::make_shared<AmbientOcclusionSettingComponent>(this->uniformStageBlockSSAO);
+			this->ambientOcclusionSettingComponent = std::make_shared<AmbientOcclusionSettingComponent>(*this);
 			this->addUIComponent(this->ambientOcclusionSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -103,19 +103,18 @@ namespace glsample {
 
 		CameraController camera;
 
-		class AmbientOcclusionSettingComponent : public nekomimi::UIComponent {
+		class AmbientOcclusionSettingComponent : public GLUIComponent<ScreenSpaceAmbientOcclusion> {
 		  public:
-			AmbientOcclusionSettingComponent(struct UniformSSAOBufferBlock &uniform) : uniform(uniform) {
-				this->setName("Ambient Occlusion Settings");
-			}
+			AmbientOcclusionSettingComponent(ScreenSpaceAmbientOcclusion &base)
+				: GLUIComponent<ScreenSpaceAmbientOcclusion>(base, "Ambient Occlusion Settings") {}
 
 			void draw() override {
 
 				ImGui::TextUnformatted("Ambient Occlusion Settings");
-				ImGui::DragFloat("Intensity", &this->uniform.intensity, 0.1f, 0.0f);
-				ImGui::DragFloat("Radius", &this->uniform.radius, 0.35f, 0.0f);
-				ImGui::DragInt("Sample", &this->uniform.samples, 1, 0);
-				ImGui::DragFloat("Bias", &this->uniform.bias, 0.01f, 0, 1);
+				ImGui::DragFloat("Intensity", &this->getRefSample().uniformStageBlockSSAO.intensity, 0.1f, 0.0f);
+				ImGui::DragFloat("Radius", &this->getRefSample().uniformStageBlockSSAO.radius, 0.35f, 0.0f);
+				ImGui::DragInt("Sample", &this->getRefSample().uniformStageBlockSSAO.samples, 1, 0);
+				ImGui::DragFloat("Bias", &this->getRefSample().uniformStageBlockSSAO.bias, 0.01f, 0, 1);
 				ImGui::Checkbox("DownSample", &this->downScale);
 				ImGui::Checkbox("Use Depth Only", &this->useDepthOnly);
 
@@ -134,7 +133,7 @@ namespace glsample {
 			bool useAO = true;
 
 		  private:
-			struct UniformSSAOBufferBlock &uniform;
+			//struct UniformSSAOBufferBlock &uniform;
 		};
 		std::shared_ptr<AmbientOcclusionSettingComponent> ambientOcclusionSettingComponent;
 

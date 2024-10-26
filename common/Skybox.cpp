@@ -1,6 +1,5 @@
 #include "Skybox.h"
 #include "Common.h"
-#include "IO/FileSystem.h"
 #include "IOUtil.h"
 #include "imgui.h"
 #include <GL/glew.h>
@@ -114,16 +113,22 @@ namespace glsample {
 	}
 
 	void Skybox::RenderImGUI() {
+		ImGui::PushID(10);
 		if (ImGui::CollapsingHeader("Skybox  Settings", &this->skybox_settings_visable,
 									ImGuiTreeNodeFlags_CollapsingHeader)) {
+
+			ImGui::BeginGroup();
 			ImGui::Checkbox("Enabled", &this->isEnabled);
 			ImGui::DragFloat3("Rotation", &this->rotation[0]);
 			ImGui::ColorEdit4("Tint", &this->uniform_stage_buffer.tintColor[0],
 							  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
 			ImGui::DragFloat("Exposure", &this->uniform_stage_buffer.exposure);
+			ImGui::SameLine();
 			ImGui::DragFloat("Gamma", &this->uniform_stage_buffer.gamma);
+			ImGui::EndGroup();
 		}
+		ImGui::PopID();
 	}
 
 	int Skybox::loadDefaultProgram(fragcore::IFileSystem *filesystem) {

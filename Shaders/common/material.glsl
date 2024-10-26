@@ -1,3 +1,4 @@
+/*	*/
 struct material {
 	vec4 colorTint;
 	vec4 specular;

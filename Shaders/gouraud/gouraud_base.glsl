@@ -8,14 +8,17 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 
 	/*	Material	*/
 	vec4 diffuseColor;
+	vec4 ambientColor;
 
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
-	vec4 ambientColor;
 
 	vec4 gEyeWorldPos;
 	float tessLevel;
+	float pad0;
+	float pad1;
+	float pad2;
 }
 ubo;
 

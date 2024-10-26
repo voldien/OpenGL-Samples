@@ -38,6 +38,7 @@ namespace glsample {
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 viewDir = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
@@ -47,12 +48,7 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		MeshObject plan;
 		Scene scene; /*	World Scene.	*/
-
-		/*	Textures.	*/
-		unsigned int diffuse_texture;
-		unsigned int normal_texture;
 
 		/*	*/
 		unsigned int normalMapping_program;
@@ -104,26 +100,13 @@ namespace glsample {
 		void Release() override {
 			/*	*/
 			glDeleteProgram(this->normalMapping_program);
-
-			/*	*/
-			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
-			glDeleteTextures(1, (const GLuint *)&this->normal_texture);
-
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
-
-			/*	*/
-			glDeleteVertexArrays(1, &this->plan.vao);
-			glDeleteBuffers(1, &this->plan.vbo);
-			glDeleteBuffers(1, &this->plan.ibo);
 		}
 
 		void Initialize() override {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
-
-			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
-			const std::string normalTexturePath = this->getResult()["normal-texture"].as<std::string>();
 
 			{
 				/*	Load shader source.	*/
@@ -150,11 +133,6 @@ namespace glsample {
 			glUniformBlockBinding(this->normalMapping_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	load Textures	*/
-			TextureImporter textureImporter(this->getFileSystem());
-			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
-			this->normal_texture = textureImporter.loadImage2D(normalTexturePath);
-
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -172,48 +150,6 @@ namespace glsample {
 			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom(modelLoader);
-
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateTorus(1, vertices, indices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->plan.vao);
-			glBindVertexArray(this->plan.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->plan.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, plan.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glGenBuffers(1, &this->plan.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, plan.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->plan.nrIndicesElements = indices.size();
-
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
-
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -241,13 +177,13 @@ namespace glsample {
 
 				glDisable(GL_CULL_FACE);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
+				// /*	*/
+				// glActiveTexture(GL_TEXTURE0);
+				// glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-				/*	*/
-				glActiveTexture(GL_TEXTURE0 + 1);
-				glBindTexture(GL_TEXTURE_2D, this->normal_texture);
+				// /*	*/
+				// glActiveTexture(GL_TEXTURE0 + 1);
+				// glBindTexture(GL_TEXTURE_2D, this->normal_texture);
 
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
@@ -291,10 +227,7 @@ namespace glsample {
 		NormalMappingGLSample() : GLSample<NormalMapping>() {}
 
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
-				"N,normal-texture", "NormalMap Path",
-				cxxopts::value<std::string>()->default_value("asset/normalmap.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny/bunny.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sibenik/sibenik.obj"));
 		}
 	};
 

@@ -15,10 +15,11 @@
  */
 #pragma once
 #include <Eigen/Eigen>
+#include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
 
 namespace glsample {
-
+	// TODO: relocate
 	enum class FogType : unsigned int {
 		None,	/*	*/
 		Linear, /*	*/
@@ -54,6 +55,15 @@ namespace glsample {
 		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	} DirectionalLight;
 
+	typedef struct camera_instance_t {
+		float near;
+		float far;
+		float aspect;
+		float fov;
+		glm::vec4 position;
+		glm::vec4 viewDir;
+	} CameraInstance;
+
 	template <typename T, int m, int n>
 	inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, n> &em) noexcept {
 		glm::mat<m, n, float, glm::precision::highp> mat;
@@ -65,7 +75,7 @@ namespace glsample {
 		return mat;
 	}
 
-	//template <typename A, class T...> struct align_uniform {};
+	// template <typename A, class T...> struct align_uniform {};
 
 	template <typename T, int m>
 	inline glm::vec<m, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, 1> &em) noexcept {

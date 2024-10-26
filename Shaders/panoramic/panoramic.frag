@@ -48,7 +48,6 @@ void main() {
 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
 
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
-
 	const vec4 irradiance_color = texture(Irradiance, irradiance_uv).rgba;
 
 	pointLightSpecular = (ubo.specularColor * spec);

@@ -199,9 +199,10 @@ namespace glsample {
 			this->scene = Scene::loadFrom(modelLoader);
 
 			/*  Init lights.    */
-			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
-										glm::vec4(1, 0, 1, 1)};
+			const glm::vec4 colors[] = {glm::vec4(1, 0.1, 0.1, 1), glm::vec4(0.1, 1, 0.1, 1), glm::vec4(0.1, 0.1, 1, 1),
+										glm::vec4(1, 0.1, 1, 1)};
 			for (size_t i = 0; i < this->nrPointLights; i++) {
+				/*	*/
 				uniformStageBuffer.pointLights[i].range = 25.0f;
 				uniformStageBuffer.pointLights[i].position =
 					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(1.0f, 1.0f, 1.0f);

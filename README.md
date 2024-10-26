@@ -40,16 +40,13 @@ Usage:
 - [**Point Lights**](Samples/PointLight)
 - ![PointLights](https://github.com/voldien/OpenGL-Samples/assets/9608088/dcd67197-4dc9-4333-ae6f-9fff9f7eb317)
 
-- **Area Lights**
-
 - [**Normal Mapping**](Samples/NormalMap)
 
 - [**SkyBox Cubemap**](Samples/Skybox)
+![SkyboxPanoramic](https://github.com/voldien/OpenGL-Samples/assets/9608088/41cacd12-5782-46bd-b06b-dc3725f21b3d)
 
 - [**SkyBox Panoramic**](Samples/Skybox)
 ![SkyboxPanoramic](https://github.com/voldien/OpenGL-Samples/assets/9608088/41cacd12-5782-46bd-b06b-dc3725f21b3d)
-
-- **Refrection**
 
 - **Simple Reflection**
 
@@ -68,8 +65,6 @@ Usage:
 ![PhongBlinn](https://github.com/voldien/OpenGL-Samples/assets/9608088/e14e4035-1639-4532-a316-65c8c879abf9)
 ![PhongBlinn](https://github.com/voldien/OpenGL-Samples/assets/9608088/02ae2bac-974e-4270-b80f-a59dba260160)
 
-- **Fog**
-
 - **Terrain**
 
 - **Shadow Map**
@@ -84,31 +79,41 @@ Usage:
 - **Point Shadow Light**
 ![PointLightShadow](https://github.com/user-attachments/assets/daaf91b3-b0ee-4b55-a182-ad326b0e2634)
 
-- [**Shadow Projection**](Samples/ProjectedShadow/)
 
+- [**Shadow Projection**](Samples/ProjectedShadow/)
 ![ProjectedShadow](https://github.com/user-attachments/assets/d1a17f8e-21c5-42e3-8e4a-094bbe3d8a0b)
+
 
 - **Shadow Map Variance**
 
+
 - **Shadow Volume**
+
 
 - **Cascading Shadow**
 
+
 - **Contact Shadow**
+
 
 - [**Tessellation Basic**](Samples/Tessellation/)
 
+
 - **Grass**
 
+
 - **MipMap Visual**
+
 ![MipMapVisual](https://github.com/voldien/OpenGL-Samples/assets/9608088/ea0714f4-4971-42ad-80db-4d567dc29b03)
 
 - **Multipass**
+
 ![AmbientOcclusion](https://github.com/voldien/OpenGL-Samples/assets/9608088/6c156319-7617-43aa-af08-93d709bc07e9)
 
 - [**Deferred Rendering**](Samples/Deferred/)
 
 - [**Ambient Occlusion**](Samples/AmbientOcclusion/)
+
 ![AmbientOcclusion](https://github.com/voldien/OpenGL-Samples/assets/9608088/91691104-4c70-4d25-91c0-17cb4bcf38af)
 ![AmbientOcclusion](https://github.com/voldien/OpenGL-Samples/assets/9608088/4e8f9d85-b48d-4fc4-816d-632a9bbfd37f)
 ![AmbientOcclusion](https://github.com/voldien/OpenGL-Samples/assets/9608088/4df33593-64f3-4a03-87b5-5e9d205642c5)
@@ -116,7 +121,8 @@ Usage:
 
 - **Physical Based Rendering**
 
-- **Panoramic**
+- **Panoramic**(Samples/Panoramic/)
+
 ![Panoramic](https://github.com/user-attachments/assets/3431b44d-0932-49cb-a96e-7cc6b4bbd8f2)
 ![Panoramic](https://github.com/user-attachments/assets/dd618200-ea77-4844-a56f-7b863878864f)
 
@@ -132,24 +138,29 @@ Usage:
 - **Ray Tracing**
 
 - [**Game Of Life**](Samples/GameOfLife)
+
 ![GameOfLife](https://github.com/voldien/OpenGL-Samples/assets/9608088/5617752d-cd6d-4ceb-9918-f5015565489f)
 
 
 - [**Mandelbrot**](Samples/Mandelbrot/)
+
 ![MandelBrot](https://github.com/voldien/OpenGL-Samples/assets/9608088/cae86eb2-b5f5-4c20-ad13-aed2c154d5d1)
 
 - [**ReactionDiffusion**](Samples/ReactionDiffusion)
 
 - [**Vector Field 2D**](Samples/VectorField2D/)
+
 ![VectorField2D](https://github.com/user-attachments/assets/43b3da51-83d6-4b51-ae06-792b01493c2a)
 
 - **Support Vector Machine**
 
 - **Compute Group Visual**
+
 ![ComputeGroup](https://github.com/user-attachments/assets/a06d9256-05fa-4e16-9621-e2f7b473c9c5)
 
 
 - **Rigidbody**
+
 ![RigidBody](https://github.com/user-attachments/assets/74e55eea-8f19-4a80-82b1-e88952334db0)
 
 

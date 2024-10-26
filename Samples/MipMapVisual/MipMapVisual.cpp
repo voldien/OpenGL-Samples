@@ -88,8 +88,10 @@ namespace glsample {
 			}
 
 			void draw() override {
+				/*	*/
 				ImGui::DragFloat("MipMap Bias", &this->mipmapbias, 1, -10.0f, 10.0f);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				/*	*/
 				for (size_t i = 0; i < mip_colors.size(); i++) {
 					ImGui::Text("Color Mipmap %zu", i);
 					ImGui::ColorEdit3("Color", (float *)&mip_colors[i],
@@ -244,6 +246,7 @@ namespace glsample {
 		}
 
 		void update() override {
+			
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
 
@@ -254,7 +257,7 @@ namespace glsample {
 			const glm::mat4 view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.modelViewProjection = proj * view * model;
 
-			/*	*/
+			/*	Update uniform buffer.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,

@@ -34,12 +34,13 @@ namespace glsample {
 			glm::mat4 viewProjection;
 			glm::mat4 modelViewProjection;
 
+			/*	*/
 			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1);
+			glm::vec4 ambientLight = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(-1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
 
 			/*	Tessellation settings.	*/
 			glm::vec4 eyePos = glm::vec4(1.0f);
@@ -56,8 +57,11 @@ namespace glsample {
 			void draw() override {
 				ImGui::TextUnformatted("Light");
 				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+
+				ImGui::TextUnformatted("Material");
+				ImGui::ColorEdit4("Tint", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Levels", &this->uniform.tessLevel, 1, 0.0f, 6.0f);
@@ -101,11 +105,9 @@ namespace glsample {
 		const std::string evoluationGouraudShaderPath = "Shaders/gouraud/gouraud.tese.spv";
 
 		/*	*/
+		const std::string catmullVertexGouraudShaderPath = "Shaders/gouraud/gouraud_catmull.vert.spv";
 		const std::string catmullControlGouraudShaderPath = "Shaders/gouraud/gouraud_catmull.tesc.spv";
 		const std::string catmullEvoluationGouraudShaderPath = "Shaders/gouraud/gouraud_catmull.tese.spv";
-
-		// const std::string ControlShaderPath = "Shaders/gouraud/gouraud.tesc.spv"; catmull
-		// const std::string EvoluationShaderPath = "Shaders/gouraud/gouraud.tese.spv";
 
 		void Release() override {
 			/*	*/
@@ -123,7 +125,7 @@ namespace glsample {
 		void Initialize() override {
 
 			{
-
+				/*	*/
 				const std::vector<uint32_t> gouraud_vertex_gouraud_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexGouraudShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> gouraud_fragment_binary =
@@ -133,6 +135,7 @@ namespace glsample {
 				const std::vector<uint32_t> gouraud_evolution_binary =
 					IOUtil::readFileData<uint32_t>(this->evoluationGouraudShaderPath, this->getFileSystem());
 
+				/*	*/
 				const std::vector<uint32_t> catmull_control_binary =
 					IOUtil::readFileData<uint32_t>(this->catmullControlGouraudShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> catmull_evolution_binary =
@@ -174,17 +177,15 @@ namespace glsample {
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
 			Common::loadSphere(this->sphere, 1, 8, 8);
 		}
 
-		void onResize(int width, int height) override {
-			/*	*/
-			this->camera.setAspect((float)width / (float)height);
-		}
+		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
 
@@ -196,6 +197,7 @@ namespace glsample {
 			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			/*	*/
 			{
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
@@ -208,17 +210,25 @@ namespace glsample {
 					glUseProgram(this->gouraud_tessellation_program);
 				}
 
-				glEnable(GL_CULL_FACE);
+				/*	*/
+				glDisable(GL_BLEND);
 				glEnable(GL_DEPTH_TEST);
+				glDepthMask(GL_TRUE);
+
+				/*	*/
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
 
 				/*	Draw triangle   */
 				glBindVertexArray(this->sphere.vao);
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->gouraudSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
+				/*	*/
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
 				glDrawElements(GL_PATCHES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
+				/*	*/
 				glBindVertexArray(0);
 				glUseProgram(0);
 			}
@@ -250,7 +260,8 @@ namespace glsample {
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				void *uniformPointer = glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+					GL_UNIFORM_BUFFER,
+					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 					this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);

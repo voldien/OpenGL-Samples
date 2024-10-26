@@ -18,6 +18,7 @@
 #include "GLRendererInterface.h"
 #include "GLSampleSession.h"
 #include "GLSampleWindow.h"
+#include "GLUIComponent.h"
 #include "IOUtil.h"
 #include "IRenderer.h"
 #include "TaskScheduler/IScheduler.h"
@@ -170,6 +171,12 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 			width = display.width();
 			height = display.height();
+		}
+		/*	*/
+		if (width == -1 || height == -1) {
+			fragcore::SDLDisplay display = fragcore::SDLDisplay::getPrimaryDisplay();
+			width = display.width() / 2;
+			height = display.height() / 2;
 		}
 		this->sampleRef->setSize(width, height);
 		this->sampleRef->vsync(vsync);

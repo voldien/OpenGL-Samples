@@ -26,6 +26,7 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
+	// TODO: based it on frustum culling base.
 	class ConditionalDraw : public GLSampleWindow {
 	  public:
 		ConditionalDraw() : GLSampleWindow() {

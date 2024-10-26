@@ -61,7 +61,10 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/common)
 # ###################################
 # OpenGL Samples
 # ###################################
-############### Finished ############
+############### Finished ###############
+########################################
+# Basic Samples
+# ###################################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/StartupWindow)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Triangle)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Texture)
@@ -76,7 +79,9 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Normal)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/MipMapVisual)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ShadowMapping)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ShadowPointLight)
-
+# ###################################
+# Advanced Samples
+# ###################################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/GameOfLife)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Fog)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/MultiPass)
@@ -126,12 +131,12 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Mandelbrot)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ReactionDiffusion)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/ComputeGroupVisual)
 
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/MarchingCube)
+
 ############## Work In Progress ####################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField2D)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/OpticalFlow)
-
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/MarchingCube)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/InfinateWorld)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/RayTracing)
@@ -165,20 +170,27 @@ FIND_PROGRAM(GLSLC glslc)
 FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	GET_FILENAME_COMPONENT(FILE_NAME ${GLSL} ABSOLUTE)
 
-	IF(CMAKE_BUILD_TYPE STREQUAL "Release")
-		SET(SPIRV_BUILD_SETTINGS -O)
-	ELSE()
-		SET(SPIRV_BUILD_SETTINGS -g -Od)
-	ENDIF()
+
 	#glslangValidator
 	SET(SPIRV "${FILE_NAME}.spv")
 	IF(GLSLLANGVALIDATOR)
+		IF(CMAKE_BUILD_TYPE STREQUAL "Release")
+			SET(SPIRV_BUILD_SETTINGS "")
+		ELSE()
+			SET(SPIRV_BUILD_SETTINGS -g -Od)
+		ENDIF()
 		ADD_CUSTOM_COMMAND(
 			OUTPUT ${SPIRV}
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
 			COMMAND ${GLSLLANGVALIDATOR} -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-env vulkan1.1 ${SPIRV_BUILD_SETTINGS} -o ${SPIRV} ${GLSL} 
 			DEPENDS ${GLSL})
 	ELSEIF(GLSLC)
+		IF(CMAKE_BUILD_TYPE STREQUAL "Release")
+			SET(SPIRV_BUILD_SETTINGS -O)
+		ELSE()
+			SET(SPIRV_BUILD_SETTINGS -g -Od)
+		ENDIF()
+
 		ADD_CUSTOM_COMMAND(
 			OUTPUT ${SPIRV}
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"

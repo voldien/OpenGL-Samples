@@ -353,7 +353,7 @@ namespace glsample {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/Offensive.fbx"));
 		}
 	};
-}; // namespace glsample
+} // namespace glsample
 
 int main(int argc, const char **argv) {
 	try {

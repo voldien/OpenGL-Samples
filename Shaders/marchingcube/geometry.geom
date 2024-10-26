@@ -7,10 +7,10 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-layout(location = 0) in vec2 in_coord[3];
-layout(location = 1) in vec3 in_color[3];
-layout(location = 2) in vec3 in_normal_worldspace[3];
-layout(location = 3) in float in_scale[3];
+layout(location = 0) in vec2 in_coord[];
+layout(location = 1) in vec3 in_color[];
+layout(location = 2) in vec3 in_normal_worldspace[];
+layout(location = 3) in float in_scale[];
 
 layout(location = 0) out vec2 out_coord;
 layout(location = 1) out vec3 out_color;

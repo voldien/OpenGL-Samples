@@ -41,7 +41,7 @@ namespace glsample {
 			alignas(16) glm::mat4 modelView;
 			alignas(16) glm::mat4 modelViewProjection;
 
-			/*	light source.	*/
+			/*	Material.	*/
 			glm::vec4 ambientLight = glm::vec4(0.075f, 0.075f, 0.075f, 1.0f);
 
 			PointLightSource pointLights[nrPointLights];

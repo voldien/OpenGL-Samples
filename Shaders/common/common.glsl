@@ -6,6 +6,15 @@
 #define PI_HALF 1.5707963267948966192313216916398
 layout(constant_id = 0) const float EPSILON = 0.00001;
 
+struct Camera {
+	float near;
+	float far;
+	float aspect;
+	float fov;
+	vec4 position;
+	vec4 viewDir;
+};
+
 vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist) {
 
 	const vec2 size = vec2(2.0, 0.0);
@@ -59,6 +68,10 @@ vec2 inverse_equirectangular(const in vec3 direction) {
 
 vec3 fresnelSchlickRoughness(const in float cosTheta, const in vec3 F0, const in float roughness) {
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+vec3 FresnelSchlick(const vec3 SpecularColor, const vec3 E, const vec3 H) {
+	return SpecularColor + (1.0f - SpecularColor) * pow(1.0f - clamp(dot(E, H), 0, 1), 5);
 }
 
 /**

@@ -9,6 +9,7 @@
 #include <ModelImporter.h>
 #include <Scene.h>
 #include <ShaderLoader.h>
+#include <cstddef>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace glsample {
@@ -83,25 +84,25 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int vertex_dat_buffer_binding = 1;
 
+		unsigned int irradiance_texture;
+
 		/*	*/
 		unsigned int uniform_buffer;
-		//		unsigned int uniform_instance_buffer;
-		//		unsigned int indirect_buffer;
 
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t marchingCubeSize = 0;
 		size_t marchingTotalCubeSize = 0;
-		const size_t maxWorldChunkSize[3] = {16, 16, 16};
+		const size_t maxWorldChunkSize[3] = {16 * 2, 8, 16 * 2};
 
 		const size_t max_points_per_voxel = 15; /*	*/
 
 		class MarchingCubeSettingComponent : public nekomimi::UIComponent {
-
 		  public:
 			MarchingCubeSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("MarchingCube Settings");
 			}
+
 			void draw() override {
 
 				/*	*/
@@ -156,17 +157,17 @@ namespace glsample {
 		const std::string groupVisualComputeShaderPath = "Shaders/marchingcube/marchingcube.comp.spv";
 
 		void Release() override {
+
 			/*	*/
 			glDeleteProgram(this->marching_cube_graphic_program);
 			glDeleteProgram(this->marching_cube_generate_compute_program);
-
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
-			// glDeleteBuffers(1, &this->uniform_instance_buffer);
-			// glDeleteBuffers(1, &this->indirect_buffer);
 		}
 
 		void Initialize() override {
+
+			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
 
 			/*  */
 			{
@@ -183,13 +184,11 @@ namespace glsample {
 					glsample::IOUtil::readFileData<uint32_t>(this->geometryShaderPath, this->getFileSystem());
 
 				/*	Load Graphic Program.	*/
-				this->marching_cube_graphic_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_binary, &fragment_binary, &geometry_binary);
-
+				this->marching_cube_graphic_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary, nullptr);
 				/*	*/
 				const std::vector<uint32_t> compute_marching_cube_generator_binary =
 					IOUtil::readFileData<uint32_t>(this->groupVisualComputeShaderPath, this->getFileSystem());
-
 				/*	Load Compute.	*/
 				this->marching_cube_generate_compute_program =
 					ShaderLoader::loadComputeProgram(compilerOptions, &compute_marching_cube_generator_binary);
@@ -287,6 +286,13 @@ namespace glsample {
 				this->marchingCube.nrVertices = marching_cube_chunk_num_vertices;
 			}
 			fragcore::resetErrorFlag();
+
+			/*	load Skybox Textures	*/
+			TextureImporter textureImporter(this->getFileSystem());
+			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
+
+			ProcessData util(this->getFileSystem());
+			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -364,13 +370,16 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->marchingCubeSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
+				glActiveTexture(GL_TEXTURE0 + 10);
+				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+
 				/*	Draw Items.	*/
 				glBindVertexArray(this->marchingCube.vao);
 
 				/*	TODO: draw only visable sections.	*/
 				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, this->vertex_dat_buffer_binding, this->marchingCube.vbo);
 				glDrawArrays(GL_TRIANGLES, 0, this->marchingCube.nrVertices * this->chunks.size());
-				
+
 				// glMultiDrawArraysIndirect
 				glBindVertexArray(0);
 
@@ -393,7 +402,6 @@ namespace glsample {
 			}
 
 			/*	Bind buffer and update region with new data.	*/
-
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer = glMapBufferRange(
@@ -410,7 +418,10 @@ namespace glsample {
 	class MarchingCubeSample : public GLSample<MarchingCube> {
 	  public:
 		MarchingCubeSample() : GLSample<MarchingCube>() {}
-		void customOptions(cxxopts::OptionAdder &options) override {}
+		void customOptions(cxxopts::OptionAdder &options) override {
+			options("S,skybox", "Skybox Texture File Path",
+					cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
+		}
 	};
 
 } // namespace glsample

@@ -59,7 +59,7 @@ namespace glsample {
 		fragcore::RigidBody *planeRigibody;
 		fragcore::RigidBody *sphereRigibody;
 
-		const std::array<int, 3> grid_aray = {8, 24, 8};
+		const std::array<size_t, 3> grid_aray = {8, 24, 8};
 
 		/*	*/
 		MeshObject boundingBox;
@@ -97,13 +97,16 @@ namespace glsample {
 		const std::string vertexInstanceShaderPath = "Shaders/instance/instance_ssbo.vert.spv";
 		const std::string fragmentInstanceShaderPath = "Shaders/instance/instance.frag.spv";
 
+		/*	*/
 		const std::string vertexBoundingShaderPath = "Shaders/bounding/boundingbox.vert.spv";
 		const std::string fragmentBoundingShaderPath = "Shaders/bounding/boundingbox.frag.spv";
 
+		/*	*/
 		const std::string vertexHyperplanShaderPath = "Shaders/svm/hyperplane.vert.spv";
 		const std::string geometryHyperplanShaderPath = "Shaders/svm/hyperplane.geom.spv";
 		const std::string fragmentHyperplanShaderPath = "Shaders/svm/hyperplane.frag.spv";
 
+		/*	*/
 		const std::string vertexBlendShaderPath = "Shaders/blending/blending.vert.spv";
 		const std::string fragmentBlendShaderPath = "Shaders/blending/blending.frag.spv";
 
@@ -117,8 +120,10 @@ namespace glsample {
 
 				ImGui::TextUnformatted("Light Settings");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+
+				ImGui::TextUnformatted("Material Settings");
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -150,7 +155,7 @@ namespace glsample {
 		void Initialize() override {
 
 			/*	Preallocate.	*/
-			this->rigidbodies.resize(fragcore::Math::product<int>(grid_aray.data(), grid_aray.size()));
+			this->rigidbodies.resize(fragcore::Math::product<size_t>(grid_aray.data(), grid_aray.size()));
 
 			{
 
@@ -218,7 +223,7 @@ namespace glsample {
 				glGetProgramResourceIndex(this->bounding_program, GL_SHADER_STORAGE_BLOCK, "InstanceBlock");
 			glUniformBlockBinding(this->bounding_program, uniform_buffer_index, uniform_buffer_binding);
 
-			glShaderStorageBlockBinding(this->bounding_program, instance_read_index,
+			glShaderStorageBlockBinding(this->bounding_program, uniform_instance_buffer_index,
 										this->uniform_instance_buffer_binding);
 			glUseProgram(0);
 
@@ -518,8 +523,6 @@ namespace glsample {
 		void update() override {
 
 			this->physic_interface->sync();
-
-			const float elapsedTime = this->getTimer().getElapsed<float>();
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());

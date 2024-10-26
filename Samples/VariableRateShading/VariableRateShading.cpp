@@ -198,6 +198,7 @@ namespace glsample {
 							 nullptr);
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
+
 		}
 
 		void draw() override {
@@ -220,10 +221,6 @@ namespace glsample {
 			/*	*/
 			int width, height;
 			getSize(&width, &height);
-
-			/*	*/
-			this->uniformBuffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 1000.0f);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,

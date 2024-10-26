@@ -1,6 +1,7 @@
 #include "GLSampleWindow.h"
 #include "Core/Library.h"
 #include "FPSCounter.h"
+#include "SDL_scancode.h"
 #include "SDL_video.h"
 #include "spdlog/common.h"
 #include <GLRendererInterface.h>
@@ -112,17 +113,21 @@ void GLSampleWindow::renderUI() {
 	this->frameBufferIndex = (this->frameBufferIndex + 1) % this->getFrameBufferCount();
 
 	{
-		/*	*/
-		const Uint8 *state = SDL_GetKeyboardState(nullptr);
-
 		/*	Check if screenshot button pressed.	*/
-		if (state[SDL_SCANCODE_F12]) {
+		if (this->getInput().getKeyPressed(SDL_SCANCODE_F12)) {
 			this->captureScreenShot();
 		}
 
 		/*	Enter fullscreen via short command.	*/
-		if (state[SDL_SCANCODE_RETURN] && (state[SDL_SCANCODE_LCTRL] || state[SDL_SCANCODE_RCTRL])) {
+		if (this->getInput().getKeyPressed(SDL_SCANCODE_RETURN) &&
+			(this->getInput().getKeyPressed(SDL_SCANCODE_LCTRL) ||
+			 this->getInput().getKeyPressed(SDL_SCANCODE_RCTRL))) {
 			this->setFullScreen(!this->isFullScreen());
+		}
+
+		/*	*/
+		if (this->getInput().getKeyPressed(SDL_SCANCODE_F2)) {
+			this->enableImGUI(false);
 		}
 	}
 
