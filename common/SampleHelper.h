@@ -19,6 +19,16 @@
 #include <glm/matrix.hpp>
 
 namespace glsample {
+
+	enum class GBuffer : unsigned int {
+		WorldSpace = 1,		   /*	*/
+		TextureCoordinate = 2, /*	*/
+		Albedo = 0,			   /*	*/
+		Normal = 3,			   /*	*/
+		Specular = 4,		   /*	Roughness*/
+		Emission = 5,		   /*	*/
+	};
+
 	// TODO: relocate
 	enum class FogType : unsigned int {
 		None,	/*	*/

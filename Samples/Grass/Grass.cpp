@@ -6,7 +6,6 @@
 #include <Util/CameraController.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-
 namespace glsample {
 
 	/**
@@ -305,7 +304,6 @@ namespace glsample {
 
 		void update() override {
 			/*	*/
-			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/

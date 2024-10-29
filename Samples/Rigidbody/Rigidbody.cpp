@@ -1,6 +1,7 @@
 #include "GLSampleSession.h"
 #include "Math3D/Math3D.h"
 #include "PhysicDesc.h"
+#include "SampleHelper.h"
 #include "Util/CameraController.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -125,16 +126,22 @@ namespace glsample {
 				ImGui::TextUnformatted("Material Settings");
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 
+				ImGui::TextUnformatted("Physic Settings");
+				ImGui::DragFloat("Speed", &this->speed);
+				ImGui::DragFloat("Fixed Step", &this->fixedTimeStep);
+				ImGui::DragInt("Max SubStep", &this->maxSubStep);
+				ImGui::Checkbox("Use Gravity", &this->useGravity);
+
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
-				ImGui::Checkbox("Use Gravity", &this->useGravity);
-				ImGui::DragFloat("Speed", &this->speed);
 			}
 
 			bool showWireFrame = false;
 			bool RigidBody = true;
 			bool useGravity = true;
 			float speed = 1.0f;
+			float fixedTimeStep = 1.0f / 60.0f;
+			int maxSubStep = 1;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -582,13 +589,15 @@ namespace glsample {
 
 			if (this->getInput().getMouseDown(Input::MouseButton::LEFT_BUTTON)) {
 				for (size_t i = 0; i < rigidbodies.size(); i++) {
-					rigidbodies[i]->addForce(Vector3(0, 150, 0));
+					const glm::vec3 force = camera.getLookDirection() * 150.0f;
+					rigidbodies[i]->addForce(GLM2E(force));
 				}
 			}
 
 			/*	Simulate.	*/
 			this->physic_interface->simulate(
-				this->getTimer().deltaTime<float>() * this->rigidBodySettingComponent->speed, 1, 1.0f / 60.0f);
+				this->getTimer().deltaTime<float>() * this->rigidBodySettingComponent->speed,
+				this->rigidBodySettingComponent->maxSubStep, this->rigidBodySettingComponent->fixedTimeStep);
 		}
 	};
 

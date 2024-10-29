@@ -87,12 +87,13 @@ namespace glsample {
 			}
 			void draw() override {
 				ImGui::TextUnformatted("Light Settings");
-
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+
+				ImGui::TextUnformatted("Material Settings");
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				ImGui::TextUnformatted("Debugging");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -225,7 +226,7 @@ namespace glsample {
 				/*	*/
 				GLint uniformMaxSize;
 				glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
-				int instanceBatch = uniformMaxSize / sizeof(glm::mat4);
+				int instanceBatch = 1024; // uniformMaxSize / sizeof(glm::mat4);
 
 				this->uniformSkeletonBufferSize =
 					fragcore::Math::align(instanceBatch * sizeof(glm::mat4), (size_t)minMapBufferSize);
@@ -318,10 +319,10 @@ namespace glsample {
 			/*	*/
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-				void *uniformPointer = glMapBufferRange(
-					GL_UNIFORM_BUFFER,
-					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-					this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				void *uniformPointer = glMapBufferRange(GL_UNIFORM_BUFFER,
+														((this->getFrameCount() + 1) % this->nrUniformBuffer) *
+															this->uniformAlignBufferSize,
+														this->uniformAlignBufferSize, GL_MAP_WRITE_BIT);
 				memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}
@@ -333,12 +334,12 @@ namespace glsample {
 					GL_UNIFORM_BUFFER,
 					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSkeletonBufferSize,
 
-					this->uniformSkeletonBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+					this->uniformSkeletonBufferSize, GL_MAP_WRITE_BIT);
 				/*	*/
 				int i = 0;
 				for (auto it = skeleton.bones.begin(); it != skeleton.bones.end(); it++) {
 
-					memcpy(&uniformPointer[i++], &(*it).second.inverseBoneMatrix[0][0], sizeof(uniformPointer[0]));
+					memcpy(&uniformPointer[i++][0], &(*it).second.inverseBoneMatrix[0][0], sizeof(uniformPointer[0]));
 				}
 			}
 			glUnmapBuffer(GL_UNIFORM_BUFFER);

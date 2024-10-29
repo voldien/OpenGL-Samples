@@ -224,7 +224,7 @@ class FVDECLSPEC ModelImporter {
 	ModelImporter(fragcore::IFileSystem *fileSystem) : fileSystem(fileSystem) {}
 	ModelImporter(const ModelImporter &other) = default;
 	ModelImporter(ModelImporter &&other);
-	~ModelImporter() { this->clear(); }
+	virtual ~ModelImporter() { this->clear(); }
 
 	ModelImporter &operator=(const ModelImporter &other) = default;
 	ModelImporter &operator=(ModelImporter &&other);

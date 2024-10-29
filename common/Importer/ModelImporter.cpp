@@ -121,7 +121,7 @@ void ModelImporter::clear() noexcept {
 
 void ModelImporter::initScene(const aiScene *scene) {
 
-	fragcore::IScheduler* schedular;
+	fragcore::IScheduler *schedular;
 
 	/*	*/
 	std::thread process_textures_thread([&]() {
@@ -406,11 +406,11 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 			/*	Offset only. assign later.	*/
 			if (boneByteSize > 0 && bonecount > 0) {
 				/*	BoneID	*/
-				for (int i = 0; i < bonecount; i++) {
+				for (unsigned int i = 0; i < bonecount; i++) {
 					*pVertex++ = 0;
 				}
 				/*	BoneWeight	*/
-				for (int i = 0; i < bonecount; i++) {
+				for (unsigned int i = 0; i < bonecount; i++) {
 					*pVertex++ = 0;
 				}
 			}
@@ -504,7 +504,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 	/*	*/
 	if (aimesh->mNumAnimMeshes > 0) {
-		for (int i = 0; i < aimesh->mNumAnimMeshes; i++) {
+		for (unsigned int i = 0; i < aimesh->mNumAnimMeshes; i++) {
 			const aiAnimMesh *animMesh = aimesh->mAnimMeshes[i];
 			if (animMesh->HasPositions()) {
 			}
@@ -733,6 +733,8 @@ void ModelImporter::loadTexturesFromMaterials(aiMaterial *pmaterial) {
 			/*	*/
 			aiString textureName;
 			int ret = pmaterial->Get(AI_MATKEY_TEXTURE(textureType, textureIndex), textureName);
+			if (ret != aiReturn::aiReturn_SUCCESS) {
+			}
 
 			/*	*/
 			auto *embeededTexture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
@@ -894,19 +896,19 @@ std::vector<MaterialObject *> ModelImporter::getMaterials(const size_t texture_i
 
 	for (size_t i = 0; i < getMaterials().size(); i++) {
 		bool found = false;
-		if (getMaterials()[i].diffuseIndex == texture_index) {
+		if (getMaterials()[i].diffuseIndex == (int)texture_index) {
 			found = true;
 		}
-		if (getMaterials()[i].normalIndex == texture_index) {
+		if (getMaterials()[i].normalIndex == (int)texture_index) {
 			found = true;
 		}
-		if (getMaterials()[i].emissionIndex == texture_index) {
+		if (getMaterials()[i].emissionIndex == (int)texture_index) {
 			found = true;
 		}
-		if (getMaterials()[i].heightbumpIndex == texture_index) {
+		if (getMaterials()[i].heightbumpIndex == (int)texture_index) {
 			found = true;
 		}
-		if (getMaterials()[i].specularIndex == texture_index) {
+		if (getMaterials()[i].specularIndex == (int)texture_index) {
 			found = true;
 		}
 		/*	*/

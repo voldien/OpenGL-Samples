@@ -133,7 +133,7 @@ namespace glsample {
 			bool useAO = true;
 
 		  private:
-			//struct UniformSSAOBufferBlock &uniform;
+			// struct UniformSSAOBufferBlock &uniform;
 		};
 		std::shared_ptr<AmbientOcclusionSettingComponent> ambientOcclusionSettingComponent;
 
@@ -634,14 +634,18 @@ namespace glsample {
 
 			if (this->ambientOcclusionSettingComponent->showGBuffers) {
 
+				const size_t widthDivior = 2;
+				const size_t heightDivior = 2;
+
 				/*	Transfer each target to default framebuffer.	*/
-				const float halfW = (width / 4.0f);
-				const float halfH = (height / 4.0f);
+				const float halfW = (width / widthDivior) * 0.5f;
+				const float halfH = (height / heightDivior) * 0.5f;
+
 				for (size_t i = 0; i < this->multipass_textures.size(); i++) {
 					glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
 					glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
-									  (i % 2) * (halfW), (i / 2.0f) * halfH, halfW + (i % 2) * halfW,
-									  halfH + (i / 2.0f) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+									  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW,
+									  halfH + (i / 2) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 				}
 			}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);

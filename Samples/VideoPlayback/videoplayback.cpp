@@ -334,8 +334,7 @@ namespace glsample {
 			{
 				this->audioInterface = std::make_shared<fragcore::OpenALAudioInterface>(nullptr);
 
-				fragcore::AudioListenerDesc list_desc = {.position = fragcore::Vector3(0, 0, 0),
-														 .rotation = fragcore::Quaternion::Identity()};
+				fragcore::AudioListenerDesc list_desc = {fragcore::Vector3(0, 0, 0), fragcore::Quaternion::Identity()};
 				list_desc.position = fragcore::Vector3::Zero();
 				listener = audioInterface->createAudioListener(&list_desc);
 				listener->setVolume(1.0f);

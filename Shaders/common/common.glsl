@@ -1,6 +1,16 @@
 #include "material.glsl"
 #include "noise.glsl"
 
+// enum GBuffer : unsigned int {
+
+// 	WorldSpace = 1,
+// 	TextureCoordinate = 2,
+// 	Albedo = 0,
+// 	Normal = 3,
+// 	Specular = 4, // Roughness
+// 	Emission = 5,
+// };
+
 /*	Constants.	*/
 #define PI 3.1415926535897932384626433832795
 #define PI_HALF 1.5707963267948966192313216916398

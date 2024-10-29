@@ -132,6 +132,7 @@ void GLSampleWindow::renderUI() {
 	}
 
 	this->getFPSCounter().update(this->getTimer().getElapsed<float>());
+	
 	/*	*/
 	if (this->debugGL) {
 		this->getLogger().info("FPS: {} Elapsed Time: {}", this->getFPSCounter().getFPS(),

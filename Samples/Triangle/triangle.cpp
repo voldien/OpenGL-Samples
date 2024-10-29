@@ -3,6 +3,7 @@
 #include <GLSampleWindow.h>
 #include <ShaderLoader.h>
 
+
 namespace glsample {
 
 	/**

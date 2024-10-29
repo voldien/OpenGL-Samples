@@ -124,6 +124,11 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		this->sampleRef = new T();
 		this->sampleRef->setCommandResult(result);
 
+		if (msaa > 0) {
+			/*	Set Default framebuffer multisampling.	*/
+			glEnable(GL_MULTISAMPLE);
+		}
+
 		/*	Prevent residual errors to cause crash.	*/
 		fragcore::resetErrorFlag();
 

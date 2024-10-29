@@ -244,8 +244,7 @@ namespace glsample {
 
 	void Scene::renderUI() {
 		/*	*/
-		if(ImGui::TreeNode("Nodes")){
-			
+		if (ImGui::TreeNode("Nodes")) {
 		}
 	}
 

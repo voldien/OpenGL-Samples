@@ -58,8 +58,10 @@ namespace glsample {
 				ImGui::DragFloat("Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
 				ImGui::TextUnformatted("Light");
 				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::TextUnformatted("Material");
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
@@ -114,7 +116,7 @@ namespace glsample {
 
 		void Initialize() override {
 
-			const std::string model = this->getResult()["model"].as<std::string>();
+			// const std::string model = this->getResult()["model"].as<std::string>();
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 			const std::string heightTexturePath = this->getResult()["heightmap"].as<std::string>();
 
@@ -280,7 +282,7 @@ namespace glsample {
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/tessellation_diffusemap.png"))(
-				"H,heightmap", "Height/Displacement Texture Path",
+				"heightmap", "Height/Displacement Texture Path",
 				cxxopts::value<std::string>()->default_value("asset/tessellation_heightmap.png"));
 		}
 	};
@@ -294,7 +296,6 @@ int main(int argc, const char **argv) {
 		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {
-
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;
 	}

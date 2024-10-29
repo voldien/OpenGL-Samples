@@ -3,6 +3,7 @@
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
 
+/*	*/
 layout(location = 0) out vec4 Diffuse;
 layout(location = 1) out vec4 WorldSpace;
 layout(location = 2) out vec4 TextureCoord;

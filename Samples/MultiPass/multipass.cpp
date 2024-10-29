@@ -37,18 +37,6 @@ namespace glsample {
 		/*	*/
 		ModelImporter *modelLoader;
 
-		/*	*/
-
-		enum GBuffer : unsigned int {
-
-			WorldSpace = 1,
-			TextureCoordinate = 2,
-			Albedo = 0,
-			Normal = 3,
-			Specular = 4, // Roughness
-			Emission = 5,
-		};
-
 		Skybox skybox;
 
 		unsigned int multipass_program;
@@ -277,18 +265,20 @@ namespace glsample {
 			const size_t widthDivior = 2;
 			const size_t heightDivior = 2;
 
-			const float halfW = (width / (float)widthDivior);
-			const float halfH = (height / (float)heightDivior);
-			for (size_t i = 0; i < this->multipass_textures.size(); i++) {
+			const float sub_view_width = (int)(width / widthDivior);
+			const float sub_view_height = (int)(height / heightDivior);
 
-				glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
+			for (size_t index = 0; index < this->multipass_textures.size(); index++) {
 
-				const size_t dest_width = halfW + (i % widthDivior) * halfW;
-				const size_t dest_height = halfH + ((float)i / heightDivior) * halfH;
+				glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
+
+				/*	*/
+				const size_t dest_width = sub_view_width + (index % widthDivior) * sub_view_width;
+				const size_t dest_height = sub_view_height + (index / heightDivior) * sub_view_height;
 
 				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
-								  (i % widthDivior) * (halfW), ((float)i / heightDivior) * halfH, dest_width,
-								  dest_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+								  (index % widthDivior) * (sub_view_width), (index / heightDivior) * sub_view_height,
+								  dest_width, dest_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 			}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
