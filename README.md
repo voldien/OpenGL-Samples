@@ -48,6 +48,9 @@ Usage:
 - [**SkyBox Panoramic**](Samples/Skybox)
 ![SkyboxPanoramic](https://github.com/voldien/OpenGL-Samples/assets/9608088/41cacd12-5782-46bd-b06b-dc3725f21b3d)
 
+- [**Fog**](Samples/Fog)
+![Fog](https://github.com/user-attachments/assets/28e60ff4-7579-430d-acee-89e19e1f527a)
+
 - **Simple Reflection**
 
 - [**Instance**](Samples/Instance)
@@ -97,9 +100,6 @@ Usage:
 
 
 - [**Tessellation Basic**](Samples/Tessellation/)
-
-
-- **Grass**
 
 
 - **MipMap Visual**
@@ -157,6 +157,9 @@ Usage:
 - **Compute Group Visual**
 
 ![ComputeGroup](https://github.com/user-attachments/assets/a06d9256-05fa-4e16-9621-e2f7b473c9c5)
+
+- **Marching Cube**
+![MarchingCube](https://github.com/user-attachments/assets/f748e312-737c-4106-877b-93b59a9778d5)
 
 
 - **Rigidbody**
