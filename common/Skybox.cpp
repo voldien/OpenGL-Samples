@@ -25,12 +25,12 @@ namespace glsample {
 		/*	*/
 		GLint minMapBufferSize;
 		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-		this->uniformSize = Math::align<size_t>(sizeof(uniform_buffer_block), (size_t)minMapBufferSize);
+		this->uniformAlignSize = Math::align<size_t>(sizeof(uniform_buffer_block), (size_t)minMapBufferSize);
 
 		/*	Create uniform buffer.	*/
 		glGenBuffers(1, &this->uniform_buffer);
 		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-		glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		/*	Load geometry.	*/
@@ -55,15 +55,15 @@ namespace glsample {
 		/*	*/
 		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 		void *uniformPointer =
-			glMapBufferRange(GL_UNIFORM_BUFFER, ((frameIndex + 1) % this->nrUniformBuffer) * this->uniformSize,
-							 this->uniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			glMapBufferRange(GL_UNIFORM_BUFFER, ((frameIndex + 1) % this->nrUniformBuffer) * this->uniformAlignSize,
+							 this->uniformAlignSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 		memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
 		glUnmapBuffer(GL_UNIFORM_BUFFER);
 
 		{
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  (frameIndex % this->nrUniformBuffer) * this->uniformSize, this->uniformSize);
+							  (frameIndex % this->nrUniformBuffer) * this->uniformAlignSize, this->uniformAlignSize);
 
 			/*	Extract current state. to restore afterward rendered the skybox.	*/
 			GLint cullstate, blend, depth_test, depth_func;
@@ -72,10 +72,11 @@ namespace glsample {
 			glGetIntegerv(GL_DEPTH_TEST, &depth_test);
 			glGetIntegerv(GL_DEPTH_FUNC, &depth_func);
 
-			glDisable(GL_CULL_FACE);
+			/*	*/
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_FRONT);
 			glDisable(GL_BLEND);
 			glEnable(GL_DEPTH_TEST);
-
 			glDepthFunc(GL_LEQUAL);
 
 			/*	*/
@@ -93,6 +94,8 @@ namespace glsample {
 			glBindVertexArray(this->SkyboxCube.vao);
 			glDrawElements(GL_TRIANGLES, this->SkyboxCube.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 			glBindVertexArray(0);
+
+			glUseProgram(0);
 
 			if (cullstate) {
 				glEnable(GL_CULL_FACE);

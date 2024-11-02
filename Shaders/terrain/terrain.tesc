@@ -11,7 +11,6 @@ layout(location = 1) in vec2 TexCoord_CS_in[];
 layout(location = 2) in vec3 Normal_CS_in[];
 layout(location = 3) in vec3 Tangent_CS_in[];
 
-#include "common.glsl"
 #include "terrain_base.glsl"
 
 layout(location = 4) out patch OutputPatch oPatch;

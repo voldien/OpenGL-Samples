@@ -85,13 +85,14 @@ namespace glsample {
 		}
 	}
 
-	static void bindTexture(MaterialObject &material, TextureAssetObject &texutre) {
+	static void bindTexture(MaterialObject &material, TextureAssetObject &texture, const TextureType texture_type) {
 		//	/*	*/
 		//	if (material.normalIndex >= 0 && material.normalIndex < refTexture.size()) {
 		//		const TextureAssetObject &tex = this->refTexture[material.normalIndex];
 		//		glActiveTexture(GL_TEXTURE1);
 		//		glBindTexture(GL_TEXTURE_2D, tex.texture);
 		//	}
+		/*	*/
 	}
 
 	void Scene::renderNode(const NodeObject *node) {
@@ -131,6 +132,16 @@ namespace glsample {
 			/*	*/
 			if (material.maskTextureIndex >= 0 && material.maskTextureIndex < refTexture.size()) {
 				const TextureAssetObject &tex = this->refTexture[material.maskTextureIndex];
+				glActiveTexture(GL_TEXTURE0 + TextureType::AlphaMask);
+				glBindTexture(GL_TEXTURE_2D, tex.texture);
+			} else {
+				glActiveTexture(GL_TEXTURE0 + TextureType::AlphaMask);
+				glBindTexture(GL_TEXTURE_2D, this->diffuseDefault);
+			}
+
+			/*	*/
+			if (material.emissionIndex >= 0 && material.emissionIndex < refTexture.size()) {
+				const TextureAssetObject &tex = this->refTexture[material.emissionIndex];
 				glActiveTexture(GL_TEXTURE0 + TextureType::AlphaMask);
 				glBindTexture(GL_TEXTURE_2D, tex.texture);
 			} else {

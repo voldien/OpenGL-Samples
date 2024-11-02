@@ -1,4 +1,5 @@
 #include "common.glsl"
+#include "light.glsl"
 
 layout(constant_id = 1) const int MAX_BONES = 512;
 

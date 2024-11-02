@@ -38,6 +38,7 @@ void main() {
 	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
 	tangent = normalize((ubo.model * vec4(Tangent, 0.0)).xyz);
 
+	/*	*/
 	const vec3 Ttangent = normalize(tangent - dot(tangent, normal) * normal);
 	bitangent = cross(Ttangent, normal);
 

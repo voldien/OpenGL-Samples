@@ -10,11 +10,13 @@ layout(triangle_strip, max_vertices = 18) out;
 layout(location = 0) in vec3 InVertex[];
 layout(location = 1) in vec2 InUV[];
 layout(location = 2) in vec3 InNormal[];
+layout(location = 3) in vec3 InTangent[];
 
 layout(location = 0) out vec3 OutVertex;
 layout(location = 1) out vec2 OutUV;
 layout(location = 2) out vec3 OutNormal;
-layout(location = 3) out vec3 ViewDir;
+layout(location = 3) out vec3 OutTangent;
+layout(location = 4) out vec3 ViewDir;
 
 layout(constant_id = 0) const int NrLayers = 6;
 layout(constant_id = 1) const int NrFaces = 3;
@@ -40,7 +42,7 @@ ubo;
 
 /*	Based on the cubemap layer direction.	*/
 const vec3 view_directions[6] = {vec3(1, 0, 0),	 vec3(-1, 0, 0), vec3(0, 1, 0),
-								 vec3(0, -1, 0), vec3(0, 0, -1),	 vec3(0.0, 0.0, 1)};
+								 vec3(0, -1, 0), vec3(0, 0, -1), vec3(0.0, 0.0, 1)};
 
 void main() {
 
@@ -52,6 +54,7 @@ void main() {
 			gl_Position = (ubo.ViewProjection[gl_Layer]) * gl_in[i].gl_Position;
 			OutUV = InUV[i];
 			OutNormal = InNormal[i];
+			OutTangent = InTangent[i];
 			ViewDir = (ubo.ViewProjection[face] * vec4(view_directions[face], 0)).xyz;
 			EmitVertex();
 		}

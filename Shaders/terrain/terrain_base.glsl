@@ -1,4 +1,5 @@
-#include "fog.glsl"
+#include "common.glsl"
+#include "phongblinn.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;

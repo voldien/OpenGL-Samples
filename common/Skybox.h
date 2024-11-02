@@ -62,7 +62,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformSize = sizeof(uniform_buffer_block);
+		size_t uniformAlignSize = sizeof(uniform_buffer_block);
 		glm::vec3 rotation;
 		bool isEnabled = true;
 

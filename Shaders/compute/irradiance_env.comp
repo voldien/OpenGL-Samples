@@ -21,7 +21,7 @@ void main() {
 	const vec2 normalized_uv_coords = vec2(pixel_coords) / vec2(imageSize(targetIrradianceTexture));
 
 	// TODO: improve mapping.
-	const vec3 direction = -equirectangular(2 * normalized_uv_coords - 1);
+	const vec3 direction = -equirectangular(2 * normalized_uv_coords - 0.80);
 
 	vec3 irradiance = vec3(0.0);
 

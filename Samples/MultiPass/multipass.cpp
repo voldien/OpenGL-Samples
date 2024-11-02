@@ -1,3 +1,4 @@
+#include "SampleHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -161,7 +162,11 @@ namespace glsample {
 			glGenFramebuffers(1, &this->multipass_framebuffer);
 
 			/*	*/
-			this->multipass_textures.resize(4);
+			this->multipass_textures = {
+				(unsigned int)GBuffer::WorldSpace, (unsigned int)GBuffer::TextureCoordinate,
+				(unsigned int)GBuffer::Albedo,	   (unsigned int)GBuffer::Normal,
+				(unsigned int)GBuffer::Specular,   (unsigned int)GBuffer::Emission,
+			};
 			glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
 			glGenTextures(1, &this->depthTexture);
 			this->onResize(this->width(), this->height());
@@ -262,7 +267,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Transfer each target to default framebuffer.	*/
-			const size_t widthDivior = 2;
+			const size_t widthDivior = 3;
 			const size_t heightDivior = 2;
 
 			const float sub_view_width = (int)(width / widthDivior);

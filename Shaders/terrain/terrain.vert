@@ -13,7 +13,6 @@ layout(location = 1) out vec2 FragIN_uv;
 layout(location = 2) out vec3 FragIN_normal;
 layout(location = 3) out vec3 FragIN_tangent;
 
-#include "common.glsl"
 #include "terrain_base.glsl"
 
 void main() {

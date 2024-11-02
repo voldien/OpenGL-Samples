@@ -8,7 +8,8 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec2 uv;
 layout(location = 2) in vec3 normal;
-layout(location = 3) in vec3 ViewDir;
+layout(location = 3) in vec3 tangent;
+layout(location = 4) in vec3 ViewDir;
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -32,7 +33,7 @@ ubo;
 #include "common.glsl"
 
 layout(binding = 0) uniform sampler2D DiffuseTexture;
-
+layout(binding = 1) uniform sampler2D NormalTexture;
 layout(binding = 10) uniform sampler2D Irradiance;
 
 void main() {

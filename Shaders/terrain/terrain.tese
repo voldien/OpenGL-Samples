@@ -10,7 +10,6 @@ layout(location = 1) out vec2 TexCoord_FS_in;
 layout(location = 2) out vec3 Normal_FS_in;
 layout(location = 3) out vec3 Tangent_FS_in;
 
-#include "common.glsl"
 #include "terrain_base.glsl"
 
 layout(location = 4) in patch OutputPatch oPatch;
