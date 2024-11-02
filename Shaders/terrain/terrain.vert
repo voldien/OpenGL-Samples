@@ -12,7 +12,6 @@ layout(location = 0) out vec3 WorldPos_in;
 layout(location = 1) out vec2 FragIN_uv;
 layout(location = 2) out vec3 FragIN_normal;
 layout(location = 3) out vec3 FragIN_tangent;
-layout(location = 4) out vec3 FragIN_bitangent;
 
 #include "common.glsl"
 #include "terrain_base.glsl"

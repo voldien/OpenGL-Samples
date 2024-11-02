@@ -212,7 +212,7 @@ namespace glsample {
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
-				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			// Create uniform buffer.
 			glGenBuffers(1, &this->uniform_buffer);
@@ -371,8 +371,10 @@ namespace glsample {
 		}
 
 		void update() override {
+
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
+			this->scene.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);

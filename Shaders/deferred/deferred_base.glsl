@@ -1,3 +1,5 @@
+#include"common.glsl"
+
 
 struct directional_light {
 	vec3 directional;

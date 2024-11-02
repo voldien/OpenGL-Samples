@@ -1,44 +1,32 @@
-struct DirectionalLight {
-	vec4 direction;
-	vec4 lightColor;
-};
+#include "light.glsl"
 
-void computeBlinnDirectional(const in DirectionalLight light, const in vec3 normal, const in position) {
+vec4 computeBlinnSpecular(const in DirectionalLight light, const in vec3 normal, const in vec3 viewDir,
+							 const in float shininess) {
 
-	const vec3 diffVertex = (ubo.point_light[i].position - vertex);
-	const vec3 lightDir = normalize(diffVertex);
-	const float dist = length(diffVertex);
+	// Compute directional light
+	vec4 pointLightColors = vec4(0);
+	vec4 pointLightSpecular = vec4(0);
 
-	const float attenuation =
-		1.0 / (ubo.point_light[i].constant_attenuation + ubo.point_light[i].linear_attenuation * dist +
-			   ubo.point_light[i].qudratic_attenuation * (dist * dist));
+	/*  Blinn	*/
+	const vec3 halfwayDir = normalize(light.direction.xyz + viewDir);
+	const float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+	float contriubtion = max(0.0, dot(-normalize(light.direction.xyz), normalize(normal)));
 
-	const float contribution = max(dot(normalize(normal), lightDir), 0.0);
+//	vec4 pointLightSpecular = (ubo.specularColor * spec);
 
-	pointLightColors +=
-		attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range * ubo.point_light[i].intensity;
-
-	/*	*/
-	const vec3 reflectDir = reflect(-lightDir, normal);
-	const float spec = pow(max(dot(viewDir, reflectDir), 0.0), ubo.shininess);
+	return pointLightSpecular;
 }
 
-void computePhongDirectional(const in DirectionalLight light) {
+// vec4 computePhongDirectional(const in DirectionalLight light) {
 
-	const vec3 diffVertex = (ubo.point_light[i].position - vertex);
-	const vec3 lightDir = normalize(diffVertex);
-	const float dist = length(diffVertex);
+// 	const vec3 viewDir = ubo.viewDir.xyz;
 
-	const float attenuation =
-		1.0 / (ubo.point_light[i].constant_attenuation + ubo.point_light[i].linear_attenuation * dist +
-			   ubo.point_light[i].qudratic_attenuation * (dist * dist));
+// 	/*	*/
+// 	const vec3 reflectDir = reflect(-ubo.direction.xyz, normal);
+// 	const float spec = pow(max(dot(viewDir, reflectDir), 0.0), ubo.shininess);
+// 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
 
-	const float contribution = max(dot(normalize(normal), lightDir), 0.0);
+// 	vec4 pointLightSpecular = (ubo.specularColor * spec);
 
-	pointLightColors +=
-		attenuation * ubo.point_light[i].color * contribution * ubo.point_light[i].range * ubo.point_light[i].intensity;
-
-	/*	*/
-	const vec3 reflectDir = reflect(-lightDir, normal);
-	const float spec = pow(max(dot(viewDir, reflectDir), 0.0), ubo.shininess);
-}
+// 	return pointLightSpecular;
+// }

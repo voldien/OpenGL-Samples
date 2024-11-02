@@ -14,12 +14,11 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "SampleHelper.h"
 #include "TaskScheduler/IScheduler.h"
 #include <FragCore.h>
-#include "SampleHelper.h"
 #include <GL/glew.h>
 #include <cxxopts.hpp>
-
 
 namespace glsample {
 
@@ -41,9 +40,9 @@ namespace glsample {
 
 	typedef struct geometry_object_t {
 		/*	*/
-		unsigned int vao;
-		unsigned int vbo;
-		unsigned int ibo;
+		unsigned int vao = -1;
+		unsigned int vbo = -1;
+		unsigned int ibo = -1;
 
 		size_t nrIndicesElements = 0;
 		size_t nrVertices = 0;
@@ -51,8 +50,8 @@ namespace glsample {
 		size_t vertex_offset = 0;
 		size_t indices_offset = 0;
 
-		unsigned int stride;
-		int primitiveType;
+		unsigned int stride = 0;
+		int primitiveType = 0;
 
 		/*	*/
 		fragcore::Bound bound;
@@ -63,7 +62,7 @@ namespace glsample {
 		unsigned int width;
 		unsigned int height;
 		unsigned int depth;
-		unsigned int texture;
+		unsigned int texture = 0;
 	} TextureObject;
 
 	/**

@@ -1,4 +1,5 @@
 #include "GLSampleWindow.h"
+#include "Math/NormalDistribution.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
 #include <GLSample.h>

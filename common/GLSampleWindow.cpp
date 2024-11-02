@@ -129,10 +129,17 @@ void GLSampleWindow::renderUI() {
 		if (this->getInput().getKeyPressed(SDL_SCANCODE_F2)) {
 			this->enableImGUI(false);
 		}
+
+		if (this->getInput().getKeyPressed(SDL_SCANCODE_F9)) {
+			if (rdoc_api) {
+				RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
+				rdoc_api_inter->TriggerCapture();
+			}
+		}
 	}
 
 	this->getFPSCounter().update(this->getTimer().getElapsed<float>());
-	
+
 	/*	*/
 	if (this->debugGL) {
 		this->getLogger().info("FPS: {} Elapsed Time: {}", this->getFPSCounter().getFPS(),
@@ -157,19 +164,15 @@ void GLSampleWindow::debug(const bool enable) {
 		this->logger->set_level(spdlog::level::info);
 	}
 
-	RENDERDOC_API_1_1_2 *rdoc_api = NULL;
 	try {
 		fragcore::Library library("librenderdoc.so");
 		pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)library.getfunc("RENDERDOC_GetAPI");
-		int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+		int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&this->rdoc_api);
 		assert(ret == 1);
 
 	} catch (const std::exception &ex) {
 		this->logger->warn(ex.what());
 	}
-
-	// pRENDERDOC_TriggerCapture
-	// if(rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
 }
 
 void GLSampleWindow::captureScreenShot() {

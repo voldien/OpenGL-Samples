@@ -13,7 +13,7 @@ layout(location = 0) out vec4 fragColor;
 layout(binding = 10) uniform sampler2D IrradianceMap;
 
 #include "marchinbcube_common.glsl"
-
+#include "fog_frag.glsl"
 
 void main() {
 
@@ -25,7 +25,7 @@ void main() {
 
 	vec3 kS = fresnelSchlickRoughness(max(dot(normal, V), 0.0), F0, roughness);
 	vec3 kD = 1.0 - kS;
-	
+
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
 	const vec4 irradiance_color = texture(IrradianceMap, irradiance_uv);
 	vec3 diffuse = irradiance_color.xyz * albedo;

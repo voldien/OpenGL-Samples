@@ -214,7 +214,7 @@ namespace glsample {
 				GLint minMapBufferSize;
 				glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 				this->uniformAlignBufferSize =
-					fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+					fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 				/*	Create uniform buffer.	*/
 				glGenBuffers(1, &this->uniform_buffer);
@@ -229,7 +229,7 @@ namespace glsample {
 				int instanceBatch = 1024; // uniformMaxSize / sizeof(glm::mat4);
 
 				this->uniformSkeletonBufferSize =
-					fragcore::Math::align(instanceBatch * sizeof(glm::mat4), (size_t)minMapBufferSize);
+					fragcore::Math::align<size_t>(instanceBatch * sizeof(glm::mat4), (size_t)minMapBufferSize);
 
 				// Create skeleton buffer.
 				glGenBuffers(1, &this->uniform_skeleton_buffer);

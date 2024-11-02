@@ -124,5 +124,5 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
   protected:
 	spdlog::logger *logger;
-	// TODO Enable RenderDoc
+	void *rdoc_api = nullptr;
 };

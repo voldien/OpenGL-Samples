@@ -225,7 +225,7 @@ namespace glsample {
 			const size_t maxInstances = (size_t)Math::product<int>(maxWorkGroupCount, 3) *
 										(size_t)Math::product<int>(this->localWorkGroupSize, 3);
 			this->uniformInstanceMemorySize =
-				fragcore::Math::align(maxInstances * sizeof(InstanceData), (size_t)SSBO_align_offset);
+				fragcore::Math::align<size_t>(maxInstances * sizeof(InstanceData), (size_t)SSBO_align_offset);
 
 			glGenBuffers(1, &this->uniform_instance_buffer);
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer);
@@ -340,9 +340,10 @@ namespace glsample {
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 
 				this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
-				// TODO: add clamping, within
 				this->uniformStageBuffer.nrElements =
-					fragcore::Math::product(this->computeGroupVisualSettingComponent->workgroupSize, 3) *
+					fragcore::Math::product(
+						fragcore::Math::clamp<int>(this->computeGroupVisualSettingComponent->workgroupSize, 1, 24, 3),
+						3) *
 					fragcore::Math::product<int>(localWorkGroupSize, 3);
 
 				this->uniformStageBuffer.model = glm::mat4(1.0f);
@@ -352,7 +353,6 @@ namespace glsample {
 			}
 
 			/*	Bind buffer and update region with new data.	*/
-
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 
 			void *uniformPointer = glMapBufferRange(

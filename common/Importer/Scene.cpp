@@ -238,7 +238,6 @@ namespace glsample {
 
 	int Scene::computeMaterialPriority(const MaterialObject &material) const noexcept {
 		const bool useBlending = material.opacity < 1.0f || material.maskTextureIndex >= 0;
-
 		return useBlending * 1000;
 	}
 

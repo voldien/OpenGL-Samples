@@ -24,7 +24,6 @@ void Common::loadPlan(MeshObject &planMesh, const float scale, const int segment
 	glGenBuffers(1, &planMesh.ibo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planMesh.ibo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-	planMesh.nrIndicesElements = indices.size();
 
 	/*	Vertex.	*/
 	glEnableVertexAttribArray(0);

@@ -17,7 +17,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install pkg-config libsdl2-dev libfreeimage-dev libfreetype6-dev libfmt-dev libglm-dev libglew-dev libgtest-dev googletest mesa-common-dev mesa-utils libopenal-dev
-        sudo apt-get install glslang-tools libassimp-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev libglfw3-dev binutils-dev libeigen3-dev libglu1-mesa-dev
+        sudo apt-get install glslang-tools libassimp-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev libglfw3-dev binutils-dev libeigen3-dev libglu1-mesa-dev libbz2-dev libzip-dev
 
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.0

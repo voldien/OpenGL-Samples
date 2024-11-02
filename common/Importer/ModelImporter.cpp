@@ -121,7 +121,7 @@ void ModelImporter::clear() noexcept {
 
 void ModelImporter::initScene(const aiScene *scene) {
 
-	fragcore::IScheduler *schedular;
+	fragcore::IScheduler *schedular = this->getFileSystem()->getScheduler().ptr();
 
 	/*	*/
 	std::thread process_textures_thread([&]() {
@@ -148,14 +148,16 @@ void ModelImporter::initScene(const aiScene *scene) {
 	});
 
 	/*	*/
+	this->models.resize(scene->mNumMeshes);
 	std::thread process_model_thread([&]() {
 		/*	 */
 		if (scene->HasMeshes()) {
 
-			this->models.resize(scene->mNumMeshes);
+			/*	Multithread the loading of all the geometry data.	*/
 
-			/*	*/
+#pragma omp parallel for
 			for (size_t x = 0; x < scene->mNumMeshes; x++) {
+#pragma omp task
 				this->initMesh(scene->mMeshes[x], x);
 			}
 
@@ -223,7 +225,7 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 	size_t meshCount = 0;
 
 	/*	iterate through each child of parent node.	*/
-	for (size_t x = 0; x < node->mNumChildren; x++) {
+	for (size_t node_index = 0; node_index < node->mNumChildren; node_index++) {
 		unsigned int meshCount = 0;
 		aiVector3D position, scale;
 		aiQuaternion rotation;
@@ -231,7 +233,7 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 		NodeObject *pobject = new NodeObject();
 
 		/*	extract position, rotation, position from transformation matrix.	*/
-		node->mChildren[x]->mTransformation.Decompose(scale, rotation, position);
+		node->mChildren[node_index]->mTransformation.Decompose(scale, rotation, position);
 		if (parent) {
 			pobject->parent = parent;
 		} else {
@@ -243,7 +245,7 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 		pobject->localRotation = glm::quat(rotation.w, rotation.x, rotation.y, rotation.z);
 		pobject->localScale = glm::vec3(scale.x, scale.y, scale.z);
 
-		pobject->modelLocalTransform = aiMatrix4x4ToGlm(&node->mChildren[x]->mTransformation);
+		pobject->modelLocalTransform = aiMatrix4x4ToGlm(&node->mChildren[node_index]->mTransformation);
 
 		if (parent) {
 			pobject->modelGlobalTransform = parent->modelGlobalTransform * pobject->modelLocalTransform;
@@ -251,20 +253,20 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 			pobject->modelGlobalTransform = this->globalTransform() * pobject->modelLocalTransform;
 		}
 
-		pobject->name = node->mChildren[x]->mName.C_Str();
+		pobject->name = node->mChildren[node_index]->mName.C_Str();
 
 		/*	*/
-		if (node->mChildren[x]->mMeshes) {
+		if (node->mChildren[node_index]->mMeshes) {
 
 			/*	*/
-			for (size_t y = 0; y < node->mChildren[x]->mNumMeshes; y++) {
+			for (size_t y = 0; y < node->mChildren[node_index]->mNumMeshes; y++) {
 
 				/*	Get material for mesh object.	*/
 				const MaterialObject &materialRef =
-					getMaterials()[this->sceneRef->mMeshes[*node->mChildren[x]->mMeshes]->mMaterialIndex];
+					getMaterials()[this->sceneRef->mMeshes[*node->mChildren[node_index]->mMeshes]->mMaterialIndex];
 
 				/*	*/
-				const int meshIndex = node->mChildren[x]->mMeshes[y];
+				const int meshIndex = node->mChildren[node_index]->mMeshes[y];
 				pobject->materialIndex.push_back(this->sceneRef->mMeshes[meshIndex]->mMaterialIndex);
 
 				pobject->geometryObjectIndex.push_back(meshIndex);
@@ -277,7 +279,7 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 		this->nodes.push_back(pobject);
 
 		/*	*/
-		this->initNoodeRoot(node->mChildren[x], pobject);
+		this->initNoodeRoot(node->mChildren[node_index], pobject);
 	}
 }
 
@@ -348,7 +350,6 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 	/*	*/
 	const aiVector3D Zero = aiVector3D(0, 0, 0);
-
 	if (aimesh->HasPositions()) {
 
 		for (unsigned int x = 0; x < aimesh->mNumVertices; x++) {
@@ -368,10 +369,10 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 			/*	*/
 			if (aimesh->GetNumUVChannels() > 0) {
-				for (unsigned int i = 0; i < aimesh->GetNumUVChannels(); i++) {
-					if (aimesh->HasTextureCoords(i)) {
-						*pVertex++ = aimesh->mTextureCoords[i][x].x;
-						*pVertex++ = aimesh->mTextureCoords[i][x].y;
+				for (unsigned int uv_index = 0; uv_index < aimesh->GetNumUVChannels(); uv_index++) {
+					if (aimesh->HasTextureCoords(uv_index)) {
+						*pVertex++ = aimesh->mTextureCoords[uv_index][x].x;
+						*pVertex++ = aimesh->mTextureCoords[uv_index][x].y;
 					}
 				}
 			} else {
@@ -401,6 +402,11 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 				*pVertex++ = 0;
 				*pVertex++ = 0;
 				*pVertex++ = 0;
+			}
+
+			if (aimesh->GetNumColorChannels() > 0) {
+				for (unsigned int color_index = 0; color_index < aimesh->GetNumColorChannels(); color_index++) {
+				}
 			}
 
 			/*	Offset only. assign later.	*/
@@ -461,63 +467,65 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		}
 	}
 
-	aimesh->HasFaces();
 	size_t nrFaces = 0;
-	if (indicesSize == sizeof(unsigned int)) {
+	if (aimesh->HasFaces()) {
 
-		for (size_t x = 0; x < aimesh->mNumFaces; x++) {
-			const aiFace &face = aimesh->mFaces[x];
+		if (indicesSize == sizeof(unsigned int)) {
 
-			/*	*/
-			std::memcpy(Indice, &face.mIndices[0], indicesSize * face.mNumIndices);
-			Indice += indicesSize * face.mNumIndices;
+			for (size_t x = 0; x < aimesh->mNumFaces; x++) {
+				const aiFace &face = aimesh->mFaces[x];
 
-			nrFaces += face.mNumIndices;
+				/*	*/
+				std::memcpy(Indice, &face.mIndices[0], indicesSize * face.mNumIndices);
+				Indice += indicesSize * face.mNumIndices;
+
+				nrFaces += face.mNumIndices;
+			}
+
+		} else { // TODO determine if can be removed.
+			for (size_t x = 0; x < aimesh->mNumFaces; x++) {
+				const aiFace &face = aimesh->mFaces[x];
+
+				if (face.mNumIndices == 3) {
+
+					std::memcpy(Indice, &face.mIndices[0], indicesSize);
+					Indice += indicesSize;
+					std::memcpy(Indice, &face.mIndices[1], indicesSize);
+					Indice += indicesSize;
+					std::memcpy(Indice, &face.mIndices[2], indicesSize);
+					Indice += indicesSize;
+
+				} else if (face.mNumIndices == 2) {
+					std::memcpy(Indice, &face.mIndices[0], indicesSize);
+					Indice += indicesSize;
+					std::memcpy(Indice, &face.mIndices[1], indicesSize);
+					Indice += indicesSize;
+				}
+
+				nrFaces += face.mNumIndices;
+			}
 		}
 
-	} else { // TODO determine if can be removed.
-		for (size_t x = 0; x < aimesh->mNumFaces; x++) {
-			const aiFace &face = aimesh->mFaces[x];
+		/*	Reset pointer.	*/
+		Indice = Itemp;
 
-			if (face.mNumIndices == 3) {
+		/*	*/
+		if (aimesh->mNumAnimMeshes > 0) {
+			for (unsigned int i = 0; i < aimesh->mNumAnimMeshes; i++) {
+				const aiAnimMesh *animMesh = aimesh->mAnimMeshes[i];
+				if (animMesh->HasPositions()) {
+				}
+				if (animMesh->HasNormals()) {
+				}
 
-				std::memcpy(Indice, &face.mIndices[0], indicesSize);
-				Indice += indicesSize;
-				std::memcpy(Indice, &face.mIndices[1], indicesSize);
-				Indice += indicesSize;
-				std::memcpy(Indice, &face.mIndices[2], indicesSize);
-				Indice += indicesSize;
+				if (animMesh->HasTangentsAndBitangents()) {
+				}
 
-			} else if (face.mNumIndices == 2) {
-				std::memcpy(Indice, &face.mIndices[0], indicesSize);
-				Indice += indicesSize;
-				std::memcpy(Indice, &face.mIndices[1], indicesSize);
-				Indice += indicesSize;
-			}
+				if (animMesh->HasTextureCoords(0)) {
+				}
 
-			nrFaces += face.mNumIndices;
-		}
-	}
-
-	/*	Reset pointer.	*/
-	Indice = Itemp;
-
-	/*	*/
-	if (aimesh->mNumAnimMeshes > 0) {
-		for (unsigned int i = 0; i < aimesh->mNumAnimMeshes; i++) {
-			const aiAnimMesh *animMesh = aimesh->mAnimMeshes[i];
-			if (animMesh->HasPositions()) {
-			}
-			if (animMesh->HasNormals()) {
-			}
-
-			if (animMesh->HasTangentsAndBitangents()) {
-			}
-
-			if (animMesh->HasTextureCoords(0)) {
-			}
-
-			for (size_t x = 0; x < animMesh->mNumVertices; x++) {
+				for (size_t x = 0; x < animMesh->mNumVertices; x++) {
+				}
 			}
 		}
 	}

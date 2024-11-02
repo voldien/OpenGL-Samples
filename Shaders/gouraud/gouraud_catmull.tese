@@ -5,9 +5,6 @@
 
 layout(triangles, equal_spacing, ccw) in;
 
-layout(location = 0) in vec3 WorldPos_ES_in[];
-layout(location = 1) in vec3 Normal_ES_in[];
-
 layout(location = 0) out vec4 LightColor_FS_in;
 
 #include "gouraud_base.glsl"

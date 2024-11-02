@@ -223,7 +223,7 @@ namespace glsample {
 			const size_t maxInstances = (size_t)Math::product<int>(maxWorkGroupCount, 3) *
 										(size_t)Math::product<int>(this->localWorkGroupSize, 3);
 			this->uniformInstanceMemorySize =
-				fragcore::Math::align(maxInstances * sizeof(InstanceData), (size_t)SSBO_align_offset);
+				fragcore::Math::align<size_t>(maxInstances * sizeof(InstanceData), (size_t)SSBO_align_offset);
 
 			glGenBuffers(1, &this->uniform_instance_buffer);
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer);

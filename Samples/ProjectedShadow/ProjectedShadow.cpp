@@ -199,9 +199,9 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			/*	*/
 			this->uniformPhongAlignSize =
-				fragcore::Math::align(sizeof(this->uniformStageBuffer[0]), (size_t)minMapBufferSize);
+				fragcore::Math::align<size_t>(sizeof(this->uniformStageBuffer[0]), (size_t)minMapBufferSize);
 			this->uniformProjectShadowAlignSize =
-				fragcore::Math::align(sizeof(this->projectShadowUniformBuffer), (size_t)minMapBufferSize);
+				fragcore::Math::align<size_t>(sizeof(this->projectShadowUniformBuffer), (size_t)minMapBufferSize);
 			/*	*/
 			this->uniformAlignBufferSize =
 				(this->uniformPhongAlignSize * this->uniformStageBuffer.size()) + this->uniformProjectShadowAlignSize;

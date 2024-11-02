@@ -1,5 +1,6 @@
 #include "GLUIComponent.h"
 #include "Scene.h"
+#include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -67,6 +68,7 @@ namespace glsample {
 
 		/*	*/
 		MeshObject plan;
+		Skybox skybox;
 		Scene scene;
 
 		/*	G-Buffer	*/
@@ -186,6 +188,7 @@ namespace glsample {
 		void Initialize() override {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
+			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
 
 			{
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -273,9 +276,9 @@ namespace glsample {
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformBufferAlignedSize =
-				fragcore::Math::align(this->uniformBufferAlignedSize, (size_t)minMapBufferSize);
+				fragcore::Math::align<size_t>(this->uniformBufferAlignedSize, (size_t)minMapBufferSize);
 			this->uniformSSAOBufferAlignSize =
-				fragcore::Math::align(this->uniformSSAOBufferAlignSize, (size_t)minMapBufferSize);
+				fragcore::Math::align<size_t>(this->uniformSSAOBufferAlignSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -294,6 +297,11 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
+
+			/*	load Textures	*/
+			TextureImporter textureImporter(this->getFileSystem());
+			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
+			skybox.Init(skytexture, Skybox::loadDefaultProgram(this->getFileSystem()));
 
 			this->scene = Scene::loadFrom(modelLoader);
 
@@ -385,7 +393,7 @@ namespace glsample {
 			}
 
 			this->camera.setNear(0.15f);
-			this->camera.setFar(10000.0f);
+			this->camera.setFar(1500.0f);
 		}
 
 		void onResize(int width, int height) override {
@@ -483,6 +491,8 @@ namespace glsample {
 
 			/*	Update camera aspect.	*/
 			this->camera.setAspect((float)width / (float)height);
+			this->camera.setFar(1500.0f);
+			this->camera.setNear(0.5f);
 		}
 
 		void draw() override {
@@ -518,6 +528,8 @@ namespace glsample {
 				this->scene.render();
 
 				glUseProgram(0);
+
+				skybox.Render(this->camera);
 			}
 
 			/*	Draw post processing effect - Screen Space Ambient Occlusion.	*/
@@ -580,7 +592,6 @@ namespace glsample {
 
 			/*	Render final result.	*/
 			{
-				// glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 				/*	Show only ambient Occlusion.	*/
 				if (this->ambientOcclusionSettingComponent->showAOOnly) {
@@ -628,11 +639,11 @@ namespace glsample {
 				}
 			}
 
-			/*	Blit image targets to screen.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
-
 			if (this->ambientOcclusionSettingComponent->showGBuffers) {
+
+				/*	Blit image targets to screen.	*/
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
 
 				const size_t widthDivior = 2;
 				const size_t heightDivior = 2;
@@ -653,18 +664,16 @@ namespace glsample {
 
 		void update() override {
 
-			/*	Update Camera.	*/
+			/*	Update Camera and Scene.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
-
 			this->scene.update(this->getTimer().deltaTime<float>());
 
 			this->uniformStageBlock.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBlockSSAO.proj = this->camera.getProjectionMatrix();
 			/*	*/
 			{
-
 				this->uniformStageBlock.model = glm::mat4(1.0f);
-				this->uniformStageBlock.model = glm::scale(this->uniformStageBlock.model, glm::vec3(5.95f));
+				this->uniformStageBlock.model = glm::scale(this->uniformStageBlock.model, glm::vec3(0.95f));
 				this->uniformStageBlock.view = this->camera.getViewMatrix();
 				this->uniformStageBlock.modelView = (this->uniformStageBlock.view * this->uniformStageBlock.model);
 				this->uniformStageBlock.modelViewProjection =

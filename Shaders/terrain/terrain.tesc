@@ -16,8 +16,7 @@ layout(location = 3) in vec3 Tangent_CS_in[];
 
 layout(location = 4) out patch OutputPatch oPatch;
 
-
-vec3 ProjectToPlane(vec3 Point, vec3 PlanePoint, vec3 PlaneNormal) {
+vec3 ProjectToPlane(const vec3 Point, const vec3 PlanePoint, const vec3 PlaneNormal) {
 	vec3 v = Point - PlanePoint;
 	float Len = dot(v, PlaneNormal);
 	vec3 d = Len * PlaneNormal;
@@ -93,3 +92,4 @@ void main() {
 
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 }
+ 

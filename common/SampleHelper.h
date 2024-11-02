@@ -65,6 +65,18 @@ namespace glsample {
 		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	} DirectionalLight;
 
+	typedef struct point_light_instance_t {
+		glm::vec3 position;
+		float range;
+		glm::vec4 color;
+
+		/*	*/
+		float intensity;
+		float constant_attenuation;
+		float linear_attenuation;
+		float qudratic_attenuation;
+	} PointLightInstance;
+
 	typedef struct camera_instance_t {
 		float near;
 		float far;
@@ -72,6 +84,7 @@ namespace glsample {
 		float fov;
 		glm::vec4 position;
 		glm::vec4 viewDir;
+		glm::vec4 position_size;
 	} CameraInstance;
 
 	template <typename T, int m, int n>

@@ -1,5 +1,4 @@
 #include "common.glsl"
-#include "fog.glsl"
 
 struct Vertex {
 	vec3 pos;

@@ -5,7 +5,14 @@
 using namespace glsample;
 
 ProcessData::ProcessData(fragcore::IFileSystem *filesystem) : filesystem(filesystem) {}
-ProcessData::~ProcessData() {}
+ProcessData::~ProcessData() {
+	if (this->bump2normal_program >= 0) {
+		glDeleteProgram(this->bump2normal_program);
+	}
+	if (this->irradiance_program >= 0) {
+		glDeleteProgram(this->irradiance_program);
+	}
+}
 
 void ProcessData::computeIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
 									const unsigned int height) {
@@ -27,26 +34,28 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 
 	const char *irradiance_path = "Shaders/compute/irradiance_env.comp.spv";
 
-	/*	*/
-	const std::vector<uint32_t> compute_marching_cube_generator_binary =
-		IOUtil::readFileData<uint32_t>(irradiance_path, filesystem);
+	if (this->irradiance_program == -1) {
+		/*	*/
+		const std::vector<uint32_t> compute_marching_cube_generator_binary =
+			IOUtil::readFileData<uint32_t>(irradiance_path, filesystem);
 
-	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-	compilerOptions.glslVersion = 450;
+		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+		compilerOptions.glslVersion = 450;
 
-	/*  */
-	unsigned int marching_cube_generate_compute_program =
-		ShaderLoader::loadComputeProgram(compilerOptions, &compute_marching_cube_generator_binary);
+		/*  */
+		this->irradiance_program =
+			ShaderLoader::loadComputeProgram(compilerOptions, &compute_marching_cube_generator_binary);
+	}
 
-	glUseProgram(marching_cube_generate_compute_program);
+	glUseProgram(this->irradiance_program);
 
-	glUniform1i(glGetUniformLocation(marching_cube_generate_compute_program, "sourceEnvTexture"), 0);
-	glUniform1i(glGetUniformLocation(marching_cube_generate_compute_program, "targetIrradianceTexture"), 1);
+	glUniform1i(glGetUniformLocation(this->irradiance_program, "sourceEnvTexture"), 0);
+	glUniform1i(glGetUniformLocation(this->irradiance_program, "targetIrradianceTexture"), 1);
 
 	GLint localWorkGroupSize[3];
 
-	glGetProgramiv(marching_cube_generate_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+	glGetProgramiv(this->irradiance_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 
 	GLint width;
 	GLint height;
@@ -70,5 +79,4 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	glUseProgram(0);
-	glDeleteProgram(marching_cube_generate_compute_program);
 }

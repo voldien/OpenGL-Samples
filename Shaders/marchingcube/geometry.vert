@@ -17,11 +17,10 @@ layout(std430, set = 0, binding = 1) buffer readonly GeomBuffer { Vertex vertice
 void main() {
 	const int triID = gl_VertexID / 3;
 
-	vec4 vertexPosition = ubo.modelView * vec4(vertices[gl_VertexID].pos, 1);
+	const vec4 vertexPosition = ubo.modelView * vec4(vertices[gl_VertexID].pos, 1);
 
-	// color = vertices[gl_VertexID].pos;
 	color = vertices[gl_VertexID].normal;
-	// color = vec3(1, 0.5, 1);
+
 	normal_worldspace = vertices[gl_VertexID].normal;
 	scale = vertices[gl_VertexID].scale;
 

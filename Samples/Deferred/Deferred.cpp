@@ -1,3 +1,5 @@
+#include "GLUIComponent.h"
+#include "SampleHelper.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "imgui.h"
@@ -20,8 +22,7 @@ namespace glsample {
 			this->setTitle("Deferred Rendering");
 
 			/*	Setting Window.	*/
-			this->deferredSettingComponent =
-				std::make_shared<DeferredSettingComponent>(this->uniformStageBuffer, this->directionalLights);
+			this->deferredSettingComponent = std::make_shared<DeferredSettingComponent>(*this);
 			this->addUIComponent(this->deferredSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -30,25 +31,15 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
+
+			CameraInstance camera;
 
 		} uniformStageBuffer;
-
-		typedef struct alignas(4) point_light_t {
-			glm::vec3 position;
-			float range;
-			glm::vec4 color;
-
-			/*	*/
-			float intensity;
-			float constant_attenuation;
-			float linear_attenuation;
-			float qudratic_attenuation;
-		} PointLight;
 
 		typedef struct directional_light_t {
 			glm::vec3 directiona = glm::vec3(1, 1, 1);
@@ -56,7 +47,7 @@ namespace glsample {
 			glm::vec4 color = glm::vec4(1, 1, 1, 1);
 		} DirectionalLight;
 
-		std::vector<PointLight> pointLights;
+		std::vector<PointLightInstance> pointLights;
 		std::vector<DirectionalLight> directionalLights;
 
 		/*	*/
@@ -99,9 +90,9 @@ namespace glsample {
 		/*	Deferred Rendering Shader Path.	*/
 		const std::string vertexDeferredPointShaderPath = "Shaders/deferred/deferred_point.vert.spv";
 		const std::string fragmentDeferredPointShaderPath = "Shaders/deferred/deferred_point.frag.spv";
-
 		const std::string fragmentDeferredPointDebugShaderPath = "Shaders/deferred/deferred_point_debug.frag.spv";
-		/*	*/
+
+		/*	Directional light.	*/
 		const std::string vertexDeferredDirectionalShaderPath = "Shaders/deferred/deferred_directional.vert.spv";
 		const std::string fragmentDeferredDirectionalShaderPath = "Shaders/deferred/deferred_directional.frag.spv";
 		/*	*/
@@ -112,11 +103,9 @@ namespace glsample {
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
-		class DeferredSettingComponent : public nekomimi::UIComponent {
+		class DeferredSettingComponent : public GLUIComponent<Deferred> {
 		  public:
-			DeferredSettingComponent(struct uniform_buffer_block &uniform,
-									 std::vector<DirectionalLight> &direction_lights)
-				: direction_lights(direction_lights), uniform(uniform) {
+			DeferredSettingComponent(Deferred &deferred) : glsample::GLUIComponent<Deferred>(deferred) {
 				this->setName("Deferred Settings");
 			}
 
@@ -126,17 +115,35 @@ namespace glsample {
 				if (ImGui::DragInt("Number of Directional Lights", &nrDirectionalLights)) {
 					// TODO add
 				}
+				for (int i = 0; i < nrPointLights; i++) {
+					ImGui::PushID(1000 + i);
+					ImGui::PopID();
+				}
+				ImGui::ColorEdit4("Color", &this->getRefSample().directionalLights[0].color[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				// ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				// ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				// ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
-				// ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				if (ImGui::DragInt("Number of PointLights", &nrPointLights, 1, 0, 64)) {
 					// TODO add
 				}
+				for (int i = 0; i < nrPointLights; i++) {
+					ImGui::PushID(1000 + i);
+					if (ImGui::CollapsingHeader(fmt::format("Light {}", i).c_str())) {
 
-				ImGui::ColorEdit4("Color", &this->direction_lights[0].color[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+						ImGui::ColorEdit4("Color", &this->getRefSample().pointLights[i].color[0],
+										  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+						ImGui::DragFloat3("Position", &this->getRefSample().pointLights[i].position[0]);
+						ImGui::DragFloat3("Attenuation", &this->getRefSample().pointLights[i].constant_attenuation);
+						ImGui::DragFloat("Range", &this->getRefSample().pointLights[i].range);
+						ImGui::DragFloat("Intensity", &this->getRefSample().pointLights[i].intensity);
+					}
+					ImGui::PopID();
+				}
+
+				ImGui::TextUnformatted("Material Settings");
+				// ImGui::ColorEdit4("Ambient", &this->getRefSample().ambientLight[0], ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -150,10 +157,8 @@ namespace glsample {
 
 			int nrPointLights = 1;
 			int nrDirectionalLights = 1;
-			std::vector<DirectionalLight> &direction_lights;
 
 		  private:
-			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<DeferredSettingComponent> deferredSettingComponent;
 
@@ -223,10 +228,6 @@ namespace glsample {
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				/*	Create skybox graphic pipeline program.	*/
-				this->skybox_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
-
 				/*	Create .	*/
 				this->instance_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_instance_binary,
 																		  &fragment_instance_binary);
@@ -244,6 +245,8 @@ namespace glsample {
 				/*	Load shader	*/
 				this->multipass_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+
+				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
 			}
 
 			/*	Setup graphic pipeline.	*/
@@ -299,13 +302,6 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->skybox_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
-			glUseProgram(0);
-
-			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->instance_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->instance_program, uniform_buffer_index, 0);
@@ -315,9 +311,9 @@ namespace glsample {
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
-				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 			this->uniformLightBufferSize = (sizeof(pointLights[0]) * pointLights.size());
-			this->uniformLightBufferSize = fragcore::Math::align(uniformLightBufferSize, (size_t)minMapBufferSize);
+			this->uniformLightBufferSize = fragcore::Math::align<size_t>(uniformLightBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -424,7 +420,7 @@ namespace glsample {
 			/*	Setup init lights.	*/
 			for (size_t i = 0; i < this->pointLights.size(); i++) {
 				/*	*/
-				this->pointLights[i].range = 8.0f;
+				this->pointLights[i].range = 20.0f;
 				this->pointLights[i].position = glm::vec3(i * -2.0f, 0.5f, i * -2.5f) * 5.0f + glm::vec3(2.0f);
 				this->pointLights[i].color =
 					glm::vec4(std::fabs(std::cos(i)), std::fabs(std::sin(i)) + 0.1, std::fabs(cos(i)), 1);
@@ -491,7 +487,7 @@ namespace glsample {
 			this->camera.setAspect((float)width / (float)height);
 		}
 
-		float computePointLightRadius(const PointLight &pointLight) const noexcept { return 0; }
+		float computePointLightRadius(const PointLightInstance &pointLight) const noexcept { return 0; }
 
 		void draw() override {
 
@@ -584,10 +580,12 @@ namespace glsample {
 					glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
 													  (void *)this->plan.indices_offset, 1, this->plan.vertex_offset);
 				}
+				
 				/*	Draw point lights.	*/
 				if (this->deferredSettingComponent->nrPointLights > 0) {
 					glEnable(GL_DEPTH_TEST);
-					glDisable(GL_CULL_FACE);
+					glEnable(GL_CULL_FACE);
+					glCullFace(GL_FRONT);
 
 					glUseProgram(this->deferred_pointlight_program);
 					glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT,
@@ -618,10 +616,12 @@ namespace glsample {
 					glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
 													  (void *)this->plan.indices_offset, 1, this->plan.vertex_offset);
 				}
+
 				/*	Draw point lights.	*/
 				if (this->deferredSettingComponent->nrPointLights > 0) {
 					glEnable(GL_DEPTH_TEST);
-					glDisable(GL_CULL_FACE);
+					glEnable(GL_CULL_FACE);
+					glCullFace(GL_BACK);
 
 					glUseProgram(this->deferred_pointlight_debug_program);
 					glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT,

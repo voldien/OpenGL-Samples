@@ -21,6 +21,7 @@
 #include <Math3D/Plane.h>
 
 namespace glsample {
+
 	// TODO: rename
 	class FVDECLSPEC ProcessData {
 	  public:
@@ -31,10 +32,13 @@ namespace glsample {
 							   const unsigned int height);
 		void computeIrradiance(unsigned int env_source, unsigned int irradiance_target);
 
-		// void computeBump2Normal(unsigned int env_source, unsigned int& irradiance_target, const unsigned int width,
-		// const unsigned int height); void computeBump2Normal(unsigned int env_source, unsigned int irradiance_target);
+		// void computeBump2Normal(unsigned int bump_source, unsigned int& normal_target, const unsigned int width,
+		// const unsigned int height);
+		// void computeBump2Normal(unsigned int bump_source, unsigned int normal_target);
 
 	  private:
 		fragcore::IFileSystem *filesystem;
+		int irradiance_program = -1;
+		int bump2normal_program = -1;
 	};
 } // namespace glsample

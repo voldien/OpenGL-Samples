@@ -1,5 +1,7 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
 layout(location = 0) out vec4 fragColor;
 
@@ -10,20 +12,12 @@ layout(binding = 1) uniform sampler2D WorldTexture;
 layout(binding = 2) uniform sampler2D DepthTexture;
 layout(binding = 3) uniform sampler2D NormalTexture;
 
-struct point_light {
-	vec3 position;
-	float range;
-	vec4 color;
-	float intensity;
-	float constant_attenuation;
-	float linear_attenuation;
-	float qudratic_attenuation;
-};
+#include "light.glsl"
 
-layout(set = 0, binding = 1, std140) uniform UniformBufferLight { point_light point_light[64]; }
+layout(set = 0, binding = 1, std140) uniform UniformBufferLight { PointLight point_light[64]; }
 pointlightUBO;
 
-vec2 CalcTexCoord() { return gl_FragCoord.xy / vec2(1920, 1080); }
+vec2 CalcTexCoord() { return gl_FragCoord.xy / vec2(2560, 1440); }
 
 void main() {
 
@@ -49,6 +43,6 @@ void main() {
 								  pointlightUBO.point_light[InstanceID].range *
 								  pointlightUBO.point_light[InstanceID].intensity;
 
-	fragColor = color * pointlightUBO.point_light[InstanceID].color * contribution * 100;
+	fragColor = color * pointLightColors;
 	fragColor.a = 1;
 }

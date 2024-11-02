@@ -24,7 +24,7 @@ vec2 interpolate2D(vec2 v0, vec2 v1, vec2 v2) {
 vec3 interpolate3D(vec3 v0, vec3 v1, vec3 v2) {
 	return vec3(gl_TessCoord.x) * v0 + vec3(gl_TessCoord.y) * v1 + vec3(gl_TessCoord.z) * v2;
 }
-
+ 
 void main() {
 	// Interpolate the attributes of the output vertex using the barycentric coordinates
 	TexCoord_FS_in = interpolate2D(oPatch.TexCoord[0], oPatch.TexCoord[1], oPatch.TexCoord[2]);
@@ -51,11 +51,10 @@ void main() {
 
 	/*	Displace the vertex along the normal	*/
 	const float heightMapDisp = 0;						// texture(gDisplacementMap, TexCoord_FS_in.xy).r;
-	WorldPos_FS_in += Normal_FS_in * heightMapDisp * 1; // ubo.gDispFactor;
+	//WorldPos_FS_in += Normal_FS_in * heightMapDisp * 1; // ubo.gDispFactor;
 
 	// vec3 Mnormal = normalize(FragIN_normal);
 	// vec3 Ttangent = normalize(FragIN_tangent);
-
 	// Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
 	// FragIN_bitangent = cross(Ttangent, Mnormal);
 

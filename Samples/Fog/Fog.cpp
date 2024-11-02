@@ -28,14 +28,6 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		enum class FogType : unsigned int {
-			None,	/*	*/
-			Linear, /*	*/
-			Exp,	/*	*/
-			Exp2,	/*	*/
-			Height	/*	*/
-		};
-
 		struct uniform_buffer_block {
 			alignas(16) glm::mat4 model;
 			alignas(16) glm::mat4 view;
@@ -46,6 +38,8 @@ namespace glsample {
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+			/*	Material.	*/
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
 			/*	Fog.	*/
@@ -141,12 +135,14 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize =
+				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			// Create uniform buffer.
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
@@ -161,7 +157,7 @@ namespace glsample {
 			this->camera.setFar(2000.0f);
 			this->camera.setAspect((float)width / (float)height);
 		}
-		
+
 		void draw() override {
 
 			int width, height;
@@ -204,7 +200,7 @@ namespace glsample {
 
 			/*	*/
 			this->uniform_stage_buffer.model = glm::mat4(1.0f);
-			this->uniform_stage_buffer.model = glm::scale(this->uniform_stage_buffer.model, glm::vec3(1.05f));
+			this->uniform_stage_buffer.model = glm::scale(this->uniform_stage_buffer.model, glm::vec3(0.5f));
 			this->uniform_stage_buffer.view = this->camera.getViewMatrix();
 			this->uniform_stage_buffer.modelViewProjection =
 				this->uniform_stage_buffer.proj * this->uniform_stage_buffer.view * this->uniform_stage_buffer.model;

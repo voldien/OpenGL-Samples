@@ -257,7 +257,7 @@ namespace glsample {
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
-				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -276,7 +276,7 @@ namespace glsample {
 				this->instanceBatch = this->rigidbodies.size(); // storageMaxSize / sizeof(glm::mat4);
 
 				this->uniformInstanceSize =
-					fragcore::Math::align(this->instanceBatch * sizeof(glm::mat4), (size_t)minStorageAlignSize);
+					fragcore::Math::align<size_t>(this->instanceBatch * sizeof(glm::mat4), (size_t)minStorageAlignSize);
 
 				glGenBuffers(1, &this->ssbo_instance_buffer);
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->ssbo_instance_buffer);

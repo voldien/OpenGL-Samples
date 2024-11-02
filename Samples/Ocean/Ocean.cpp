@@ -256,7 +256,7 @@ namespace glsample {
 			/*	Compute uniform size that is aligned with the requried for the hardware.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

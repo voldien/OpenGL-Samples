@@ -227,8 +227,8 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->oceanUniformSize = Math::align(sizeof(UniformOceanBufferBlock), (size_t)minMapBufferSize);
-			this->uniformAlignBufferSize = Math::align(this->oceanUniformSize, (size_t)minMapBufferSize);
+			this->oceanUniformSize = Math::align<size_t>(sizeof(UniformOceanBufferBlock), (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize = Math::align<size_t>(this->oceanUniformSize, (size_t)minMapBufferSize);
 
 			/*  Create uniform buffer.  */
 			glGenBuffers(1, &this->uniform_buffer);

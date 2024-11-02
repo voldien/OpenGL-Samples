@@ -1,5 +1,6 @@
 #include "material.glsl"
 #include "noise.glsl"
+#include "fog.glsl"
 
 // enum GBuffer : unsigned int {
 
@@ -23,6 +24,7 @@ struct Camera {
 	float fov;
 	vec4 position;
 	vec4 viewDir;
+	vec4 position_size;
 };
 
 vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist) {
@@ -44,14 +46,11 @@ vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist)
 	vec3 vb = vec3(size.y, size.x, s12 - s10);
 	va = normalize(va);
 	vb = normalize(vb);
-	const vec4 bump = vec4(cross(va, vb) / 2 + 0.5, 1.0);
+	const vec4 normal = vec4(cross(va, vb) / 2 + 0.5, 1.0);
 
-	return bump;
+	return normal;
 }
 
-float computeLightContributionFactor(const in vec3 direction, const in vec3 normalInput) {
-	return max(0.0, dot(-normalInput, direction));
-}
 
 float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
 

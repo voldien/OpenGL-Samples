@@ -68,14 +68,19 @@ namespace glsample {
 			}
 
 			void draw() override {
-				ImGui::ColorEdit4("Tint Color", &this->uniform.tintColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
 				ImGui::TextUnformatted("Light Setting");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+
+				ImGui::TextUnformatted("Material Setting");
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
+				ImGui::ColorEdit4("Tint Color", &this->uniform.tintColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
 				ImGui::TextUnformatted("Normal Setting");
 				ImGui::DragFloat("Strength", &this->uniform.normalStrength);
 
@@ -137,7 +142,7 @@ namespace glsample {
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
-				fragcore::Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -176,14 +181,6 @@ namespace glsample {
 				glUseProgram(this->normalMapping_program);
 
 				glDisable(GL_CULL_FACE);
-
-				// /*	*/
-				// glActiveTexture(GL_TEXTURE0);
-				// glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
-
-				// /*	*/
-				// glActiveTexture(GL_TEXTURE0 + 1);
-				// glBindTexture(GL_TEXTURE_2D, this->normal_texture);
 
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);

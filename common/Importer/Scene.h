@@ -14,7 +14,6 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Core/NoCopyable.h"
 #include "Core/UIDObject.h"
 #include "GLSampleSession.h"
 #include "ImportHelper.h"
@@ -30,6 +29,7 @@ namespace glsample {
 		Specular = 3,	/*	*/
 		Emission = 4,	/*	*/
 		Reflection = 5, /*	*/
+		Ambient = 6,	/*	*/
 		Displacement,
 	};
 
@@ -103,7 +103,6 @@ namespace glsample {
 
 	  public:
 		template <typename T = Scene> static T loadFrom(ModelImporter &importer) {
-
 			T scene;
 
 			/*	*/

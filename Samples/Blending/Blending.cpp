@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "GLSampleSession.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -154,7 +155,7 @@ namespace glsample {
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = Math::align(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_share_buffer);
@@ -164,7 +165,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
-			this->uniformInstanceSize = fragcore::Math::align(sizeof(instanceBuffer), (size_t)minMapBufferSize);
+			this->uniformInstanceSize = fragcore::Math::align<size_t>(sizeof(instanceBuffer), (size_t)minMapBufferSize);
 			glGenBuffers(1, &this->uniform_instance_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * this->nrUniformBuffer, nullptr,
@@ -172,46 +173,8 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateCube(1, vertices, indices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->geometry.vao);
-			glBindVertexArray(this->geometry.vao);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->geometry.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, geometry.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glGenBuffers(1, &this->geometry.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->geometry.nrIndicesElements = indices.size();
-
-			/*	Vertex.	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			/*	UV.	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
-
-			/*	Normal.	*/
-			glEnableVertexAttribArray(2);
-			glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(20));
-
-			/*	Tangent.	*/
-			glEnableVertexAttribArray(3);
-			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(32));
-
-			glBindVertexArray(0);
+			glsample::Common::loadCube(this->geometry, 1);
+			glsample::Common::loadPlan(this->plan, 1);
 
 			/*	*/
 			for (size_t i = 0; i < 4; i++) {
@@ -357,8 +320,8 @@ namespace glsample {
 	  public:
 		BlendingGLSample() : GLSample<Blending>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
-				"G,ground-texture", "Ground Texture",
+			options("texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"))(
+				"ground-texture", "Ground Texture",
 				cxxopts::value<std::string>()->default_value("asset/stylized-ground.png"));
 		}
 	};
