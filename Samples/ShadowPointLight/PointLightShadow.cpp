@@ -106,6 +106,7 @@ namespace glsample {
 
 				ImGui::DragFloat("Disk Radius", &this->uniform.diskRadius, 1, 0.0f, 1000.0f);
 				ImGui::DragInt("PCF Samples ", &this->uniform.samples, 1, 0, 16);
+				ImGui::Checkbox("Shadow Alpha Clipping", &this->useShadowClip);
 				ImGui::TextUnformatted("Depth Texture");
 
 				for (size_t i = 0; i < sizeof(uniform.pointLights) / sizeof(uniform.pointLights[0]); i++) {
@@ -133,6 +134,7 @@ namespace glsample {
 			bool showWireFrame = false;
 			bool animate = false;
 			bool use_pcf = false;
+			bool useShadowClip = false;
 
 			bool lightvisible[4] = {true, true, true, true};
 
@@ -211,6 +213,13 @@ namespace glsample {
 			glUseProgram(this->shadow_program);
 			int uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->shadow_program, uniform_buffer_shadow_index, this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	Setup shadow graphic pipeline.	*/
+			glUseProgram(this->shadow_alpha_clip_program);
+			uniform_buffer_shadow_index = glGetUniformBlockIndex(this->shadow_alpha_clip_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->shadow_alpha_clip_program, uniform_buffer_shadow_index,
+								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
@@ -308,8 +317,8 @@ namespace glsample {
 			this->scene = Scene::loadFrom(modelLoader);
 
 			/*  Init lights.    */
-			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),
-										glm::vec4(1, 0, 1, 1)};
+			const glm::vec4 colors[] = {glm::vec4(1, 0.1, 0.1, 1), glm::vec4(0.1, 1, 0.1, 1), glm::vec4(0.1, 0.1, 1, 1),
+										glm::vec4(1, 0.1, 1, 1)};
 			for (size_t i = 0; i < this->nrPointLights; i++) {
 				this->uniform.pointLights[i].range = 25.0f;
 				this->uniform.pointLights[i].position =
@@ -354,7 +363,12 @@ namespace glsample {
 
 					glClear(GL_DEPTH_BUFFER_BIT);
 					glViewport(0, 0, this->shadowWidth, this->shadowHeight);
-					glUseProgram(this->shadow_program);
+
+					if (this->shadowSettingComponent->useShadowClip) {
+						glUseProgram(this->shadow_alpha_clip_program);
+					} else {
+						glUseProgram(this->shadow_program);
+					}
 
 					glCullFace(GL_FRONT);
 					glEnable(GL_CULL_FACE);

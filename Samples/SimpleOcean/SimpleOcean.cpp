@@ -56,13 +56,13 @@ namespace glsample {
 			Wave waves[nrMaxWaves];
 
 			/*	*/
-			int nrWaves = 16;
+			int nrWaves = 32;
 			float time = 0.0f;
 
 			/*	Material	*/
 			float shininess = 8;
-			float fresnelPower = 4;
-			glm::vec4 oceanColor = glm::vec4(0, 0.4, 1, 1);
+			float fresnelPower = 1.333f;
+			glm::vec4 oceanColor = glm::vec4(0.4, 0.65, 1, 1);
 		};
 
 		/*	Combined uniform block.	*/
@@ -78,6 +78,7 @@ namespace glsample {
 		/*	*/
 		unsigned int normal_texture;
 		unsigned int reflection_texture;
+		unsigned int irradiance_texture;
 
 		/*	*/
 		unsigned int simpleOcean_program;
@@ -179,7 +180,7 @@ namespace glsample {
 
 		void Initialize() override {
 
-			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
+			const std::string panoramicPath = this->getResult()["skybox"].as<std::string>();
 
 			{
 				/*	Load shader source.	*/
@@ -224,6 +225,9 @@ namespace glsample {
 			this->reflection_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::Raw);
 			this->skybox.Init(this->reflection_texture, this->skybox_program);
 
+			ProcessData util(this->getFileSystem());
+			util.computeIrradiance(this->reflection_texture, this->irradiance_texture, 256, 128);
+
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -243,7 +247,7 @@ namespace glsample {
 			for (size_t i = 0; i < nrMaxWaves; i++) {
 
 				float waveLength = (i * 2.2 + 1);
-				float waveAmplitude = 0.3f / (i + 1);
+				float waveAmplitude = 0.3f / (i + 1) * (0.05f + (nrMaxWaves - i) * 0.0005f);
 				float waveSpeed = (i + 1) * 0.1f;
 
 				this->uniform_stage_buffer.ocean.waves[i].waveAmpSpeed =
@@ -260,14 +264,13 @@ namespace glsample {
 
 			int width, height;
 			this->getSize(&width, &height);
-
-			this->uniform_stage_buffer.ocean.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.15f, 10000.0f);
-
 			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			/*	Skybox	*/
+			this->skybox.Render(this->camera);
 
 			/*	Optional - to display wireframe.	*/
 			glPolygonMode(GL_FRONT_AND_BACK, this->simpleOceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
@@ -304,9 +307,6 @@ namespace glsample {
 				glBindVertexArray(0);
 				glUseProgram(0);
 			}
-
-			/*	Skybox	*/
-			this->skybox.Render(this->camera);
 		}
 
 		void update() override {
@@ -324,6 +324,7 @@ namespace glsample {
 					glm::scale(this->uniform_stage_buffer.ocean.model, glm::vec3(4000.95f));
 
 				this->uniform_stage_buffer.ocean.view = this->camera.getViewMatrix();
+				this->uniform_stage_buffer.ocean.proj = this->camera.getProjectionMatrix();
 				this->uniform_stage_buffer.ocean.lookDirection = glm::vec4(this->camera.getLookDirection(), 0);
 
 				this->uniform_stage_buffer.ocean.modelViewProjection = this->uniform_stage_buffer.ocean.proj *
@@ -351,8 +352,8 @@ namespace glsample {
 	  public:
 		SimpleOceanGLSample() : GLSample<SimpleOcean>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,skybox-texture", "Skybox Texture Path",
-					cxxopts::value<std::string>()->default_value("asset/skybox-animestyle.png"));
+			options("S,skybox", "Skybox Texture File Path",
+					cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 

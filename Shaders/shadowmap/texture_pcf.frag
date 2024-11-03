@@ -6,7 +6,7 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
-layout(early_fragment_tests) in;
+//7layout(early_fragment_tests) in;
 
 layout(location = 0) out vec4 fragColor;
 
@@ -16,12 +16,11 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec4 lightSpace;
 
-layout(binding = 0) uniform sampler2D DiffuseTexture;
-layout(binding = 1) uniform sampler2DShadow ShadowTexture;
+layout(binding = 9) uniform sampler2DShadow ShadowTexture;
 layout(binding = 10) uniform sampler2D Irradiance;
 
 #include "common.glsl"
-
+#include"scene.glsl"
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -84,11 +83,15 @@ void main() {
 
 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
 
+	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
-
 	const vec4 irradiance_color = texture(Irradiance, irradiance_uv).rgba;
 
 	vec4 lighting = (ubo.ambientColor * irradiance_color + (ubo.lightColor * contriubtion + spec) * shadow) * color;
 
 	fragColor = lighting;
+	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
+	if(fragColor.a < 0.8){
+		discard;
+	}
 }

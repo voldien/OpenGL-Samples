@@ -1,4 +1,3 @@
-#include "material.glsl"
 #include "noise.glsl"
 #include "fog.glsl"
 

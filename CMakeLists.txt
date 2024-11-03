@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.9...3.20)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.9...3.22)
 PROJECT(OpenGLSamples)
 
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin CACHE INTERNAL "" FORCE)
@@ -27,17 +27,15 @@ IF(CMAKE_BUILD_TYPE STREQUAL "Release")
 	ADD_DEFINITIONS(-O2)
 	SET(CMAKE_RELEASE TRUE)
 	SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s ${OpenMP_CXX_FLAGS}")
-	SET(SIMD_FLAGS "-ftree-vectorize -ftree-slp-vectorize -ftree-vectorizer-verbose=10 -fopt-info-vec-optimized")
+	SET(SIMD_FLAGS "-ftree-vectorize -ftree-slp-vectorize")
 ELSE()
 	MESSAGE(STATUS "Compile for debug.")
 	ADD_DEFINITIONS(-g3 -O0)
 	SET(CMAKE_DEBUG TRUE)
 	ADD_DEFINITIONS(-D_GLIBCXX_ASSERTIONS)
 	SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_RELEASE} -s ${OpenMP_CXX_FLAGS}")
-	SET(SIMD_FLAGS "-ftree-vectorize -ftree-slp-vectorize -ftree-vectorizer-verbose=10 -fopt-info-vec-optimized")
+	SET(SIMD_FLAGS "-ftree-vectorize -ftree-slp-vectorize -ftree-vectorizer-verbose=10")
 ENDIF()
-
-
 
 # ###########################################
 # Backend libraries
@@ -144,7 +142,6 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/MarchingCube)
 ############## Work In Progress ####################
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/VectorField2D)
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/OpticalFlow)
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/InfinateWorld)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/RayTracing)

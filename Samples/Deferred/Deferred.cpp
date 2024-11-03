@@ -313,7 +313,8 @@ namespace glsample {
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 			this->uniformLightBufferSize = (sizeof(pointLights[0]) * pointLights.size());
-			this->uniformLightBufferSize = fragcore::Math::align<size_t>(uniformLightBufferSize, (size_t)minMapBufferSize);
+			this->uniformLightBufferSize =
+				fragcore::Math::align<size_t>(uniformLightBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
@@ -580,7 +581,7 @@ namespace glsample {
 					glDrawElementsInstancedBaseVertex(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT,
 													  (void *)this->plan.indices_offset, 1, this->plan.vertex_offset);
 				}
-				
+
 				/*	Draw point lights.	*/
 				if (this->deferredSettingComponent->nrPointLights > 0) {
 					glEnable(GL_DEPTH_TEST);

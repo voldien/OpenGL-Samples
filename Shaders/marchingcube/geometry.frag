@@ -4,6 +4,9 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_control_flow_attributes : enable
 
+layout(early_fragment_tests) in;
+
+
 layout(location = 0) in vec2 coord;
 layout(location = 1) in vec3 color;
 layout(location = 2) in vec3 normal;

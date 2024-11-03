@@ -20,6 +20,8 @@ layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
 	mat4 modelView;
 	mat4 modelViewProjection;
+
+	/*	*/
 }
 ubo;
 

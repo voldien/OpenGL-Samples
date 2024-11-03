@@ -298,12 +298,3 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 	}
 	textures = Reftextures;
 }
-
-void ImportHelper::convertBumpMaterial2Normal(ModelImporter &modelLoader) {
-	std::vector<MaterialObject> &materials = modelLoader.getMaterials();
-
-	for (size_t i = 0; i < materials.size(); i++) {
-		if (materials[i].normalIndex >= 0) {
-		}
-	}
-}

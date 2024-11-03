@@ -3,6 +3,8 @@
 #include "ModelImporter.h"
 #include "imgui.h"
 #include <GL/glew.h>
+#include <iostream>
+#include <ostream>
 
 namespace glsample {
 
@@ -59,6 +61,11 @@ namespace glsample {
 			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
+
+		glGenBuffers(1, &this->node_uniform_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, this->node_uniform_buffer);
+		glBufferData(GL_UNIFORM_BUFFER, 1 << 16, nullptr, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
 	void Scene::update(const float deltaTime) {
@@ -142,19 +149,19 @@ namespace glsample {
 			/*	*/
 			if (material.emissionIndex >= 0 && material.emissionIndex < refTexture.size()) {
 				const TextureAssetObject &tex = this->refTexture[material.emissionIndex];
-				glActiveTexture(GL_TEXTURE0 + TextureType::AlphaMask);
+				glActiveTexture(GL_TEXTURE0 + TextureType::Emission);
 				glBindTexture(GL_TEXTURE_2D, tex.texture);
 			} else {
-				glActiveTexture(GL_TEXTURE0 + TextureType::AlphaMask);
+				glActiveTexture(GL_TEXTURE0 + TextureType::Emission);
 				glBindTexture(GL_TEXTURE_2D, this->diffuseDefault);
 			}
 
 			/*	*/
 			glPolygonMode(GL_FRONT_AND_BACK, material.wireframe_mode ? GL_LINE : GL_FILL);
 			/*	*/
-			const bool useBlending = material.opacity < 1.0f || material.maskTextureIndex >= 0;
+			const bool useBlending = material.opacity < 1.0f; // material.maskTextureIndex >= 0;
+			glDisable(GL_STENCIL_TEST);
 
-			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 			glDepthFunc(GL_LESS);
 
 			/*	*/
@@ -166,6 +173,7 @@ namespace glsample {
 
 				/*	*/
 				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+				material.blend_func_mode;
 				glBlendEquation(GL_FUNC_ADD);
 
 			} else {
@@ -184,18 +192,8 @@ namespace glsample {
 				glCullFace(GL_BACK);
 			}
 
-			// TODO: relocate
-			fragcore::resetErrorFlag();
-			int program;
-			glGetIntegerv(GL_CURRENT_PROGRAM, &program);
-			glValidateProgram(program);
-			fragcore::checkError();
-			int status;
-			glGetProgramiv(program, GL_VALIDATE_STATUS, &status);
-			if (!status) {
-				GLchar errorLog[1024] = {0};
-				glGetProgramInfoLog(program, 1024, NULL, errorLog);
-				std::cout << errorLog;
+			if (!fragcore::validateExistingProgram()) {
+				std::cout << fragcore::getProgramValidateString();
 			}
 
 			const MeshObject &refMesh = this->refGeometry[node->geometryObjectIndex[i]];
@@ -213,6 +211,7 @@ namespace glsample {
 
 		this->renderQueue.clear();
 
+		/*	*/
 		for (size_t x = 0; x < this->nodes.size(); x++) {
 
 			/*	*/
@@ -225,15 +224,18 @@ namespace glsample {
 			const bool validIndex = node->materialIndex[0] < this->materials.size();
 
 			if (validIndex) {
+
 				const MaterialObject *material = &this->materials[node->materialIndex[0]];
 				assert(material);
 
-				computeMaterialPriority(*material);
+				int priority = computeMaterialPriority(*material);
 
-				const bool useBlending =
-					(material->maskTextureIndex >= 0 &&
-					 material->maskTextureIndex < refTexture.size()); // || material->transparent.length() < 2;
+				const bool useBlending = material->opacity < 1.0f;
+				//					(material->maskTextureIndex >= 0 && material->maskTextureIndex < refTexture.size());
+				////
+				//|| 					material->opacity < 1.0f; // || material->transparent.length() < 2;
 				// material->opacity < 1.0f ||
+
 				if (useBlending) {
 					this->renderQueue.push_back(node);
 				} else {
@@ -241,6 +243,7 @@ namespace glsample {
 				}
 
 			} else {
+				std::cerr << "Invalid Material " << node->name << std::endl;
 				// Invalid
 				// this->renderQueue.push_front(node);
 			}
@@ -248,11 +251,14 @@ namespace glsample {
 	}
 
 	int Scene::computeMaterialPriority(const MaterialObject &material) const noexcept {
-		const bool useBlending = material.opacity < 1.0f || material.maskTextureIndex >= 0;
-		return useBlending * 1000;
+		const bool use_clipping = material.maskTextureIndex >= 0 && material.maskTextureIndex < refTexture.size();
+		const bool useBlending = material.opacity < 1.0f;
+
+		return useBlending * 1000 + use_clipping * 100;
 	}
 
 	void Scene::renderUI() {
+
 		/*	*/
 		if (ImGui::TreeNode("Nodes")) {
 		}

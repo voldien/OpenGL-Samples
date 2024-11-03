@@ -2,10 +2,16 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
 layout(location = 0) in vec4 FragVertex;
 
+
+
 layout(location = 1) in flat int FIndex;
+
+layout(location = 2) in vec2 TextureCoord;
 
 struct point_light {
 	vec3 position;
@@ -42,7 +48,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(binding = 0) uniform sampler2D DiffuseTexture;
+#include "scene.glsl"
 
 void main() {
 
@@ -52,10 +58,10 @@ void main() {
 	/*	map to [0;1].	*/
 	lightDistance = lightDistance / ubo.point_light[FIndex].range;
 
-	// const float alpha = texture(DiffuseTexture, TextureCoord).a;
-	// if (alpha < 1.0) {
-	//	discard;
-	//}
-
-	gl_FragDepth = lightDistance;
+	const float alpha = texture(DiffuseTexture, TextureCoord).a * texture(AlphaMaskedTexture, TextureCoord).r;
+	if (alpha < 0.5) {
+		discard;
+	} else {
+		gl_FragDepth = lightDistance;
+	}
 }

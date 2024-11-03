@@ -52,6 +52,12 @@ typedef struct vertex_bone_buffer_t {
 	std::vector<VertexBoneData> vertexBoneData;
 } VertexBoneBuffer;
 
+typedef struct material_texture_sampling_t {
+	unsigned int wrapping;
+	unsigned int filtering;
+	unsigned int mapping;
+} MterialTextureSampling;
+
 typedef struct material_object_t : public AssetObject {
 	unsigned int program; // TODO: relocate.
 
@@ -75,12 +81,15 @@ typedef struct material_object_t : public AssetObject {
 	glm::vec4 transparent;
 	glm::vec4 reflectivity;
 
+	/*	*/
 	float shinininess;
 	float shinininessStrength;
 	float opacity;
 	int blend_func_mode; /*	aiBlendMode*/
 	int wireframe_mode;
 	bool culling_both_side_mode;
+
+	/*	*/
 
 	unsigned int shade_model; /*	aiShadingMode	*/
 } MaterialObject;

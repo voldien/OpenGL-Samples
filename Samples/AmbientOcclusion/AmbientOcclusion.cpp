@@ -264,6 +264,8 @@ namespace glsample {
 			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
 			glUniform1iARB(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
 			glUniform1iARB(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
+			glUniform1iARB(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), 2);
+			
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -513,15 +515,11 @@ namespace glsample {
 
 				glBindFramebuffer(GL_FRAMEBUFFER, this->multipass_framebuffer);
 				glViewport(0, 0, this->multipass_texture_width, this->multipass_texture_height);
-				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+				glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				/*	*/
 				glUseProgram(this->multipass_program);
-
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK,
-							  this->ambientOcclusionSettingComponent->showWireframe ? GL_LINE : GL_FILL);
 
 				glDisable(GL_CULL_FACE);
 

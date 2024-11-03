@@ -8,8 +8,10 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 
 layout(location = 0) in flat int GIndex[];
+layout(location = 1) in vec2 InTextureCoord[];
 
 layout(location = 0) out vec4 FragVertex;
+layout(location = 2) out vec2 FragTextureCoord;
 layout(location = 1) out flat int FIndex;
 
 struct point_light {
@@ -55,6 +57,7 @@ void main() {
 		{
 			FragVertex = gl_in[i].gl_Position;
 			FIndex = GIndex[i];
+			FragTextureCoord = InTextureCoord[i];
 			gl_Position = (ubo.ViewProjection[gl_Layer]) * gl_in[i].gl_Position;
 			EmitVertex();
 		}

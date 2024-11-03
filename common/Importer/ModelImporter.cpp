@@ -1,7 +1,10 @@
 #include "ModelImporter.h"
+#include "Core/SystemInfo.h"
 #include "Math/Math.h"
 #include "TaskScheduler/IScheduler.h"
 #include "assimp/Importer.hpp"
+#include "assimp/ProgressHandler.hpp"
+#include "assimp/config.h"
 #include <IO/IOUtil.h>
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
@@ -77,10 +80,22 @@ ModelImporter &ModelImporter::operator=(ModelImporter &&other) {
 	return *this;
 }
 
+class CustomProgress : public Assimp::ProgressHandler {
+  public:
+	bool Update(float percentage = -1.f) {
+		std::cout << "\33[2K\r"
+				  << "Loading Model: " << percentage * 100 << "/100" << std::flush;
+		return true;
+	}
+};
+
 void ModelImporter::loadContent(const std::string &path, unsigned long int supportFlag) {
 	Assimp::Importer importer;
 
 	this->filepath = fs::path(fileSystem->getAbsolutePath(path.c_str())).parent_path();
+
+	importer.SetPropertyBool(AI_CONFIG_GLOB_MEASURE_TIME, false);
+	importer.SetProgressHandler(new CustomProgress());
 
 	/*	*/
 	const aiScene *pScene =
@@ -145,37 +160,46 @@ void ModelImporter::initScene(const aiScene *scene) {
 		for (size_t x = 0; x < scene->mNumMaterials; x++) {
 			this->loadTexturesFromMaterials(scene->mMaterials[x]);
 		}
-	});
 
-	/*	*/
-	this->models.resize(scene->mNumMeshes);
-	std::thread process_model_thread([&]() {
-		/*	 */
-		if (scene->HasMeshes()) {
+		for (size_t x = 0; x < scene->mNumMeshes; x++) {
+			// TODO: relocate.
+			C_STRUCT aiAABB aabb = scene->mMeshes[x]->mAABB;
 
-			/*	Multithread the loading of all the geometry data.	*/
+			this->models[x].bound.aabb.min[0] = aabb.mMin.x;
+			this->models[x].bound.aabb.min[1] = aabb.mMin.y;
+			this->models[x].bound.aabb.min[2] = aabb.mMin.z;
 
-#pragma omp parallel for
-			for (size_t x = 0; x < scene->mNumMeshes; x++) {
-#pragma omp task
-				this->initMesh(scene->mMeshes[x], x);
-			}
-
-			for (size_t x = 0; x < scene->mNumMeshes; x++) {
-				// TODO: relocate.
-				C_STRUCT aiAABB aabb = scene->mMeshes[x]->mAABB;
-
-				this->models[x].bound.aabb.min[0] = aabb.mMin.x;
-				this->models[x].bound.aabb.min[1] = aabb.mMin.y;
-				this->models[x].bound.aabb.min[2] = aabb.mMin.z;
-
-				this->models[x].bound.aabb.max[0] = aabb.mMax.x;
-				this->models[x].bound.aabb.max[1] = aabb.mMax.y;
-				this->models[x].bound.aabb.max[2] = aabb.mMax.z;
-			}
+			this->models[x].bound.aabb.max[0] = aabb.mMax.x;
+			this->models[x].bound.aabb.max[1] = aabb.mMax.y;
+			this->models[x].bound.aabb.max[2] = aabb.mMax.z;
 		}
 	});
+	// process_textures_thread.detach();
 
+	const size_t nr_threads = fragcore::Math::min<size_t>(scene->mNumMeshes / 4, SystemInfo::getCPUCoreCount());
+	std::vector<std::thread> threads(nr_threads);
+
+	this->models.resize(scene->mNumMeshes);
+
+	/*	Multithread the loading of all the geometry data.	*/
+	for (size_t index_thread = 0; index_thread < threads.size(); index_thread++) {
+
+		const size_t start_mesh = (scene->mNumMeshes / nr_threads) * index_thread;
+		size_t num_mesh = (scene->mNumMeshes / nr_threads);
+		if (index_thread == threads.size() - 1) {
+			num_mesh *= 2;
+		}
+
+		threads[index_thread] = std::thread([&, index_thread, start_mesh, num_mesh]() {
+			if (scene->HasMeshes()) {
+
+				for (size_t x = start_mesh; x < fragcore::Math::min<size_t>(start_mesh + num_mesh, scene->mNumMeshes);
+					 x++) {
+					this->initMesh(scene->mMeshes[x], x);
+				}
+			}
+		});
+	}
 	/*	*/
 	std::thread process_animation_light_camera_thread([&]() {
 		/*	*/
@@ -200,12 +224,17 @@ void ModelImporter::initScene(const aiScene *scene) {
 			}
 		}
 	});
+	// process_animation_light_camera_thread.detach();
 
 	/*	Wait intill done.	*/
-	process_model_thread.join();
+	// process_model_thread.join();
 
 	process_textures_thread.join();
 	process_animation_light_camera_thread.join();
+
+	for (size_t i = 0; i < threads.size(); i++) {
+		threads[i].join();
+	}
 
 	/*	*/
 	if (scene->HasMaterials()) {

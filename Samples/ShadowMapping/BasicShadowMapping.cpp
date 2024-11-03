@@ -102,7 +102,7 @@ namespace glsample {
 			float distance = 50.0;
 			unsigned int &depth;
 			bool showWireFrame = false;
-			bool use_pcf;
+			bool use_pcf = false;
 			bool useShadowClip = false;
 
 		  private:
@@ -183,6 +183,7 @@ namespace glsample {
 
 				glUseProgram(this->shadow_alpha_clip_program);
 				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "DiffuseTexture"), 0);
+				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "AlphaMaskedTexture"), 2);
 				uniform_buffer_shadow_index =
 					glGetUniformBlockIndex(this->shadow_alpha_clip_program, "UniformBufferBlock");
 				glUniformBlockBinding(this->shadow_alpha_clip_program, uniform_buffer_shadow_index,
@@ -193,6 +194,7 @@ namespace glsample {
 				glUseProgram(this->graphic_program);
 				int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 				glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "AlphaMaskedTexture"), 2);
 				glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), shadowBinding);
 				glUniformBlockBinding(this->graphic_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
@@ -202,6 +204,7 @@ namespace glsample {
 				glUseProgram(this->graphic_pfc_program);
 				uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), 0);
+				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "AlphaMaskedTexture"), 2);
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), shadowBinding);
 				glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
@@ -321,12 +324,15 @@ namespace glsample {
 				} else {
 					glUseProgram(this->shadow_program);
 				}
+
+				/*	*/
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				glCullFace(GL_FRONT);
 				glEnable(GL_CULL_FACE);
 
-				/*	Setup the shadow.	*/
+				/*	Render shadow.	*/
 				this->scene.render();
+
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			}
 

@@ -2,16 +2,18 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
-
-layout(early_fragment_tests) in;
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
 layout(location = 0) in vec2 TextureCoord;
 
-layout(binding = 0) uniform sampler2D DiffuseTexture;
+#include"scene.glsl"
 
 void main() {
-	const float alpha = texture(DiffuseTexture, TextureCoord).a;
-	if (alpha < 1.0) {
+
+	const float alpha = texture(DiffuseTexture, TextureCoord).a * texture(AlphaMaskedTexture, TextureCoord).r;
+	if (alpha < 0.5) {
 		discard;
 	} else {
 		gl_FragDepth = gl_FragCoord.z;

@@ -2,7 +2,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
-
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 /*	*/
 layout(location = 0) out vec4 Diffuse;
 layout(location = 1) out vec4 WorldSpace;
@@ -18,18 +19,17 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec3 bitangent;
 
-layout(binding = 2) uniform sampler2D DiffuseTexture;
-layout(binding = 3) uniform sampler2D NormalTexture;
-layout(binding = 4) uniform sampler2D AlphaMaskedTexture;
-layout(binding = 5) uniform sampler2D RoughnessTexture;
-layout(binding = 6) uniform sampler2D MetalicTexture;
-layout(binding = 4) uniform sampler2D EmissionTexture;
+#include"scene.glsl"
 
 void main() {
 
 	/*	*/
 	Diffuse = texture(DiffuseTexture, uv).rgba;
 	Diffuse.a *= texture(AlphaMaskedTexture, uv).r;
+
+	if(texture(AlphaMaskedTexture, uv).r * texture(DiffuseTexture, uv).a < 0.25){
+		discard;
+	}
 
 	Roughness_Metalic.r = texture(RoughnessTexture, uv).r;
 	Roughness_Metalic.g = texture(MetalicTexture, uv).r;

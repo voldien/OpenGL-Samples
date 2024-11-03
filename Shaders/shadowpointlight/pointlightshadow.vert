@@ -4,9 +4,12 @@
 #extension GL_ARB_uniform_buffer_object : enable
 
 layout(location = 0) in vec3 vertex;
+layout(location = 1) in vec2 TextureCoord;
+
 layout(location = 4) in int index;
 
 layout(location = 0) out flat int GIndex;
+layout(location = 1) out vec2 OutTextureCoord;
 
 struct point_light {
 	vec3 position;
@@ -46,4 +49,5 @@ ubo;
 void main() {
 	gl_Position = ubo.model * vec4(vertex, 1.0);
 	GIndex = index;
+	OutTextureCoord = TextureCoord;
 }

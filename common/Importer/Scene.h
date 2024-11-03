@@ -96,10 +96,13 @@ namespace glsample {
 		std::vector<animation_object_t> animations;
 
 	  protected: /*	Default texture if texture from material is missing.*/
+		std::array<int,10> default_textures;
 		int normalDefault = -1;
 		int diffuseDefault = -1;
 		int roughnessSpecularDefault = -1;
 		int emissionDefault = -1;
+
+		unsigned int node_uniform_buffer;
 
 	  public:
 		template <typename T = Scene> static T loadFrom(ModelImporter &importer) {
