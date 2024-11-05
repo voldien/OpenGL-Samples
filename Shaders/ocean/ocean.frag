@@ -12,7 +12,7 @@ layout(location = 2) in vec2 normal;
 /*	Include common.	*/
 #include"ocean_base.glsl"
 
-layout(binding = 1) uniform sampler2D panorama;
+layout(binding = 1) uniform sampler2D PanoramaTexture;
 
 
 

@@ -56,6 +56,12 @@ namespace glsample {
 		glm::mat4 model;
 
 		/*	Color attributes.	*/
+		glm::vec4 ambient;
+		glm::vec4 diffuse;
+		glm::vec4 emission;
+		glm::vec4 specular;
+		glm::vec4 transparent;
+		glm::vec4 reflectivity;
 
 		/*	*/
 	} MaterialInstance;

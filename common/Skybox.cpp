@@ -52,7 +52,7 @@ namespace glsample {
 		/*	*/
 		this->uniform_stage_buffer.modelViewProjection = viewProj;
 
-		/*	*/
+		/*	Update uniform values.	*/
 		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 		void *uniformPointer =
 			glMapBufferRange(GL_UNIFORM_BUFFER, ((frameIndex + 1) % this->nrUniformBuffer) * this->uniformAlignSize,
@@ -139,6 +139,7 @@ namespace glsample {
 		/*	*/
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
+
 		/*	Load shader binaries.	*/
 		const std::vector<uint32_t> vertex_skybox_binary =
 			IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, filesystem);
@@ -158,7 +159,7 @@ namespace glsample {
 		glUseProgram(skybox_program);
 		int uniform_buffer_index = glGetUniformBlockIndex(skybox_program, "UniformBufferBlock");
 		glUniformBlockBinding(skybox_program, uniform_buffer_index, 0);
-		glUniform1i(glGetUniformLocation(skybox_program, "panorama"), 0);
+		glUniform1i(glGetUniformLocation(skybox_program, "PanoramaTexture"), 0);
 		glUseProgram(0);
 
 		return skybox_program;

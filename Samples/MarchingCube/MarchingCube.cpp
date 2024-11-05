@@ -108,7 +108,7 @@ namespace glsample {
 				/*	*/
 				ImGui::TextUnformatted("Fog Settings");
 				ImGui::DragInt("Fog Type", (int *)&this->uniform.fogSettings.fogType);
-				ImGui::ColorEdit4("Fog Color", &this->uniform.fogSettings.fogColor[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Fog Color", &this->uniform.fogSettings.fogColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat("Fog Density", &this->uniform.fogSettings.fogDensity);
 				ImGui::DragFloat("Fog Intensity", &this->uniform.fogSettings.fogIntensity);
 				ImGui::DragFloat("Fog Start", &this->uniform.fogSettings.fogStart);

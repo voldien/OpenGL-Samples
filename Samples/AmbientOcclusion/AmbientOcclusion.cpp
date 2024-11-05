@@ -42,8 +42,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 
 			/*	Light source.	*/
-			glm::vec4 direction;
-			glm::vec4 lightColor;
+			DirectionalLight directional_light;
 			glm::vec4 specularColor;
 			glm::vec4 ambientColor;
 			glm::vec4 viewDir;
@@ -119,6 +118,12 @@ namespace glsample {
 				ImGui::DragFloat("Bias", &this->getRefSample().uniformStageBlockSSAO.bias, 0.01f, 0, 1);
 				ImGui::Checkbox("DownSample", &this->downScale);
 				ImGui::Checkbox("Use Depth Only", &this->useDepthOnly);
+
+				ImGui::TextUnformatted("Light Settings");
+				ImGui::ColorEdit4("Light", &this->getRefSample().uniformStageBlock.directional_light.lightColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::DragFloat3("Direction",
+								  &this->getRefSample().uniformStageBlock.directional_light.lightDirection[0]);
 
 				ImGui::TextUnformatted("Debugging");
 				ImGui::Checkbox("Show Only AO", &this->showAOOnly);
@@ -265,7 +270,7 @@ namespace glsample {
 			glUniform1iARB(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
 			glUniform1iARB(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
 			glUniform1iARB(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), 2);
-			
+
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 

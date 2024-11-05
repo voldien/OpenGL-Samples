@@ -138,6 +138,8 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 	fragcore::IScheduler *schedular = this->getFileSystem()->getScheduler().ptr();
 
+	this->models.resize(scene->mNumMeshes);
+
 	/*	*/
 	std::thread process_textures_thread([&]() {
 		/*	*/
@@ -176,10 +178,8 @@ void ModelImporter::initScene(const aiScene *scene) {
 	});
 	// process_textures_thread.detach();
 
-	const size_t nr_threads = fragcore::Math::min<size_t>(scene->mNumMeshes / 4, SystemInfo::getCPUCoreCount());
+	const size_t nr_threads = fragcore::Math::clamp<size_t>(scene->mNumMeshes / 4, 1, SystemInfo::getCPUCoreCount());
 	std::vector<std::thread> threads(nr_threads);
-
-	this->models.resize(scene->mNumMeshes);
 
 	/*	Multithread the loading of all the geometry data.	*/
 	for (size_t index_thread = 0; index_thread < threads.size(); index_thread++) {
@@ -571,11 +571,8 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	return pmesh;
 }
 
-MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index) {
+MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t index) {
 
-	char absolutepath[PATH_MAX];
-
-	char *data;
 	aiString name;
 	aiString path;
 
@@ -585,21 +582,19 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	aiTextureOp op;
 	aiTextureMapMode mapmode = aiTextureMapMode::aiTextureMapMode_Wrap;
 
-	float specular;
-
 	glm::vec4 color;
 	float shininessStrength;
 
 	MaterialObject *material = &this->materials[index];
 
-	if (!pmaterial) {
+	if (!ref_material) {
 		return nullptr;
 	}
 
 	const bool isTextureEmpty = this->textures.size() == 0;
 
 	/*	*/
-	pmaterial->Get(AI_MATKEY_NAME, name);
+	ref_material->Get(AI_MATKEY_NAME, name);
 	material->name = name.C_Str();
 
 	/*	load all texture assoicated with material.	*/
@@ -607,18 +602,18 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 		 textureType++) {
 
 		/*	*/
-		for (size_t textureIndex = 0; textureIndex < pmaterial->GetTextureCount((aiTextureType)textureType);
+		for (size_t textureIndex = 0; textureIndex < ref_material->GetTextureCount((aiTextureType)textureType);
 			 textureIndex++) {
 
 			/*	*/
 			aiString textureName;
-			if (pmaterial->Get(AI_MATKEY_TEXTURE(textureType, textureIndex), textureName) ==
+			if (ref_material->Get(AI_MATKEY_TEXTURE(textureType, textureIndex), textureName) ==
 				aiReturn::aiReturn_SUCCESS) {
 				/*	*/
 			}
 
 			aiTextureFlags textureFlag;
-			if (pmaterial->Get(AI_MATKEY_TEXFLAGS(textureType, textureIndex), textureFlag) ==
+			if (ref_material->Get(AI_MATKEY_TEXFLAGS(textureType, textureIndex), textureFlag) ==
 				aiReturn::aiReturn_SUCCESS) {
 				/*	*/
 			}
@@ -626,8 +621,8 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 			/*	*/
 			auto *embeededTexture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
 
-			if (pmaterial->GetTexture((aiTextureType)textureType, textureIndex, &path, &mapping, &uvindex, &blend, &op,
-									  &mapmode) == aiReturn::aiReturn_SUCCESS) {
+			if (ref_material->GetTexture((aiTextureType)textureType, textureIndex, &path, &mapping, &uvindex, &blend,
+										 &op, &mapmode) == aiReturn::aiReturn_SUCCESS) {
 
 				/*	If embeeded.	*/
 				int texIndex = 0;
@@ -638,6 +633,13 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 					if (textureObj) {
 						texIndex = this->textureIndexMapping[path.C_Str()];
 					}
+				}
+
+				/*	*/
+				if (texIndex >= 0) {
+					material->texture_sampling[texIndex].filtering = 0;
+					material->texture_sampling[texIndex].wrapping = mapmode;
+					material->texture_sampling[texIndex].mapping = mapping;
 				}
 
 				switch (textureType) {
@@ -664,6 +666,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 				case aiTextureType::aiTextureType_SHININESS:
 					break;
 				case aiTextureType::aiTextureType_DISPLACEMENT:
+					material->displacementIndex = texIndex;
 					break;
 				case aiTextureType::aiTextureType_LIGHTMAP:
 					break;
@@ -694,63 +697,63 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *pmaterial, size_t index)
 	/*	Assign shader attributes.	*/
 
 	/*	Color.	*/
-	if (pmaterial->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
 		material->ambient = color;
 	}
-	if (pmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
 		material->diffuse = color;
 	}
-	if (pmaterial->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
 		material->emission = color;
 	}
-	if (pmaterial->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
 		material->specular = color;
 	}
-	if (pmaterial->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
 		material->transparent = color;
 	}
-	if (pmaterial->Get(AI_MATKEY_REFLECTIVITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_REFLECTIVITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
 		material->reflectivity = color;
 	}
-	if (pmaterial->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
 		material->shinininessStrength = shininessStrength;
 	}
 
 	float tmp;
-	if (pmaterial->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
 		//	material->shinininessStrength = tmp;
 	}
-	if (pmaterial->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
 		//	material->shinininessStrength = tmp;
 	}
-	if (pmaterial->Get(AI_MATKEY_SHININESS, tmp) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_SHININESS, tmp) == aiReturn::aiReturn_SUCCESS) {
 		//	material->shinininessStrength = tmp;
 	}
-	if (pmaterial->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
 		//	material->shinininessStrength = tmp;
 	}
-	if (pmaterial->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
 		material->opacity = tmp;
 	}
 
 	aiBlendMode blendfunc;
-	if (pmaterial->Get(AI_MATKEY_BLEND_FUNC, blendfunc) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_BLEND_FUNC, blendfunc) == aiReturn::aiReturn_SUCCESS) {
 		material->blend_func_mode = blendfunc;
 	}
 
 	int twosided;
-	if (pmaterial->Get(AI_MATKEY_TWOSIDED, twosided) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_TWOSIDED, twosided) == aiReturn::aiReturn_SUCCESS) {
 		material->culling_both_side_mode = twosided;
 	}
 
 	aiShadingMode model;
-	if (pmaterial->Get(AI_MATKEY_SHADING_MODEL, model) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_SHADING_MODEL, model) == aiReturn::aiReturn_SUCCESS) {
 		material->shade_model = model;
 	}
 	//_AI_MATKEY_TEXFLAGS_BASE
 
 	int use_wireframe;
-	if (pmaterial->Get(AI_MATKEY_ENABLE_WIREFRAME, use_wireframe) == aiReturn::aiReturn_SUCCESS) {
+	if (ref_material->Get(AI_MATKEY_ENABLE_WIREFRAME, use_wireframe) == aiReturn::aiReturn_SUCCESS) {
 		material->wireframe_mode = use_wireframe;
 	}
 

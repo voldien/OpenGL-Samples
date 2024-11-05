@@ -39,8 +39,10 @@ namespace glsample {
 		const unsigned char white[] = {255, 255, 255, 255};
 		const unsigned char black[] = {0, 0, 0, 255};
 
-		std::vector<const unsigned char *> arrs = {normalForward, white, black};
-		std::vector<int *> texRef = {&this->normalDefault, &this->diffuseDefault, &this->roughnessSpecularDefault};
+		std::vector<const unsigned char *> arrs = {white, normalForward, white};
+		std::vector<int *> texRef = {&this->default_textures[TextureType::Diffuse],
+									 &this->default_textures[TextureType::Normal],
+									 &this->default_textures[TextureType::AlphaMask]};
 
 		for (size_t i = 0; i < arrs.size(); i++) {
 
@@ -92,13 +94,24 @@ namespace glsample {
 		}
 	}
 
-	static void bindTexture(MaterialObject &material, TextureAssetObject &texture, const TextureType texture_type) {
-		//	/*	*/
-		//	if (material.normalIndex >= 0 && material.normalIndex < refTexture.size()) {
-		//		const TextureAssetObject &tex = this->refTexture[material.normalIndex];
-		//		glActiveTexture(GL_TEXTURE1);
-		//		glBindTexture(GL_TEXTURE_2D, tex.texture);
-		//	}
+	void Scene::bindTexture(const MaterialObject &material, const TextureType texture_type) {
+
+		/*	*/
+		if (material.texture_index[texture_type] >= 0 && material.texture_index[texture_type] < refTexture.size()) {
+
+			const TextureAssetObject *tex = &this->refTexture[material.texture_index[texture_type]];
+
+			if (tex && tex->texture > 0) {
+				glActiveTexture(GL_TEXTURE0 + texture_type);
+				glBindTexture(GL_TEXTURE_2D, tex->texture);
+			} else {
+				glActiveTexture(GL_TEXTURE0 + texture_type);
+				glBindTexture(GL_TEXTURE_2D, this->default_textures[texture_type]);
+			}
+		} else {
+			glActiveTexture(GL_TEXTURE0 + texture_type);
+			glBindTexture(GL_TEXTURE_2D, this->default_textures[texture_type]);
+		}
 		/*	*/
 	}
 
@@ -109,52 +122,9 @@ namespace glsample {
 			/*	*/
 			const MaterialObject &material = this->materials[node->materialIndex[i]];
 
-			if (material.diffuseIndex >= 0 && material.diffuseIndex < refTexture.size()) {
-
-				const TextureAssetObject &diffuseTexture = this->refTexture[material.diffuseIndex];
-				glActiveTexture(GL_TEXTURE0 + TextureType::Diffuse);
-				glBindTexture(GL_TEXTURE_2D, diffuseTexture.texture);
-
-			} else {
-				glActiveTexture(GL_TEXTURE0 + TextureType::Diffuse);
-				glBindTexture(GL_TEXTURE_2D, this->diffuseDefault);
-			}
-
-			/*	*/
-			if (material.normalIndex >= 0 && material.normalIndex < refTexture.size()) {
-				const TextureAssetObject *tex = &this->refTexture[material.normalIndex];
-
-				if (tex && tex->texture > 0) {
-					glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
-					glBindTexture(GL_TEXTURE_2D, tex->texture);
-				} else {
-					glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
-					glBindTexture(GL_TEXTURE_2D, this->normalDefault);
-				}
-			} else {
-				glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
-				glBindTexture(GL_TEXTURE_2D, this->normalDefault);
-			}
-
-			/*	*/
-			if (material.maskTextureIndex >= 0 && material.maskTextureIndex < refTexture.size()) {
-				const TextureAssetObject &tex = this->refTexture[material.maskTextureIndex];
-				glActiveTexture(GL_TEXTURE0 + TextureType::AlphaMask);
-				glBindTexture(GL_TEXTURE_2D, tex.texture);
-			} else {
-				glActiveTexture(GL_TEXTURE0 + TextureType::AlphaMask);
-				glBindTexture(GL_TEXTURE_2D, this->diffuseDefault);
-			}
-
-			/*	*/
-			if (material.emissionIndex >= 0 && material.emissionIndex < refTexture.size()) {
-				const TextureAssetObject &tex = this->refTexture[material.emissionIndex];
-				glActiveTexture(GL_TEXTURE0 + TextureType::Emission);
-				glBindTexture(GL_TEXTURE_2D, tex.texture);
-			} else {
-				glActiveTexture(GL_TEXTURE0 + TextureType::Emission);
-				glBindTexture(GL_TEXTURE_2D, this->diffuseDefault);
-			}
+			this->bindTexture(material, TextureType::Diffuse);
+			this->bindTexture(material, TextureType::Normal);
+			this->bindTexture(material, TextureType::AlphaMask);
 
 			/*	*/
 			glPolygonMode(GL_FRONT_AND_BACK, material.wireframe_mode ? GL_LINE : GL_FILL);

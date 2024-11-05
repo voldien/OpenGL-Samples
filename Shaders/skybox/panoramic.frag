@@ -7,7 +7,7 @@ layout(location = 0) out vec4 fragColor;
 
 layout(location = 0) in vec3 vVertex;
 
-layout(binding = 0) uniform sampler2D panorama;
+layout(binding = 0) uniform sampler2D PanoramaTexture;
 
 layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
@@ -26,7 +26,7 @@ void main() {
 
 	const vec2 uv = inverse_equirectangular(normalize(vVertex));
 
-	fragColor = textureLod(panorama, uv, 0) * ubo.tintColor;
+	fragColor = textureLod(PanoramaTexture, uv, 0) * ubo.tintColor;
 	fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
 
 	const float gamma = ubo.gamma;

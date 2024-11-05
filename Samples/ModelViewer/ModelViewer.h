@@ -118,7 +118,7 @@ namespace glsample {
 				}
 
 				ImGui::TextUnformatted("Light");
-				ImGui::ColorEdit4("Color", &this->uniform.lightsettings.lightColor[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Color", &this->uniform.lightsettings.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::ColorEdit4("Ambient Color", &this->uniform.lightsettings.ambientColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.lightsettings.direction[0]);

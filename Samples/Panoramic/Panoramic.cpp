@@ -92,10 +92,10 @@ namespace glsample {
 			void draw() override {
 
 				ImGui::TextUnformatted("Lightning");
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::TextUnformatted("Material");
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
@@ -185,7 +185,7 @@ namespace glsample {
 			glUseProgram(this->skybox_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "PanoramaTexture"), 0);
 			glUseProgram(0);
 
 			/*	Setup graphic pipeline.	*/

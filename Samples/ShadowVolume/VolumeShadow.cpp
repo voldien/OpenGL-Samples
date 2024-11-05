@@ -83,8 +83,8 @@ namespace glsample {
 			}
 			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
-				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::Checkbox("Use Shadow", &this->useShadow);
 				ImGui::Checkbox("Show Graphic", &this->showGraphic);
@@ -193,7 +193,7 @@ namespace glsample {
 			glUseProgram(this->skybox_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "panorama"), 0);
+			glUniform1i(glGetUniformLocation(this->skybox_program, "PanoramaTexture"), 0);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/

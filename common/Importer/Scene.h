@@ -31,6 +31,7 @@ namespace glsample {
 		Reflection = 5, /*	*/
 		Ambient = 6,	/*	*/
 		Displacement,
+		Irradiance = 10
 	};
 
 	enum class TexturePBRType : unsigned int {
@@ -83,6 +84,7 @@ namespace glsample {
 		std::vector<MeshObject> &getMeshes() noexcept { return this->refGeometry; }
 
 	  protected:
+		void bindTexture(const MaterialObject &material, const TextureType texture_type);
 		int computeMaterialPriority(const MaterialObject &material) const noexcept;
 
 	  protected:
@@ -96,7 +98,7 @@ namespace glsample {
 		std::vector<animation_object_t> animations;
 
 	  protected: /*	Default texture if texture from material is missing.*/
-		std::array<int,10> default_textures;
+		std::array<int, 10> default_textures;
 		int normalDefault = -1;
 		int diffuseDefault = -1;
 		int roughnessSpecularDefault = -1;

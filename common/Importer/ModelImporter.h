@@ -56,21 +56,28 @@ typedef struct material_texture_sampling_t {
 	unsigned int wrapping;
 	unsigned int filtering;
 	unsigned int mapping;
-} MterialTextureSampling;
+} MaterialTextureSampling;
 
 typedef struct material_object_t : public AssetObject {
 	unsigned int program; // TODO: relocate.
 
 	/*	Texture index.	*/
-	int diffuseIndex = -1;
-	int normalIndex = -1;
-	int emissionIndex = -1;
-	int heightbumpIndex = -1;
-	int specularIndex = -1;
-	int reflectionIndex = -1;
-	int ambientOcclusionIndex = -1;
-	int metalIndex = -1;
-	int maskTextureIndex = -1;
+	union {
+		struct {
+			int diffuseIndex = -1;
+			int normalIndex = -1;
+			int emissionIndex = -1;
+			int heightbumpIndex = -1;
+			int specularIndex = -1;
+			int reflectionIndex = -1;
+			int ambientOcclusionIndex = -1;
+			int metalIndex = -1;
+			int maskTextureIndex = -1;
+			int displacementIndex = -1;
+		};
+		int texture_index[10];
+	};
+	MaterialTextureSampling texture_sampling[10];
 
 	/*	TODO its own struct.	*/
 	// Material properties.

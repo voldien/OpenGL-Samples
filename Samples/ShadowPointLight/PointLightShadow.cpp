@@ -99,7 +99,7 @@ namespace glsample {
 			}
 			void draw() override {
 
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
 				ImGui::TextUnformatted("Shadow");
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);

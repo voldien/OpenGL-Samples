@@ -152,7 +152,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Light Setting");
 				{
 					ImGui::ColorEdit4("Color", &this->stage_uniform.terrain.lightColor[0],
-									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 					if (ImGui::DragFloat3("Light Direction", &this->stage_uniform.terrain.lightDirection[0])) {
 					}
 				}
@@ -167,7 +167,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Fog Setting");
 				ImGui::DragInt("Fog Type", (int *)&this->stage_uniform.terrain.fogSettings.fogType);
 				ImGui::ColorEdit4("Fog Color", &this->stage_uniform.terrain.fogSettings.fogColor[0],
-								  ImGuiColorEditFlags_Float);
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat("Fog Density", &this->stage_uniform.terrain.fogSettings.fogDensity);
 				ImGui::DragFloat("Fog Intensity", &this->stage_uniform.terrain.fogSettings.fogIntensity);
 				ImGui::DragFloat("Fog Start", &this->stage_uniform.terrain.fogSettings.fogStart);
