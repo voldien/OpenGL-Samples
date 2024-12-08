@@ -131,7 +131,7 @@ namespace glsample {
 			this->diffuse_texture = textureImporter.loadImage2D(texturePath, ColorSpace::SRGB);
 
 			/*	Align the uniform buffer size to hardware specific.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSize = Math::align<size_t>(this->uniformSize, (size_t)minMapBufferSize);
 
@@ -149,7 +149,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

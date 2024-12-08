@@ -23,22 +23,22 @@
 namespace glsample {
 
 	// TODO relocate.
-	typedef struct {
+	using DrawElementsIndirectCommand = struct {
 		GLuint count;
 		GLuint instanceCount;
 		GLuint firstIndex;
 		GLuint baseVertex;
 		GLuint baseInstance;
-	} DrawElementsIndirectCommand;
+	};
 
-	typedef struct {
+	using DrawArraysIndirectCommand = struct {
 		GLuint count;
 		GLuint instanceCount;
 		GLuint first;
 		GLuint baseInstance;
-	} DrawArraysIndirectCommand;
+	};
 
-	typedef struct geometry_object_t {
+	using MeshObject = struct geometry_object_t {
 		/*	*/
 		unsigned int vao = -1;
 		unsigned int vbo = -1;
@@ -54,16 +54,15 @@ namespace glsample {
 		int primitiveType = 0;
 
 		/*	*/
-		fragcore::Bound bound;
+		fragcore::Bound bound{};
+	};
 
-	} MeshObject;
-
-	typedef struct texture_object_t {
-		unsigned int width;
-		unsigned int height;
-		unsigned int depth;
+	using TextureObject = struct texture_object_t {
+		unsigned int width{};
+		unsigned int height{};
+		unsigned int depth{};
 		unsigned int texture = 0;
-	} TextureObject;
+	};
 
 	/**
 	 * @brief
@@ -71,6 +70,7 @@ namespace glsample {
 	 */
 	class FVDECLSPEC GLSampleSession {
 	  public:
+		virtual ~GLSampleSession() = default;
 		virtual void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) = 0;
 		virtual void customOptions(cxxopts::OptionAdder &options) {}
 
@@ -78,7 +78,7 @@ namespace glsample {
 		fragcore::IScheduler *getSchedular() noexcept { return this->schedular; }
 
 	  protected:
-		fragcore::IFileSystem *activeFileSystem;
-		fragcore::IScheduler *schedular;
+		fragcore::IFileSystem *activeFileSystem{};
+		fragcore::IScheduler *schedular{};
 	};
 } // namespace glsample

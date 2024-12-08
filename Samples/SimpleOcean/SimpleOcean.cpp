@@ -32,10 +32,10 @@ namespace glsample {
 
 		static const size_t nrMaxWaves = 64;
 
-		typedef struct wave_t {
+		using Wave = struct wave_t {
 			glm::vec4 waveAmpSpeed; /*	*/
 			glm::vec4 direction;	/*	*/
-		} Wave;
+		};
 
 		struct UniformOceanBufferBlock {
 			glm::mat4 model;
@@ -229,7 +229,7 @@ namespace glsample {
 			util.computeIrradiance(this->reflection_texture, this->irradiance_texture, 256, 128);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->oceanUniformSize = Math::align<size_t>(sizeof(UniformOceanBufferBlock), (size_t)minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->oceanUniformSize, (size_t)minMapBufferSize);
@@ -262,7 +262,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 			/*	*/
 			glViewport(0, 0, width, height);

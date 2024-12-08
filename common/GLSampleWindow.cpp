@@ -1,15 +1,21 @@
 #include "GLSampleWindow.h"
 #include "Core/Library.h"
+#include "Core/SystemInfo.h"
 #include "FPSCounter.h"
+#include "GLUIComponent.h"
 #include "SDL_scancode.h"
 #include "SDL_video.h"
+#include "imgui.h"
 #include "spdlog/common.h"
+#include <GL/glew.h>
 #include <GLRendererInterface.h>
 #include <ImageLoader.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_mouse.h>
+#include <cstddef>
 #include <exception>
+#include <memory>
 #include <renderdoc_app.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
@@ -19,7 +25,25 @@ using namespace glsample;
 
 unsigned int pboBuffer;
 
-GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::GfxBackEnd::ImGUI_OpenGL) {
+class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
+  public:
+	SampleSettingComponent(GLSampleWindow &base) : GLUIComponent(base) {}
+
+	void draw() override {
+		ImGui::Text("FPS %d", this->getRefSample().getFPSCounter().getFPS());
+		ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
+		ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
+		//	ImGui::Checkbox("RenderDoc", this->getRefSample().enableRenderDoc(bool status))
+		ImGui::Text("WorkDirectory: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
+		// ImGui::Checkbox("Logging: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
+	}
+
+  private:
+};
+
+GLSampleWindow::GLSampleWindow()
+	: nekomimi::MIMIWindow(nekomimi::MIMIWindow::GfxBackEnd::ImGUI_OpenGL), preWidth(this->width()),
+	  preHeight(this->height()) {
 
 	/* Create logger	*/
 	auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -47,20 +71,22 @@ GLSampleWindow::GLSampleWindow() : nekomimi::MIMIWindow(nekomimi::MIMIWindow::Gf
 	/*	*/
 	glGenBuffers(1, &pboBuffer);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, pboBuffer);
-	glBufferData(GL_PIXEL_PACK_BUFFER, screen_grab_width_size * screen_grab_height_size * 4, nullptr, GL_STREAM_READ);
+	glBufferData(GL_PIXEL_PACK_BUFFER, static_cast<GLsizeiptr>(screen_grab_width_size * screen_grab_height_size * 4),
+				 nullptr, GL_STREAM_READ);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
 	/*	*/
 	glGenQueries(sizeof(this->queries) / sizeof(this->queries[0]), &this->queries[0]);
 
 	/*	*/
-	this->preWidth = this->width();
-	this->preHeight = this->height();
 
 	/*	Disable automatic framebuffer gamma correction, each application handle it manually.	*/
 	glDisable(GL_FRAMEBUFFER_SRGB);
 	/*	Disable multi sampling by default.	*/
 	glDisable(GL_MULTISAMPLE);
+
+	std::shared_ptr<SampleSettingComponent> settingComponent = std::make_shared<SampleSettingComponent>(*this);
+	this->addUIComponent(settingComponent);
 }
 
 void GLSampleWindow::displayMenuBar() {}
@@ -99,7 +125,7 @@ void GLSampleWindow::renderUI() {
 		glEndQuery(GL_SAMPLES_PASSED);
 		glEndQuery(GL_PRIMITIVES_GENERATED);
 
-		int nrPrimitives, nrSamples, time_elasped;
+		int nrPrimitives = 0, nrSamples = 0, time_elasped = 0;
 		glGetQueryObjectiv(this->queries[0], GL_QUERY_RESULT, &time_elasped);
 		glGetQueryObjectiv(this->queries[1], GL_QUERY_RESULT, &nrSamples);
 		glGetQueryObjectiv(this->queries[2], GL_QUERY_RESULT, &nrPrimitives);
@@ -126,8 +152,8 @@ void GLSampleWindow::renderUI() {
 		}
 
 		/*	*/
-		if (this->getInput().getKeyPressed(SDL_SCANCODE_F2)) {
-			this->enableImGUI(false);
+		if (this->getInput().getKeyReleased(SDL_SCANCODE_F1)) {
+			this->enableImGUI(!this->isEnabled());
 		}
 
 		if (this->getInput().getKeyPressed(SDL_SCANCODE_F9)) {
@@ -135,6 +161,9 @@ void GLSampleWindow::renderUI() {
 				RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
 				rdoc_api_inter->TriggerCapture();
 			}
+		}
+		if (this->getInput().getKeyPressed(SDL_SCANCODE_F1)) {
+			// this->setStatusBar(true);
 		}
 	}
 
@@ -184,7 +213,7 @@ void GLSampleWindow::captureScreenShot() {
 	glFinish();
 
 	/*	*/
-	const size_t imageSizeInBytes = screen_grab_width_size * screen_grab_height_size * 3;
+	const size_t imageSizeInBytes = static_cast<const size_t>(screen_grab_width_size * screen_grab_height_size * 3);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, pboBuffer);
 	glBufferData(GL_PIXEL_PACK_BUFFER, imageSizeInBytes, nullptr, GL_STREAM_READ);
 
@@ -205,8 +234,8 @@ void GLSampleWindow::captureScreenShot() {
 		image.setPixelData(pixelData, imageSizeInBytes);
 
 		// Application and time
-		time_t rawtime;
-		struct tm *timeinfo;
+		time_t rawtime = 0;
+		struct tm *timeinfo = nullptr;
 		char buffer[128];
 
 		std::time(&rawtime);

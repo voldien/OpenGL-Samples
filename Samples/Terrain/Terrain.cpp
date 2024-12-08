@@ -10,7 +10,6 @@
 #include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iterator>
 
 namespace glsample {
 
@@ -245,7 +244,7 @@ namespace glsample {
 			this->terrain_diffuse_texture = textureImporter.loadImage2D(panoramicPath);
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->oceanUniformSize = Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->oceanUniformSize, (size_t)minMapBufferSize);
@@ -318,7 +317,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

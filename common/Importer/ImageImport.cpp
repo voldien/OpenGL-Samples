@@ -34,9 +34,9 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 	// TODO add PBO support.
 
 	GLenum target = GL_TEXTURE_2D;
-	GLuint texture;
+	GLuint texture = 0;
 
-	GLenum format, internalformat, type;
+	GLenum format = 0, internalformat = 0, type = 0;
 
 	switch (image.getFormat()) {
 	case ImageFormat::RGB24: /*	Multiple Channels.	*/
@@ -180,7 +180,7 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 	ImageLoader imageLoader;
 
 	GLenum target = GL_TEXTURE_CUBE_MAP;
-	GLuint texture;
+	GLuint texture = 0;
 
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));
 
@@ -219,7 +219,7 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 		Ref<IO> io = Ref<IO>(filesystem->openFile(paths[i].c_str(), IO::IOMode::READ));
 		Image image = imageLoader.loadImage(io);
 
-		GLenum format, internalformat, type;
+		GLenum format = 0, internalformat = 0, type = 0;
 		switch (image.getFormat()) {
 		case ImageFormat::RGB24:
 		case ImageFormat::BGR24:

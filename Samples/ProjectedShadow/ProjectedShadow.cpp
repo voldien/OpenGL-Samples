@@ -55,7 +55,7 @@ namespace glsample {
 		struct UniformProjectShadow {
 			glm::mat4 model;
 			glm::mat4 viewProjection;
-			alignas(16) glm::mat4 shadowProjectMatrix;
+			glm::mat4 shadowProjectMatrix;
 			glm::vec4 color = glm::vec4(0.1, 0.1, 0.1, 0.85);
 
 			glm::vec3 planeNormal = glm::vec3(0, 1, 0);
@@ -195,7 +195,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align the uniform buffer size to hardware specific.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			/*	*/
 			this->uniformPhongAlignSize =
@@ -209,7 +209,8 @@ namespace glsample {
 			/*	Create uniform buffer.	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	load Textures	*/
@@ -303,7 +304,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/
@@ -443,7 +444,8 @@ namespace glsample {
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				uint8_t *uniformPointer = (uint8_t *)glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+					GL_UNIFORM_BUFFER,
+					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 					this->uniformAlignBufferSize,
 					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 

@@ -7,6 +7,7 @@
 #include <Importer/Scene.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
+#include <cstddef>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace glsample {
@@ -30,12 +31,12 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
-			alignas(16) glm::mat4 lightModelProject;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
+			glm::mat4 lightModelProject;
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
@@ -50,8 +51,8 @@ namespace glsample {
 		/*	*/
 		unsigned int shadowFramebuffer;
 		unsigned int shadowTexture;
-		size_t shadowWidth = 4096 * 2;
-		size_t shadowHeight = 4096 * 2;
+		size_t shadowWidth = static_cast<long>(4096) * 2;
+		size_t shadowHeight = static_cast<long>(4096) * 2;
 
 		Scene scene;
 		Skybox skybox;
@@ -212,7 +213,7 @@ namespace glsample {
 			}
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -288,7 +289,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			{

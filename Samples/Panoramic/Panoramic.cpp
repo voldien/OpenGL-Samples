@@ -92,10 +92,12 @@ namespace glsample {
 			void draw() override {
 
 				ImGui::TextUnformatted("Lightning");
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::TextUnformatted("Material");
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
@@ -194,7 +196,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -298,7 +300,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->panoramicFrameBuffer);

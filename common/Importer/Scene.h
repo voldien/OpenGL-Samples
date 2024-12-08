@@ -18,6 +18,7 @@
 #include "GLSampleSession.h"
 #include "ImportHelper.h"
 #include "ModelImporter.h"
+#include "Skybox.h"
 #include <deque>
 
 namespace glsample {
@@ -96,6 +97,8 @@ namespace glsample {
 		std::vector<TextureAssetObject> refTexture;
 		std::vector<MaterialObject> materials;
 		std::vector<animation_object_t> animations;
+
+		//Skybox skybox;
 
 	  protected: /*	Default texture if texture from material is missing.*/
 		std::array<int, 10> default_textures;

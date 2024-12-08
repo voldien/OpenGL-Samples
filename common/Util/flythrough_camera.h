@@ -168,21 +168,25 @@ void flythrough_camera_update(float eye[3], float look[3], const float up[3], fl
 		float degs_to_down = rads_to_down / 3.14159265359f * 180.0f;
 
 		float max_pitch_degrees = degs_to_up - (90.0f - max_pitch_rotation_degrees);
-		if (max_pitch_degrees < 0.0f)
+		if (max_pitch_degrees < 0.0f) {
 			max_pitch_degrees = 0.0f;
+		}
 
 		float min_pitch_degrees = degs_to_down - (90.0f - max_pitch_rotation_degrees);
-		if (min_pitch_degrees < 0.0f)
+		if (min_pitch_degrees < 0.0f) {
 			min_pitch_degrees = 0.0f;
+		}
 
 		// rotation here is counter-clockwise because sin/cos are counter-clockwise
 		float pitch_degrees = delta_cursor_y * degrees_per_cursor_move;
 
-		if (pitch_degrees > 0.0f && pitch_degrees > max_pitch_degrees)
+		if (pitch_degrees > 0.0f && pitch_degrees > max_pitch_degrees) {
 			pitch_degrees = max_pitch_degrees;
+		}
 
-		if (pitch_degrees < 0.0f && -pitch_degrees > min_pitch_degrees)
+		if (pitch_degrees < 0.0f && -pitch_degrees > min_pitch_degrees) {
 			pitch_degrees = -min_pitch_degrees;
+		}
 
 		float pitch_rads = pitch_degrees * 3.14159265359f / 180.0f;
 		float pitch_cos = cosf(pitch_rads);
@@ -216,8 +220,9 @@ void flythrough_camera_update(float eye[3], float look[3], const float up[3], fl
 
 void flythrough_camera_look_to(const float eye[3], const float look[3], const float up[3], float view[16],
 							   unsigned int flags) {
-	if (!view)
+	if (!view) {
 		return;
+	}
 
 	float look_len = sqrtf(look[0] * look[0] + look[1] * look[1] + look[2] * look[2]);
 	float up_len = sqrtf(up[0] * up[0] + up[1] * up[1] + up[2] * up[2]);

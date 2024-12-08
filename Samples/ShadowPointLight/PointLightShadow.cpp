@@ -28,7 +28,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct point_light_t {
+		using PointLight = struct point_light_t {
 			glm::vec3 position;
 			float range;
 			glm::vec4 color;
@@ -41,7 +41,7 @@ namespace glsample {
 			float shadowStrength = 1.0f;
 			float padding0;
 			float padding1;
-		} PointLight;
+		};
 
 		static const size_t nrPointLights = 4;
 		struct uniform_buffer_block {
@@ -240,7 +240,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -346,7 +346,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			{

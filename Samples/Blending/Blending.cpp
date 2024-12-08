@@ -153,7 +153,7 @@ namespace glsample {
 			this->ground_diffuse_texture = textureImporter.loadImage2D(diffuseGroundTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
@@ -186,7 +186,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			// TODO draw multiple instance with various position and color to show the blending.

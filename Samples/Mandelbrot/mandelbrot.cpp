@@ -1,5 +1,4 @@
 #include "Input.h"
-#include "SDL_keycode.h"
 #include "SDL_scancode.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -66,7 +65,7 @@ namespace glsample {
 			}
 
 			bool showWireFrame = false;
-			int program;
+			int program{};
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -125,7 +124,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, minMapBufferSize);
 
@@ -175,7 +174,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/
@@ -248,7 +247,7 @@ namespace glsample {
 					if (this->getInput().getMouseReleased(Input::MouseButton::RIGHT_BUTTON)) {
 					}
 
-					int x, y;
+					int x = 0, y = 0;
 					if (this->getInput().getMousePosition(&x, &y)) {
 						if (this->getInput().getMousePressed(Input::MouseButton::LEFT_BUTTON)) {
 							const int deltaX = -(x - prev_move_X);

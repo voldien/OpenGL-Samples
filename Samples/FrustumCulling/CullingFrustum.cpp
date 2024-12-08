@@ -1,8 +1,13 @@
+#include "Common.h"
 #include "GLSampleSession.h"
+#include "GeometryUtil.h"
 #include "Math/Math.h"
+#include "Math3D/BoundingSphere.h"
 #include "Math3D/Math3D.h"
 #include "Scene.h"
+#include "Skybox.h"
 #include "Util/CameraController.h"
+#include "Util/Frustum.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -33,11 +38,7 @@ namespace glsample {
 			}
 		}
 
-		void renderNode(const NodeObject *node) override {
-
-			// TODO: add frustum culling.
-			Scene::renderNode(node);
-		}
+		void renderNode(const NodeObject *node) override { Scene::renderNode(node); }
 	};
 
 	/**
@@ -59,27 +60,27 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 
 			/*	*/
-			this->camera_observe_frustum.setPosition(glm::vec3(100.5f));
+			this->camera_observe_frustum.setPosition(glm::vec3(100, 1000.5f, 100));
 			this->camera_observe_frustum.lookAt(glm::vec3(0.f));
+
 			/*	*/
 			this->camera_observe_frustum.enableNavigation(false);
 			this->camera_observe_frustum.enableLook(false);
 		}
 
-		typedef struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProj;
-			glm::mat4 modelViewProjection;
+		using UniformBufferBlock = struct uniform_buffer_block {
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProj{};
+			glm::mat4 modelViewProjection{};
 
 			/*light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-
-		} UniformBufferBlock;
+		};
 
 		UniformBufferBlock uniformStageBuffer;
 
@@ -89,42 +90,42 @@ namespace glsample {
 		MeshObject plan;
 		MeshObject frustumPlanes;
 		SceneFrustum scene; /*	World Scene.	*/
+		Skybox skybox;
 
 		/*	*/
-		unsigned int graphic_program;
-		unsigned int bounding_program;
-		unsigned int wireframe_program;
-		unsigned int skybox_program;
+		unsigned int graphic_program{};
+		unsigned int bounding_program{};
+		unsigned int wireframe_program{};
+		unsigned int hyperplane_program{};
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_instance_buffer_binding = 1;
-		unsigned int uniform_buffer;
-		unsigned int uniform_instance_buffer;
+		unsigned int uniform_buffer{};
+		unsigned int uniform_instance_buffer{};
 		const size_t nrUniformBuffers = 3;
 		const size_t nrCameras = 2;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
-		size_t uniformLightBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceSize = 0;
 
 		/*	*/
 		CameraController camera;
 		CameraController camera_observe_frustum;
 
+		std::queue<const NodeObject *> mainCameraNodeQueue;
+		std::queue<const NodeObject *> secondCameraNodeQueue;
+
 		size_t instanceBatch = 0;
 
-		/*	FrustumCulling Rendering Path.	*/ // TODO add better shader.
+		/*	FrustumCulling Rendering Path.	*/
 		const std::string vertexShaderPath = "Shaders/texture/texture.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/texture/texture.frag.spv";
-
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 		const std::string vertexBoundingShaderPath = "Shaders/bounding/boundingbox.vert.spv";
 		const std::string fragmentBoundingShaderPath = "Shaders/bounding/boundingbox.frag.spv";
 
-		const std::string vertexHyperplaneShaderPath = "Shaders/blending/blending.vert.spv";
-		const std::string fragmentHyperplaneShaderPath = "Shaders/blending/blending.frag.spv";
+		const std::string vertexHyperplaneShaderPath = "Shaders/svm/hyperplane_simple.vert.spv";
+		const std::string fragmentHyperplaneShaderPath = "Shaders/svm/hyperplane_simple.frag.spv";
 
 		const std::string vertexBlendShaderPath = "Shaders/blending/blending.vert.spv";
 		const std::string fragmentBlendShaderPath = "Shaders/blending/blending.frag.spv";
@@ -138,23 +139,27 @@ namespace glsample {
 			void draw() override {
 
 				ImGui::TextUnformatted("Light Settings");
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				ImGui::TextUnformatted("Debug Settings");
-				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Show Frustum", &this->showFrustum);
-				ImGui::Checkbox("Show Bounds", &this->showBounds);
-				ImGui::Checkbox("Show Frustum View", &this->showFrustumView);
-				ImGui::Checkbox("Frustum Culling", &this->frustumCulling);
+				ImGui::Checkbox("Show Bounds In View", &this->showBoundsInMainView);
+				ImGui::Checkbox("Show Bounds in Second Camera", &this->showBoundIn2Camera);
+				ImGui::Checkbox("Show Second Camera View", &this->showSecondCameraView);
+				ImGui::Checkbox("Frustum Culling", &this->useFrustumCulling);
+				ImGui::Checkbox("Sphere Culling", &this->useSphereCulling);
 			}
 
-			bool showWireFrame = false;
-			bool frustumCulling = true;
+			bool useFrustumCulling = true;
 			bool showFrustum = true;
-			bool showBounds = true;
-			bool showFrustumView = true;
+			bool showBoundIn2Camera = true;
+			bool showBoundsInMainView = true;
+			bool showSecondCameraView = true;
+			bool useSphereCulling = false;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -166,7 +171,6 @@ namespace glsample {
 			this->scene.release();
 
 			glDeleteProgram(this->graphic_program);
-			glDeleteProgram(this->skybox_program);
 			glDeleteProgram(this->bounding_program);
 			glDeleteProgram(this->wireframe_program);
 
@@ -197,12 +201,6 @@ namespace glsample {
 					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
 
 				/*	Load shader binaries.	*/
-				const std::vector<uint32_t> vertex_skybox_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_skybox_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
-
-				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> vertex_bound_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexBoundingShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_bound_binary =
@@ -217,10 +215,6 @@ namespace glsample {
 				/*	*/
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
-
-				/*	Create skybox graphic pipeline program.	*/
-				this->skybox_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 
 				/*	Load shader	*/
 				this->graphic_program =
@@ -252,7 +246,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -267,7 +261,7 @@ namespace glsample {
 			/*	Setup instance buffer.	*/
 			{
 				/*	*/
-				GLint uniformMaxSize;
+				GLint uniformMaxSize = 0;
 				glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
 				this->instanceBatch = std::min<size_t>(uniformMaxSize / sizeof(glm::mat4), 512);
 
@@ -285,74 +279,19 @@ namespace glsample {
 			modelLoader.loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom<SceneFrustum>(modelLoader);
 
+			/*	load Skybox Textures	*/
+			TextureImporter textureImporter(this->getFileSystem());
+			unsigned int skytexture = textureImporter.loadImage2D(panoramicPath);
+			skybox.Init(skytexture, Skybox::loadDefaultProgram(this->getFileSystem()));
+
 			/*	Load Light geometry.	*/
 			{
-
-				// TODO: add helper method to merge multiple.
-				std::vector<ProceduralGeometry::Vertex> wireCubeVertices;
-				std::vector<unsigned int> wireCubeIndices;
-				ProceduralGeometry::generateCube(1, wireCubeVertices, wireCubeIndices, 1);
-
-				std::vector<ProceduralGeometry::Vertex> planCubeVertices;
-				std::vector<unsigned int> planCubeIndices;
-				ProceduralGeometry::generatePlan(1, planCubeVertices, planCubeIndices);
+				Common::loadCube(boundingBox, 1);
 
 				std::vector<ProceduralGeometry::Vertex> frustumVertices;
 				/*	Update frustum geometry.	*/
 				const Matrix4x4 proj = GLM2E(camera.getProjectionMatrix());
 				ProceduralGeometry::createFrustum(frustumVertices, proj);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenVertexArrays(1, &this->frustum.vao);
-				glBindVertexArray(this->frustum.vao);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenBuffers(1, &this->frustum.vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, frustum.vbo);
-				glBufferData(GL_ARRAY_BUFFER,
-							 (wireCubeVertices.size() + frustumVertices.size()) * sizeof(ProceduralGeometry::Vertex),
-							 nullptr, GL_STATIC_DRAW);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, wireCubeVertices.size() * sizeof(ProceduralGeometry::Vertex),
-								wireCubeVertices.data());
-				glBufferSubData(GL_ARRAY_BUFFER, wireCubeVertices.size() * sizeof(ProceduralGeometry::Vertex),
-								frustumVertices.size() * sizeof(ProceduralGeometry::Vertex), frustumVertices.data());
-
-				/*	*/
-				glGenBuffers(1, &this->frustum.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, frustum.ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, (wireCubeIndices.size()) * sizeof(wireCubeIndices[0]), nullptr,
-							 GL_STATIC_DRAW);
-
-				glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, wireCubeIndices.size() * sizeof(wireCubeIndices[0]),
-								wireCubeIndices.data());
-
-				this->frustum.nrIndicesElements = wireCubeIndices.size();
-				this->boundingBox.nrIndicesElements = wireCubeIndices.size();
-
-				this->boundingBox.vao = frustum.vao;
-				// this->boundingBox.indices_offset = wireCubeVertices.size();
-				// this->boundingBox.vertex_offset = wireCubeVertices.size();
-
-				/*	Vertex.	*/
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-				/*	UV.	*/
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(12));
-
-				/*	Normal.	*/
-				glEnableVertexAttribArray(2);
-				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(20));
-
-				/*	Tangent.	*/
-				glEnableVertexAttribArray(3);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(32));
-
-				glBindVertexArray(0);
 			}
 		}
 
@@ -374,7 +313,7 @@ namespace glsample {
 		void draw() override {
 
 			/*	*/
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/
@@ -397,10 +336,12 @@ namespace glsample {
 				glUseProgram(this->graphic_program);
 				this->scene.render(this->mainCameraNodeQueue);
 				glUseProgram(0);
+				this->skybox.Render(this->camera);
 
-				if (this->frustumCullingSettingComponent->showBounds) {
+				if (this->frustumCullingSettingComponent->showBoundsInMainView) {
+					auto copyNode = this->secondCameraNodeQueue;
 					glUseProgram(this->bounding_program);
-					this->renderBoundingBox(this->camera, this->mainCameraNodeQueue);
+					this->renderBoundingBox(this->camera, copyNode);
 					glUseProgram(0);
 				}
 			}
@@ -412,7 +353,7 @@ namespace glsample {
 								  this->uniformAlignBufferSize,
 							  this->uniformAlignBufferSize);
 
-			if (this->frustumCullingSettingComponent->showFrustumView) {
+			if (this->frustumCullingSettingComponent->showSecondCameraView) {
 
 				/*	Draw from second camera */
 				{
@@ -431,9 +372,10 @@ namespace glsample {
 
 					glUseProgram(this->graphic_program);
 
-					this->scene.render();
-
+					auto copy_observer_camera_node = this->secondCameraNodeQueue;
+					this->scene.render(copy_observer_camera_node);
 					glUseProgram(0);
+					this->skybox.Render(this->camera_observe_frustum);
 
 					if (this->frustumCullingSettingComponent->showFrustum) {
 						glUseProgram(this->bounding_program);
@@ -441,7 +383,7 @@ namespace glsample {
 						glUseProgram(0);
 					}
 
-					if (this->frustumCullingSettingComponent->showBounds) {
+					if (this->frustumCullingSettingComponent->showBoundIn2Camera) {
 						glUseProgram(this->bounding_program);
 						this->renderBoundingBox(this->camera_observe_frustum, this->secondCameraNodeQueue);
 						glUseProgram(0);
@@ -451,8 +393,6 @@ namespace glsample {
 				}
 			}
 		}
-		std::queue<const NodeObject *> mainCameraNodeQueue;
-		std::queue<const NodeObject *> secondCameraNodeQueue;
 
 		void update() override {
 
@@ -500,23 +440,39 @@ namespace glsample {
 				for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
 
 					/*	Compute world space AABB.	*/
-					const AABB aabb = fragcore::AABB::createMinMax(
-						(GLM2E<float, 4, 4>(node->modelGlobalTransform) *
-						 Vector4(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2], 0))
-							.head(3),
-						(GLM2E<float, 4, 4>(node->modelGlobalTransform) *
-						 Vector4(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2], 0))
-							.head(3));
+					const AABB aabb = GeometryUtility::computeBoundingBox(
+						fragcore::AABB::createMinMax(
+							Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
+							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
+						GLM2E<float, 4, 4>(node->modelGlobalTransform));
 
-					if (this->camera.intersectionAABB(aabb) || !this->frustumCullingSettingComponent->frustumCulling) {
-						/*	*/
-						mainCameraNodeQueue.push(node);
-					}
+					if (this->frustumCullingSettingComponent->useSphereCulling) {
+						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), aabb.getSize().norm());
 
-					if (this->camera_observe_frustum.intersectionAABB(aabb) ||
-						!this->frustumCullingSettingComponent->frustumCulling) {
-						/*	*/
-						secondCameraNodeQueue.push(node);
+						if (this->camera.intersectionSphere(sphere) == Frustum::In ||
+							!this->frustumCullingSettingComponent->useFrustumCulling) {
+							/*	*/
+							mainCameraNodeQueue.push(node);
+						}
+
+						if (this->camera_observe_frustum.intersectionSphere(sphere) == Frustum::In ||
+							!this->frustumCullingSettingComponent->useFrustumCulling) {
+							/*	*/
+							secondCameraNodeQueue.push(node);
+						}
+					} else {
+
+						if (this->camera.intersectionAABB(aabb) == Frustum::In ||
+							!this->frustumCullingSettingComponent->useFrustumCulling) {
+							/*	*/
+							mainCameraNodeQueue.push(node);
+						}
+
+						if (this->camera_observe_frustum.intersectionAABB(aabb) == Frustum::In ||
+							!this->frustumCullingSettingComponent->useFrustumCulling) {
+							/*	*/
+							secondCameraNodeQueue.push(node);
+						}
 					}
 				}
 			}
@@ -548,9 +504,11 @@ namespace glsample {
 					const MeshObject &refMesh = this->scene.getMeshes()[node->geometryObjectIndex[i]];
 
 					/*	*/
-					const AABB aabb = fragcore::AABB::createMinMax(
-						Vector4(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2], 0).head(3),
-						Vector4(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2], 0).head(3));
+					const AABB aabb = GeometryUtility::computeBoundingBox(
+						fragcore::AABB::createMinMax(
+							Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
+							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
+						GLM2E<float, 4, 4>(node->modelGlobalTransform));
 
 					glm::mat4 localBoundMatrix = glm::mat4(1);
 					localBoundMatrix = glm::translate(localBoundMatrix, E2GLM<float, 3>(aabb.getCenter()));
@@ -565,9 +523,9 @@ namespace glsample {
 			/*	Transfer new */
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
-				uint8_t *uniform_instance_buffer_pointer = (uint8_t *)glMapBufferRange(
+				uint8_t *uniform_instance_buffer_pointer = static_cast<uint8_t *>(glMapBufferRange(
 					GL_UNIFORM_BUFFER, ((this->getFrameCount()) % this->nrUniformBuffers) * this->uniformInstanceSize,
-					this->uniformInstanceSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+					this->uniformInstanceSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT));
 
 				/*	*/
 				memcpy(uniform_instance_buffer_pointer, instance_model_matrices.data(),
@@ -587,6 +545,12 @@ namespace glsample {
 			glEnable(GL_BLEND);
 			glBlendEquation(GL_FUNC_ADD);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			/*	*/
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize *
+								  this->nrCameras,
+							  this->uniformAlignBufferSize);
 
 			for (size_t x = 0; x < instance_model_matrices.size(); x += this->instanceBatch) {
 

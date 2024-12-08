@@ -27,11 +27,11 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 		} uniformStageBuffer;
 
@@ -141,7 +141,7 @@ namespace glsample {
 			skybox.Init(skytexture, this->skybox_program);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -210,7 +210,7 @@ namespace glsample {
 			/*	*/
 			glBindTexture(GL_TEXTURE_2D, this->depthTexture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
-						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
 
@@ -230,7 +230,7 @@ namespace glsample {
 		void draw() override {
 
 			/*	*/
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

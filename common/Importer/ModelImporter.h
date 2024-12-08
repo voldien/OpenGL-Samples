@@ -38,27 +38,27 @@
 
 namespace glsample {}
 
-typedef struct asset_object_t {
+using AssetObject = struct asset_object_t {
 	std::string name;
-} AssetObject;
+};
 
-typedef struct vertex_bone_data_t {
+using VertexBoneData = struct vertex_bone_data_t {
 	static const int NUM_BONES_PER_VERTEX = 4;
 	uint32_t IDs[NUM_BONES_PER_VERTEX];
 	float Weights[NUM_BONES_PER_VERTEX];
-} VertexBoneData;
+};
 
-typedef struct vertex_bone_buffer_t {
+using VertexBoneBuffer = struct vertex_bone_buffer_t {
 	std::vector<VertexBoneData> vertexBoneData;
-} VertexBoneBuffer;
+};
 
-typedef struct material_texture_sampling_t {
+using MaterialTextureSampling = struct material_texture_sampling_t {
 	unsigned int wrapping;
 	unsigned int filtering;
 	unsigned int mapping;
-} MaterialTextureSampling;
+};
 
-typedef struct material_object_t : public AssetObject {
+using MaterialObject = struct material_object_t : public AssetObject {
 	unsigned int program; // TODO: relocate.
 
 	/*	Texture index.	*/
@@ -99,9 +99,9 @@ typedef struct material_object_t : public AssetObject {
 	/*	*/
 
 	unsigned int shade_model; /*	aiShadingMode	*/
-} MaterialObject;
+};
 
-typedef struct node_object_t : public AssetObject {
+using NodeObject = struct node_object_t : public AssetObject {
 
 	/*	*/
 	glm::vec3 localPosition;
@@ -119,67 +119,62 @@ typedef struct node_object_t : public AssetObject {
 	std::vector<unsigned int> materialIndex;
 
 	struct node_object_t *parent = nullptr;
-} NodeObject;
+};
 
-typedef struct mesh_data_t : public AssetObject {
+using MeshData = struct mesh_data_t : public AssetObject {
 	/*	*/
-	size_t nrVertices;
-	size_t nrIndices;
+	size_t nrVertices{};
+	size_t nrIndices{};
 
-	size_t vertexStride;
-	size_t indicesStride;
+	size_t vertexStride{};
+	size_t indicesStride{};
 
 	/*	*/
-	void *vertexData;
-	void *indicesData;
+	void *vertexData{};
+	void *indicesData{};
+};
 
-} MeshData;
+using MorpthTarget = struct morph_target {};
 
-typedef struct morph_target {
-
-} MorpthTarget;
-
-typedef struct model_system_object : public AssetObject {
+using ModelSystemObject = struct model_system_object : public AssetObject {
 
 	// MeshData mesh;
 	// MeshData bone
-	size_t nrVertices;
-	size_t nrIndices;
-	size_t vertexStride;
-	size_t indicesStride;
+	size_t nrVertices{};
+	size_t nrIndices{};
+	size_t vertexStride{};
+	size_t indicesStride{};
 
-	void *vertexData;
-	void *indicesData;
+	void *vertexData{};
+	void *indicesData{};
 
-	unsigned int material_index;
+	unsigned int material_index{};
 
-	fragcore::Bound bound;
+	fragcore::Bound bound{};
 
 	/*	*/
-	unsigned int vertexOffset;
-	unsigned int normalOffset;
-	unsigned int tangentOffset;
-	unsigned int uvOffset;
-	unsigned int boneOffset;
-	unsigned int boneWeightOffset;
-	unsigned int boneIndexOffset;
+	unsigned int vertexOffset{};
+	unsigned int normalOffset{};
+	unsigned int tangentOffset{};
+	unsigned int uvOffset{};
+	unsigned int boneOffset{};
+	unsigned int boneWeightOffset{};
+	unsigned int boneIndexOffset{};
 
-	unsigned int primitiveType;
+	unsigned int primitiveType{};
+};
 
-} ModelSystemObject;
+using Bone = struct bone_t : public AssetObject {
+	glm::mat4 inverseBoneMatrix{};
+	size_t boneIndex{};
+};
 
-typedef struct bone_t : public AssetObject {
-	glm::mat4 inverseBoneMatrix;
-	size_t boneIndex;
-} Bone;
-
-typedef struct model_skeleton_t : public AssetObject {
+using SkeletonSystem = struct model_skeleton_t : public AssetObject {
 
 	std::map<std::string, Bone> bones;
+};
 
-} SkeletonSystem;
-
-typedef struct texture_asset_object_t {
+using TextureAssetObject = struct texture_asset_object_t {
 	unsigned int texture = 0;
 	size_t width = 0;
 	size_t height = 0;
@@ -187,26 +182,25 @@ typedef struct texture_asset_object_t {
 	size_t dataSize = 0;
 	std::string filepath;
 	char *data = nullptr;
+};
 
-} TextureAssetObject;
-
-typedef struct key_frame_t {
+using KeyFrame = struct key_frame_t {
 	float time;
 	float value;
 	float tangentIn;
 	float tangentOut;
-} KeyFrame;
+};
 
-typedef struct curve_t : public AssetObject {
+using Curve = struct curve_t : public AssetObject {
 	std::vector<KeyFrame> keyframes;
-} Curve;
+};
 
-typedef struct animation_object_t : public AssetObject {
+using AnimationObject = struct animation_object_t : public AssetObject {
 	std::vector<Curve> curves;
 	float duration;
-} AnimationObject;
+};
 
-typedef struct light_object_t : public AssetObject {
+using LightObject = struct light_object_t : public AssetObject {
 
 	// C_ENUM aiLightSourceType mType;
 
@@ -231,7 +225,7 @@ typedef struct light_object_t : public AssetObject {
 	float mAngleInnerCone;
 
 	float mAngleOuterCone;
-} LightObject;
+};
 
 using namespace Assimp;
 
@@ -279,7 +273,7 @@ class FVDECLSPEC ModelImporter {
 	void convert2Adjcent(const aiMesh *mesh, std::vector<unsigned int> &indices);
 
   public:
-	const std::vector<NodeObject *> getNodes() const noexcept { return this->nodes; }
+	std::vector<NodeObject *> getNodes() const noexcept { return this->nodes; }
 	const std::vector<ModelSystemObject> &getModels() const noexcept { return this->models; }
 	const NodeObject *getNodeRoot() const noexcept { return this->rootNode; }
 
@@ -302,7 +296,7 @@ class FVDECLSPEC ModelImporter {
 	fragcore::IFileSystem *fileSystem;
 
 	std::string filepath;
-	aiScene *sceneRef;
+	aiScene *sceneRef{};
 	std::vector<NodeObject *> nodes;
 
 	std::vector<ModelSystemObject> models;
@@ -317,6 +311,6 @@ class FVDECLSPEC ModelImporter {
 	std::vector<AnimationObject> animations;
 	std::map<std::string, VertexBoneData> vertexBoneData;
 
-	NodeObject *rootNode;
-	glm::mat4 global;
+	NodeObject *rootNode{};
+	glm::mat4 global{};
 };

@@ -30,6 +30,7 @@ namespace glsample {
 	 */
 	class FVDECLSPEC Frustum : public Camera<float> {
 	  public:
+		virtual ~Frustum() = default;
 		/**
 		 *	Intersection.
 		 */

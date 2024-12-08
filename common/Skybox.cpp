@@ -14,7 +14,7 @@ using namespace fragcore;
 
 namespace glsample {
 
-	Skybox::Skybox() {}
+	Skybox::Skybox() = default;
 	Skybox::~Skybox() {
 		glDeleteBuffers(1, &this->SkyboxCube.vbo);
 		glDeleteBuffers(1, &this->SkyboxCube.ibo);
@@ -23,7 +23,7 @@ namespace glsample {
 	void Skybox::Init(unsigned int texture, unsigned int program) {
 
 		/*	*/
-		GLint minMapBufferSize;
+		GLint minMapBufferSize = 0;
 		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 		this->uniformAlignSize = Math::align<size_t>(sizeof(uniform_buffer_block), (size_t)minMapBufferSize);
 
@@ -66,10 +66,11 @@ namespace glsample {
 							  (frameIndex % this->nrUniformBuffer) * this->uniformAlignSize, this->uniformAlignSize);
 
 			/*	Extract current state. to restore afterward rendered the skybox.	*/
-			GLint cullstate, blend, depth_test, depth_func;
+			GLint cullstate = 0, blend = 0, depth_test = 0, depth_func = 0;
 			glGetIntegerv(GL_CULL_FACE, &cullstate);
 			glGetIntegerv(GL_BLEND, &blend);
 			glGetIntegerv(GL_DEPTH_TEST, &depth_test);
+			glGetIntegerv(GL_DEPTH_FUNC, &depth_func);
 			glGetIntegerv(GL_DEPTH_FUNC, &depth_func);
 
 			/*	*/
@@ -78,6 +79,7 @@ namespace glsample {
 			glDisable(GL_BLEND);
 			glEnable(GL_DEPTH_TEST);
 			glDepthFunc(GL_LEQUAL);
+			glDepthMask(GL_FALSE);
 
 			/*	*/
 			glUseProgram(this->skybox_program);
@@ -99,17 +101,24 @@ namespace glsample {
 
 			if (cullstate) {
 				glEnable(GL_CULL_FACE);
+			} else {
+				glDisable(GL_CULL_FACE);
 			}
 
 			if (blend) {
 				glEnable(GL_BLEND);
+			} else {
+				glDisable(GL_BLEND);
 			}
 
 			if (depth_test) {
 				glEnable(GL_DEPTH_TEST);
+			} else {
+				glDisable(GL_DEPTH_TEST);
 			}
 
 			glDepthFunc(depth_func);
+			glDepthMask(GL_TRUE);
 		}
 
 		this->frameIndex = (this->frameIndex + 1) % this->nrUniformBuffer;

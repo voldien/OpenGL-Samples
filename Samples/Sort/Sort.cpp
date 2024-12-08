@@ -71,7 +71,7 @@ namespace glsample {
 			}
 
 			bool showWireFrame = false;
-			int program;
+			int program{};
 
 		  private:
 			struct uniform_buffer_block_t &uniform;
@@ -148,7 +148,7 @@ namespace glsample {
 			}
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, minMapBufferSize);
 
@@ -197,7 +197,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

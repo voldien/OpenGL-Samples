@@ -70,11 +70,11 @@ namespace glsample {
 		} ParticleSetting;
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 			glm::vec4 color = glm::vec4(1);
 
 			/*	*/
@@ -289,7 +289,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, minMapBufferSize);
 
@@ -300,7 +300,7 @@ namespace glsample {
 			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniformStageBuffer), &uniformStageBuffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			GLint minStorageMapBufferSize;
+			GLint minStorageMapBufferSize = 0;
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageMapBufferSize);
 
 			/*	Compute number of particles and memory size required, aligned to hardware min alignment.	*/
@@ -423,7 +423,7 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/
@@ -516,7 +516,7 @@ namespace glsample {
 					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 
 				if (this->getInput().getMousePressed(Input::MouseButton::LEFT_BUTTON)) {
-					int x, y;
+					int x = 0, y = 0;
 					this->getInput().getMousePosition(&x, &y);
 					this->uniformStageBuffer.motion.normalizedPos =
 						glm::vec2(1, 1) - (glm::vec2(x, y) / glm::vec2(this->width(), this->height()));

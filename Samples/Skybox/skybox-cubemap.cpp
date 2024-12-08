@@ -116,7 +116,7 @@ namespace glsample {
 			this->skybox_cubemap = textureImporter.loadCubeMap(cubemapPaths);
 
 			/*  */
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSize = Math::align<size_t>(this->uniformSize, (size_t)minMapBufferSize);
 
@@ -156,7 +156,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			getSize(&width, &height);
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,

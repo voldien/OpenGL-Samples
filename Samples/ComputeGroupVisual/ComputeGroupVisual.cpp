@@ -45,11 +45,11 @@ namespace glsample {
 		} InstanceData;
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);

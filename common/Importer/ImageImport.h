@@ -38,6 +38,10 @@ namespace glsample {
 	 */
 	class FVDECLSPEC TextureImporter {
 	  public:
+		TextureImporter(const TextureImporter &) = delete;
+		TextureImporter(TextureImporter &&) = delete;
+		TextureImporter &operator=(const TextureImporter &) = delete;
+		TextureImporter &operator=(TextureImporter &&) = delete;
 		TextureImporter(fragcore::IFileSystem *filesystem);
 		virtual ~TextureImporter();
 

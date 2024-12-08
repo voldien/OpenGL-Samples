@@ -83,7 +83,6 @@ const glm::vec3 CameraController::getPosition() const noexcept { return this->po
 void CameraController::setPosition(const glm::vec3 &position) noexcept {
 	this->pos = position;
 	this->update();
-	this->updateFrustum();
 }
 
 const glm::vec3 &CameraController::getUp() const noexcept { return this->up; }
@@ -91,7 +90,6 @@ const glm::vec3 &CameraController::getUp() const noexcept { return this->up; }
 void CameraController::lookAt(const glm::vec3 &position) noexcept {
 	this->look = glm::normalize(position - this->getPosition());
 	this->update();
-	this->updateFrustum();
 }
 
 bool CameraController::hasMoved() const noexcept { return true; }
@@ -102,6 +100,7 @@ void CameraController::update() noexcept {
 }
 
 void CameraController::updateFrustum() {
+
 	/*	*/
 	const Vector3 position = Vector3(this->pos[0], this->pos[1], this->pos[2]);
 	const Vector3 look = Vector3(this->look[0], this->look[1], this->look[2]).normalized();

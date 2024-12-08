@@ -7,6 +7,7 @@
 #include <OpenALAudioInterface.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
+#include <cstddef>
 #include <cstdint>
 #include <fmt/core.h>
 #include <glm/glm.hpp>
@@ -48,14 +49,14 @@ namespace glsample {
 			this->addUIComponent(this->videoplaybackSettingComponent);
 		}
 
-		typedef struct _vertex_t {
+		using Vertex = struct _vertex_t {
 			float pos[3];
 			float uv[2];
-		} Vertex;
+		};
 
 		static const size_t nrVideoFrames = 2;
 		int nthVideoFrame = 0;
-		int frameSize;
+		int frameSize{};
 
 		/*  */
 		struct AVFormatContext *pformatCtx = nullptr;
@@ -63,14 +64,14 @@ namespace glsample {
 		struct AVCodecContext *pAudioCtx = nullptr;
 
 		/*  */
-		int videoStream;
-		int audioStream;
-		size_t video_width;
-		size_t video_height;
+		int videoStream{};
+		int audioStream{};
+		size_t video_width{};
+		size_t video_height{};
 
-		size_t audio_sample_rate;
-		size_t audio_bit_rate;
-		size_t audio_channel;
+		size_t audio_sample_rate{};
+		size_t audio_bit_rate{};
+		size_t audio_channel{};
 
 		/*  */
 		struct AVFrame *frame = nullptr;
@@ -81,37 +82,37 @@ namespace glsample {
 		struct SwrContext *swrContext = nullptr;
 		uint8_t **destBuffer = nullptr;
 
-		int destBufferLinesize;
-		unsigned int flag;
-		double video_clock;
-		double frame_timer;
-		double frame_last_pts;
-		double frame_last_delay;
+		int destBufferLinesize{};
+		unsigned int flag{};
+		double video_clock{};
+		double frame_timer{};
+		double frame_last_pts{};
+		double frame_last_delay{};
 
 		/*  */
-		unsigned int videoFramebuffer;
-		unsigned int vbo;
-		unsigned vao;
+		unsigned int videoFramebuffer{};
+		unsigned int vbo{};
+		unsigned vao{};
 		MeshObject plane;
 
 		/*	Audio.	*/ // TODO fix
-		fragcore::AudioClip *clip;
-		fragcore::AudioListener *listener;
-		fragcore::AudioSource *audioSource;
+		fragcore::AudioClip *clip{};
+		fragcore::AudioListener *listener{};
+		fragcore::AudioSource *audioSource{};
 		std::shared_ptr<fragcore::OpenALAudioInterface> audioInterface;
 
-		unsigned int mSource;
+		unsigned int mSource{};
 		std::vector<unsigned int> mAudioBuffers;
 		unsigned int bufferIndex = 0;
 
 		/*  */
-		unsigned int videoplayback_program;
+		unsigned int videoplayback_program{};
 
 		/*  */
 		size_t videoStageBufferMemorySize = 0;
-		std::array<unsigned int, nrVideoFrames> videoFrameTextures;
-		std::array<void *, nrVideoFrames> videoMapBuffer;
-		unsigned int videoStagingTextureBuffer; // PBO buffers
+		std::array<unsigned int, nrVideoFrames> videoFrameTextures{};
+		std::array<void *, nrVideoFrames> videoMapBuffer{};
+		unsigned int videoStagingTextureBuffer{}; // PBO buffers
 
 		class VideoPlaybackSettingComponent : public nekomimi::UIComponent {
 
@@ -169,7 +170,7 @@ namespace glsample {
 		}
 
 		void loadVideo(const char *path) {
-			int result;
+			int result = 0;
 
 			/*	*/
 			this->pformatCtx = avformat_alloc_context();
@@ -230,10 +231,11 @@ namespace glsample {
 					AVCodecParameters *pAudioCodecParam = audio_st->codecpar;
 
 					/*  Create audio clip.  */
-					AVCodec *audioCodec = avcodec_find_decoder(pAudioCodecParam->codec_id);
+					const AVCodec *audioCodec = avcodec_find_decoder(pAudioCodecParam->codec_id);
 					this->pAudioCtx = avcodec_alloc_context3(audioCodec);
-					if (!this->pAudioCtx)
+					if (!this->pAudioCtx) {
 						throw cxxexcept::RuntimeException("Failed to create audio decode context");
+					}
 
 					result = avcodec_parameters_to_context(this->pAudioCtx, pAudioCodecParam);
 					if (result < 0) {
@@ -256,7 +258,7 @@ namespace glsample {
 
 				AVCodecParameters *pVideoCodecParam = video_st->codecpar;
 
-				AVCodec *pVideoCodec = avcodec_find_decoder(pVideoCodecParam->codec_id);
+				const AVCodec *pVideoCodec = avcodec_find_decoder(pVideoCodecParam->codec_id);
 				if (pVideoCodec == nullptr) {
 					throw cxxexcept::RuntimeException("failed to find decoder");
 				}
@@ -301,10 +303,9 @@ namespace glsample {
 					this->pVideoCtx->height, AV_PIX_FMT_RGBA, SWS_BICUBIC, nullptr, nullptr, nullptr);
 				if (this->sws_ctx == nullptr) {
 				}
-				// Initialize SWR context
-				this->swrContext = swr_alloc_set_opts(nullptr, pAudioCtx->channel_layout, AV_SAMPLE_FMT_FLT,
-													  pAudioCtx->sample_rate, pAudioCtx->channel_layout,
-													  pAudioCtx->sample_fmt, pAudioCtx->sample_rate, 0, nullptr);
+				// Initialize SWR context swr_alloc_set_opts2
+				swr_alloc_set_opts2(&this->swrContext, &pAudioCtx->ch_layout, AV_SAMPLE_FMT_FLT, pAudioCtx->sample_rate,
+									&pAudioCtx->ch_layout, pAudioCtx->sample_fmt, pAudioCtx->sample_rate, 0, nullptr);
 
 				if ((result = swr_init(swrContext)) != 0) {
 					char buf[AV_ERROR_MAX_STRING_SIZE];
@@ -400,7 +401,8 @@ namespace glsample {
 			this->videoStageBufferMemorySize = this->video_width * this->video_height * pixelSize;
 			glGenBuffers(1, &videoStagingTextureBuffer);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStagingTextureBuffer);
-			glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, this->videoStageBufferMemorySize * this->nrVideoFrames, nullptr,
+			glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB,
+						 this->videoStageBufferMemorySize * glsample::VideoPlayback::nrVideoFrames, nullptr,
 						 GL_DYNAMIC_COPY);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
@@ -447,7 +449,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/
@@ -483,13 +485,13 @@ namespace glsample {
 		void update() override {
 
 			/*  */
-			AVPacket pkt = {0};
+			AVPacket pkt = {nullptr};
 			AVPacket *packet = av_packet_alloc();
 			if (!packet) {
 				throw cxxexcept::RuntimeException("failed to allocated memory for AVPacket");
 			}
 
-			int res, result;
+			int res = 0, result = 0;
 
 			res = av_read_frame(this->pformatCtx, packet);
 
@@ -509,7 +511,8 @@ namespace glsample {
 						if (result == AVERROR(EAGAIN) || result == AVERROR_EOF) {
 							this->getLogger().debug("Failed to recv videoframe {}", error_message(result));
 							continue;
-						} else if (result < 0) {
+						}
+						if (result < 0) {
 							throw cxxexcept::RuntimeException(" : {}", error_message(result));
 						}
 
@@ -517,7 +520,8 @@ namespace glsample {
 
 							/*	*/
 							this->frame->data[0] =
-								this->frame->data[0] + this->frame->linesize[0] * (this->pVideoCtx->height - 1);
+								this->frame->data[0] +
+								static_cast<ptrdiff_t>(this->frame->linesize[0] * (this->pVideoCtx->height - 1));
 							this->frame->data[1] =
 								this->frame->data[1] + this->frame->linesize[0] * this->pVideoCtx->height / 4 - 1;
 							this->frame->data[2] =
@@ -548,7 +552,7 @@ namespace glsample {
 							glBindTexture(GL_TEXTURE_2D, 0);
 							glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
-							this->nthVideoFrame = (this->nthVideoFrame + 1) % this->nrVideoFrames;
+							this->nthVideoFrame = (this->nthVideoFrame + 1) % glsample::VideoPlayback::nrVideoFrames;
 						}
 					}
 				} else if (packet->stream_index == this->audioStream) {
@@ -565,7 +569,8 @@ namespace glsample {
 						if (result == AVERROR(EAGAIN) || result == AVERROR_EOF) {
 							this->getLogger().debug("Failed to recv audio frame {}", error_message(result));
 							continue;
-						} else if (result < 0) {
+						}
+						if (result < 0) {
 							throw cxxexcept::RuntimeException(" : {}", error_message(result));
 						}
 
@@ -589,12 +594,12 @@ namespace glsample {
 							av_get_bytes_per_sample((AVSampleFormat)this->frame->format) * channels * outputSamples;
 						alFormat = AL_FORMAT_STEREO_FLOAT32;
 
-						ALint processed, queued, currentBuffer;
+						ALint processed = 0, queued = 0, currentBuffer = 0;
 						FAOPAL_VALIDATE(alGetSourcei((ALuint)this->mSource, AL_BUFFERS_PROCESSED, &processed));
 						FAOPAL_VALIDATE(alGetSourcei((ALuint)this->mSource, AL_BUFFERS_QUEUED, &queued));
 
 						while (processed > 0) {
-							ALuint bid;
+							ALuint bid = 0;
 							FAOPAL_VALIDATE(alSourceUnqueueBuffers(this->mSource, 1, &bid));
 							--processed;
 						}
@@ -612,7 +617,7 @@ namespace glsample {
 							this->bufferIndex = (this->bufferIndex + 1) % this->mAudioBuffers.size();
 
 							/* Check that the source is playing. */
-							int state;
+							int state = 0;
 							FAOPAL_VALIDATE(alGetSourcei(this->mSource, AL_SOURCE_STATE, &state));
 							if (state == AL_STOPPED) {
 								alSourceRewind(this->mSource);
@@ -622,7 +627,7 @@ namespace glsample {
 						}
 
 						/*	*/
-						ALint playStatus;
+						ALint playStatus = 0;
 						FAOPAL_VALIDATE(alGetSourcei(this->mSource, AL_SOURCE_STATE, &playStatus));
 						if (playStatus != AL_PLAYING) {
 							FAOPAL_VALIDATE(alSourcePlay(this->mSource));

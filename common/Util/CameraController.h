@@ -14,14 +14,12 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Math3D/Math3D.h"
 #include "Util/Frustum.h"
 #include <SDL2/SDL_keyboard.h>
 #include <SDLInput.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
-
 
 namespace glsample {
 
@@ -31,6 +29,7 @@ namespace glsample {
 	 */
 	class CameraController : public Frustum {
 	  public:
+		virtual ~CameraController() = default;
 		CameraController() = default;
 
 		void update(const float deltaTime) noexcept;
@@ -68,9 +67,9 @@ namespace glsample {
 		bool enabled_Navigation = true;
 		bool enabled_Look = true;
 
-		int x, y, xprev, yprev;
+		int x{}, y{}, xprev{}, yprev{};
 
-		glm::mat4 view;
+		glm::mat4 view{};
 
 		glm::vec3 pos = {0.0f, 1.0f, 0.0f};
 		glm::vec3 look = {0.0f, 0.0f, 1.0f};

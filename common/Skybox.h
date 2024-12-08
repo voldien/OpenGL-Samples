@@ -35,10 +35,14 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			float exposure = 1.0f;
-			float gamma = 2.2;
-		} uniform_stage_buffer;
+			float gamma = 2.2f;
+		} FV_ALIGN(4) uniform_stage_buffer;
 
 		Skybox();
+		Skybox(const Skybox &) = default;
+		Skybox(Skybox &&) = delete;
+		Skybox &operator=(const Skybox &) = delete;
+		Skybox &operator=(Skybox &&) = delete;
 		virtual ~Skybox();
 
 		virtual void Init(unsigned int texture, unsigned int program);

@@ -57,8 +57,8 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 
 	glGetProgramiv(this->irradiance_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 
-	GLint width;
-	GLint height;
+	GLint width = 0;
+	GLint height = 0;
 
 	glBindTexture(GL_TEXTURE_2D, irradiance_target);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);

@@ -47,12 +47,12 @@ namespace glsample {
 		};
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 viewProjection;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 viewProjection;
+			glm::mat4 modelViewProjection;
 
 			struct light_settings lightsettings;
 			struct tessellation_settings tessellation;

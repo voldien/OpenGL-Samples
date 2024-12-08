@@ -154,7 +154,7 @@ namespace glsample {
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath, ColorSpace::SRGB);
 			this->heightmap_texture = textureImporter.loadImage2D(heightTexturePath, ColorSpace::Raw);
 
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSize = Math::align<size_t>(this->uniformSize, (size_t)minMapBufferSize);
 
@@ -210,7 +210,7 @@ namespace glsample {
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
-			int width, height;
+			int width = 0, height = 0;
 			getSize(&width, &height);
 
 			/*	*/

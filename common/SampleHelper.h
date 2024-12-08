@@ -38,7 +38,7 @@ namespace glsample {
 		Height	/*	*/
 	};
 
-	typedef struct fog_settings_t {
+	using FogSettings = struct fog_settings_t {
 		glm::vec4 fogColor = glm::vec4(0.3, 0.3, 0.45, 1);
 
 		float cameraNear = 0.15f;
@@ -50,9 +50,9 @@ namespace glsample {
 		FogType fogType = FogType::Exp;
 		float fogIntensity = 1.0f;
 		float fogHeight = 0;
-	} FogSettings;
+	};
 
-	typedef struct material_instance_t {
+	using MaterialInstance = struct material_instance_t {
 		glm::mat4 model;
 
 		/*	Color attributes.	*/
@@ -64,14 +64,14 @@ namespace glsample {
 		glm::vec4 reflectivity;
 
 		/*	*/
-	} MaterialInstance;
+	};
 
-	typedef struct directional_light_t {
+	using DirectionalLight = struct directional_light_t {
 		glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	} DirectionalLight;
+	};
 
-	typedef struct point_light_instance_t {
+	using PointLightInstance = struct point_light_instance_t {
 		glm::vec3 position;
 		float range;
 		glm::vec4 color;
@@ -81,9 +81,9 @@ namespace glsample {
 		float constant_attenuation;
 		float linear_attenuation;
 		float qudratic_attenuation;
-	} PointLightInstance;
+	};
 
-	typedef struct camera_instance_t {
+	using CameraInstance = struct camera_instance_t {
 		float near;
 		float far;
 		float aspect;
@@ -91,7 +91,7 @@ namespace glsample {
 		glm::vec4 position;
 		glm::vec4 viewDir;
 		glm::vec4 position_size;
-	} CameraInstance;
+	};
 
 	template <typename T, int m, int n>
 	inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, n> &em) noexcept {

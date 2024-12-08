@@ -89,7 +89,7 @@ int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std:
 	int shader_geometry = 0;
 	int shader_tese = 0;
 	int shader_tesc = 0;
-	int lstatus;
+	int lstatus = 0;
 
 	if (program < 0) {
 		return 0;
@@ -196,7 +196,7 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 	const int program = glCreateProgram();
 	fragcore::checkError();
 
-	int lstatus;
+	int lstatus = 0;
 	const int shader_compute = ShaderLoader::loadShader(*computePaths[0], GL_COMPUTE_SHADER);
 
 	/*	*/
@@ -267,7 +267,7 @@ int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vec
 	int shader_mesh = 0;
 	int shader_task = 0;
 	int shader_frag = 0;
-	int lstatus;
+	int lstatus = 0;
 
 	/*	*/
 	shader_mesh = loadShader(*meshs, GL_MESH_SHADER_NV);
@@ -318,7 +318,7 @@ int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vec
 
 static void checkShaderError(int shader) {
 
-	GLint cstatus;
+	GLint cstatus = 0;
 
 	/*  */
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &cstatus);
@@ -351,7 +351,7 @@ int ShaderLoader::loadShader(const std::vector<char> &source, const int type) {
 	/*	Load as Spirv if data is Spirv file and supported.	*/
 	if (spirv_magic_number == magic_number && glSpecializeShaderARB) {
 		glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, source.data(), source.size());
-		glSpecializeShaderARB(shader, "main", 0, 0, 0);
+		glSpecializeShaderARB(shader, "main", 0, nullptr, nullptr);
 	} else {
 		glShaderSource(shader, 1, (const GLchar **)&source_data, nullptr);
 		fragcore::checkError();

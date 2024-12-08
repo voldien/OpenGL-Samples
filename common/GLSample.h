@@ -37,13 +37,16 @@
  */
 template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampleSession {
   public:
-	GLSample() noexcept {
-		// TODO set working directory to exec path.
-	}
+	GLSample() noexcept = default;
 
-	~GLSample() { this->sampleRef->Release(); }
+	GLSample(const GLSample &) = delete;
+	GLSample(GLSample &&) = delete;
+	GLSample &operator=(const GLSample &) = delete;
+	GLSample &operator=(GLSample &&) = delete;
+	explicit GLSample(T *sampleRef) : sampleRef(sampleRef) {}
+	~GLSample() override { this->sampleRef->Release(); }
 
-	virtual void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) override {
+	void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) override {
 
 		/*	Parse argument.	*/
 		const std::string helperInfo = "OpenGL Sample: " + fragcore::SystemInfo::getApplicationName() +

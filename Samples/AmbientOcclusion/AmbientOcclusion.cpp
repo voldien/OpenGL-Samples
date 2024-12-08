@@ -71,31 +71,31 @@ namespace glsample {
 		Scene scene;
 
 		/*	G-Buffer	*/
-		unsigned int multipass_framebuffer;
-		unsigned int multipass_texture_width;
-		unsigned int multipass_texture_height;
+		unsigned int multipass_framebuffer{};
+		unsigned int multipass_texture_width{};
+		unsigned int multipass_texture_height{};
 		std::vector<unsigned int> multipass_textures;
-		unsigned int depthTexture;
+		unsigned int depthTexture{};
 
-		unsigned int ssao_framebuffer;
-		unsigned int ssaoTexture;
+		unsigned int ssao_framebuffer{};
+		unsigned int ssaoTexture{};
 
 		/*	White texture for each object.	*/
-		unsigned int white_texture;
+		unsigned int white_texture{};
 		/*	Random direction texture.	*/
-		unsigned int random_texture;
+		unsigned int random_texture{};
 
 		/*	*/
-		unsigned int multipass_program;
-		unsigned int ssao_world_program;
-		unsigned int ssao_depth_program;
-		unsigned int texture_program;
+		unsigned int multipass_program{};
+		unsigned int ssao_world_program{};
+		unsigned int ssao_depth_program{};
+		unsigned int texture_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_ssao_buffer_binding = 1;
-		unsigned int uniform_buffer;
-		unsigned int uniform_ssao_buffer;
+		unsigned int uniform_buffer{};
+		unsigned int uniform_ssao_buffer{};
 		const size_t nrUniformBuffer = 3;
 
 		/*	*/
@@ -280,7 +280,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformBufferAlignedSize =
 				fragcore::Math::align<size_t>(this->uniformBufferAlignedSize, (size_t)minMapBufferSize);
@@ -505,7 +505,7 @@ namespace glsample {
 		void draw() override {
 
 			this->update();
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

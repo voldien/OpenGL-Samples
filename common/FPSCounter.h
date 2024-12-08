@@ -14,7 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include <stddef.h>
+#include <cstddef>
 
 namespace glsample {
 
@@ -52,11 +52,11 @@ namespace glsample {
 		}
 
 	  private:
-		size_t totalFPS;
-		unsigned int fpsSample;
-		unsigned int averageFPS;
-		float prevTimeSample;
-		long int timeResolution;
+		size_t totalFPS{};
+		unsigned int fpsSample{};
+		unsigned int averageFPS{};
+		float prevTimeSample{};
+		long int timeResolution{};
 	};
 
 } // namespace glsample

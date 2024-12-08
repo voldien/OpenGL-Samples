@@ -4,6 +4,7 @@
 #include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderLoader.h>
+#include <cstddef>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -45,11 +46,11 @@ namespace glsample {
 		unsigned int ocean_height = 128;
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 			/*light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0);
@@ -254,7 +255,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Compute uniform size that is aligned with the requried for the hardware.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
@@ -310,7 +311,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/
@@ -333,7 +334,7 @@ namespace glsample {
 
 				/*	*/
 				int FFT_SIZE = 0;
-				const size_t workgroupX = FFT_SIZE * 64;
+				const size_t workgroupX = static_cast<const size_t>(FFT_SIZE * 64);
 				glUseProgram(this->kff_compute_program);
 				glDispatchCompute(FFT_SIZE * 64, 1, 1);
 				glDispatchCompute(256 * 257 / 2 * 64, 1, 1);

@@ -254,7 +254,7 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -269,9 +269,9 @@ namespace glsample {
 			/*	Setup instance buffer.	*/
 			{
 				/*	*/
-				GLint storageMaxSize;
+				GLint storageMaxSize = 0;
 				glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &storageMaxSize);
-				GLint minStorageAlignSize;
+				GLint minStorageAlignSize = 0;
 				glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageAlignSize);
 				this->instanceBatch = this->rigidbodies.size(); // storageMaxSize / sizeof(glm::mat4);
 
@@ -460,7 +460,7 @@ namespace glsample {
 		void draw() override {
 
 			/*	*/
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

@@ -13,15 +13,15 @@
 using namespace glsample;
 using namespace fragcore;
 
-typedef struct model_temp_t {
+using ModelTemp = struct model_temp_t {
 	const ModelSystemObject *model;
 	size_t index;
-} ModelTemp;
+};
 
 void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshObject> &modelSet) {
 
 	modelSet.resize(modelLoader.getModels().size());
-	unsigned int tmp_ibo;
+	unsigned int tmp_ibo = 0;
 
 	std::map<int, std::vector<ModelTemp>> map;
 	std::map<int, int> strideVBOMap;
@@ -84,7 +84,7 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 			vertexDataSize += refModel.vertexStride * refModel.nrVertices;
 		}
 
-		unsigned int tmp_vbo;
+		unsigned int tmp_vbo = 0;
 
 		/*	Allocate memory.	*/
 		glGenBuffers(1, &tmp_vbo);
@@ -113,7 +113,7 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 
 		const ModelSystemObject &refModel_base = *ref[0].model;
 
-		unsigned int tmp_vao;
+		unsigned int tmp_vao = 0;
 		glGenVertexArrays(1, &tmp_vao);
 		glBindVertexArray(tmp_vao);
 

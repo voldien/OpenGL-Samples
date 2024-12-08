@@ -75,11 +75,11 @@ namespace glsample {
 		} ParticleSetting;
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 			glm::vec4 color = glm::vec4(1);
 
 			/*	*/
@@ -287,7 +287,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, minMapBufferSize);
 
@@ -298,7 +298,7 @@ namespace glsample {
 			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniformStageBuffer), &uniformStageBuffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			GLint minStorageMapBufferSize;
+			GLint minStorageMapBufferSize = 0;
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageMapBufferSize);
 
 			/*	Compute number of particles and memory size required, aligned to hardware min alignment.	*/
@@ -409,7 +409,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrParticleBuffers;

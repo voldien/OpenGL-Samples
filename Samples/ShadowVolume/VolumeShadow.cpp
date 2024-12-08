@@ -33,18 +33,18 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Light source.	*/
 			glm::vec4 direction = glm::vec4(0.7, 0.7, 1, 1);
 			glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 ambientColor = glm::vec4(0.3, 0.3, 0.3, 1);
-			glm::vec4 viewDir;
+			glm::vec4 viewDir{};
 
 			float shininess = 8;
 
@@ -58,21 +58,21 @@ namespace glsample {
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
 		/*	G-Buffer	*/
-		unsigned int graphic_framebuffer;
-		unsigned int multipass_program;
-		unsigned int multipass_texture_width;
-		unsigned int multipass_texture_height;
-		unsigned int multipass_texture;
-		unsigned int depthstencil_texture;
+		unsigned int graphic_framebuffer{};
+		unsigned int multipass_program{};
+		unsigned int multipass_texture_width{};
+		unsigned int multipass_texture_height{};
+		unsigned int multipass_texture{};
+		unsigned int depthstencil_texture{};
 
-		int skybox_program;
-		int volumeshadow_program;
-		int graphic_program;
+		int skybox_program{};
+		int volumeshadow_program{};
+		int graphic_program{};
 
 		CameraController camera;
 
@@ -83,8 +83,10 @@ namespace glsample {
 			}
 			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
-				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::Checkbox("Use Shadow", &this->useShadow);
 				ImGui::Checkbox("Show Graphic", &this->showGraphic);
@@ -197,14 +199,16 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize =
+				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			{
@@ -262,8 +266,8 @@ namespace glsample {
 			modelLoader->loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom(*modelLoader);
 
-			//TODO, fix geometry topology
-			for(size_t i = 0; i < scene.getMeshes().size(); i++){
+			// TODO, fix geometry topology
+			for (size_t i = 0; i < scene.getMeshes().size(); i++) {
 				scene.getMeshes()[i].primitiveType = GL_TRIANGLES_ADJACENCY;
 			}
 
@@ -332,7 +336,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/
@@ -460,7 +464,8 @@ namespace glsample {
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 				void *uniformPointer = glMapBufferRange(
-					GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+					GL_UNIFORM_BUFFER,
+					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 					this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				memcpy(uniformPointer, &this->uniform, sizeof(this->uniform));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);

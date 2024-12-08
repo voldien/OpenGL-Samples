@@ -1,5 +1,4 @@
 #include "SampleHelper.h"
-#include "Skybox.h"
 #include <DataStructure/QuadTree.h>
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -42,11 +41,11 @@ namespace glsample {
 		std::vector<Chunk> chunks;
 		fragcore::QuadTree<float> quadTree;
 
-		int localWorkGroupSize[3];
+		int localWorkGroupSize[3]{};
 
 		/*	Shader pipeline programs.	*/
-		unsigned int marching_cube_graphic_program;
-		unsigned int marching_cube_generate_compute_program;
+		unsigned int marching_cube_graphic_program{};
+		unsigned int marching_cube_generate_compute_program{};
 
 		typedef struct _marching_cube_cell_data_t {
 			glm::vec3 pos;
@@ -84,16 +83,16 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int vertex_dat_buffer_binding = 1;
 
-		unsigned int irradiance_texture;
+		unsigned int irradiance_texture{};
 
 		/*	*/
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t marchingCubeSize = 0;
 		size_t marchingTotalCubeSize = 0;
-		const size_t maxWorldChunkSize[3] = {16 * 2, 8, 16 * 2};
+		const size_t maxWorldChunkSize[3] = {static_cast<long>(16) * 2, 8, static_cast<long>(16) * 2};
 
 		const size_t max_points_per_voxel = 15; /*	*/
 
@@ -232,7 +231,7 @@ namespace glsample {
 			}
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, minMapBufferSize);
@@ -261,7 +260,7 @@ namespace glsample {
 					}
 				}
 
-				GLint SSBO_align_offset;
+				GLint SSBO_align_offset = 0;
 				glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &SSBO_align_offset);
 
 				/*	*/
@@ -299,7 +298,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

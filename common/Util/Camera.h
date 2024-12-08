@@ -70,6 +70,6 @@ namespace glsample {
 		T aspect = 16.0f / 9.0f;
 		T near = 0.45f;
 		T far = 1650.0f;
-		glm::mat4 proj;
+		glm::mat4 proj{};
 	};
 } // namespace glsample

@@ -23,7 +23,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct point_light_binary_t {
+		using PointLightSource = struct point_light_binary_t {
 			glm::vec3 position;
 			float range;
 			glm::vec4 color;
@@ -31,15 +31,15 @@ namespace glsample {
 			float constant_attenuation;
 			float linear_attenuation;
 			float quadratic_attenuation;
-		} PointLightSource;
+		};
 
 		static const size_t nrPointLights = 4;
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 			/*	Material.	*/
 			glm::vec4 ambientLight = glm::vec4(0.075f, 0.075f, 0.075f, 1.0f);
@@ -152,7 +152,7 @@ namespace glsample {
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
@@ -185,7 +185,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

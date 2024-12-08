@@ -25,5 +25,5 @@ float rand(const in vec2 co) { return abs(fract(sin(dot(co.xy, vec2(12.9898, 78.
 void main() {
 	gl_Position = ubo.proj * ubo.view * (instance_ubo.model[gl_InstanceID]) * vec4(Vertex, 1.0);
 
-	instanceColor = vec4(abs(rand(vec2(gl_InstanceID, 0))), 0, abs(rand(vec2(gl_InstanceID, 10))), 0.2);
+	instanceColor = vec4(abs(rand(vec2(gl_InstanceID, 0))), 0, abs(rand(vec2(gl_InstanceID, 10))), 0.075);
 }

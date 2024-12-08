@@ -14,7 +14,6 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Camera.h"
 #include <FragCore.h>
 #include <GeometryUtil.h>
 #include <Math3D/BoundingSphere.h>

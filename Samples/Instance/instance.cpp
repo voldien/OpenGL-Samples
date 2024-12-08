@@ -24,11 +24,11 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 			/*	Light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
@@ -148,7 +148,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSharedBufferSize =
 				fragcore::Math::align<size_t>(this->uniformSharedBufferSize, (size_t)minMapBufferSize);
@@ -161,7 +161,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
-			GLint uniformMaxSize;
+			GLint uniformMaxSize = 0;
 			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
 			this->instanceBatch = uniformMaxSize / sizeof(glm::mat4);
 
@@ -225,7 +225,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

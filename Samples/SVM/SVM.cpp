@@ -1,5 +1,6 @@
 #include "Core/Math3D.h"
 #include "Core/math3D/Plane.h"
+#include "UIComponent.h"
 #include "imgui.h"
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -9,9 +10,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <iostream>
 
 #include <OsqpEigen/OsqpEigen.h>
+#include <vector>
 
 namespace glsample {
 	/**
@@ -31,11 +32,11 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-			alignas(16) glm::mat4 modelView;
-			alignas(16) glm::mat4 modelViewProjection;
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 modelViewProjection;
 
 			/*	Light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
@@ -91,9 +92,12 @@ namespace glsample {
 
 			void draw() override {
 				ImGui::TextUnformatted("Light Setting");
-				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::ColorEdit4("Specular", &this->uniform.specularColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Specular", &this->uniform.specularColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -111,12 +115,12 @@ namespace glsample {
 		const std::string vertexInstanceShaderPath = "Shaders/instance/instance.vert.spv";
 		const std::string fragmentInstanceShaderPath = "Shaders/instance/instance.frag.spv";
 
-		void Release() override {
+		void Release() {
 			/*	*/
 			glDeleteProgram(this->instance_program);
 
 			/*	*/
-			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
+			glDeleteTextures(1, (const uint *)&this->diffuse_texture);
 
 			glDeleteBuffers(1, &this->uniform_mvp_buffer);
 
@@ -125,7 +129,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->sphere.vbo);
 		}
 
-		void Initialize() override {
+		void Initialize() {
 
 			{
 				/*	Load shader source.	*/
@@ -365,7 +369,7 @@ namespace glsample {
 			}
 		}
 
-		void draw() override {
+		void draw() {
 
 			int width, height;
 			this->getSize(&width, &height);
@@ -406,7 +410,7 @@ namespace glsample {
 			/*	Draw hyper plane.	*/
 		}
 
-		void update() override {
+		void update() {
 
 			/*	*/
 			const float elapsedTime = this->getTimer().getElapsed<float>();

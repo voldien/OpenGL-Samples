@@ -308,7 +308,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -430,7 +430,7 @@ namespace glsample {
 				this->pointLights[i].qudratic_attenuation = 0.19f;
 				this->pointLights[i].intensity = 1.5f;
 			}
-			this->directionalLights.push_back(DirectionalLight());
+			this->directionalLights.emplace_back();
 		}
 
 		void onResize(int width, int height) override {
@@ -468,7 +468,7 @@ namespace glsample {
 			/*	Depth/Stencil.	*/
 			glBindTexture(GL_TEXTURE_2D, this->depthstencil_texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, this->deferred_texture_width,
-						 this->deferred_texture_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+						 this->deferred_texture_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
 								   this->depthstencil_texture, 0);
@@ -493,7 +493,7 @@ namespace glsample {
 		void draw() override {
 
 			/*	*/
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

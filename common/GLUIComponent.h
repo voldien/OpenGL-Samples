@@ -14,12 +14,13 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "GLSampleWindow.h"
 #include <UIComponent.h>
 
 namespace glsample {
 
-	template <typename T = GLSampleWindow> class GLUIComponent : public nekomimi::UIComponent {
+	//class GLSampleWindow;
+
+	template <typename T> class GLUIComponent : public nekomimi::UIComponent {
 	  public:
 		GLUIComponent(T &base, const std::string &name = "Sample Settings") : base(base) { this->setName(name); }
 

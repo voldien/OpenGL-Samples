@@ -9,6 +9,8 @@
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
 #include <assimp/types.h>
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <glm/fwd.hpp>
@@ -42,22 +44,12 @@ static inline glm::mat4 aiMatrix4x4ToGlm(const aiMatrix4x4 *from) noexcept {
 	return to;
 }
 
-ModelImporter::ModelImporter(ModelImporter &&other) {
+ModelImporter::ModelImporter(ModelImporter &&other)
+	: filepath(other.filepath), nodes(other.nodes), models(other.models), materials(other.materials),
+	  textures(other.textures), textureMapping(other.textureMapping), textureIndexMapping(other.textureIndexMapping),
+	  skeletons(other.skeletons), animations(other.animations), vertexBoneData(other.vertexBoneData),
+	  rootNode(other.rootNode), global(other.global) {
 	this->fileSystem = std::exchange(other.fileSystem, nullptr);
-
-	this->global = other.global;
-	this->rootNode = other.rootNode;
-	this->filepath = other.filepath;
-
-	this->nodes = other.nodes;
-	this->models = other.models;
-	this->materials = other.materials;
-	this->textures = other.textures;
-	this->textureMapping = other.textureMapping;
-	this->textureIndexMapping = other.textureIndexMapping;
-	this->skeletons = other.skeletons;
-	this->animations = other.animations;
-	this->vertexBoneData = other.vertexBoneData;
 }
 
 ModelImporter &ModelImporter::operator=(ModelImporter &&other) {
@@ -82,9 +74,8 @@ ModelImporter &ModelImporter::operator=(ModelImporter &&other) {
 
 class CustomProgress : public Assimp::ProgressHandler {
   public:
-	bool Update(float percentage = -1.f) {
-		std::cout << "\33[2K\r"
-				  << "Loading Model: " << percentage * 100 << "/100" << std::flush;
+	bool Update(float percentage = -1.f) override {
+		std::cout << "\33[2K\r" << "Loading Model: " << percentage * 100 << "/100" << std::flush;
 		return true;
 	}
 };
@@ -190,7 +181,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 			num_mesh *= 2;
 		}
 
-		threads[index_thread] = std::thread([&, index_thread, start_mesh, num_mesh]() {
+		threads[index_thread] = std::thread([&, start_mesh, num_mesh]() {
 			if (scene->HasMeshes()) {
 
 				for (size_t x = start_mesh; x < fragcore::Math::min<size_t>(start_mesh + num_mesh, scene->mNumMeshes);
@@ -383,7 +374,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 		for (unsigned int x = 0; x < aimesh->mNumVertices; x++) {
 
-			float *pVertex = &vertices[floatStride * x];
+			float *pVertex = &vertices[static_cast<size_t>(floatStride * x)];
 
 			/*	*/
 			const aiVector3D *Pos = &(aimesh->mVertices[x]);
@@ -577,13 +568,13 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 	aiString path;
 
 	aiTextureMapping mapping;
-	unsigned int uvindex;
-	float blend;
+	unsigned int uvindex = 0;
+	float blend = NAN;
 	aiTextureOp op;
 	aiTextureMapMode mapmode = aiTextureMapMode::aiTextureMapMode_Wrap;
 
 	glm::vec4 color;
-	float shininessStrength;
+	float shininessStrength = NAN;
 
 	MaterialObject *material = &this->materials[index];
 
@@ -619,7 +610,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 			}
 
 			/*	*/
-			auto *embeededTexture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
+			const auto *embeededTexture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
 
 			if (ref_material->GetTexture((aiTextureType)textureType, textureIndex, &path, &mapping, &uvindex, &blend,
 										 &op, &mapmode) == aiReturn::aiReturn_SUCCESS) {
@@ -692,7 +683,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 			}
 
 		} /**/
-	}	  /**/
+	} /**/
 
 	/*	Assign shader attributes.	*/
 
@@ -719,7 +710,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 		material->shinininessStrength = shininessStrength;
 	}
 
-	float tmp;
+	float tmp = NAN;
 	if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
 		//	material->shinininessStrength = tmp;
 	}
@@ -741,7 +732,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 		material->blend_func_mode = blendfunc;
 	}
 
-	int twosided;
+	int twosided = 0;
 	if (ref_material->Get(AI_MATKEY_TWOSIDED, twosided) == aiReturn::aiReturn_SUCCESS) {
 		material->culling_both_side_mode = twosided;
 	}
@@ -752,7 +743,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 	}
 	//_AI_MATKEY_TEXFLAGS_BASE
 
-	int use_wireframe;
+	int use_wireframe = 0;
 	if (ref_material->Get(AI_MATKEY_ENABLE_WIREFRAME, use_wireframe) == aiReturn::aiReturn_SUCCESS) {
 		material->wireframe_mode = use_wireframe;
 	}
@@ -777,7 +768,7 @@ void ModelImporter::loadTexturesFromMaterials(aiMaterial *pmaterial) {
 			}
 
 			/*	*/
-			auto *embeededTexture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
+			const auto *embeededTexture = sceneRef->GetEmbeddedTexture(textureName.C_Str());
 
 			aiString path;
 			if (pmaterial->GetTexture((aiTextureType)textureType, textureIndex, &path, nullptr, nullptr, nullptr,
@@ -803,7 +794,7 @@ void ModelImporter::loadTexturesFromMaterials(aiMaterial *pmaterial) {
 			}
 
 		} /*	*/
-	}	  /*	*/
+	} /*	*/
 }
 
 AnimationObject *ModelImporter::initAnimation(const aiAnimation *pAnimation, unsigned int index) {
@@ -914,7 +905,7 @@ TextureAssetObject *ModelImporter::initTexture(aiTexture *texture, unsigned int 
 	if (mTexture->height == 0) {
 		mTexture->dataSize = texture->mWidth;
 	} else if (texture->pcData != nullptr) {
-		mTexture->dataSize = texture->mWidth * texture->mHeight * 4;
+		mTexture->dataSize = static_cast<size_t>(texture->mWidth * texture->mHeight) * 4;
 	}
 	mTexture->filepath = texture->mFilename.C_Str();
 
