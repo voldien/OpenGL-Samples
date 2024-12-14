@@ -16,7 +16,8 @@ TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesyste
 
 TextureImporter::~TextureImporter() { glDeleteBuffers(3, this->pbos.data()); }
 
-int TextureImporter::loadImage2D(const std::string &path, const ColorSpace colorSpace) {
+int TextureImporter::loadImage2D(const std::string &path, const ColorSpace colorSpace,
+								 const TextureCompression compression) {
 
 	ImageLoader imageLoader;
 	Ref<IO> io = Ref<IO>(this->filesystem->openFile(path.c_str(), IO::IOMode::READ));
@@ -30,7 +31,8 @@ int TextureImporter::loadImage2D(const std::string &path, const ColorSpace color
 	return texture_index;
 }
 
-int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace) {
+int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace,
+									const TextureCompression compression) {
 	// TODO add PBO support.
 
 	GLenum target = GL_TEXTURE_2D;

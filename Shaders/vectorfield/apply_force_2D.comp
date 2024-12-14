@@ -8,7 +8,7 @@
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
 #include "base.glsl"
-
+#include "noise.glsl"
 
 /*	*/
 layout(std430, binding = 1) readonly restrict buffer ReadBuffer { particle_t particle[]; }
@@ -39,14 +39,16 @@ void main() {
 		const vec2 velocity = readBuffer.particle[pindex].velocity.xy;
 		const float invMass = readBuffer.particle[pindex].velocity.w;
 
+		const vec2 noiseForce = normalize(vec2(0.5) - vec2(noise(position.xyx), noise(position.yxy))) * ubo.motion.noise * noise(position.xyx);
+
 		/*	*/
 		const vec2 dir = normalize(position - worldMousePosition);
 		const float dist = max(epsilon, distance(position, worldMousePosition));
 
 		const float influence_magnitude = ubo.motion.amplitude * (ubo.motion.radius * (1.0 / dist));
 
-		/*  Add force to particle position. */
-		const vec2 influenceVelocity = clamp(dir * influence_magnitude, vec2(-20), vec2(20));
+		/*  Add force to particle position. */ // TODO: add clamp as variable
+		const vec2 influenceVelocity = clamp(dir * influence_magnitude + noiseForce * influence_magnitude * 0.1, vec2(-20), vec2(20));
 
 		writeBuffer.particle[pindex].velocity.xy = velocity + influenceVelocity;
 	}

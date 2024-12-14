@@ -24,6 +24,8 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 gEyeWorldPos;
 	float gDispFactor;
 	float tessLevel;
+	float maxTessellation;
+	float minTessellation;
 }
 ubo;
 
@@ -38,7 +40,9 @@ float computeLightContributionFactor(in vec3 direction, in vec3 normalInput) {
 void main() {
 
 	/*	Compute directional light	*/
-	vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, normal) * ubo.lightColor;
+	vec4 lightColor = computeLightContributionFactor(normalize(ubo.direction.xyz), normal) * ubo.lightColor;
 
 	fragColor = texture(diffuse, UV) * (ubo.ambientColor + lightColor);
+
+	 //fragColor = vec4(normal, 1);
 }

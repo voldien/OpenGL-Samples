@@ -1,6 +1,7 @@
-#include "Math/NormalDistribution.h"
 #include "GLSampleWindow.h"
+#include "Math/NormalDistribution.h"
 #include "ShaderLoader.h"
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <Importer/ImageImport.h>
@@ -42,19 +43,20 @@ namespace glsample {
 		/*	Shader pipeline programs.	*/
 		unsigned int particle_graphic_program;
 		unsigned int particle_compute_program;
+		unsigned int particle_init_compute_program;
 		unsigned int particle_motion_force_compute_program;
 		unsigned int vector_field_graphic_program;
 
-		typedef struct motion_t {
+		using Motion = struct motion_t {
 			glm::vec2 normalizedPos; /*  Position in pixel space.    */
 			glm::vec2 velocity;		 /*  direction and magnitude of mouse movement.  */
 			float radius = 10.0f;	 /*  Radius of incluense, also the pressure of input.    */
 			float amplitude = 1.0;
-			float pad1;
-			float pad2;
-		} Motion;
+			float noise = 0;
+			float pad2 = 0;
+		};
 
-		typedef struct particle_setting_t {
+		using ParticleSetting = struct particle_setting_t {
 			glm::uvec4 particleBox = glm::uvec4(256, 256, 1, 0);
 			glm::uvec4 vectorfieldbox = glm::uvec4(32, 32, 32, 0); // Dummy
 
@@ -64,37 +66,37 @@ namespace glsample {
 			float strength = 1.0f;
 
 			float density = 1.0f;
-			uint32_t nrparticles;
+			uint32_t nrparticles{};
 			float spriteSize = 0.25f;
-			float dragMag = 1.0f;
-		} ParticleSetting;
+			float dragMag = 0.1f;
+		};
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
-			glm::vec4 color = glm::vec4(1);
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
+			glm::vec4 color = glm::vec4(1, 0.1, 0.1, 1);
 
 			/*	*/
 			ParticleSetting particleSetting;
 			Motion motion;
 
 			/*	*/
-			float delta;
+			float delta{};
 
 		} uniformStageBuffer;
 
-		typedef struct particle_t {
+		using Particle = struct particle_t {
 			glm::vec4 position; /*	Position, time	*/
 			glm::vec4 velocity; /*	Velocity, mass	*/
-		} Particle;
+		};
 
-		typedef struct vector_force_t {
+		using VectorForce = struct vector_force_t {
 			glm::vec3 position; /*	*/
 			glm::vec3 force;	/*	*/
-		} VectorForce;
+		};
 
 		CameraController camera;
 
@@ -118,14 +120,15 @@ namespace glsample {
 			void draw() override {
 				ImGui::DragFloat("Speed", &this->uniform.particleSetting.speed, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Strength", &this->uniform.particleSetting.strength, 1, 0.0f, 100.0f);
-				ImGui::DragFloat("LifeTime", &this->uniform.particleSetting.lifetime, 1, 0.0f, 10.0f);
 				ImGui::ColorEdit4("Diffuse Color", &this->uniform.color[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Sprite Size", &this->uniform.particleSetting.spriteSize, 1, 0.0f, 10.0f);
-				ImGui::DragFloat("Drag Global", &this->uniform.particleSetting.dragMag, 1, 1.0f, 10.0f);
-
+				ImGui::DragFloat("Drag Global", &this->uniform.particleSetting.dragMag, 1, 0.0f, 10.0f);
+				ImGui::TextUnformatted("Motion Input");
 				ImGui::DragFloat("Radius Influence", &this->uniform.motion.radius, 1, -128.0f, 128.0f);
 				ImGui::DragFloat("Amplitude Influence", &this->uniform.motion.amplitude, 1, 0, 128.0f);
+
+				ImGui::DragFloat("Noise", &this->uniform.motion.noise, 1, 0, 16.0f);
 
 				ImGui::Checkbox("Simulate Particles", &this->simulateParticles);
 				ImGui::DragInt("Number Particles", (int *)&this->uniform.particleSetting.nrparticles, 1, 0,
@@ -134,11 +137,16 @@ namespace glsample {
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Draw VectorField2D", &this->drawVelocity);
+
+				if (ImGui::Button("Reset Simulation")) {
+					this->requestRest = true;
+				}
 			}
 
 			bool simulateParticles = true;
 			bool drawVelocity = false;
 			bool showWireFrame = false;
+			bool requestRest = false;
 			const size_t &nrParticle;
 
 		  private:
@@ -151,6 +159,7 @@ namespace glsample {
 		const std::string particleGeometryShaderPath = "Shaders/vectorfield/particle.geom.spv";
 		const std::string particleFragmentShaderPath = "Shaders/vectorfield/particle.frag.spv";
 
+		const std::string particleInitComputeShaderPath = "Shaders/vectorfield/init_particle2D.comp.spv";
 		/*	Particle Simulation in Vector Field.	*/
 		const std::string particleComputeShaderPath = "Shaders/vectorfield/particle2D.comp.spv";
 		/*	Particle Simulation in Vector Field.	*/
@@ -199,15 +208,19 @@ namespace glsample {
 																				  &fragment_binary, &geometry_binary);
 
 				/*	*/
-				const std::vector<uint32_t> compute_particle_binary_binary =
-					IOUtil::readFileData<uint32_t>(this->particleComputeShaderPath, this->getFileSystem());
 
+				const std::vector<uint32_t> compute_particle_init_binary =
+					IOUtil::readFileData<uint32_t>(this->particleInitComputeShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> compute_particle_binary =
+					IOUtil::readFileData<uint32_t>(this->particleComputeShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> compute_motion_binary_binary =
 					IOUtil::readFileData<uint32_t>(this->particleMotionForceComputeShaderPath, this->getFileSystem());
 
 				/*	Load Compute.	*/
+				this->particle_init_compute_program =
+					ShaderLoader::loadComputeProgram(compilerOptions, &compute_particle_init_binary);
 				this->particle_compute_program =
-					ShaderLoader::loadComputeProgram(compilerOptions, &compute_particle_binary_binary);
+					ShaderLoader::loadComputeProgram(compilerOptions, &compute_particle_binary);
 				this->particle_motion_force_compute_program =
 					ShaderLoader::loadComputeProgram(compilerOptions, &compute_motion_binary_binary);
 
@@ -275,6 +288,27 @@ namespace glsample {
 				glShaderStorageBlockBinding(this->particle_motion_force_compute_program, particle_buffer_read_index,
 											this->particle_read_buffer_binding);
 				glShaderStorageBlockBinding(this->particle_motion_force_compute_program, particle_buffer_write_index,
+											this->particle_write_buffer_binding);
+
+				glUseProgram(0);
+			}
+
+			{
+				glUseProgram(this->particle_init_compute_program);
+				int uniform_buffer_particle_compute_index =
+					glGetUniformBlockIndex(this->particle_init_compute_program, "UniformBufferBlock");
+				glUniformBlockBinding(this->particle_init_compute_program, uniform_buffer_particle_compute_index,
+									  this->uniform_buffer_binding);
+
+				int particle_buffer_read_index = glGetProgramResourceIndex(this->particle_init_compute_program,
+																		   GL_SHADER_STORAGE_BLOCK, "ReadBuffer");
+				int particle_buffer_write_index = glGetProgramResourceIndex(this->particle_init_compute_program,
+																			GL_SHADER_STORAGE_BLOCK, "WriteBuffer");
+
+				/*	*/
+				glShaderStorageBlockBinding(this->particle_init_compute_program, particle_buffer_read_index,
+											this->particle_read_buffer_binding);
+				glShaderStorageBlockBinding(this->particle_init_compute_program, particle_buffer_write_index,
 											this->particle_write_buffer_binding);
 
 				glUseProgram(0);
@@ -364,12 +398,43 @@ namespace glsample {
 
 		void draw() override {
 
-			size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrParticleBuffers;
-			size_t write_buffer_index = (this->getFrameCount() + 0) % this->nrParticleBuffers;
+			const size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrParticleBuffers;
+			const size_t write_buffer_index = (this->getFrameCount() + 0) % this->nrParticleBuffers;
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 							  this->uniformAlignBufferSize);
+
+			if (this->vectorFieldSettingComponent->requestRest) {
+
+				// TODO: for each particle buffer.
+				const uint nrWorkGroupsX = (std::ceil((float)(this->nrParticles / this->particle_multiple_count) /
+													  (float)this->localWorkGroupSize[0]));
+
+				/*	Compute.	*/
+				glUseProgram(this->particle_init_compute_program);
+
+				/*	Bind uniform buffer.	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+								  this->uniformAlignBufferSize);
+
+				/*	Bind read particle buffer.	*/
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_read_buffer_binding, this->particles.vbo,
+								  read_buffer_index * this->ParticleMemorySize, this->ParticleMemorySize);
+
+				/*	Bind write particle buffer.	*/
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_write_buffer_binding, this->particles.vbo,
+								  write_buffer_index * this->ParticleMemorySize, this->ParticleMemorySize);
+
+				glDispatchCompute(nrWorkGroupsX, 1, 1);
+
+				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+				glUseProgram(0);
+
+				this->vectorFieldSettingComponent->requestRest = false;
+			}
 
 			/*	Compute particles in vector field.	*/
 			if (this->vectorFieldSettingComponent->simulateParticles &&
@@ -377,29 +442,6 @@ namespace glsample {
 
 				const uint nrWorkGroupsX = (std::ceil((float)(this->nrParticles / this->particle_multiple_count) /
 													  (float)this->localWorkGroupSize[0]));
-
-				/*	Check if mouse pressed down.	*/
-				if (this->getInput().getMousePressed(Input::MouseButton::LEFT_BUTTON)) {
-
-					glUseProgram(this->particle_motion_force_compute_program);
-					/*	Bind uniform buffer.	*/
-					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-									  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-									  this->uniformAlignBufferSize);
-
-					/*	Bind read particle buffer.	*/
-					glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_read_buffer_binding, this->particles.vbo,
-									  read_buffer_index * this->ParticleMemorySize, this->ParticleMemorySize);
-
-					/*	Bind write particle buffer.	*/
-					glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_write_buffer_binding,
-									  this->particles.vbo, write_buffer_index * this->ParticleMemorySize,
-									  this->ParticleMemorySize);
-
-					glDispatchCompute(nrWorkGroupsX, 1, 1);
-
-					glUseProgram(0);
-				}
 
 				/*	Compute.	*/
 				glUseProgram(this->particle_compute_program);
@@ -419,8 +461,35 @@ namespace glsample {
 
 				glDispatchCompute(nrWorkGroupsX, 1, 1);
 
-				glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
 				glUseProgram(0);
+
+				/*	Check if mouse pressed down.	*/
+				if (this->getInput().getMousePressed(Input::MouseButton::LEFT_BUTTON) &&
+					!this->getInput().getKeyPressed(SDL_SCANCODE_LALT)) {
+
+					glUseProgram(this->particle_motion_force_compute_program);
+					/*	Bind uniform buffer.	*/
+					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+									  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+									  this->uniformAlignBufferSize);
+
+					/*	Bind read particle buffer.	*/
+					glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_read_buffer_binding, this->particles.vbo,
+									  read_buffer_index * this->ParticleMemorySize, this->ParticleMemorySize);
+
+					/*	Bind write particle buffer.	*/
+					glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->particle_write_buffer_binding,
+									  this->particles.vbo, write_buffer_index * this->ParticleMemorySize,
+									  this->ParticleMemorySize);
+
+					glDispatchCompute(nrWorkGroupsX, 1, 1);
+
+					glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+					glUseProgram(0);
+				}
+				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 			}
 
 			int width = 0, height = 0;
@@ -463,7 +532,8 @@ namespace glsample {
 			glPolygonMode(GL_FRONT_AND_BACK, this->vectorFieldSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 			/*	Draw Particles.	*/
-			if (this->uniformStageBuffer.particleSetting.nrparticles > 0) {
+			if (this->uniformStageBuffer.particleSetting.nrparticles > 0 &&
+				this->uniformStageBuffer.particleSetting.spriteSize > 0) {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + 0);

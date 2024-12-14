@@ -31,15 +31,15 @@ namespace glsample {
 		}
 
 		struct UniformTerrainBufferBlock {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 viewProjection;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 viewProjection{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Material	*/
-			glm::vec4 diffuseColor;
+			glm::vec4 diffuseColor{};
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 
@@ -51,22 +51,22 @@ namespace glsample {
 			FogSettings fogSettings;
 
 			/*	Tessellation Settings.	*/
-			glm::vec4 gEyeWorldPos;
+			glm::vec4 gEyeWorldPos{};
 			float tessLevel = 1;
 		};
 
 		struct UniformLightBufferBlock {
 			/*	light source.	*/
-			glm::vec4 lookDirection;
+			glm::vec4 lookDirection{};
 			glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec4 position;
+			glm::vec4 position{};
 
 		} uniformLight;
 
-		typedef struct UniformOceanBufferBlock_t {
+		using UniformOceanBufferBlock = struct UniformOceanBufferBlock_t {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -77,7 +77,7 @@ namespace glsample {
 			float shininess = 8;
 			float fresnelPower = 4;
 			glm::vec4 oceanColor = glm::vec4(0, 0.4, 1, 1);
-		} UniformOceanBufferBlock;
+		};
 
 		/*	Pack all uniform in single buffer.	*/
 		struct uniform_buffer_block {
@@ -90,15 +90,15 @@ namespace glsample {
 		MeshObject terrain;
 		MeshObject ocean_volume;
 
-		unsigned int skybox_program;
-		unsigned int terrain_program;
-		unsigned int ocean_program;
+		unsigned int skybox_program{};
+		unsigned int terrain_program{};
+		unsigned int ocean_program{};
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_light_buffer_binding = 1;
-		unsigned int uniform_buffer;
-		unsigned int uniform_light_buffer;
+		unsigned int uniform_buffer{};
+		unsigned int uniform_light_buffer{};
 		const size_t nrUniformBuffer = 3;
 
 		/*	Uniform align buffer sizes.	*/
@@ -106,10 +106,10 @@ namespace glsample {
 		size_t terrainUniformSize = 0;
 		size_t oceanUniformSize = 0;
 
-		unsigned int terrain_diffuse_texture;
-		unsigned int terrain_heightMap;
+		unsigned int terrain_diffuse_texture{};
+		unsigned int terrain_heightMap{};
 
-		glm::mat4 cameraProj;
+		glm::mat4 cameraProj{};
 		CameraController camera;
 
 		/*	Simple Terrain.	*/
@@ -125,6 +125,8 @@ namespace glsample {
 		/*	Simple Water.	*/
 		const std::string vertexSimpleWaterShaderPath = "Shaders/simpleocean/simpleocean.vert.spv";
 		const std::string fragmentSimpleWaterShaderPath = "Shaders/simpleocean/simpleocean.frag.spv";
+
+		/*	Occlusion.	*/
 
 		void Release() override {
 			glDeleteProgram(this->terrain_program);

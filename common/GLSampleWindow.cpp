@@ -33,6 +33,9 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		ImGui::Text("FPS %d", this->getRefSample().getFPSCounter().getFPS());
 		ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
 		ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
+		ImGui::Text("Primitive %zu", this->getRefSample().prev_frame_primitive_count);
+		ImGui::Text("Samples %zu", this->getRefSample().prev_frame_sample_count);
+
 		//	ImGui::Checkbox("RenderDoc", this->getRefSample().enableRenderDoc(bool status))
 		ImGui::Text("WorkDirectory: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
 		// ImGui::Checkbox("Logging: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
@@ -84,6 +87,7 @@ GLSampleWindow::GLSampleWindow()
 	glDisable(GL_FRAMEBUFFER_SRGB);
 	/*	Disable multi sampling by default.	*/
 	glDisable(GL_MULTISAMPLE);
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 	std::shared_ptr<SampleSettingComponent> settingComponent = std::make_shared<SampleSettingComponent>(*this);
 	this->addUIComponent(settingComponent);
@@ -129,6 +133,9 @@ void GLSampleWindow::renderUI() {
 		glGetQueryObjectiv(this->queries[0], GL_QUERY_RESULT, &time_elasped);
 		glGetQueryObjectiv(this->queries[1], GL_QUERY_RESULT, &nrSamples);
 		glGetQueryObjectiv(this->queries[2], GL_QUERY_RESULT, &nrPrimitives);
+
+		this->prev_frame_sample_count = nrSamples;
+		this->prev_frame_primitive_count = nrPrimitives;
 
 		this->getLogger().debug("Samples: {} Primitives: {} Elapsed: {} ms", nrSamples, nrPrimitives,
 								time_elasped / 100000.0f);
@@ -214,43 +221,69 @@ void GLSampleWindow::captureScreenShot() {
 
 	/*	*/
 	const size_t imageSizeInBytes = static_cast<const size_t>(screen_grab_width_size * screen_grab_height_size * 3);
+
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, pboBuffer);
-	glBufferData(GL_PIXEL_PACK_BUFFER, imageSizeInBytes, nullptr, GL_STREAM_READ);
+
+	if (glBufferStorage) {
+		glBufferStorage(GL_PIXEL_PACK_BUFFER, imageSizeInBytes, nullptr,
+						GL_DYNAMIC_STORAGE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT | GL_MAP_COHERENT_BIT);
+	} else {
+		glBufferData(GL_PIXEL_PACK_BUFFER, imageSizeInBytes, nullptr, GL_STREAM_READ);
+	}
 
 	// FIXME: make sure that the image format is used correctly.
 	/*	Read framebuffer, and transfer the result to PBO, to allow DMA and less sync between frames.	*/
 	glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, screen_grab_width_size, screen_grab_height_size, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
 
-	void *pixelData = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+	static void *pixelData = nullptr;
 
-	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+	/*	*/
+	if (glBufferStorage && pixelData == nullptr) {
+		pixelData = glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, imageSizeInBytes,
+									 GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	}
+
+	if (!glBufferStorage) {
+		pixelData = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+		glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+	}
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 
+	/*	*/
+	glMemoryBarrier(GL_PIXEL_BUFFER_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
+
 	/*	offload the image process and saving to filesystem.	*/
-	std::thread process_thread([imageSizeInBytes, screen_grab_width_size, screen_grab_height_size, pixelData]() {
-		/*	*/
-		fragcore::Image image(screen_grab_width_size, screen_grab_height_size, fragcore::ImageFormat::RGB24);
-		image.setPixelData(pixelData, imageSizeInBytes);
+	if (pixelData) {
+		std::thread process_thread([&, imageSizeInBytes, screen_grab_width_size, screen_grab_height_size, pixelData]() {
+			/*	*/
+			try {
+				fragcore::Image image(screen_grab_width_size, screen_grab_height_size, fragcore::ImageFormat::RGB24);
+				image.setPixelData(pixelData, imageSizeInBytes);
 
-		// Application and time
-		time_t rawtime = 0;
-		struct tm *timeinfo = nullptr;
-		char buffer[128];
+				// Application and time
+				time_t rawtime = 0;
+				struct tm *timeinfo = nullptr;
+				char buffer[128];
 
-		std::time(&rawtime);
-		timeinfo = localtime(&rawtime);
+				std::time(&rawtime);
+				timeinfo = localtime(&rawtime);
 
-		strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", timeinfo);
-		std::string str(buffer);
+				strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", timeinfo);
+				std::string str(buffer);
 
-		fragcore::ImageLoader loader;
-		loader.saveImage(fragcore::SystemInfo::getApplicationName() + "-screenshot-" + str + ".jpg", image,
-						 fragcore::ImageLoader::FileFormat::Jpeg);
-	});
+				fragcore::ImageLoader loader;
+				loader.saveImage(fragcore::SystemInfo::getApplicationName() + "-screenshot-" + str + ".jpg", image,
+								 fragcore::ImageLoader::FileFormat::Jpeg);
 
-	/*	Allow to process indepdent from the main program.	*/
-	process_thread.detach();
+			} catch (const std::exception &ex) {
+				this->getLogger().error("Failed to create ScreenShot {}", ex.what());
+			}
+		});
+
+		/*	Allow to process indepdent from the main program.	*/
+		process_thread.detach();
+	}
 }
 
 void GLSampleWindow::setColorSpace(bool srgb) {}

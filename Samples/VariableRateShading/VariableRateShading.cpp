@@ -88,7 +88,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -110,7 +110,7 @@ namespace glsample {
 
 			/*	Setup and configure shading rate palette.	*/
 			{
-				GLint palSize;
+				GLint palSize = 0;
 				glGetIntegerv(GL_SHADING_RATE_IMAGE_PALETTE_SIZE_NV, &palSize);
 
 				GLenum *palette = new GLenum[palSize];
@@ -164,7 +164,7 @@ namespace glsample {
 			glGenTextures(1, &this->depthTexture);
 			glBindTexture(GL_TEXTURE_2D, depthTexture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, this->multipass_texture_width,
-						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+						 this->multipass_texture_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture, 0);
 
@@ -184,8 +184,8 @@ namespace glsample {
 
 			/*	Create and update */
 			{
-				int m_shadingRateImageTexelWidth;
-				int m_shadingRateImageTexelHeight;
+				int m_shadingRateImageTexelWidth = 0;
+				int m_shadingRateImageTexelHeight = 0;
 
 				glGetIntegerv(GL_SHADING_RATE_IMAGE_TEXEL_HEIGHT_NV, &m_shadingRateImageTexelHeight);
 				glGetIntegerv(GL_SHADING_RATE_IMAGE_TEXEL_WIDTH_NV, &m_shadingRateImageTexelWidth);
@@ -198,7 +198,6 @@ namespace glsample {
 							 nullptr);
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
-
 		}
 
 		void draw() override {
@@ -219,7 +218,7 @@ namespace glsample {
 			}
 
 			/*	*/
-			int width, height;
+			int width = 0, height = 0;
 			getSize(&width, &height);
 
 			/*	*/

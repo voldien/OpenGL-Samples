@@ -29,7 +29,7 @@ namespace glsample {
 	 */
 	class CameraController : public Frustum {
 	  public:
-		virtual ~CameraController() = default;
+		~CameraController() override = default;
 		CameraController() = default;
 
 		void update(const float deltaTime) noexcept;

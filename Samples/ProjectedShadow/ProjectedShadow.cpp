@@ -32,7 +32,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct uniform_buffer_block {
+		using UniformBufferBlock = struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -47,8 +47,7 @@ namespace glsample {
 			glm::vec4 viewDir;
 
 			float shininess = 8;
-
-		} UniformBufferBlock;
+		};
 
 		std::array<UniformBufferBlock, 2> uniformStageBuffer;
 
@@ -65,20 +64,20 @@ namespace glsample {
 		MeshObject plan;
 		MeshObject model;
 
-		glm::quat lightRotation;
+		glm::quat lightRotation{};
 		/*	*/
-		unsigned int diffuse_texture;
+		unsigned int diffuse_texture{};
 
 		/*	*/
-		unsigned int phongblinn_program;
-		unsigned int shadow_program;
+		unsigned int phongblinn_program{};
+		unsigned int shadow_program{};
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
-		size_t uniformPhongAlignSize;
-		size_t uniformProjectShadowAlignSize;
+		size_t uniformPhongAlignSize{};
+		size_t uniformProjectShadowAlignSize{};
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;

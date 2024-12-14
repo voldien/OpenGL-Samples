@@ -211,7 +211,7 @@ namespace glsample {
 			/*	Create all uniform buffers.	*/
 			{
 				/*	Align uniform buffer in respect to driver requirement.	*/
-				GLint minMapBufferSize;
+				GLint minMapBufferSize = 0;
 				glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 				this->uniformAlignBufferSize =
 					fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -224,7 +224,7 @@ namespace glsample {
 				glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 				/*	*/
-				GLint uniformMaxSize;
+				GLint uniformMaxSize = 0;
 				glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
 				int instanceBatch = 1024; // uniformMaxSize / sizeof(glm::mat4);
 
@@ -249,7 +249,7 @@ namespace glsample {
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

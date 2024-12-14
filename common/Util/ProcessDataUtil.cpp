@@ -16,6 +16,7 @@ ProcessData::~ProcessData() {
 
 void ProcessData::computeIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
 									const unsigned int height) {
+
 	glGenTextures(1, &irradiance_target);
 	glBindTexture(GL_TEXTURE_2D, irradiance_target);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
@@ -41,7 +42,7 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-		compilerOptions.glslVersion = 450;
+		compilerOptions.glslVersion = 410;
 
 		/*  */
 		this->irradiance_program =

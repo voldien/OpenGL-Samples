@@ -18,6 +18,7 @@ namespace glsample {
 
 	/**
 	 * Screen Space Ambient Occlusion post processing effect. Both World and Depth Space.
+	 * TODO: Downscale, Depth Only Support
 	 */
 	class ScreenSpaceAmbientOcclusion : public GLSampleWindow {
 	  public:
@@ -35,33 +36,33 @@ namespace glsample {
 		static const int maxKernels = 64;
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Light source.	*/
 			DirectionalLight directional_light;
-			glm::vec4 specularColor;
-			glm::vec4 ambientColor;
-			glm::vec4 viewDir;
+			glm::vec4 specularColor{};
+			glm::vec4 ambientColor{};
+			glm::vec4 viewDir{};
 
-			float shininess;
+			float shininess{};
 		} uniformStageBlock;
 
 		struct UniformSSAOBufferBlock {
-			glm::mat4 proj;
+			glm::mat4 proj{};
 			/*	*/
 			int samples = 64;
-			float radius = 25.5f;
+			float radius = 2.5f;
 			float intensity = 0.8f;
 			float bias = 0.025;
 
-			glm::vec4 kernel[maxKernels];
+			glm::vec4 kernel[maxKernels]{};
 
-			glm::vec4 color;
-			glm::vec2 screen;
+			glm::vec4 color{};
+			glm::vec2 screen{};
 
 		} uniformStageBlockSSAO;
 
@@ -79,6 +80,7 @@ namespace glsample {
 
 		unsigned int ssao_framebuffer{};
 		unsigned int ssaoTexture{};
+		unsigned int ssao_down_sample_index = 2;
 
 		/*	White texture for each object.	*/
 		unsigned int white_texture{};
@@ -332,7 +334,7 @@ namespace glsample {
 					scale = fragcore::Math::lerp(0.1f, 1.0f, scale * scale);
 
 					sample *= scale;
-					uniformStageBlockSSAO.kernel[i] = glm::vec4(sample, 0);
+					this->uniformStageBlockSSAO.kernel[i] = glm::vec4(sample, 0);
 				}
 
 				/*	Create white texture.	*/
@@ -481,13 +483,16 @@ namespace glsample {
 				GLint swizzleMask[] = {GL_RED, GL_RED, GL_RED, GL_ONE};
 				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
 
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
-				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0));
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 4));
+				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 4));
 				FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
 				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+
+				glGenerateMipmap(GL_TEXTURE_2D);
 
 				glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -578,18 +583,13 @@ namespace glsample {
 				// TODO fix downscale.
 				if (this->ambientOcclusionSettingComponent->downScale) {
 					/*	Downscale the image.	*/
-					glBindFramebuffer(GL_FRAMEBUFFER, this->ssao_framebuffer);
+					glBindFramebuffer(GL_READ_FRAMEBUFFER, this->ssao_framebuffer);
 					glReadBuffer(GL_COLOR_ATTACHMENT0);
 
+					// TODO: check if a better way for downsampling.
 					glBindTexture(GL_TEXTURE_2D, this->ssaoTexture);
-
-					for (size_t i = 0; i < 4; i++) {
-						const size_t w = ((float)width / (std::pow(2.0f, i) + 1));
-						const size_t h = ((float)height / (std::pow(2.0f, i) + 1));
-
-						/*	*/
-						glCopyTexImage2D(GL_TEXTURE_2D, i + 1, GL_R8, 0, 0, w, h, 0);
-					}
+					glGenerateMipmap(GL_TEXTURE_2D);
+					glBindTexture(GL_TEXTURE_2D, 0);
 				}
 			}
 
@@ -602,8 +602,15 @@ namespace glsample {
 					glBindFramebuffer(GL_READ_FRAMEBUFFER, this->ssao_framebuffer);
 					glViewport(0, 0, width, height);
 
+					// glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->ssaoTexture,
+					// ssao_down_sample_index);
+
 					glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
-									  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+									  height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+					// glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->ssaoTexture,
+					// 0);
+
 				} else { /*	Blend with final result.	*/
 
 					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -634,7 +641,16 @@ namespace glsample {
 					if (this->ambientOcclusionSettingComponent->useAO) {
 						glActiveTexture(GL_TEXTURE0);
 						glBindTexture(GL_TEXTURE_2D, this->ssaoTexture);
+
+						if (this->ambientOcclusionSettingComponent->downScale) {
+							glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, this->ssao_down_sample_index);
+						}
+
+						/*	*/
 						glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+
+						glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+						glBindTexture(GL_TEXTURE_2D, 0);
 					}
 					glBindVertexArray(0);
 
@@ -676,7 +692,7 @@ namespace glsample {
 			/*	*/
 			{
 				this->uniformStageBlock.model = glm::mat4(1.0f);
-				this->uniformStageBlock.model = glm::scale(this->uniformStageBlock.model, glm::vec3(0.95f));
+				this->uniformStageBlock.model = glm::scale(this->uniformStageBlock.model, glm::vec3(1.f));
 				this->uniformStageBlock.view = this->camera.getViewMatrix();
 				this->uniformStageBlock.modelView = (this->uniformStageBlock.view * this->uniformStageBlock.model);
 				this->uniformStageBlock.modelViewProjection =

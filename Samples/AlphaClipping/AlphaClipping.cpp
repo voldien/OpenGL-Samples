@@ -29,28 +29,28 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProj;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProj{};
+			glm::mat4 modelViewProjection{};
 			/*	*/
 			float clipping = 0.5f;
 		} uniform_stage_buffer;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		MeshObject planGeometry;
 
 		/*	OpenGL Graphic Program.	*/
-		int texture_program;
+		int texture_program{};
 		/*	Texture.	*/
-		int diffuse_texture;
+		int diffuse_texture{};
 
 		CameraController camera;
 

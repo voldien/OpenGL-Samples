@@ -29,40 +29,40 @@ namespace glsample {
 		}
 
 		using PointLight = struct point_light_t {
-			glm::vec3 position;
-			float range;
-			glm::vec4 color;
-			float intensity;
-			float constant_attenuation;
-			float linear_attenuation;
-			float qudratic_attenuation;
+			glm::vec3 position{};
+			float range{};
+			glm::vec4 color{};
+			float intensity{};
+			float constant_attenuation{};
+			float linear_attenuation{};
+			float qudratic_attenuation{};
 
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
-			float padding0;
-			float padding1;
+			float padding0{};
+			float padding1{};
 		};
 
 		static const size_t nrPointLights = 4;
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProjection[6];
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProjection[6]{};
+			glm::mat4 modelViewProjection{};
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / std::sqrt(2.0f), -1.0f / std::sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec4 lightPosition;
+			glm::vec4 lightPosition{};
 
 			PointLight pointLights[nrPointLights];
 
 			/*	*/
-			glm::vec4 pcfFilters[20];
+			glm::vec4 pcfFilters[20]{};
 			float diskRadius = 25.0f;
 			int samples = 1;
 		} uniform;
@@ -79,14 +79,14 @@ namespace glsample {
 		Skybox skybox;
 
 		/*	*/
-		unsigned int graphic_program;
-		unsigned int graphic_pfc_program;
-		unsigned int shadow_program;
-		unsigned int shadow_alpha_clip_program;
+		unsigned int graphic_program{};
+		unsigned int graphic_pfc_program{};
+		unsigned int shadow_program{};
+		unsigned int shadow_alpha_clip_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
@@ -99,7 +99,8 @@ namespace glsample {
 			}
 			void draw() override {
 
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
 				ImGui::TextUnformatted("Shadow");
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
@@ -253,6 +254,13 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			{
+
+				// /*	Clamp texture size to valid size.	*/
+				// int max_texture_size = 0;
+				// glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+				// this->shadowWidth = fragcore::Math::min<int>(this->shadowWidth, max_texture_size);
+				// this->shadowHeight = fragcore::Math::min<int>(this->shadowHeight, max_texture_size);
+
 				/*	Create shadow map.	*/
 				this->pointShadowFrameBuffers.resize(this->nrPointLights);
 				glGenFramebuffers(this->pointShadowFrameBuffers.size(), this->pointShadowFrameBuffers.data());

@@ -22,34 +22,34 @@ namespace glsample {
 			this->addUIComponent(this->sortSettingComponent);
 		}
 
-		typedef struct uniform_buffer_block_t {
-			float posX, posY;
-			float mousePosX, mousePosY;
+		using UniformBuferBlock = struct uniform_buffer_block_t {
+			float posX{}, posY{};
+			float mousePosX{}, mousePosY{};
 			float zoom = 1.0f; /*	*/
 			float c = 0;	   /*	*/
 			float ci = 1;	   /*	*/
 			int nrSamples = 128;
-		} UniformBuferBlock;
+		};
 		UniformBuferBlock params;
 
 		/*	*/
 		const size_t round_robin_size = 2;
-		unsigned int mandelbrot_framebuffer;
-		unsigned int sort_mergesort_program;
-		unsigned int julia_program;
-		unsigned int mandelbrot_texture; // TODO add round robin.
-		unsigned int mandelbrot_texture_width;
-		unsigned int mandelbrot_texture_height;
+		unsigned int mandelbrot_framebuffer{};
+		unsigned int sort_mergesort_program{};
+		unsigned int julia_program{};
+		unsigned int mandelbrot_texture{}; // TODO add round robin.
+		unsigned int mandelbrot_texture_width{};
+		unsigned int mandelbrot_texture_height{};
 
 		/*	*/
-		int localWorkGroupSize[3];
+		int localWorkGroupSize[3]{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 3;
 		unsigned int current_cells_buffer_binding = 0;
 		unsigned int previous_cells_buffer_binding = 1;
 		unsigned int image_output_binding = 2;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block_t);
 

@@ -28,12 +28,12 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProj;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProj{};
+			glm::mat4 modelViewProjection{};
 
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -52,20 +52,20 @@ namespace glsample {
 		/*	*/
 		MeshObject geometry;
 		MeshObject plan;
-		InstanceSubBuffer instanceBuffer;
+		InstanceSubBuffer instanceBuffer{};
 
 		/*	Textures.	*/
-		unsigned int diffuse_texture;
-		unsigned int ground_diffuse_texture;
+		unsigned int diffuse_texture{};
+		unsigned int ground_diffuse_texture{};
 
 		/*	*/
-		unsigned int blending_program;
+		unsigned int blending_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_instance_buffer_binding = 1;
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_share_buffer;
-		unsigned int uniform_instance_buffer;
+		unsigned int uniform_share_buffer{};
+		unsigned int uniform_instance_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceSize = 0;

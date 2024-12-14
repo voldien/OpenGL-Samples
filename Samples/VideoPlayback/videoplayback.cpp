@@ -140,7 +140,7 @@ namespace glsample {
 											  {{1.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
 											  {{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}};
 
-		std::string error_message(int result) {
+		std::string error_message(const int result) {
 			char buf[AV_ERROR_MAX_STRING_SIZE];
 			av_strerror(result, buf, sizeof(buf));
 			return buf;

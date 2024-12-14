@@ -5,7 +5,6 @@
 // Based on cull frustum sample.
 
 #include <GL/glew.h>
-#include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <Scene.h>
@@ -27,10 +26,10 @@ namespace glsample {
 	 *
 	 */
 	// TODO: based it on frustum culling base.
-	class ConditionalDraw : public GLSampleWindow {
+	class OcclusionCulling : public GLSampleWindow {
 	  public:
-		ConditionalDraw() : GLSampleWindow() {
-			this->setTitle("Conditional Draw");
+		OcclusionCulling() : GLSampleWindow() {
+			this->setTitle("OcclusionCulling Draw");
 			this->conditionalSettingComponent =
 				std::make_shared<ConditionalDrawSettingComponent>(this->uniformStageBuffer);
 
@@ -169,7 +168,7 @@ namespace glsample {
 			this->normal_texture = textureImporter.loadImage2D(normalTexturePath);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -177,7 +176,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/
@@ -245,9 +244,9 @@ namespace glsample {
 		}
 	};
 
-	class ConditionalDrawGLSample : public GLSample<ConditionalDraw> {
+	class ConditionalDrawGLSample : public GLSample<OcclusionCulling> {
 	  public:
-		ConditionalDrawGLSample() : GLSample<ConditionalDraw>() {}
+		ConditionalDrawGLSample() : GLSample<OcclusionCulling>() {}
 
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));

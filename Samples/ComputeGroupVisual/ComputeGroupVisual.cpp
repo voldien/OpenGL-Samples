@@ -39,10 +39,10 @@ namespace glsample {
 		unsigned int compute_visual_instance_graphic_program;
 		unsigned int compute_group_visual_compute_program;
 
-		typedef struct _instance_data_t {
+		using InstanceData = struct _instance_data_t {
 			glm::mat4 model;
 			glm::vec4 color;
-		} InstanceData;
+		};
 
 		struct uniform_buffer_block {
 			glm::mat4 model;
@@ -200,11 +200,11 @@ namespace glsample {
 			maxWorkGroupCount[2] = Math::min<int>(maxGroupSize[2], maxWorkGroupCount[2]);
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, minMapBufferSize);
 
-			GLint SSBO_align_offset;
+			GLint SSBO_align_offset = 0;
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &SSBO_align_offset);
 
 			/*	*/
@@ -249,7 +249,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,

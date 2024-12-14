@@ -26,12 +26,14 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 gEyeWorldPos;
 	float gDispFactor;
 	float tessLevel;
+	float maxTessellation;
+	float minTessellation;
 }
 ubo;
 
 void main() {
 	VertexPosition = (ubo.model * vec4(Vertex, 1.0)).xyz;
-	UV = TextureCoord;
-	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
-	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
+	UV = TextureCoord * 5;
+	normal = normalize(ubo.model * vec4(Normal, 0.0)).xyz;
+	tangent = normalize(ubo.model * vec4(Tangent, 0.0)).xyz;
 }

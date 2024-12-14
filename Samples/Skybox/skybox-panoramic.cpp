@@ -118,7 +118,7 @@ namespace glsample {
 			this->skybox_texture_panoramic = textureImporter.loadImage2D(panoramicPath, ColorSpace::SRGB);
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSize = Math::align<size_t>(this->uniformSize, (size_t)minMapBufferSize);
 
@@ -160,7 +160,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/

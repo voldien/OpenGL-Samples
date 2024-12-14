@@ -29,6 +29,9 @@ namespace glsample {
 		 */
 		static void loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshObject> &modelSet);
 
+		// TODO: add support.
+		static void merge(std::vector<MeshObject> &mesh, std::vector<MeshObject> &mesh1);
+
 		/**
 		 * @brief
 		 *

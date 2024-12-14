@@ -3,7 +3,6 @@
 #include <GLSampleWindow.h>
 #include <ShaderLoader.h>
 
-
 namespace glsample {
 
 	/**
@@ -12,15 +11,15 @@ namespace glsample {
 	class Triangle : public GLSampleWindow {
 	  public:
 		Triangle() : GLSampleWindow() { this->setTitle("Triangle"); }
-		typedef struct _vertex_t {
+		using Vertex = struct _vertex_t {
 			float pos[2];
 			float color[3];
-		} Vertex;
+		};
 
-		unsigned int vbo;
-		unsigned int vao;
+		unsigned int vbo{};
+		unsigned int vao{};
 
-		unsigned int triangle_program;
+		unsigned int triangle_program{};
 
 		const std::string vertexShaderPath = "Shaders/triangle/triangle.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/triangle/triangle.frag.spv";

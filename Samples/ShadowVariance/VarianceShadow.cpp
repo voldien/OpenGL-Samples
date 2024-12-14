@@ -1,3 +1,4 @@
+#include "UIComponent.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -6,6 +7,8 @@
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <memory>
+#include <string>
 
 namespace glsample {
 
@@ -19,7 +22,7 @@ namespace glsample {
 			this->setTitle("VarianceShadow");
 
 			this->shadowSettingComponent =
-				std::make_shared<BasicShadowMapSettingComponent>(this->uniform, this->shadowTexture);
+				std::make_shared<VarianceShadowSettingComponent>(this->uniform, this->shadowTexture);
 			this->addUIComponent(this->shadowSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -74,7 +77,7 @@ namespace glsample {
 				: uniform(uniform), depth(depth) {
 				this->setName("Basic Shadow Mapping Settings");
 			}
-			void draw() override {
+			void draw()  {
 
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
@@ -104,7 +107,7 @@ namespace glsample {
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
 
-		void Release() override {
+		void Release()  {
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->shadow_program);
 
@@ -118,7 +121,7 @@ namespace glsample {
 			glDeleteBuffers(1, &this->refObj[0].ibo);
 		}
 
-		void Initialize() override {
+		void Initialize()  {
 
 			/*	*/
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
@@ -231,9 +234,9 @@ namespace glsample {
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}
 
-		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+		void onResize(int width, int height)  { this->camera.setAspect((float)width / (float)height); }
 
-		void draw() override {
+		void draw()  {
 
 			int width, height;
 			getSize(&width, &height);
@@ -313,7 +316,7 @@ namespace glsample {
 			}
 		}
 
-		void update() override {
+		void update()  {
 			/*	Update Camera.	*/
 			camera.update(getTimer().deltaTime());
 

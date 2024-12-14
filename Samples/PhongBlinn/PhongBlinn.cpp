@@ -26,7 +26,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct point_light_t {
+		using PointLight = struct point_light_t {
 			glm::vec3 position;
 			float range;
 			glm::vec4 color;
@@ -34,14 +34,14 @@ namespace glsample {
 			float constant_attenuation;
 			float linear_attenuation;
 			float qudratic_attenuation;
-		} PointLight;
+		};
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	*/
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
@@ -49,7 +49,7 @@ namespace glsample {
 			glm::vec4 viewPos = glm::vec4(0);
 
 			/*	light source.	*/
-			PointLight pointLights[4];
+			PointLight pointLights[4]{};
 
 			float shininess = 8;
 		} uniformStageBuffer;
@@ -59,15 +59,15 @@ namespace glsample {
 		const size_t nrPointLights = 4;
 
 		/*	Textures.	*/
-		unsigned int diffuse_texture;
+		unsigned int diffuse_texture{};
 
 		/*	*/
-		unsigned int phong_program;
-		unsigned int blinn_program;
+		unsigned int phong_program{};
+		unsigned int blinn_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 

@@ -230,6 +230,12 @@ namespace glsample {
 				glGenFramebuffers(1, &shadowFramebuffer);
 				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
 
+				/*	Clamp texture size to valid size.	*/
+				int max_texture_size = 0;
+				glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+				this->shadowWidth = fragcore::Math::min<int>(this->shadowWidth, max_texture_size);
+				this->shadowHeight = fragcore::Math::min<int>(this->shadowHeight, max_texture_size);
+
 				/*	*/
 				glGenTextures(1, &this->shadowTexture);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);

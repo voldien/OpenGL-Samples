@@ -54,7 +54,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
   public:
 	virtual void onResize(int width, int height) {}
 
-	 void setTitle(const std::string &title) override;
+	void setTitle(const std::string &title) override;
 
   public: /*	*/
 	glsample::FPSCounter<float> &getFPSCounter() noexcept { return this->fpsCounter; }
@@ -102,9 +102,12 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	spdlog::logger &getLogger() const noexcept { return *this->logger; }
 
+	size_t prev_frame_sample_count = 0;
+	size_t prev_frame_primitive_count = 0;
+
   protected:
-	 void displayMenuBar() override;
-	 void renderUI() override; // TODO: rename
+	void displayMenuBar() override;
+	void renderUI() override; // TODO: rename
 
   private:
 	cxxopts::ParseResult parseResult;

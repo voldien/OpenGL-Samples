@@ -31,19 +31,19 @@ namespace glsample {
 			glm::mat4 ViewProj;
 			glm::mat4 modelViewProjection;
 
-		} uniform_stage_buffer;
+		} uniform_stage_buffer{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(uniform_buffer_block);
 
 		MeshObject planGeometry;
 
 		/*	*/
-		int texture_program;
-		int diffuse_texture;
+		int texture_program{};
+		int diffuse_texture{};
 
 		CameraController camera;
 

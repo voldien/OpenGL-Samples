@@ -8,7 +8,7 @@
 
 layout(location = 0) in vec2 TextureCoord;
 
-#include"scene.glsl"
+#include "scene.glsl"
 
 void main() {
 

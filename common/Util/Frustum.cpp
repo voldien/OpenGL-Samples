@@ -2,8 +2,6 @@
 
 namespace glsample {
 
-	Frustum::Frustum() noexcept = default;
-
 	Frustum::Frustum(const Frustum &other) noexcept : Camera(other) {}
 
 	void Frustum::calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
@@ -31,7 +29,7 @@ namespace glsample {
 
 		/*	Iterate through each plane.	*/
 		for (unsigned int x = 0; x < FrustumPlanes::NPLANES; x++) {
-			if (fragcore::GeometryUtility::testPlanesPoint(planes[x], pos)) {
+			if (fragcore::GeometryUtility::testPlanesPoint(this->planes[x], pos)) {
 				return Intersection::Out;
 			}
 		}
@@ -68,7 +66,7 @@ namespace glsample {
 	Frustum::Intersection Frustum::intersectionSphere(const BoundingSphere &sphere) const noexcept {
 
 		for (unsigned int i = 0; i < (unsigned int)FrustumPlanes::NPLANES; i++) {
-			if (!fragcore::GeometryUtility::testPlanesSphere(planes[i], sphere)) {
+			if (!fragcore::GeometryUtility::testPlanesSphere(this->planes[i], sphere)) {
 				return Intersection::Out;
 			}
 		}

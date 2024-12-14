@@ -18,16 +18,16 @@ namespace glsample {
 		GameOfLife() : GLSampleWindow() { this->setTitle("GameOfLife - Compute"); }
 
 		/*	Framebuffers.	*/
-		unsigned int gameoflife_framebuffer;
+		unsigned int gameoflife_framebuffer{};
 		std::vector<unsigned int> gameoflife_state_texture; /*	*/
-		unsigned int gameoflife_render_texture; /*	No round robin required, since once updated, it is instantly
+		unsigned int gameoflife_render_texture{}; /*	No round robin required, since once updated, it is instantly
 												   blitted. thus no implicit sync between frames.	*/
-		size_t gameoflife_texture_width;
-		size_t gameoflife_texture_height;
+		size_t gameoflife_texture_width{};
+		size_t gameoflife_texture_height{};
 
 		/*	*/
-		unsigned int gameoflife_program;
-		int localWorkGroupSize[3];
+		unsigned int gameoflife_program{};
+		int localWorkGroupSize[3]{};
 
 		unsigned int nthTexture = 0;
 

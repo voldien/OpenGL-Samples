@@ -28,14 +28,16 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 gEyeWorldPos;
 	float gDispFactor;
 	float tessLevel;
+	float maxTessellation;
+	float minTessellation;
 }
 ubo;
 
 float GetTessLevel(float Distance0, float Distance1) {
 	float AvgDistance = (Distance0 + Distance1) / 2.0;
 
-	const float maxTessellation = 20.0;
-	const float minTessellation = 0.04;
+	const float maxTessellation = ubo.maxTessellation;
+	const float minTessellation = ubo.minTessellation;
 
 	return mix(minTessellation, maxTessellation, 100 / (AvgDistance + 10));
 }

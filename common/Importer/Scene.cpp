@@ -129,7 +129,7 @@ namespace glsample {
 			/*	*/
 			glPolygonMode(GL_FRONT_AND_BACK, material.wireframe_mode ? GL_LINE : GL_FILL);
 			/*	*/
-			const bool useBlending = material.opacity < 1.0f; // material.maskTextureIndex >= 0;
+			const bool useBlending = false;//material.opacity < 1.0f; // material.maskTextureIndex >= 0;
 			glDisable(GL_STENCIL_TEST);
 
 			glDepthFunc(GL_LESS);
@@ -200,7 +200,7 @@ namespace glsample {
 
 				int priority = computeMaterialPriority(*material);
 
-				const bool useBlending = material->opacity < 1.0f;
+				const bool useBlending = false;// material->opacity < 1.0f;
 				//					(material->maskTextureIndex >= 0 && material->maskTextureIndex < refTexture.size());
 				////
 				//|| 					material->opacity < 1.0f; // || material->transparent.length() < 2;

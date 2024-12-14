@@ -41,11 +41,11 @@ namespace glsample {
 
 		} uniformStageBuffer;
 
-		typedef struct directional_light_t {
+		using DirectionalLight = struct directional_light_t {
 			glm::vec3 directiona = glm::vec3(1, 1, 1);
 			float intensity = 1;
 			glm::vec4 color = glm::vec4(1, 1, 1, 1);
-		} DirectionalLight;
+		};
 
 		std::vector<PointLightInstance> pointLights;
 		std::vector<DirectionalLight> directionalLights;

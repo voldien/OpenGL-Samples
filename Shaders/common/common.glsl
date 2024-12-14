@@ -32,20 +32,25 @@ vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist)
 	const vec2 offset = 1.0 / textureSize(BumpTexture, 0);
 
 	const vec2 offxy = vec2(offset.x, offset.y);
-	const vec2 offzy = vec2(offset.x, offset.y);
-	const vec2 offyx = vec2(offset.x, offset.y);
-	const vec2 offyz = vec2(offset.x, offset.y);
+	const vec2 offzy = vec2(-offset.x, offset.y);
+	const vec2 offyx = vec2(offset.x, -offset.y);
+	const vec2 offyz = vec2(-offset.x, -offset.y);
+
+	const float bump_strength = 2.0f;
 
 	const float s11 = texture(BumpTexture, uv).x;
 	const float s01 = texture(BumpTexture, uv + offxy).x;
 	const float s21 = texture(BumpTexture, uv + offzy).x;
 	const float s10 = texture(BumpTexture, uv + offyx).x;
 	const float s12 = texture(BumpTexture, uv + offyz).x;
-	vec3 va = vec3(size.x, size.y, s21 - s01);
-	vec3 vb = vec3(size.y, size.x, s12 - s10);
+
+	vec3 va = bump_strength * vec3(size.x, size.y, s21 - s10);
+	vec3 vb = bump_strength * vec3(size.y, size.x, s12 - s01);
+
 	va = normalize(va);
 	vb = normalize(vb);
-	const vec4 normal = vec4(cross(va, vb) / 2 + 0.5, 1.0);
+	
+	const vec4 normal = vec4(cross(va, vb) *0.5 + 0.5, 1.0);
 
 	return normal;
 }
@@ -103,4 +108,10 @@ vec3 getTBN(const in vec3 InNormal, const in vec3 InTangent, const in vec3 norma
 vec2 getParallax(const in sampler2D heightMap, const in vec2 uv, const in vec3 cameraDir, const in vec2 biasScale) {
 	const float v = texture(heightMap, uv).r * biasScale.x - biasScale.y;
 	return (uv + (cameraDir.xy * v)).xy;
+}
+
+vec3 hsv2rgb(const in vec3 c) {
+	const vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	const vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }

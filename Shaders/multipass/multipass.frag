@@ -8,7 +8,7 @@
 layout(location = 0) out vec4 Diffuse;
 layout(location = 1) out vec4 WorldSpace;
 layout(location = 2) out vec4 TextureCoord;
-layout(location = 3) out vec3 Normal;
+layout(location = 3) out vec4 Normal;
 layout(location = 4) out vec3 Specular;
 layout(location = 5) out vec3 Roughness_Metalic;
 
@@ -43,5 +43,5 @@ void main() {
 	/*	Convert normal map texture to a vector.	*/
 	const vec3 NormalMap = (2.0 * texture(NormalTexture, uv).xyz) - vec3(1.0, 1.0, 1.0);
 	/*	Compute the new normal vector on the specific surface normal.	*/
-	Normal = normalize(mat3(tangent, bitangent, normal) * NormalMap);
+	Normal = vec4(normalize(mat3(tangent, bitangent, normal) * NormalMap), 1);
 }

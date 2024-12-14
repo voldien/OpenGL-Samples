@@ -38,22 +38,22 @@ namespace glsample {
 		};
 
 		struct UniformOceanBufferBlock {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	light source.	*/
-			glm::vec4 lookDirection;
+			glm::vec4 lookDirection{};
 			glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec4 position;
+			glm::vec4 position{};
 
 			/*	*/
-			Wave waves[nrMaxWaves];
+			Wave waves[nrMaxWaves]{};
 
 			/*	*/
 			int nrWaves = 32;
@@ -76,17 +76,17 @@ namespace glsample {
 		Skybox skybox;
 
 		/*	*/
-		unsigned int normal_texture;
-		unsigned int reflection_texture;
-		unsigned int irradiance_texture;
+		unsigned int normal_texture{};
+		unsigned int reflection_texture{};
+		unsigned int irradiance_texture{};
 
 		/*	*/
-		unsigned int simpleOcean_program;
-		unsigned int skybox_program;
+		unsigned int simpleOcean_program{};
+		unsigned int skybox_program{};
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t oceanUniformSize = 0;

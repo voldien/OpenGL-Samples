@@ -1,5 +1,7 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
+
 layout(triangles, equal_spacing, ccw) in;
 
 layout(location = 0) in vec3 WorldPos_ES_in[];
@@ -26,8 +28,13 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 gEyeWorldPos;
 	float gDispFactor;
 	float tessLevel;
+
+	float maxTessellation;
+	float minTessellation;
 }
 ubo;
+
+#include "common.glsl"
 
 layout(binding = 2) uniform sampler2D gDisplacementMap;
 
@@ -40,6 +47,7 @@ vec3 interpolate3D(vec3 v0, vec3 v1, vec3 v2) {
 }
 
 void main() {
+
 	/*	Interpolate the attributes of the output vertex using the barycentric coordinates	*/
 	TexCoord_FS_in = interpolate2D(TexCoord_ES_in[0], TexCoord_ES_in[1], TexCoord_ES_in[2]);
 
@@ -52,27 +60,24 @@ void main() {
 	WorldPos_FS_in = interpolate3D(WorldPos_ES_in[0], WorldPos_ES_in[1], WorldPos_ES_in[2]);
 
 	/*	Displace the vertex along the normal	*/
-	float heightMapDisp = texture(gDisplacementMap, TexCoord_FS_in.xy).r;
+	const float heightMapDisp = texture(gDisplacementMap, TexCoord_FS_in.xy).r;
 	WorldPos_FS_in += Normal_FS_in * heightMapDisp * ubo.gDispFactor;
 
-	/*	Recompute the actual normal after displacement.	*/
-	const float width = textureSize(gDisplacementMap, 0).x;
-	const float height = textureSize(gDisplacementMap, 0).y;
-	const vec2 uv = TexCoord_FS_in.xy;
+	/*	Recompute normal.	*/
+	const vec3 vertexPos0 = WorldPos_ES_in[0].xyz +
+							Normal_FS_in * texture(gDisplacementMap, TexCoord_FS_in - vec2(0.001)).r * ubo.gDispFactor;
+	const vec3 vertexPos1 = WorldPos_ES_in[1].xyz +
+							Normal_FS_in * texture(gDisplacementMap, TexCoord_FS_in + vec2(0.001)).r * ubo.gDispFactor;
+	const vec3 vertexPos2 =
+		WorldPos_ES_in[2].xyz + Normal_FS_in * texture(gDisplacementMap, TexCoord_FS_in).r * ubo.gDispFactor;
 
-	const vec2 du = vec2(1.0 / width, 0);
-	const vec2 dv = vec2(0, 1.0 / height);
+	const vec3 d1 = vertexPos1 * 0.05 - vertexPos0;
+	const vec3 d2 = vertexPos2 * 0.05 - vertexPos0;
 
-	const float dhdu =
-		ubo.gDispFactor / (2.0 / width) * (texture(gDisplacementMap, uv + du).r - texture(gDisplacementMap, uv - du).r);
-	const float dhdv = ubo.gDispFactor / (2.0 / height) *
-					   (texture(gDisplacementMap, uv + dv).r - texture(gDisplacementMap, uv - dv).r);
+	vec3 normal = normalize(cross(d1, d2));
 
-	// Tangent_FS_in = normalize(Tangent_FS_in - dot(Tangent_FS_in, Normal_FS_in) * Normal_FS_in);
-	vec3 bittagnet = cross(Tangent_FS_in, Normal_FS_in);
-
-	Normal_FS_in = normalize(Normal_FS_in + Tangent_FS_in * dhdu + bittagnet * dhdv);
+	Normal_FS_in = normalize(normal.xyz);
 
 	/*	*/
-	gl_Position = ubo.modelViewProjection * vec4(WorldPos_FS_in, 1.0);
+	gl_Position = (ubo.proj * ubo.view) * vec4(WorldPos_FS_in, 1.0);
 }

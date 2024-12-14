@@ -36,7 +36,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct uniform_buffer_block {
+		using UniformBufferBlock = struct uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -51,8 +51,7 @@ namespace glsample {
 			glm::vec4 ambientLight0 = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 ambientLight1 = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 ambientLight2 = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-
-		} UniformBufferBlock;
+		};
 
 		UniformBufferBlock uniformStageBuffer;
 
@@ -120,11 +119,13 @@ namespace glsample {
 			void draw() override {
 
 				ImGui::TextUnformatted("Light Settings");
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				ImGui::TextUnformatted("Material Settings");
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
 				ImGui::TextUnformatted("Physic Settings");
 				ImGui::DragFloat("Speed", &this->speed);
@@ -374,7 +375,6 @@ namespace glsample {
 				glBindVertexArray(0);
 			}
 
-			/*	TODO: Multiple thread construction of all rigidbodies.	*/
 			{
 				this->physic_interface = new BulletPhysicInterface(nullptr);
 
@@ -412,7 +412,7 @@ namespace glsample {
 				planRigiDesc.isKinematic = true;
 				planRigiDesc.collision = planeCollider;
 				planRigiDesc.position = Vector3(0, -20, 0);
-				planRigiDesc.mass = 0;
+				planRigiDesc.mass = 1000;
 
 				this->planeRigibody = this->physic_interface->createRigibody(&planRigiDesc);
 				this->physic_interface->addRigidBody(this->planeRigibody);
@@ -433,7 +433,7 @@ namespace glsample {
 						for (size_t z = 0; z < this->grid_aray[2]; z++) {
 							RigidBodyDesc desc;
 							desc.collision = boxCollider;
-							desc.mass = 20;
+							desc.mass = 100;
 							desc.useGravity = true;
 							desc.drag = 0.005;
 							desc.position = Vector3(x * offset, 10 + y * offset, z * offset);
