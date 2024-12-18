@@ -11,3 +11,4 @@ layout(location = 0) smooth in vec4 vColor;
 vec4 computeColor() { return (ubo.color + vColor); }
 
 void main() { fragColor = computeColor(); }
+

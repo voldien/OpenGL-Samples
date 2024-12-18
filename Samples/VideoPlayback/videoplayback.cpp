@@ -442,7 +442,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 		}
 
 		void onResize(int width, int height) override {}
@@ -473,12 +473,13 @@ namespace glsample {
 
 			} else {
 				/*	Blit video framebuffer to default framebuffer.	*/
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->videoFramebuffer);
 				glReadBuffer(GL_COLOR_ATTACHMENT0 + this->nthVideoFrame);
 
 				glBlitFramebuffer(0, 0, this->video_width, this->video_height, 0, 0, width, height, GL_COLOR_BUFFER_BIT,
 								  GL_LINEAR);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 		}
 
@@ -531,6 +532,7 @@ namespace glsample {
 							this->frame->linesize[0] *= -1;
 							this->frame->linesize[1] *= -1;
 							this->frame->linesize[2] *= -1;
+
 							sws_scale(this->sws_ctx, this->frame->data, this->frame->linesize, 0, this->frame->height,
 									  this->frameoutput->data, this->frameoutput->linesize);
 

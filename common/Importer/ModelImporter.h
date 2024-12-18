@@ -227,8 +227,6 @@ using LightObject = struct light_object_t : public AssetObject {
 	float mAngleOuterCone;
 };
 
-using namespace Assimp;
-
 class FVDECLSPEC ModelImporter {
   public:
 	ModelImporter(fragcore::IFileSystem *fileSystem) : fileSystem(fileSystem) {}
@@ -267,7 +265,6 @@ class FVDECLSPEC ModelImporter {
 	//
 
 	LightObject *initLight(const aiLight *light, unsigned int index);
-
 	void loadTexturesFromMaterials(aiMaterial *material);
 
 	void convert2Adjcent(const aiMesh *mesh, std::vector<unsigned int> &indices);

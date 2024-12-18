@@ -40,7 +40,7 @@ namespace glsample {
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 			/*	Material.	*/
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
 			/*	Fog.	*/
 			glm::vec4 fogColor = glm::vec4(1, 0, 0, 1);
@@ -74,7 +74,7 @@ namespace glsample {
 			void draw() override {
 				ImGui::TextUnformatted("Light Settings");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				ImGui::TextUnformatted("Fog Settings");

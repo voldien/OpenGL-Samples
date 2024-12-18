@@ -9,7 +9,6 @@ layout(max_vertices = 6) out;
 
 #include "base.glsl"
 
-
 /*  */
 layout(location = 0) smooth in vec3 outForce[];
 
@@ -20,10 +19,8 @@ vec3 computeForceColor(const in vec3 dir) {
 	return vec3((dir.x + 1.0) / 2.0, (dir.y + 1.0) / 2.0, (dir.x - 1.0) / 2.0);
 }
 
-
 void main() {
 
-	const float PI = 3.14159265359;
 	const float hPI = PI;
 	const float arrowAngle = PI / 7.0;
 	const vec3 identity = vec3(1.0, 0.0, 0.0);

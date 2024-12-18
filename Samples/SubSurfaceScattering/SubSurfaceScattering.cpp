@@ -34,7 +34,7 @@ namespace glsample {
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(0.5f, 0.5f, 0.6f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.05, 0.05, 0.05, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.05, 0.05, 0.05, 1.0f);
 			glm::vec4 cameraPosition;
 			glm::vec4 subsurfaceColor = glm::vec4(0.095, 0.012f, 0.012f, 1.0f);
 
@@ -79,7 +79,7 @@ namespace glsample {
 
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("SubSurface Color", &this->uniform.subsurfaceColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
@@ -220,7 +220,7 @@ namespace glsample {
 				glDrawBuffer(GL_NONE);
 				glReadBuffer(GL_NONE);
 
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 
 			/*	*/
@@ -276,13 +276,13 @@ namespace glsample {
 											 this->refObj[i].vertex_offset);
 				}
 				glBindVertexArray(0);
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 
 			/*	*/
 			glClearColor(0.05f, 0.05, 0.05, 0.0f);
 			{
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 				/*	*/
 				glViewport(0, 0, width, height);
 

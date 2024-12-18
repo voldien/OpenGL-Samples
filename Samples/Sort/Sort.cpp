@@ -192,7 +192,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 		}
 
 		void draw() override {
@@ -208,7 +208,7 @@ namespace glsample {
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 							  this->uniformAlignBufferSize);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			{
 
 				if (this->sortSettingComponent->program == 0) {

@@ -8,4 +8,3 @@ layout(location = 0) smooth in vec3 amplitude;
 vec4 computeColor() { return vec4(amplitude, 1.0); }
 
 void main() { fragColor = computeColor(); }
-

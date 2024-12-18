@@ -110,7 +110,7 @@ namespace glsample {
 						  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
 						  this->uniformAlignBufferSize);
 
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 		/*	Set render viewport size in pixels.	*/
 		glViewport(0, 0, width, height);
 		/*	Clear default framebuffer color attachment.	*/

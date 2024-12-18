@@ -41,7 +41,7 @@ namespace glsample {
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec3 cameraPosition;
 
 			float bias = 0.01f;
@@ -89,7 +89,7 @@ namespace glsample {
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 				ImGui::DragFloat("Distance", &this->distance);
@@ -270,7 +270,7 @@ namespace glsample {
 				glDrawBuffer(GL_NONE);
 				glReadBuffer(GL_NONE);
 
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 
 			/*	*/
@@ -322,7 +322,7 @@ namespace glsample {
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 								  this->uniformAlignBufferSize);
 
-				glBindFramebuffer(GL_FRAMEBUFFER, shadowFramebuffer);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
 
 				glClear(GL_DEPTH_BUFFER_BIT);
 				glViewport(0, 0, shadowWidth, shadowHeight);
@@ -340,7 +340,7 @@ namespace glsample {
 				/*	Render shadow.	*/
 				this->scene.render();
 
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 
 			/*	Render Graphic.	*/
@@ -350,7 +350,7 @@ namespace glsample {
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 								  this->uniformAlignBufferSize);
 
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 				/*	*/
 				glViewport(0, 0, width, height);
 

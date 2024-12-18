@@ -22,9 +22,9 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
-	vec4 ambientColor;
 
-	/*	Phong/blinn settings	*/
+	/*	Phong/blinn Material settings	*/
+	vec4 ambientColor;
 	vec4 specularColor;
 	vec4 viewPos;
 	float shininess;
@@ -44,5 +44,5 @@ void main() {
 	const vec4 LightSpecular = ubo.specularColor * spec;
 	const vec4 LightColors = contribution * ubo.lightColor;
 
-	fragColor = (ubo.ambientColor + LightColors + LightSpecular) * texture(DiffuseTexture, uv) * instanceColor * 2.5;
+	fragColor = (ubo.ambientColor + LightColors + LightSpecular) * texture(DiffuseTexture, uv) * instanceColor;
 }

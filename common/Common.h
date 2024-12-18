@@ -15,8 +15,15 @@
  */
 #pragma once
 #include "GLSampleSession.h"
+#include "Math3D/Color.h"
 
 namespace glsample {
+
+	enum class ColorSpace {
+		Raw,  /*	Linear.	*/
+		SRGB, /*	SRGB encoded.	*/
+		ACES
+	};
 
 	// TODO: rename
 	class FVDECLSPEC Common {
@@ -26,8 +33,11 @@ namespace glsample {
 		static void loadSphere(MeshObject &sphereMesh, const float radius = 1, const int slices = 8,
 							   const int segements = 8);
 
-		// static void mergeMeshes(MeshObject &sphereMesh, const float radius = 1, const int slices = 8,
-		//					   const int segements = 8);
+		static void mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes);
+
+		static int createColorTexture(unsigned int width, unsigned int height, const fragcore::Color &color);
+
+		//	static int createFrameBuffer();
 	};
 
 	extern void refreshWholeRoundRobinBuffer(unsigned int bufferType, unsigned int buffer, const unsigned int robin,

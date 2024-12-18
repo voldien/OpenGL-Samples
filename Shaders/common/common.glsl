@@ -1,5 +1,5 @@
-#include "noise.glsl"
 #include "fog.glsl"
+#include "noise.glsl"
 
 // enum GBuffer : unsigned int {
 
@@ -36,7 +36,7 @@ vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist)
 	const vec2 offyx = vec2(offset.x, -offset.y);
 	const vec2 offyz = vec2(-offset.x, -offset.y);
 
-	const float bump_strength = 2.0f;
+	const float bump_strength = 2.0;
 
 	const float s11 = texture(BumpTexture, uv).x;
 	const float s01 = texture(BumpTexture, uv + offxy).x;
@@ -49,12 +49,11 @@ vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist)
 
 	va = normalize(va);
 	vb = normalize(vb);
-	
-	const vec4 normal = vec4(cross(va, vb) *0.5 + 0.5, 1.0);
+
+	const vec4 normal = vec4(cross(va, vb) * 0.5 + 0.5, 1.0);
 
 	return normal;
 }
-
 
 float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
 
@@ -114,4 +113,13 @@ vec3 hsv2rgb(const in vec3 c) {
 	const vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
 	const vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
 	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+vec3 acesFilm(const vec3 x) {
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0, 1.0);
 }

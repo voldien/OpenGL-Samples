@@ -10,11 +10,12 @@ layout(location = 1) out vec2 TexCoord_FS_in;
 layout(location = 2) out vec3 Normal_FS_in;
 layout(location = 3) out vec3 Tangent_FS_in;
 
+#include "noise.glsl"
 #include "terrain_base.glsl"
 
 layout(location = 4) in patch OutputPatch oPatch;
 
-layout(binding = 2) uniform sampler2D gDisplacementMap;
+layout(binding = 2) uniform sampler2D DisplacementTexture;
 
 vec2 interpolate2D(vec2 v0, vec2 v1, vec2 v2) {
 	return vec2(gl_TessCoord.x) * v0 + vec2(gl_TessCoord.y) * v1 + vec2(gl_TessCoord.z) * v2;
@@ -23,7 +24,7 @@ vec2 interpolate2D(vec2 v0, vec2 v1, vec2 v2) {
 vec3 interpolate3D(vec3 v0, vec3 v1, vec3 v2) {
 	return vec3(gl_TessCoord.x) * v0 + vec3(gl_TessCoord.y) * v1 + vec3(gl_TessCoord.z) * v2;
 }
- 
+
 void main() {
 	// Interpolate the attributes of the output vertex using the barycentric coordinates
 	TexCoord_FS_in = interpolate2D(oPatch.TexCoord[0], oPatch.TexCoord[1], oPatch.TexCoord[2]);
@@ -49,13 +50,30 @@ void main() {
 					 oPatch.WorldPos_B111 * 6.0 * w * u * v;
 
 	/*	Displace the vertex along the normal	*/
-	const float heightMapDisp = 0;						// texture(gDisplacementMap, TexCoord_FS_in.xy).r;
-	//WorldPos_FS_in += Normal_FS_in * heightMapDisp * 1; // ubo.gDispFactor;
+	float heightMapDisp = 0;
+	for (uint i = 0; i < 16; i++) {
+		const float mag = ((i * 0.3 + 1.0) / 1);
+		heightMapDisp += noise(WorldPos_FS_in * ubo.terrain.tile_noise_size.xyx * mag +
+							   ubo.terrain.tile_noise_offset.xyx) * (1 + 1 / (i+0.05));
+	}
 
-	// vec3 Mnormal = normalize(FragIN_normal);
-	// vec3 Ttangent = normalize(FragIN_tangent);
-	// Ttangent = normalize(Ttangent - dot(Ttangent, Mnormal) * Mnormal);
-	// FragIN_bitangent = cross(Ttangent, Mnormal);
+	WorldPos_FS_in += Normal_FS_in * heightMapDisp * ubo.gDispFactor;
 
-	gl_Position = ubo.viewProjection * vec4(WorldPos_FS_in, 1.0);
+	/*	Recompute normal.	*/
+	// TODO: improve
+	{
+		const vec3 vertexPos0 = WorldPos_FS_in;
+
+		const vec3 vertexPos1 = WorldPos_FS_in - cross(Tangent_FS_in, Normal_FS_in) * 0.5 +
+								Normal_FS_in * noise(WorldPos_FS_in * 0.1 + vec3(0.001)) * ubo.gDispFactor;
+		const vec3 vertexPos2 = WorldPos_FS_in + Tangent_FS_in * 0.5 +
+								Normal_FS_in * noise(WorldPos_FS_in * 0.1 - vec3(0.001)) * ubo.gDispFactor;
+
+		const vec3 d1 = 10 * vertexPos1 - vertexPos0;
+		const vec3 d2 = 10 * vertexPos2 - vertexPos0;
+
+		Normal_FS_in = normalize(cross(d1, d2));
+	}
+
+	gl_Position = (ubo.proj * ubo.view) * vec4(WorldPos_FS_in, 1.0);
 }

@@ -52,6 +52,8 @@ namespace glsample {
 		/**/
 		virtual void RenderImGUI();
 
+		unsigned int getTexture() const noexcept { return this->skybox_texture_panoramic; }
+
 	  public:
 		static int loadDefaultProgram(fragcore::IFileSystem *filesystem);
 

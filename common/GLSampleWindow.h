@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "ColorSpaceConverter.h"
 #include "FPSCounter.h"
 #include "GLRendererInterface.h"
 #include "SDLInput.h"
@@ -99,8 +100,15 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void vsync(bool enable_vsync);
 
 	void enableRenderDoc(bool status);
+	bool isRenderDocEnabled();
+	void captureDebugFrame() noexcept;
 
 	spdlog::logger &getLogger() const noexcept { return *this->logger; }
+
+  public:
+	void createDefaultFrameBuffer();
+	void updateDefaultFramebuffer();
+	int getDefaultFramebuffer() const noexcept;
 
 	size_t prev_frame_sample_count = 0;
 	size_t prev_frame_primitive_count = 0;
@@ -116,6 +124,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	fragcore::SDLInput input;
 	bool debugGL = true;
 
+	glsample::ColorSpaceConverter *colorSpace;
+
 	/*	*/
 	size_t frameCount = 0;
 	size_t frameBufferIndex = 0;
@@ -124,6 +134,14 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	fragcore::IFileSystem *filesystem;
 
 	int preWidth, preHeight;
+
+	/*	Default framebuffer.	*/
+	using FrameBuffer = struct framebuffer_t {
+		unsigned int framebuffer;
+		unsigned int attachement0;
+		unsigned int depthbuffer;
+	};
+	FrameBuffer *defaultFramebuffer = nullptr;
 
   protected:
 	spdlog::logger *logger;

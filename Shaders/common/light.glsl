@@ -1,3 +1,5 @@
+#ifndef _COMMON_LIGHT_H_
+#define _COMMON_LIGHT_H_ 1
 
 struct DirectionalLight {
 	vec4 direction;
@@ -16,5 +18,7 @@ struct PointLight{
 };
 
 float computeLightContributionFactor(const in vec3 direction, const in vec3 normalInput) {
-	return max(0.0, dot(-normalInput, direction));
+	return max(0.0, dot(-direction, normalInput));
 }
+
+#endif

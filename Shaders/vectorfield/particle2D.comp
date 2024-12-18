@@ -28,32 +28,34 @@ void main() {
 		}
 
 		/*	Bounding Box of the simluation.	*/
-		const vec2 max = ubo.setting.particleBox.xy;
-		const vec2 min = vec2(0, 0);
+		const vec2 max_bound = ubo.setting.particleBox.xy;
+		const vec2 min_bound = vec2(0, 0);
 
 		const float delta = ubo.deltaTime * ubo.setting.speed;
 
 		/*  Get particle.   */
 		vec2 position = readBuffer.particle[pindex].position.xy;
-		vec2 velocity = readBuffer.particle[pindex].velocity.xy;
+		const vec2 velocity = readBuffer.particle[pindex].velocity.xy;
 		const float invMass = readBuffer.particle[pindex].velocity.w;
 
-		const float alpha = 0.8 * 0.001 * ubo.setting.dragMag;
-		const vec2 dragVelocityChange = -alpha * velocity * velocity * delta;
+		// Improve equation for drag.
+		const float alpha = ubo.setting.dragMag;
+		const float dragVelocityChange = min(alpha * dot(velocity, velocity) * delta, 1.0);
+
 		/*  Add force to particle position. */
-		vec2 newVelocity = velocity + (-velocity * 0.9) * delta;
+		vec2 newVelocity = velocity + (-velocity * dragVelocityChange) * delta;
 
 		/*	Check bounds.	*/
-		if (position.x + epsilon > max.x) {
+		if (position.x + EPSILON > max_bound.x) {
 			newVelocity = reflect(newVelocity, vec2(-1, 0));
 		}
-		if (position.y + epsilon > max.y) {
+		if (position.y + EPSILON > max_bound.y) {
 			newVelocity = reflect(newVelocity, vec2(0, -1));
 		}
-		if (position.x - epsilon < min.x) {
+		if (position.x - EPSILON < min_bound.x) {
 			newVelocity = reflect(newVelocity, vec2(1, 0));
 		}
-		if (position.y - epsilon < min.y) {
+		if (position.y - EPSILON < min_bound.y) {
 			newVelocity = reflect(newVelocity, vec2(0, 1));
 		}
 
@@ -61,11 +63,12 @@ void main() {
 		position += newVelocity * delta;
 
 		/*	Final position update.	*/
-		position.xy = clamp(position.xy, min, max);
-		
+		position.xy = clamp(position.xy, min_bound, max_bound);
+
 		/*	Update particle.	*/
 		writeBuffer.particle[pindex].position.xy = position;
 		// writeBuffer.particle[pindex].time = readBuffer.particle[pindex].time - ubo.deltaTime;
 		writeBuffer.particle[pindex].velocity.xy = newVelocity;
 	}
 }
+

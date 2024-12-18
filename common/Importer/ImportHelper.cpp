@@ -222,6 +222,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 		TextureAssetObject &tex = Reftextures[texture_index];
 		ColorSpace colorSpace = ColorSpace::Raw;
+		TextureCompression compression = TextureCompression::Default;
 
 		/*	Determine color space, based on the texture usages.	*/
 		if (!materials.empty()) {
@@ -248,7 +249,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 					materials[0]->normalIndex = texture_index;
 				}
 
-				tex.texture = textureImporter.loadImage2DRaw(image, colorSpace);
+				tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
 				if (tex.texture >= 0) {
 					glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
 				}
@@ -272,7 +273,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 					Image image = imageLoader.loadImage(refIO);
 
-					tex.texture = textureImporter.loadImage2DRaw(image, colorSpace);
+					tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
 					if (tex.texture >= 0) {
 						glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
 					}
@@ -287,7 +288,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				fragcore::Image image(tex.width, tex.height, ImageFormat::ARGB32);
 				image.setPixelData(tex.data, image.getSize());
 
-				tex.texture = textureImporter.loadImage2DRaw(image);
+				tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
 				if (tex.texture >= 0) {
 					glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
 				}

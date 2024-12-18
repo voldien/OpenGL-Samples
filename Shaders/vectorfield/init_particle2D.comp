@@ -27,8 +27,7 @@ void main() {
 			return;
 		}
 
-		writeBuffer.particle[pindex].position.xy = vec2(10,10);
-		writeBuffer.particle[pindex].velocity.xy = vec2(0,0);
-
+		writeBuffer.particle[pindex].position.xy = vec2(10, 10);
+		writeBuffer.particle[pindex].velocity.xy = vec2(0, 0);
 	}
 }

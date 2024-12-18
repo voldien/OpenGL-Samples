@@ -75,12 +75,11 @@ namespace glsample {
 		glm::vec3 position;
 		float range;
 		glm::vec4 color;
-
 		/*	*/
 		float intensity;
 		float constant_attenuation;
 		float linear_attenuation;
-		float qudratic_attenuation;
+		float quadratic_attenuation;
 	};
 
 	using CameraInstance = struct camera_instance_t {

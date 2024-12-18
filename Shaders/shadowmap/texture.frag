@@ -63,6 +63,7 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 }
 
 void main() {
+
 	vec3 viewDir = normalize(ubo.cameraPosition.xyz - vertex);
 
 	vec3 halfwayDir = normalize(ubo.direction.xyz + viewDir);
@@ -77,6 +78,8 @@ void main() {
 	const vec4 irradiance_color = texture(Irradiance, irradiance_uv).rgba;
 
 	vec4 color = texture(DiffuseTexture, UV);
+
+	//computeBlinnDirectional
 
 	const vec4 lighting =
 		(ubo.ambientColor * irradiance_color + (ubo.lightColor * contriubtion + spec) * shadow) * color;

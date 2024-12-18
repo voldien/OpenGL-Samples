@@ -1,5 +1,7 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
 /*  */
 layout(location = 0) out vec4 fragColor;
@@ -9,6 +11,8 @@ layout(location = 0) in vec3 VertexPosition;
 layout(location = 1) in vec2 UV;
 layout(location = 2) in vec3 normal;
 
+#include "phongblinn.glsl"
+
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -17,32 +21,33 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 
 	/*	Light source.	*/
-	vec4 direction;
-	vec4 lightColor;
-	vec4 ambientColor;
+	DirectionalLight directional;
 
+	/*	Material	*/
+	vec4 specularColor;
+	vec4 ambientColor;
+	vec4 shininess;
+
+	/*	Tessellation Settings.	*/
 	vec4 gEyeWorldPos;
 	float gDispFactor;
 	float tessLevel;
 	float maxTessellation;
 	float minTessellation;
+	float dist;
 }
 ubo;
 
 /*  */
-layout(binding = 1) uniform sampler2D diffuse;
-layout(binding = 1) uniform sampler2D heightMap;
-
-float computeLightContributionFactor(in vec3 direction, in vec3 normalInput) {
-	return max(0.0, dot(-normalInput, direction));
-}
+layout(binding = 0) uniform sampler2D DiffuseTexture;
+layout(binding = 1) uniform sampler2D DisplacementTexture;
 
 void main() {
 
-	/*	Compute directional light	*/
-	vec4 lightColor = computeLightContributionFactor(normalize(ubo.direction.xyz), normal) * ubo.lightColor;
+	const vec4 lightColor = computeBlinnDirectional(ubo.directional, normalize(normal), ubo.shininess.yzw,
+													ubo.shininess.r, ubo.specularColor.rgb);
 
-	fragColor = texture(diffuse, UV) * (ubo.ambientColor + lightColor);
+	fragColor = texture(DiffuseTexture, UV) * (ubo.ambientColor + lightColor);
 
-	 //fragColor = vec4(normal, 1);
+	// fragColor = vec4(normal, 1);
 }

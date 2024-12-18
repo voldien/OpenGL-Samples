@@ -143,7 +143,7 @@ namespace glsample {
 				}
 
 				ImGui::TextUnformatted("Material Settings");
-				// ImGui::ColorEdit4("Ambient", &this->getRefSample().ambientLight[0], ImGuiColorEditFlags_Float);
+				// ImGui::ColorEdit4("Ambient", &this->getRefSample().ambientColor[0], ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -427,7 +427,7 @@ namespace glsample {
 					glm::vec4(std::fabs(std::cos(i)), std::fabs(std::sin(i)) + 0.1, std::fabs(cos(i)), 1);
 				this->pointLights[i].constant_attenuation = 1.7f;
 				this->pointLights[i].linear_attenuation = 1.5f;
-				this->pointLights[i].qudratic_attenuation = 0.19f;
+				this->pointLights[i].quadratic_attenuation = 0.19f;
 				this->pointLights[i].intensity = 1.5f;
 			}
 			this->directionalLights.emplace_back();
@@ -481,7 +481,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 			/*	*/
 			this->camera.setFar(2000.0f);
@@ -532,7 +532,7 @@ namespace glsample {
 			{
 
 				/*	Blit depth.	*/
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
 				glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height, 0, 0, width,
 								  height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
@@ -637,7 +637,7 @@ namespace glsample {
 
 			/*	Blit image target depth result to default framebuffer.	*/
 			{
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
 
 				glViewport(0, 0, width, height);
@@ -645,7 +645,7 @@ namespace glsample {
 				glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height, 0, 0,
 								  this->width(), this->height(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 
 			/*	*/
@@ -653,7 +653,7 @@ namespace glsample {
 
 			/*	Blit image targets to screen.	*/
 			{
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
 
 				glViewport(0, 0, width, height);

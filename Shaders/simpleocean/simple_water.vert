@@ -11,4 +11,21 @@ layout(location = 1) out vec2 UV;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
 
-void main() {}
+layout(binding = 0, std140) uniform UniformBufferBlock {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
+	mat4 modelView;
+	mat4 viewProjection;
+	mat4 modelViewProjection;
+
+}
+ubo;
+
+void main() {
+
+	vertex = (ubo.modelViewProjection * vec4(Vertex, 1.0)).xyz;
+	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
+	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
+	UV = TextureCoord;
+}

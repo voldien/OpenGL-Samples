@@ -1,0 +1,26 @@
+#version 460 core
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D sourceBumpTexture;
+layout(set = 0, binding = 1, r32f) uniform restrict writeonly image2D targetHeightTexture;
+
+#include "common.glsl"
+
+void main() {
+
+	/*  */
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(targetHeightTexture)))) {
+		return;
+	}
+
+	/*	Get pixel coordinate.	*/
+	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+	const vec2 normalized_uv_coords = vec2(pixel_coords) / imageSize(targetHeightTexture);
+
+	const float height = 0; // map(gl_GlobalInvocationID, 0).r;
+
+	imageStore(targetHeightTexture, pixel_coords, vec4(height));
+}

@@ -1,4 +1,5 @@
 #include "Common.h"
+#include "GLHelper.h"
 #include <ProceduralGeometry.h>
 
 using namespace glsample;
@@ -136,6 +137,34 @@ void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segment
 	cubeMesh.indices_offset = 0;
 	cubeMesh.vertex_offset = 0;
 	cubeMesh.nrVertices = vertices.size();
+}
+
+void Common::mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes) {
+
+}
+
+int Common::createColorTexture(unsigned int width, unsigned int height, const fragcore::Color &color) {
+	GLuint texRef;
+
+	FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)&texRef));
+	FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, texRef));
+	FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_FLOAT, color.data()));
+
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+	/*	Border clamped to max value, it makes the outside area.	*/
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+
+	/*	No Mipmap.	*/
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+
+	FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return texRef;
 }
 
 void glsample::refreshWholeRoundRobinBuffer(unsigned int bufferType, unsigned int buffer, const unsigned int robin,

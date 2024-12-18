@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "../Common.h"
 #include <IO/FileSystem.h>
 #include <IO/IFileSystem.h>
 #include <ImageLoader.h>
@@ -24,13 +25,11 @@ namespace glsample {
 
 	enum class TextureCompression {
 		None,	/*	*/
-		Default /*	*/
+		Default, /*	*/
+		BPTC,
+		ACST
 	};
 
-	enum class ColorSpace {
-		SRGB, /*	SRGB encoded.	*/
-		Raw,  /*	Linear.	*/
-	};
 
 	/**
 	 * @brief
@@ -45,17 +44,21 @@ namespace glsample {
 		TextureImporter(fragcore::IFileSystem *filesystem);
 		virtual ~TextureImporter();
 
-		int loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::Raw, const TextureCompression compression = TextureCompression::None);
-		int loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::Raw, const TextureCompression compression = TextureCompression::None);
+		int loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::Raw,
+						const TextureCompression compression = TextureCompression::Default);
+		int loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::Raw,
+						   const TextureCompression compression = TextureCompression::Default);
 
 		int loadCubeMap(const std::string &px, const std::string &nx, const std::string &py, const std::string &ny,
-						const std::string &pz, const std::string &nz);
-		int loadCubeMap(const std::vector<std::string> &paths);
+						const std::string &pz, const std::string &nz, const ColorSpace colorSpace = ColorSpace::Raw,
+						const TextureCompression compression = TextureCompression::Default);
+		int loadCubeMap(const std::vector<std::string> &paths, const ColorSpace colorSpace = ColorSpace::Raw,
+						const TextureCompression compression = TextureCompression::Default);
 
 	  private:
-		fragcore::IFileSystem *filesystem;
-		std::array<unsigned int, 3> pbos;
-		std::atomic_int current_aviable;
+		fragcore::IFileSystem *filesystem = nullptr;
+		std::array<unsigned int, 3> pbos = {};
+		std::atomic_int current_aviable = 0;
 	};
 
 } // namespace glsample

@@ -338,23 +338,7 @@ namespace glsample {
 				}
 
 				/*	Create white texture.	*/
-				glGenTextures(1, &this->white_texture);
-				glBindTexture(GL_TEXTURE_2D, this->white_texture);
-				const unsigned char white[] = {255, 255, 255, 255};
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-				/*	No Mipmap.	*/
-				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
-
-				FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
-
-				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
-				glBindTexture(GL_TEXTURE_2D, 0);
+				this->white_texture = Common::createColorTexture(1, 1, Color::white());
 
 				/*	Create noise normalMap.	*/
 				const size_t noiseW = 4;
@@ -498,7 +482,7 @@ namespace glsample {
 
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->ssaoTexture, 0);
 
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 
 			/*	Update camera aspect.	*/
@@ -598,7 +582,7 @@ namespace glsample {
 
 				/*	Show only ambient Occlusion.	*/
 				if (this->ambientOcclusionSettingComponent->showAOOnly) {
-					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 					glBindFramebuffer(GL_READ_FRAMEBUFFER, this->ssao_framebuffer);
 					glViewport(0, 0, width, height);
 
@@ -613,7 +597,7 @@ namespace glsample {
 
 				} else { /*	Blend with final result.	*/
 
-					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+					glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 					glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
 					glReadBuffer(GL_COLOR_ATTACHMENT0);
 
@@ -622,7 +606,7 @@ namespace glsample {
 					glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
 									  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 					glDisable(GL_CULL_FACE);
 					glCullFace(GL_FRONT_AND_BACK);
 					glDisable(GL_DEPTH_TEST);
@@ -661,7 +645,7 @@ namespace glsample {
 			if (this->ambientOcclusionSettingComponent->showGBuffers) {
 
 				/*	Blit image targets to screen.	*/
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
 
 				const size_t widthDivior = 2;
@@ -678,7 +662,7 @@ namespace glsample {
 									  halfH + (i / 2) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 				}
 			}
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 		}
 
 		void update() override {

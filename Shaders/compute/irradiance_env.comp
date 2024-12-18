@@ -7,6 +7,12 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(set = 0, binding = 0) uniform sampler2D sourceEnvTexture;
 layout(set = 0, binding = 1, rgba32f) uniform restrict writeonly image2D targetIrradianceTexture;
 
+layout(push_constant) uniform Settings {
+	layout(offset = 0) float sampleDelta;
+	layout(offset = 4) float maxValue;
+}
+settings;
+
 #include "common.glsl"
 
 void main() {
@@ -21,7 +27,7 @@ void main() {
 	const vec2 normalized_uv_coords = vec2(pixel_coords) / vec2(imageSize(targetIrradianceTexture));
 
 	// TODO: improve mapping.
-	const vec3 direction = -equirectangular(2 * normalized_uv_coords - 0.80);
+	const vec3 direction = -equirectangular(normalized_uv_coords);
 
 	vec3 irradiance = vec3(0.0);
 
@@ -29,23 +35,29 @@ void main() {
 	vec3 right = normalize(cross(up, direction));
 	up = normalize(cross(direction, right));
 
-	const float sampleDelta = 0.025;
+	const float sampleDelta = max(0.01, settings.sampleDelta);
 
 	float nrSamples = 0.0;
 	for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta) {
+		vec3 sub_irradiance = vec3(0);
+		uint sub_irradiance_sample_count = 0;
+
 		for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta) {
 			// spherical to cartesian (in tangent space)
-			vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+			const vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
 			// tangent space to world
-			vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * direction;
+			const vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * direction;
 
 			const vec2 panoramic_coordinate = inverse_equirectangular(sampleVec);
 
-			irradiance += textureLod(sourceEnvTexture, panoramic_coordinate, 3).rgb * cos(theta) * sin(theta);
+			sub_irradiance += textureLod(sourceEnvTexture, panoramic_coordinate, 2).rgb * cos(theta) * sin(theta);
 			// irradiance = min(irradiance, 162553);
-			nrSamples++;
+			sub_irradiance_sample_count++;
 		}
+		irradiance += sub_irradiance * (1.0 / float(sub_irradiance_sample_count));
+		nrSamples++;
 	}
+
 	irradiance = PI * irradiance * (1.0 / float(nrSamples));
 
 	imageStore(targetIrradianceTexture, pixel_coords, vec4(irradiance, 1));

@@ -1,3 +1,6 @@
+#ifndef FOG_FRAG_
+#define FOG_FRAG_ 1
+
 float getFogFactor(const in FogSettings fog_settings) {
 
 	const float near = fog_settings.CameraNear;
@@ -33,3 +36,5 @@ vec4 blendFog(const in vec4 color, const in FogSettings fogSettings) {
 
 	return mix(color, fogSettings.fogColor, fog_factor);
 }
+
+#endif

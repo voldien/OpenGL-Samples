@@ -50,3 +50,4 @@ void main() {
 	writeBuffer.particle[pindex].position = position;
 	writeBuffer.particle[pindex].velocity = vec4(velocity, 1);
 }
+

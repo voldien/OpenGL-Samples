@@ -19,9 +19,13 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProjection[6];
 	mat4 modelViewProjection;
 
+	/*	*/
+
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
+
+	/*	*/
 	vec4 specularColor;
 	vec4 ambientColor;
 	vec4 viewDir;
@@ -31,10 +35,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 #include "common.glsl"
-
-layout(binding = 0) uniform sampler2D DiffuseTexture;
-layout(binding = 1) uniform sampler2D NormalTexture;
-layout(binding = 10) uniform sampler2D Irradiance;
+#include "scene.glsl"
 
 void main() {
 
@@ -50,7 +51,7 @@ void main() {
 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
 
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
-	const vec4 irradiance_color = texture(Irradiance, irradiance_uv).rgba;
+	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
 
 	pointLightSpecular = (ubo.specularColor * spec);
 	pointLightColors.a = 1.0;

@@ -1,5 +1,6 @@
-layout(constant_id = 0) const float epsilon = 0.0011f;
 layout(constant_id = 1) const int NR_Particles = 8;
+
+#include"common.glsl"
 
 struct particle_t {
 	vec3 position;

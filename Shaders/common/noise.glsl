@@ -1,3 +1,5 @@
+#ifndef _COMMON_NOISE_
+#define _COMMON_NOISE_ 1
 float mod289(const in float x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 mod289(const in vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 perm(const in vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
@@ -98,3 +100,5 @@ float cnoise(const in vec3 P) {
 	float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
 	return 2.2 * n_xyz;
 }
+
+#endif

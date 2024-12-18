@@ -222,7 +222,7 @@ namespace glsample {
 								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 								  this->uniformAlignBufferSize);
 
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 				/*	*/
 				glViewport(0, 0, width, height);
 

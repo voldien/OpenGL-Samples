@@ -24,15 +24,16 @@
 namespace glsample {
 
 	enum TextureType : unsigned int {
-		Diffuse = 0,	/*	*/
-		Normal = 1,		/*	*/
-		AlphaMask = 2,	/*	*/
-		Specular = 3,	/*	*/
-		Emission = 4,	/*	*/
-		Reflection = 5, /*	*/
-		Ambient = 6,	/*	*/
-		Displacement,
-		Irradiance = 10
+		Diffuse = 0,	  /*	*/
+		Normal = 1,		  /*	*/
+		AlphaMask = 2,	  /*	*/
+		Specular = 3,	  /*	*/
+		Emission = 4,	  /*	*/
+		Reflection = 5,	  /*	*/
+		Ambient = 6,	  /*	*/
+		Displacement = 7, /*	*/
+		Irradiance = 10,  /*	*/
+		DepthBuffer = 11, /*	*/
 	};
 
 	enum class TexturePBRType : unsigned int {
@@ -51,6 +52,10 @@ namespace glsample {
 		GeometryLast = 1600, /*  */
 		Transparent = 2000,	 /*  */
 		Overlay = 3000,		 /*  */
+	};
+
+	enum DebugMode : unsigned int {
+		Wireframe = 0x1,
 	};
 
 	/**
@@ -78,6 +83,9 @@ namespace glsample {
 
 		virtual void renderUI();
 
+	  public: /*	*/
+			  //	void enableDebug();
+
 	  public:
 		const std::vector<NodeObject *> &getNodes() const noexcept { return this->nodes; }
 
@@ -98,7 +106,7 @@ namespace glsample {
 		std::vector<MaterialObject> materials;
 		std::vector<animation_object_t> animations;
 
-		//Skybox skybox;
+		// Skybox skybox;
 
 	  protected: /*	Default texture if texture from material is missing.*/
 		std::array<int, 10> default_textures;
@@ -106,6 +114,8 @@ namespace glsample {
 		int diffuseDefault = -1;
 		int roughnessSpecularDefault = -1;
 		int emissionDefault = -1;
+
+		DebugMode debugMode;
 
 		unsigned int node_uniform_buffer;
 
@@ -121,6 +131,5 @@ namespace glsample {
 
 			return scene;
 		}
-		static void RenderUI(Scene &scene);
 	};
 } // namespace glsample

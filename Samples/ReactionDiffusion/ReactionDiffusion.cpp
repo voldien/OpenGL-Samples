@@ -218,7 +218,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 		}
 
 		void draw() override {
@@ -226,7 +226,7 @@ namespace glsample {
 			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			{
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -257,7 +257,7 @@ namespace glsample {
 			}
 
 			/*	Blit reaction diffusion render framebuffer to default framebuffer.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->reactiondiffusion_framebuffer);
 
 			/*	*/

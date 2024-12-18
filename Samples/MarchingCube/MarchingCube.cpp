@@ -107,7 +107,8 @@ namespace glsample {
 				/*	*/
 				ImGui::TextUnformatted("Fog Settings");
 				ImGui::DragInt("Fog Type", (int *)&this->uniform.fogSettings.fogType);
-				ImGui::ColorEdit4("Fog Color", &this->uniform.fogSettings.fogColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Fog Color", &this->uniform.fogSettings.fogColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat("Fog Density", &this->uniform.fogSettings.fogDensity);
 				ImGui::DragFloat("Fog Intensity", &this->uniform.fogSettings.fogIntensity);
 				ImGui::DragFloat("Fog Start", &this->uniform.fogSettings.fogStart);
@@ -341,6 +342,9 @@ namespace glsample {
 
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT |
 								GL_UNIFORM_BARRIER_BIT);
+
+				// TODO:
+				/*	Draw and save geometry, transform feeedback.	*/
 			}
 
 			/*	*/
@@ -351,7 +355,6 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Wait in till the */
-
 			{
 				glUseProgram(this->marching_cube_graphic_program);
 
@@ -426,8 +429,10 @@ namespace glsample {
 } // namespace glsample
 
 int main(int argc, const char **argv) {
-	try {
 
+	/*	Require, compute, transform feedback.	*/
+
+	try {
 		glsample::MarchingCubeSample sample;
 		sample.run(argc, argv);
 

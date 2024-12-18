@@ -38,12 +38,12 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProjection[6];
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProjection[6]{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Light source.	*/
 			glm::vec4 direction = glm::vec4(0.7, 0.7, 1, 1);
@@ -51,34 +51,34 @@ namespace glsample {
 
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 ambientColor = glm::vec4(0.3, 0.3, 0.3, 1);
-			glm::vec4 viewDir;
+			glm::vec4 viewDir{};
 
 			float shininess = 8.0f;
 		} uniformStageBuffer;
 
 		/*	Point light shadow maps.	*/
-		unsigned int panoramicFrameBuffer;
-		unsigned int panoramicCubeMapTexture;
-		unsigned int depthTexture;
+		unsigned int panoramicFrameBuffer{};
+		unsigned int panoramicCubeMapTexture{};
+		unsigned int depthTexture{};
 
 		/*	*/
 		unsigned int panoramicWidth = 1024;
 		unsigned int panoramicHeight = 1024;
 
-		unsigned int irradiance_texture;
+		unsigned int irradiance_texture{};
 
 		MeshObject plan;
 		Scene scene;
 		Skybox skybox;
 
 		/*	*/
-		unsigned int graphic_cubemap_program; /*	*/
-		unsigned int panoramic_program;		  /*	Show panoramic.	*/
-		unsigned int skybox_program;		  /*	*/
+		unsigned int graphic_cubemap_program{}; /*	*/
+		unsigned int panoramic_program{};		/*	Show panoramic.	*/
+		unsigned int skybox_program{};			/*	*/
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
@@ -259,8 +259,8 @@ namespace glsample {
 					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT24, this->panoramicWidth,
 								 this->panoramicHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 				}
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -276,7 +276,7 @@ namespace glsample {
 										   (const char *)glewGetErrorString(frstat));
 				}
 
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 
 			/*	load Skybox Textures	*/
@@ -320,14 +320,14 @@ namespace glsample {
 
 				glUseProgram(this->panoramic_program);
 
-				glActiveTexture(GL_TEXTURE0 + 10);
+				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				this->scene.render();
 			}
 
 			{
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 				glViewport(0, 0, width, height);
@@ -366,7 +366,7 @@ namespace glsample {
 
 			/*	Compute light matrices.	*/
 			this->camera.setFOV(90);
-			glm::mat4 pointPer = glm::perspective(
+			const glm::mat4 pointPer = glm::perspective(
 				glm::radians(90.0f), (float)this->panoramicWidth / (float)this->panoramicHeight, 0.45f, 2000.0f);
 
 			/*	*/
@@ -388,7 +388,8 @@ namespace glsample {
 			this->uniformStageBuffer.ViewProjection[5] =
 				glm::lookAt(cameraPosition, cameraPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0));
 
-			for (int i = 0; i < 6; i++) {
+			for (unsigned int i = 0; i < 6; i++) {
+
 				this->uniformStageBuffer.ViewProjection[i] = glm::rotate(
 					this->uniformStageBuffer.ViewProjection[i], glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 				this->uniformStageBuffer.ViewProjection[i] =

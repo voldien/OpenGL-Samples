@@ -84,7 +84,7 @@ namespace glsample {
 
 				ImGui::TextUnformatted("Direction Light Settings");
 				// ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float |
-				// ImGuiColorEditFlags_HDR); ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				// ImGuiColorEditFlags_HDR); ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 				// ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR); ImGui::DragFloat3("Direction",
 				// &this->uniform.direction[0]);
 
@@ -211,7 +211,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 		}
 
 		void draw() override {
@@ -223,7 +223,7 @@ namespace glsample {
 							  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
 							  this->uniformAlignBufferSize);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 			/*	Bind and Compute Game of Life Compute Program.	*/
 			{
@@ -248,7 +248,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Blit game of life render framebuffer to default framebuffer.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->raytracing_framebuffer);
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 

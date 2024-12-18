@@ -23,7 +23,7 @@ layout(binding = 0) uniform UniformBufferBlock {
 	/*light source.	*/
 	vec4 direction;
 	vec4 lightColor;
-	vec4 ambientLight;
+	vec4 ambientColor;
 
 	float width, height;
 	float speed;

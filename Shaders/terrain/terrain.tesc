@@ -16,13 +16,15 @@ layout(location = 3) in vec3 Tangent_CS_in[];
 layout(location = 4) out patch OutputPatch oPatch;
 
 vec3 ProjectToPlane(const vec3 Point, const vec3 PlanePoint, const vec3 PlaneNormal) {
-	vec3 v = Point - PlanePoint;
-	float Len = dot(v, PlaneNormal);
-	vec3 d = Len * PlaneNormal;
+	const vec3 v = Point - PlanePoint;
+	const float Len = dot(v, PlaneNormal);
+	const vec3 d = Len * PlaneNormal;
 	return (Point - d);
 }
 
+
 void CalcPositions() {
+
 	// The original vertices stay the same
 	oPatch.WorldPos_B030 = WorldPos_CS_in[0];
 	oPatch.WorldPos_B003 = WorldPos_CS_in[1];
@@ -61,16 +63,17 @@ void CalcPositions() {
 float GetTessLevel(float Distance0, float Distance1) {
 	float AvgDistance = (Distance0 + Distance1) / 2.0;
 
-	const float maxTessellation = 20.0;
-	const float minTessellation = 0.04;
+	const float maxTessellation = ubo.maxTessellation;
+	const float minTessellation = ubo.minTessellation;
 
 	return mix(minTessellation, maxTessellation, 100 / (AvgDistance + 10));
 }
 
+
 void main() {
 
 	// Set the control points of the output patch
-	for (int i = 0; i < 3; i++) {
+	for (uint i = 0; i < 3; i++) {
 		oPatch.Normal[i] = Normal_CS_in[i];
 		oPatch.Tangent[i] = Tangent_CS_in[i];
 		oPatch.TexCoord[i] = TexCoord_CS_in[i];
@@ -91,4 +94,8 @@ void main() {
 
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 }
+
+
+ 
+ 
  

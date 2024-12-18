@@ -134,7 +134,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 		}
 
 		void draw() override {
@@ -142,7 +142,7 @@ namespace glsample {
 			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 			/*	Bind and Compute Game of Life Compute Program.	*/
 			{
@@ -169,7 +169,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Blit game of life render framebuffer to default framebuffer.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->gameoflife_framebuffer);
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 

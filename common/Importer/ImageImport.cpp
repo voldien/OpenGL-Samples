@@ -9,9 +9,6 @@ using namespace glsample;
 
 TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesystem) { /*	TODO: create PBO */
 	glCreateBuffers(3, this->pbos.data());
-	// glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbos[0]);
-	// glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbos[1]);
-	// glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbos[2]);
 }
 
 TextureImporter::~TextureImporter() { glDeleteBuffers(3, this->pbos.data()); }
@@ -40,6 +37,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 
 	GLenum format = 0, internalformat = 0, type = 0;
 
+	// TODO: relocat for reuse.
 	switch (image.getFormat()) {
 	case ImageFormat::RGB24: /*	Multiple Channels.	*/
 		format = GL_RGB;
@@ -73,7 +71,6 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		type = GL_FLOAT;
 		internalformat = GL_RGBA16F;
 		break;
-
 	case ImageFormat::Alpha8: /*	Single Channel.	*/
 		format = GL_RED;
 		type = GL_UNSIGNED_BYTE;
@@ -128,6 +125,38 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		}
 	}
 
+	/*	*/
+	if (compression != TextureCompression::None) {
+		if (compression == TextureCompression::Default) {
+			switch (internalformat) {
+			case GL_R8:
+				internalformat = GL_COMPRESSED_RED;
+				break;
+			case GL_RGBA8:
+				internalformat = GL_COMPRESSED_RGBA_ARB;
+				break;
+			case GL_RGB8:
+				internalformat = GL_COMPRESSED_RGB_ARB;
+				break;
+			case GL_SRGB8_ALPHA8:
+				internalformat = GL_COMPRESSED_SRGB_ALPHA;
+				break;
+			case GL_SRGB8:
+				internalformat = GL_COMPRESSED_SRGB;
+				break;
+			case GL_RGB16F:
+			case GL_RGB32F:
+			case GL_RGBA16F:
+			case GL_RGBA32F:
+				internalformat = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
+				break;
+			default:
+				throw RuntimeException("None Supported Format: {} ({})", magic_enum::enum_name(image.getFormat()),
+									   internalformat);
+			}
+		}
+	}
+
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));
 
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));
@@ -172,13 +201,15 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 }
 
 int TextureImporter::loadCubeMap(const std::string &px, const std::string &nx, const std::string &py,
-								 const std::string &ny, const std::string &pz, const std::string &nz) {
+								 const std::string &ny, const std::string &pz, const std::string &nz,
+								 const ColorSpace colorSpace, const TextureCompression compression) {
 
 	std::vector<std::string> paths = {px, nx, py, ny, pz, nz};
-	return loadCubeMap(paths);
+	return loadCubeMap(paths, colorSpace, compression);
 }
 
-int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
+int TextureImporter::loadCubeMap(const std::vector<std::string> &paths, const ColorSpace colorSpace,
+								 const TextureCompression compression) {
 	ImageLoader imageLoader;
 
 	GLenum target = GL_TEXTURE_CUBE_MAP;
@@ -236,7 +267,7 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths) {
 			internalformat = GL_RGBA8;
 			type = GL_UNSIGNED_BYTE;
 			break;
-		default: // TODO: fix memory leak
+		default:
 			throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));
 		}
 

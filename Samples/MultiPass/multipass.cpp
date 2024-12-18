@@ -33,27 +33,26 @@ namespace glsample {
 			glm::mat4 modelView;
 			glm::mat4 modelViewProjection;
 
-		} uniformStageBuffer;
+		} uniformStageBuffer{};
 
 		/*	*/
-		ModelImporter *modelLoader;
+		ModelImporter *modelLoader{};
 
 		Skybox skybox;
 
-		unsigned int multipass_program;
-		unsigned int skybox_program;
+		unsigned int multipass_program{};
 
 		/*	G-Buffer	*/
-		unsigned int multipass_framebuffer;
+		unsigned int multipass_framebuffer{};
 
-		unsigned int multipass_texture_width;
-		unsigned int multipass_texture_height;
+		unsigned int multipass_texture_width{};
+		unsigned int multipass_texture_height{};
 		std::vector<unsigned int> multipass_textures;
-		unsigned int depthTexture;
+		unsigned int depthTexture{};
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
@@ -65,16 +64,10 @@ namespace glsample {
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
 		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
 
-		/*	*/
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
-
 		void Release() override {
 			delete this->modelLoader;
 
 			glDeleteProgram(this->multipass_program);
-			glDeleteProgram(this->skybox_program);
-
 			/*	*/
 			glDeleteTextures(1, &this->depthTexture);
 			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
@@ -104,19 +97,9 @@ namespace glsample {
 				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &multipass_vertex_binary,
 																		   &multipass_fragment_binary);
 
-				/*	Load shader binaries.	*/
-				std::vector<uint32_t> vertex_skybox_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-				std::vector<uint32_t> fragment_skybox_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
-
 				/*	*/
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
-
-				/*	Create skybox graphic pipeline program.	*/
-				this->skybox_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
 
 			/*	Setup graphic pipeline.	*/
@@ -128,17 +111,10 @@ namespace glsample {
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->skybox_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "PanoramaTexture"), 0);
-			glUseProgram(0);
-
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
-			skybox.Init(skytexture, this->skybox_program);
+			this->skybox.Init(skytexture, Skybox::loadDefaultProgram(this->getFileSystem()));
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize = 0;
@@ -222,7 +198,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 			this->camera.setAspect((float)width / (float)height);
 		}
@@ -261,7 +237,7 @@ namespace glsample {
 			}
 
 			/*	Blit image targets to screen.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
 
 			glViewport(0, 0, width, height);
@@ -285,7 +261,7 @@ namespace glsample {
 								  (index % widthDivior) * (sub_view_width), (index / heightDivior) * sub_view_height,
 								  dest_width, dest_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 			}
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 		}
 
 		void update() override {

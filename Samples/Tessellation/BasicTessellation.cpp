@@ -1,9 +1,11 @@
+#include "SampleHelper.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>
+#include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace glsample {
@@ -34,9 +36,10 @@ namespace glsample {
 			glm::mat4 modelViewProjection{};
 
 			/*	light source.	*/
-			glm::vec4 direction = glm::vec4(-1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
+			DirectionalLight directional;
+			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
+			glm::vec4 shininess = glm::vec4(8, 0, 0, 0);
 
 			/*	Tessellation settings.	*/
 			glm::vec4 eyePos = glm::vec4(1.0f);
@@ -44,31 +47,38 @@ namespace glsample {
 			float tessLevel = 1.0f;
 			float maxTessellation = 30.0f;
 			float minTessellation = 0.05f;
+			float distance = 100;
 
 		} uniformStageBuffer;
 
 		class TessellationSettingComponent : public nekomimi::UIComponent {
-
 		  public:
 			TessellationSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
 				this->setName("Tessellation Settings");
 			}
 
 			void draw() override {
+
 				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Displacement", &this->uniform.gDisplace, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Levels", &this->uniform.tessLevel, 1, 0.0f, 10.0f);
 				ImGui::DragFloat("Min Tessellation", &this->uniform.minTessellation, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Max Tessellation", &this->uniform.maxTessellation, 1, 0.0f, 100.0f);
+				ImGui::DragFloat("Distance Tessellation", &this->uniform.distance, 1, 0.0f, 100.0f);
 
 				ImGui::TextUnformatted("Light Settings");
 				ImGui::TextUnformatted("Light");
-				ImGui::ColorEdit4("Color", &this->uniform.lightColor[0],
+				ImGui::ColorEdit4("Color", &this->uniform.directional.lightColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				if (ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0])) {
+				}
+
 				ImGui::TextUnformatted("Material");
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Specular", &this->uniform.specularColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::DragFloat("Shininess", &this->uniform.shininess[0]);
 
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -97,8 +107,9 @@ namespace glsample {
 		CameraController camera;
 
 		/*	*/
-		unsigned int diffuse_texture{};
-		unsigned int heightmap_texture{};
+		unsigned int diffuse_texture = 0;
+		unsigned int heightmap_texture = 0;
+		unsigned int color_texture = 0;
 
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/tessellation/tessellation.vert.spv";
@@ -113,6 +124,7 @@ namespace glsample {
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			glDeleteTextures(1, (const GLuint *)&this->heightmap_texture);
+			glDeleteTextures(1, (const GLuint *)&this->color_texture);
 
 			/*	*/
 			glDeleteVertexArrays(1, &this->plan.vao);
@@ -150,8 +162,8 @@ namespace glsample {
 			/*	Setup Shader.	*/
 			glUseProgram(this->tessellation_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->tessellation_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->tessellation_program, "diffuse"), 0);
-			glUniform1i(glGetUniformLocation(this->tessellation_program, "gDisplacementMap"), 1);
+			glUniform1i(glGetUniformLocation(this->tessellation_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->tessellation_program, "DisplacementTexture"), 1);
 			glUniformBlockBinding(this->tessellation_program, uniform_buffer_index, 0);
 
 			glUseProgram(0);
@@ -160,6 +172,7 @@ namespace glsample {
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath, ColorSpace::SRGB);
 			this->heightmap_texture = textureImporter.loadImage2D(heightTexturePath, ColorSpace::Raw);
+			this->color_texture = Common::createColorTexture(1, 1, Color(0, 1, 0, 1));
 
 			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -202,14 +215,28 @@ namespace glsample {
 
 				glDisable(GL_CULL_FACE);
 				glEnable(GL_DEPTH_TEST);
+				glDepthFunc(GL_LESS);
 
 				/*	Draw triangle*/
 				glBindVertexArray(this->plan.vao);
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->tessellationSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
 				glDrawElements(GL_PATCHES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+
+				if (this->tessellationSettingComponent->showWireFrame) {
+
+					glPolygonMode(GL_FRONT_AND_BACK,
+								  this->tessellationSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+					glDepthFunc(GL_LEQUAL);
+					/*	*/
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, this->color_texture);
+
+					glPatchParameteri(GL_PATCH_VERTICES, 3);
+					glDrawElements(GL_PATCHES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				}
 
 				glBindVertexArray(0);
 				glUseProgram(0);
@@ -224,7 +251,7 @@ namespace glsample {
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
 			this->uniformStageBuffer.model = glm::translate(this->uniformStageBuffer.model, glm::vec3(0, 0, 10));
 			this->uniformStageBuffer.model =
-				glm::rotate(this->uniformStageBuffer.model, (float)Math::PI_half, glm::vec3(1, 0, 0));
+				glm::rotate(this->uniformStageBuffer.model, (float)-Math::PI_half, glm::vec3(1, 0, 0));
 			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(20, 20, 20));
 
 			/*	*/
@@ -235,7 +262,10 @@ namespace glsample {
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			this->uniformStageBuffer.eyePos = glm::vec4(this->camera.getPosition(), 0);
+			this->uniformStageBuffer.shininess =
+				glm::vec4(this->uniformStageBuffer.shininess.x, glm::normalize(this->camera.getLookDirection()));
 
+			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
 				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSize,
@@ -253,6 +283,8 @@ namespace glsample {
 			options("T,texture", "Texture Path",
 					cxxopts::value<std::string>()->default_value("asset/tessellation_diffusemap.png"))(
 				"heightmap", "Height/Displacement Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/tessellation_heightmap.png"))(
+				"normal", "Normal Texture Path",
 				cxxopts::value<std::string>()->default_value("asset/tessellation_heightmap.png"));
 		}
 	};

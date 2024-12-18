@@ -15,13 +15,21 @@ layout(location = 3) out vec3 FragIN_tangent;
 
 #include "terrain_base.glsl"
 
+
 void main() {
 
-	const vec2 tile_uv = vec2(10);
+	// TODO: compute X,Y from vertex ID.
+	// TODO: compute UV from vertex ID.
 
+	const float x = float(gl_VertexID % ubo.terrain.size.x);
+	const float y = float(gl_VertexID / ubo.terrain.size.y);
+
+	const vec2 tile_uv = vec2(10);
 	WorldPos_in = (ubo.model * vec4(Vertex, 1.0)).xyz;
 
-	FragIN_uv = TextureCoord * tile_uv;
+	FragIN_uv = vec2(x,y) / vec2(ubo.terrain.size) * tile_uv;
 	FragIN_normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	FragIN_tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
 }
+
+

@@ -42,7 +42,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 
 			/*	Material.	*/
-			glm::vec4 ambientLight = glm::vec4(0.075f, 0.075f, 0.075f, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.075f, 0.075f, 0.075f, 1.0f);
 
 			PointLightSource pointLights[nrPointLights];
 		} uniformStageBuffer;
@@ -88,7 +88,7 @@ namespace glsample {
 					}
 					ImGui::PopID();
 				}
-				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
 				ImGui::Checkbox("Animate Lights", &this->animate);
@@ -122,7 +122,6 @@ namespace glsample {
 
 			/*	*/
 			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
-			const std::string modelPath = this->getResult()["model"].as<std::string>();
 
 			{
 				/*	Load shader source.	*/
@@ -224,8 +223,8 @@ namespace glsample {
 				for (size_t i = 0;
 					 i < sizeof(uniformStageBuffer.pointLights) / sizeof(uniformStageBuffer.pointLights[0]); i++) {
 					this->uniformStageBuffer.pointLights[i].position =
-						glm::vec3(10.0f * std::cos(this->getTimer().getElapsed<float>() * 3.1415 + 1.3 * i), 10,
-								  10.0f * std::sin(this->getTimer().getElapsed<float>() * 3.1415 + 1.3 * i));
+						glm::vec3(10.0f * std::cos(this->getTimer().getElapsed<float>() * Math::PI + 1.3 * i), 10,
+								  10.0f * std::sin(this->getTimer().getElapsed<float>() * Math::PI + 1.3 * i));
 				}
 			}
 
@@ -255,8 +254,7 @@ namespace glsample {
 	  public:
 		PointLightsGLSample() : GLSample<PointLight>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny/bunny.obj"));
+			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"));
 		}
 	};
 

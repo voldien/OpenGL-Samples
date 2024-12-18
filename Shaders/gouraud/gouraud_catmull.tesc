@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
 
 // define the number of CPs in the output patch
 layout(vertices = 1) out;
@@ -67,7 +68,7 @@ float GetTessLevel(float Distance0, float Distance1) {
 void main() {
 
 	// Set the control points of the output patch
-	for (int i = 0; i < 3; i++) {
+	[[unroll]] for (uint i = 0; i < 3; i++) {
 		oPatch.Normal[i] = Normal_CS_in[i];
 	}
 

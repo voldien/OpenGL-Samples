@@ -20,6 +20,7 @@
 
 namespace fs = std::filesystem;
 using namespace fragcore;
+using namespace Assimp;
 
 static inline glm::mat4 aiMatrix4x4ToGlm(const aiMatrix4x4 *from) noexcept {
 	glm::mat4 to;

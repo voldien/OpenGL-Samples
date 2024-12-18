@@ -79,7 +79,7 @@ namespace glsample {
 			/*light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 		};
 
 		UniformBufferBlock uniformStageBuffer;
@@ -141,7 +141,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Light Settings");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
@@ -327,7 +327,7 @@ namespace glsample {
 
 			/*	Draw from main camera */
 			{
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 				/*	*/
 				glViewport(0, 0, width, height);
 				glClearColor(0.05f, 0.05f, 0.05f, 0.0f);
@@ -357,7 +357,7 @@ namespace glsample {
 
 				/*	Draw from second camera */
 				{
-					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 					/*	*/
 					const int subX = width * 0.7;
 					const int subY = height * 0.7;

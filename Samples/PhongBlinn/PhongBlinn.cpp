@@ -44,7 +44,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection{};
 
 			/*	*/
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 viewPos = glm::vec4(0);
 
@@ -98,13 +98,13 @@ namespace glsample {
 				}
 				/*	*/
 				ImGui::TextUnformatted("Ambient Light Setting");
-				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient Color", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Specular Color", &this->uniform.specularColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("Material Setting");
-				ImGui::DragFloat("Shinnes", &this->uniform.shininess);
+				ImGui::DragFloat("Shininess", &this->uniform.shininess);
 				ImGui::Checkbox("Use Blinn (!Phong)", &this->useBlinn);
 
 				ImGui::TextUnformatted("Debug Setting");

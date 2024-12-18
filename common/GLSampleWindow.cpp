@@ -2,6 +2,7 @@
 #include "Core/Library.h"
 #include "Core/SystemInfo.h"
 #include "FPSCounter.h"
+#include "GLHelper.h"
 #include "GLUIComponent.h"
 #include "SDL_scancode.h"
 #include "SDL_video.h"
@@ -36,7 +37,14 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		ImGui::Text("Primitive %zu", this->getRefSample().prev_frame_primitive_count);
 		ImGui::Text("Samples %zu", this->getRefSample().prev_frame_sample_count);
 
-		//	ImGui::Checkbox("RenderDoc", this->getRefSample().enableRenderDoc(bool status))
+		bool renderDocEnable = this->getRefSample().isRenderDocEnabled();
+		if (ImGui::Checkbox("RenderDoc", &renderDocEnable)) {
+			this->getRefSample().enableRenderDoc(renderDocEnable);
+		}
+		/*	*/
+		if (ImGui::Button("Capture Frame")) {
+			this->getRefSample().captureDebugFrame();
+		}
 		ImGui::Text("WorkDirectory: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
 		// ImGui::Checkbox("Logging: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
 	}
@@ -81,12 +89,13 @@ GLSampleWindow::GLSampleWindow()
 	/*	*/
 	glGenQueries(sizeof(this->queries) / sizeof(this->queries[0]), &this->queries[0]);
 
-	/*	*/
-
 	/*	Disable automatic framebuffer gamma correction, each application handle it manually.	*/
 	glDisable(GL_FRAMEBUFFER_SRGB);
+
 	/*	Disable multi sampling by default.	*/
 	glDisable(GL_MULTISAMPLE);
+
+	/*	*/
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 	std::shared_ptr<SampleSettingComponent> settingComponent = std::make_shared<SampleSettingComponent>(*this);
@@ -97,12 +106,20 @@ void GLSampleWindow::displayMenuBar() {}
 
 void GLSampleWindow::renderUI() {
 
+	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
+	if (this->defaultFramebuffer == nullptr && multi_sample_count > 0) {
+		/*	*/
+		this->createDefaultFrameBuffer();
+	}
+
 	/*	Make sure all commands are flush before resizing.	*/
 	if (this->preWidth != this->width() || this->preHeight != this->height()) {
 		/*	Finish all commands before starting resizing buffers and etc.	*/
 		glFinish();
 
 		this->onResize(this->width(), this->height());
+
+		this->updateDefaultFramebuffer();
 	}
 
 	/*	*/
@@ -120,8 +137,26 @@ void GLSampleWindow::renderUI() {
 		glBeginQuery(GL_PRIMITIVES_GENERATED, this->queries[2]);
 	}
 
-	/*	*/
-	this->draw();
+	{
+		/*	*/
+		if (this->defaultFramebuffer) {
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
+		}
+
+		/*	*/
+		this->draw();
+
+		if (this->defaultFramebuffer) {
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
+
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glViewport(0, 0, this->width(), this->height());
+			glBlitFramebuffer(0, 0, this->width(), this->height(), 0, 0, this->width(), this->height(),
+							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+	}
 
 	/*	Extract debugging information.	*/
 	if (this->debugGL) {
@@ -164,10 +199,7 @@ void GLSampleWindow::renderUI() {
 		}
 
 		if (this->getInput().getKeyPressed(SDL_SCANCODE_F9)) {
-			if (rdoc_api) {
-				RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
-				rdoc_api_inter->TriggerCapture();
-			}
+			this->captureDebugFrame();
 		}
 		if (this->getInput().getKeyPressed(SDL_SCANCODE_F1)) {
 			// this->setStatusBar(true);
@@ -218,6 +250,8 @@ void GLSampleWindow::captureScreenShot() {
 
 	/*	Make sure the frame is completed before extracing pixel data.	*/
 	glFinish();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	/*	*/
 	const size_t imageSizeInBytes = static_cast<const size_t>(screen_grab_width_size * screen_grab_height_size * 3);
@@ -289,6 +323,29 @@ void GLSampleWindow::captureScreenShot() {
 void GLSampleWindow::setColorSpace(bool srgb) {}
 void GLSampleWindow::vsync(bool enable_vsync) { SDL_GL_SetSwapInterval(enable_vsync); }
 
+void GLSampleWindow::enableRenderDoc(bool status) {
+	if (status) {
+	}
+}
+
+bool GLSampleWindow::isRenderDocEnabled() {
+	if (!this->rdoc_api) {
+		return false;
+	}
+	RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
+
+	rdoc_api_inter->IsTargetControlConnected;
+
+	return true;
+}
+
+void GLSampleWindow::captureDebugFrame() noexcept {
+	if (this->isRenderDocEnabled()) {
+		RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
+		rdoc_api_inter->TriggerCapture();
+	}
+}
+
 unsigned int GLSampleWindow::getShaderVersion() const {
 	const fragcore::GLRendererInterface *interface =
 		dynamic_cast<const fragcore::GLRendererInterface *>(this->getRenderInterface().get());
@@ -303,4 +360,84 @@ bool GLSampleWindow::supportSPIRV() const {
 	const fragcore::GLRendererInterface *interface =
 		dynamic_cast<const fragcore::GLRendererInterface *>(this->getRenderInterface().get());
 	return (interface->getShaderLanguage() & (fragcore::ShaderLanguage::SPIRV != 0));
+}
+
+void GLSampleWindow::createDefaultFrameBuffer() {
+
+	if (this->defaultFramebuffer == nullptr) {
+		this->defaultFramebuffer = new FrameBuffer();
+		memset(defaultFramebuffer, 0, sizeof(*this->defaultFramebuffer));
+	}
+
+	glGenFramebuffers(1, &this->defaultFramebuffer->framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
+
+	glGenTextures(1, &this->defaultFramebuffer->attachement0);
+	glGenTextures(1, &this->defaultFramebuffer->depthbuffer);
+
+	this->updateDefaultFramebuffer();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void GLSampleWindow::updateDefaultFramebuffer() {
+	if (this->defaultFramebuffer != nullptr) {
+
+		const int multisamples = this->getResult()["multi-sample"].as<int>();
+
+		const int width = this->width();
+		const int height = this->height();
+
+		GLenum texture_type = GL_TEXTURE_2D;
+		if (multisamples > 0) {
+			texture_type = GL_TEXTURE_2D_MULTISAMPLE;
+			glEnable(GL_MULTISAMPLE);
+		}
+
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
+		glBindTexture(texture_type, this->defaultFramebuffer->attachement0);
+		if (multisamples > 0) {
+			glTexImage2DMultisample(texture_type, multisamples, GL_RGBA, width, height, GL_TRUE);
+		} else {
+			glTexImage2D(texture_type, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		}
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		/*	Border clamped to max value, it makes the outside area.	*/
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+
+		FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+
+		glBindTexture(texture_type, 0);
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture_type,
+							   this->defaultFramebuffer->attachement0, 0);
+
+		/*	*/
+		glBindTexture(texture_type, this->defaultFramebuffer->depthbuffer);
+		if (multisamples > 0) {
+			glTexImage2DMultisample(texture_type, multisamples, GL_DEPTH_COMPONENT32, width, height, GL_TRUE);
+		} else {
+			glTexImage2D(texture_type, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+						 nullptr);
+		}
+		glBindTexture(texture_type, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_type, this->defaultFramebuffer->depthbuffer,
+							   0);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+}
+
+int GLSampleWindow::getDefaultFramebuffer() const noexcept {
+	if (defaultFramebuffer) {
+		return this->defaultFramebuffer->framebuffer;
+	}
+	return 0;
 }

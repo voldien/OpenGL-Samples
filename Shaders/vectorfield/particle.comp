@@ -113,3 +113,4 @@ void main() {
 	writeBuffer.particle[pindex].time = readBuffer.particle[pindex].time - ubo.deltaTime;
 	writeBuffer.particle[pindex].velocity.xyz = velocity;
 }
+

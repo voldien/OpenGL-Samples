@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "GLSampleSession.h"
 #include "Math3D/Math3D.h"
 #include "PhysicDesc.h"
@@ -32,7 +33,7 @@ namespace glsample {
 			this->addUIComponent(this->rigidBodySettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(100.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -46,33 +47,32 @@ namespace glsample {
 			/*light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 
-			glm::vec4 ambientLight0 = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec4 ambientLight1 = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec4 ambientLight2 = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 specularColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 viewPos = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			float shininess = 8;
 		};
 
 		UniformBufferBlock uniformStageBuffer;
 
-		std::vector<fragcore::RigidBody *> rigidbodies;
+		std::vector<fragcore::RigidBody *> rigidbodies_box;
+		std::vector<fragcore::RigidBody *> rigidbodies_sphere;
 		fragcore::RigidBody *planeRigibody;
-		fragcore::RigidBody *sphereRigibody;
+		fragcore::RigidBody *sphere_camera_collider_rig;
 
-		const std::array<size_t, 3> grid_aray = {8, 24, 8};
+		const std::array<size_t, 3> grid_aray = {8, 16, 8};
 
 		/*	*/
-		MeshObject boundingBox;
-		MeshObject box;
-		MeshObject plan;
+		MeshObject hyerplane;
+		MeshObject boxMesh;
+		MeshObject sphereMesh;
 
 		/*	White texture for each object.	*/
 		unsigned int white_texture;
-
 		/*	*/
 		unsigned int graphic_program;
-		unsigned int bounding_program;
-		unsigned int wireframe_program;
+		unsigned int hyperplane_program;
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
@@ -98,17 +98,9 @@ namespace glsample {
 		const std::string fragmentInstanceShaderPath = "Shaders/instance/instance.frag.spv";
 
 		/*	*/
-		const std::string vertexBoundingShaderPath = "Shaders/bounding/boundingbox.vert.spv";
-		const std::string fragmentBoundingShaderPath = "Shaders/bounding/boundingbox.frag.spv";
-
-		/*	*/
-		const std::string vertexHyperplanShaderPath = "Shaders/svm/hyperplane.vert.spv";
-		const std::string geometryHyperplanShaderPath = "Shaders/svm/hyperplane.geom.spv";
-		const std::string fragmentHyperplanShaderPath = "Shaders/svm/hyperplane.frag.spv";
-
-		/*	*/
-		const std::string vertexBlendShaderPath = "Shaders/blending/blending.vert.spv";
-		const std::string fragmentBlendShaderPath = "Shaders/blending/blending.frag.spv";
+		const std::string vertexHyperplaneShaderPath = "Shaders/svm/hyperplane_simple.vert.spv";
+		const std::string geometryHyperplaneShaderPath = "Shaders/svm/hyperplane_simple.geom.spv";
+		const std::string fragmentHyperplaneShaderPath = "Shaders/svm/hyperplane_simple.frag.spv";
 
 		class RigidBodySettingComponent : public nekomimi::UIComponent {
 		  public:
@@ -124,14 +116,18 @@ namespace glsample {
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				ImGui::TextUnformatted("Material Settings");
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Specular Color", &this->uniform.specularColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::DragFloat("Shininess", &this->uniform.shininess);
 
 				ImGui::TextUnformatted("Physic Settings");
 				ImGui::DragFloat("Speed", &this->speed);
 				ImGui::DragFloat("Fixed Step", &this->fixedTimeStep);
 				ImGui::DragInt("Max SubStep", &this->maxSubStep);
 				ImGui::Checkbox("Use Gravity", &this->useGravity);
+				ImGui::Checkbox("Simulate", &this->usePhysic);
 
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -140,6 +136,7 @@ namespace glsample {
 			bool showWireFrame = false;
 			bool RigidBody = true;
 			bool useGravity = true;
+			bool usePhysic = true;
 			float speed = 1.0f;
 			float fixedTimeStep = 1.0f / 60.0f;
 			int maxSubStep = 1;
@@ -152,8 +149,7 @@ namespace glsample {
 		void Release() override {
 
 			glDeleteProgram(this->graphic_program);
-			glDeleteProgram(this->bounding_program);
-			glDeleteProgram(this->wireframe_program);
+			glDeleteProgram(this->hyperplane_program);
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -163,7 +159,8 @@ namespace glsample {
 		void Initialize() override {
 
 			/*	Preallocate.	*/
-			this->rigidbodies.resize(fragcore::Math::product<size_t>(grid_aray.data(), grid_aray.size()));
+			this->rigidbodies_box.resize(fragcore::Math::product<size_t>(grid_aray.data(), grid_aray.size()));
+			this->rigidbodies_sphere.resize(fragcore::Math::product<size_t>(grid_aray.data(), grid_aray.size()));
 
 			{
 
@@ -171,45 +168,36 @@ namespace glsample {
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				const std::vector<uint32_t> vertex_binary =
+				const std::vector<uint32_t> vertex_instance_binary =
 					IOUtil::readFileData<uint32_t>(vertexInstanceShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_binary =
+				const std::vector<uint32_t> fragment_instance_binary =
 					IOUtil::readFileData<uint32_t>(fragmentInstanceShaderPath, this->getFileSystem());
 
 				/*	Load shader binaries.	*/
-				const std::vector<uint32_t> vertex_bound_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexBoundingShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_bound_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentBoundingShaderPath, this->getFileSystem());
-
-				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> vertex_blending_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexBlendShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->vertexHyperplaneShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_blending_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentBlendShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->fragmentHyperplaneShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> geometry_blending_binary =
+					IOUtil::readFileData<uint32_t>(this->geometryHyperplaneShaderPath, this->getFileSystem());
 
 				/*	*/
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+				this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_instance_binary,
+																		 &fragment_instance_binary);
 
 				/*	Load shader	*/
-				this->wireframe_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_bound_binary, &fragment_bound_binary);
-
-				/*	Load shader	*/
-				this->bounding_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_blending_binary,
-																		  &fragment_blending_binary);
+				this->hyperplane_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &vertex_blending_binary, &fragment_blending_binary, &geometry_blending_binary);
 			}
 
 			/*	Setup graphic program.	*/
 			glUseProgram(this->graphic_program);
 			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, uniform_buffer_binding);
-
 			int instance_read_index =
 				glGetProgramResourceIndex(this->graphic_program, GL_SHADER_STORAGE_BLOCK, "InstanceBlock");
 			glShaderStorageBlockBinding(this->graphic_program, instance_read_index,
@@ -218,41 +206,15 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Setup graphic program.	*/
-			glUseProgram(this->wireframe_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->wireframe_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->wireframe_program, uniform_buffer_index, uniform_buffer_binding);
-			glUniform1i(glGetUniformLocation(this->wireframe_program, "diffuse"), 0);
+			glUseProgram(this->hyperplane_program);
 			glUseProgram(0);
 
-			/*	Setup graphic program.	*/
-			glUseProgram(this->bounding_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->bounding_program, "UniformBufferBlock");
-			int uniform_instance_buffer_index =
-				glGetProgramResourceIndex(this->bounding_program, GL_SHADER_STORAGE_BLOCK, "InstanceBlock");
-			glUniformBlockBinding(this->bounding_program, uniform_buffer_index, uniform_buffer_binding);
-
-			glShaderStorageBlockBinding(this->bounding_program, uniform_instance_buffer_index,
-										this->uniform_instance_buffer_binding);
-			glUseProgram(0);
+			glGenVertexArrays(1, &this->hyerplane.vao);
+			glBindVertexArray(this->hyerplane.vao);
+			glBindVertexArray(0);
 
 			/*	Create white texture.	*/
-			glGenTextures(1, &this->white_texture);
-			glBindTexture(GL_TEXTURE_2D, this->white_texture);
-			const unsigned char white[] = {255, 255, 255, 255};
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			/*	Border clamped to max value, it makes the outside area.	*/
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-			/*	No Mipmap.	*/
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
-
-			FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
-
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
-			glBindTexture(GL_TEXTURE_2D, 0);
+			this->white_texture = Common::createColorTexture(1, 1, Color::white());
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize = 0;
@@ -274,7 +236,8 @@ namespace glsample {
 				glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &storageMaxSize);
 				GLint minStorageAlignSize = 0;
 				glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageAlignSize);
-				this->instanceBatch = this->rigidbodies.size(); // storageMaxSize / sizeof(glm::mat4);
+				this->instanceBatch = this->rigidbodies_box.size() +
+									  this->rigidbodies_sphere.size(); // storageMaxSize / sizeof(glm::mat4);
 
 				this->uniformInstanceSize =
 					fragcore::Math::align<size_t>(this->instanceBatch * sizeof(glm::mat4), (size_t)minStorageAlignSize);
@@ -286,94 +249,9 @@ namespace glsample {
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 			}
 
-			/*	Load Light geometry.	*/
-			{
-
-				// TODO: add helper method to merge multiple.
-				std::vector<ProceduralGeometry::Vertex> wireCubeVertices;
-				std::vector<unsigned int> wireCubeIndices;
-				ProceduralGeometry::generateCube(1, wireCubeVertices, wireCubeIndices, 2);
-
-				std::vector<ProceduralGeometry::Vertex> planVertices;
-				std::vector<unsigned int> planIndices;
-				ProceduralGeometry::generatePlan(1, planVertices, planIndices);
-
-				std::vector<ProceduralGeometry::Vertex> CubeVertices;
-				std::vector<unsigned int> CubeIndices;
-				ProceduralGeometry::generateCube(1, CubeVertices, CubeIndices, 2);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenVertexArrays(1, &this->box.vao);
-				glBindVertexArray(this->box.vao);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenBuffers(1, &this->box.vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, box.vbo);
-				glBufferData(GL_ARRAY_BUFFER,
-							 (wireCubeVertices.size() + planVertices.size() + CubeVertices.size()) *
-								 sizeof(ProceduralGeometry::Vertex),
-							 nullptr, GL_STATIC_DRAW);
-				/*	*/
-				glBufferSubData(GL_ARRAY_BUFFER, 0, wireCubeVertices.size() * sizeof(ProceduralGeometry::Vertex),
-								wireCubeVertices.data());
-				/*	*/
-				glBufferSubData(GL_ARRAY_BUFFER, wireCubeVertices.size() * sizeof(ProceduralGeometry::Vertex),
-								planVertices.size() * sizeof(ProceduralGeometry::Vertex), planVertices.data());
-				/*	*/
-				glBufferSubData(GL_ARRAY_BUFFER,
-								(wireCubeVertices.size() + planVertices.size()) * sizeof(ProceduralGeometry::Vertex),
-								(CubeVertices.size()) * sizeof(ProceduralGeometry::Vertex), CubeVertices.data());
-
-				/*	*/
-				glGenBuffers(1, &this->box.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, box.ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-							 (wireCubeIndices.size() + planIndices.size() + CubeIndices.size()) *
-								 sizeof(wireCubeIndices[0]),
-							 nullptr, GL_STATIC_DRAW);
-				/*	*/
-				glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, wireCubeIndices.size() * sizeof(wireCubeIndices[0]),
-								wireCubeIndices.data());
-				/*	*/
-				glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, wireCubeIndices.size() * sizeof(wireCubeIndices[0]),
-								planIndices.size() * sizeof(wireCubeIndices[0]), planIndices.data());
-				/*	*/
-				glBufferSubData(GL_ELEMENT_ARRAY_BUFFER,
-								(planIndices.size() + wireCubeIndices.size()) * sizeof(wireCubeIndices[0]),
-								CubeIndices.size() * sizeof(wireCubeIndices[0]), CubeIndices.data());
-
-				this->box.nrIndicesElements = CubeIndices.size();
-				this->boundingBox.nrIndicesElements = wireCubeIndices.size();
-				this->plan.nrIndicesElements = planIndices.size();
-
-				/*	Share VAO.	*/
-				this->boundingBox.vao = box.vao;
-				this->plan.vao = box.vao;
-
-				this->boundingBox.indices_offset = wireCubeVertices.size();
-				this->boundingBox.vertex_offset = wireCubeVertices.size();
-
-				/*	Vertex.	*/
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-				/*	UV.	*/
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(12));
-
-				/*	Normal.	*/
-				glEnableVertexAttribArray(2);
-				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(20));
-
-				/*	Tangent.	*/
-				glEnableVertexAttribArray(3);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  reinterpret_cast<void *>(32));
-
-				glBindVertexArray(0);
-			}
+			/*	*/
+			Common::loadCube(this->boxMesh, 1);
+			Common::loadSphere(this->sphereMesh, 1);
 
 			{
 				this->physic_interface = new BulletPhysicInterface(nullptr);
@@ -381,10 +259,10 @@ namespace glsample {
 				/*	Camera collision object.	*/
 				CollisionDesc sphereDesc;
 				sphereDesc.Primitive = CollisionDesc::ShapePrimitive::Sphere;
-				sphereDesc.sphereshape.radius = 4.0f;
+				sphereDesc.sphereshape.radius = 1.0f;
 				Collision *sphereCollider = this->physic_interface->createCollision(&sphereDesc);
 
-				/*	Sphere Rigidbody.	*/
+				/*	Sphere Camera Rigidbody.	*/
 				RigidBodyDesc sphereRigiDesc;
 				sphereRigiDesc.useGravity = false;
 				sphereRigiDesc.isKinematic = true;
@@ -392,14 +270,14 @@ namespace glsample {
 				sphereRigiDesc.position = Vector3(0, 0, 0);
 				sphereRigiDesc.mass = 1000;
 
-				this->sphereRigibody = this->physic_interface->createRigibody(&sphereRigiDesc);
-				this->physic_interface->addRigidBody(this->sphereRigibody);
+				this->sphere_camera_collider_rig = this->physic_interface->createRigibody(&sphereRigiDesc);
+				this->physic_interface->addRigidBody(this->sphere_camera_collider_rig);
 
 				CollisionDesc planDesc;
 				planDesc.Primitive = CollisionDesc::ShapePrimitive::Box;
 
 				planDesc.boxshape.boxsize[0] = 1000;
-				planDesc.boxshape.boxsize[1] = 6;
+				planDesc.boxshape.boxsize[1] = 10;
 				planDesc.boxshape.boxsize[2] = 1000;
 				planDesc.center[0] = 0;
 				planDesc.center[1] = 0;
@@ -428,24 +306,46 @@ namespace glsample {
 
 				size_t rig_index = 0;
 				const float offset = 2.085f;
+
+				/*	Boxes.	*/
 				for (size_t x = 0; x < this->grid_aray[0]; x++) {
 					for (size_t y = 0; y < this->grid_aray[1]; y++) {
 						for (size_t z = 0; z < this->grid_aray[2]; z++) {
 							RigidBodyDesc desc;
 							desc.collision = boxCollider;
-							desc.mass = 100;
+							desc.mass = 10;
 							desc.useGravity = true;
-							desc.drag = 0.005;
+							desc.drag = 0.005f;
 							desc.position = Vector3(x * offset, 10 + y * offset, z * offset);
 							desc.isKinematic = false;
 							fragcore::RigidBody *rigidbody = this->physic_interface->createRigibody(&desc);
-							this->rigidbodies[rig_index++] = rigidbody;
+							this->rigidbodies_box[rig_index++] = rigidbody;
 						}
 					}
 				}
 
-				for (size_t i = 0; i < this->rigidbodies.size(); i++) {
-					this->physic_interface->addRigidBody(this->rigidbodies[i]);
+				/*	Spheres	*/
+				rig_index = 0;
+				for (size_t x = 0; x < this->grid_aray[0]; x++) {
+					for (size_t y = 0; y < this->grid_aray[1]; y++) {
+						for (size_t z = 0; z < this->grid_aray[2]; z++) {
+							RigidBodyDesc desc;
+							desc.collision = sphereCollider;
+							desc.mass = 10;
+							desc.useGravity = true;
+							desc.drag = 0.005f;
+							desc.position = Vector3(x * offset, 10 + y * offset + 50, z * offset);
+							desc.isKinematic = false;
+							fragcore::RigidBody *rigidbody = this->physic_interface->createRigibody(&desc);
+							this->rigidbodies_sphere[rig_index++] = rigidbody;
+						}
+					}
+				}
+
+				/*	*/
+				for (size_t i = 0; i < this->rigidbodies_box.size(); i++) {
+					this->physic_interface->addRigidBody(this->rigidbodies_box[i]);
+					this->physic_interface->addRigidBody(this->rigidbodies_sphere[i]);
 				}
 			}
 		}
@@ -468,13 +368,6 @@ namespace glsample {
 							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize,
 							  this->uniformAlignBufferSize);
 
-			/*	*/
-			glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
-							  this->ssbo_instance_buffer,
-							  ((this->getFrameCount()) % this->nrUniformBuffers) * this->uniformInstanceSize,
-							  this->uniformInstanceSize);
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			/*	Draw from main camera */
 			glViewport(0, 0, width, height);
 			glClearColor(0.05f, 0.05f, 0.05f, 0.0f);
@@ -495,9 +388,29 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->rigidBodySettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				glBindVertexArray(box.vao);
-				glDrawElementsInstanced(GL_TRIANGLES, this->box.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-										this->rigidbodies.size());
+				/*	*/
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
+								  this->ssbo_instance_buffer,
+								  ((this->getFrameCount()) % this->nrUniformBuffers) * this->uniformInstanceSize,
+								  this->uniformInstanceSize);
+
+				/*	*/
+				glBindVertexArray(this->boxMesh.vao);
+				glDrawElementsInstanced(GL_TRIANGLES, this->boxMesh.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+										this->rigidbodies_box.size());
+				glBindVertexArray(0);
+
+				/*	*/
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
+								  this->ssbo_instance_buffer,
+								  ((this->getFrameCount()) % this->nrUniformBuffers) * this->uniformInstanceSize +
+									  this->rigidbodies_box.size() * sizeof(glm::mat4),
+								  this->uniformInstanceSize);
+
+				/*	*/
+				glBindVertexArray(this->sphereMesh.vao);
+				glDrawElementsInstanced(GL_TRIANGLES, this->sphereMesh.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+										this->rigidbodies_sphere.size());
 				glBindVertexArray(0);
 
 				glUseProgram(0);
@@ -505,8 +418,7 @@ namespace glsample {
 
 			/*	Draw collision plane.	*/
 			{
-
-				glUseProgram(this->graphic_program);
+				glUseProgram(this->hyperplane_program);
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->white_texture);
@@ -518,9 +430,13 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->rigidBodySettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				glBindVertexArray(plan.vao);
-				// glDrawElementsInstanced(GL_TRIANGLES, this->box.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-				//						this->rigidbodies.size());
+				glUniformMatrix4fv(glGetUniformLocation(this->hyperplane_program, "ubo.viewProj"), 1, GL_FALSE,
+								   &(this->uniformStageBuffer.proj * this->uniformStageBuffer.view)[0][0]);
+				glm::vec4 hyerplane = glm::vec4(0, 1, 0, 0);
+				glUniform4fv(glGetUniformLocation(this->hyperplane_program, "ubo.normalDistance"), 1, &hyerplane[0]);
+
+				glBindVertexArray(this->hyerplane.vao);
+				glDrawArraysInstanced(GL_POINTS, 0, 1, 1);
 				glBindVertexArray(0);
 
 				glUseProgram(0);
@@ -529,11 +445,14 @@ namespace glsample {
 
 		void update() override {
 
-			this->physic_interface->sync();
+			if (this->rigidBodySettingComponent->usePhysic) {
+				this->physic_interface->sync();
+			}
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
-			this->sphereRigibody->setPosition(
+			/*	Update Camera collider.	*/
+			this->sphere_camera_collider_rig->setPosition(
 				Vector3(this->camera.getPosition().x, this->camera.getPosition().y, this->camera.getPosition().z));
 
 			/*	*/
@@ -543,6 +462,8 @@ namespace glsample {
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();
 				this->uniformStageBuffer.modelViewProjection =
 					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+
+				this->uniformStageBuffer.viewPos = glm::vec4(camera.getPosition(), 0);
 
 				/*	Update uniform buffer.	*/
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -555,7 +476,7 @@ namespace glsample {
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}
 
-			/*	Update rigidbody model matrix.	*/
+			/*	Update rigidbodies model matrix.	*/
 			{
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->ssbo_instance_buffer);
 				uint8_t *uniform_instance_buffer_pointer = (uint8_t *)glMapBufferRange(
@@ -563,20 +484,38 @@ namespace glsample {
 					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformInstanceSize,
 					this->uniformInstanceSize, GL_MAP_WRITE_BIT);
 
-				for (size_t i = 0; i < rigidbodies.size(); i++) {
+				size_t offset = 0;
+				for (size_t i = 0; i < rigidbodies_box.size(); i++) {
 					glm::mat4 model = glm::mat4(1);
-					model = glm::translate(model, glm::vec3(rigidbodies[i]->getPosition().x(),
-															rigidbodies[i]->getPosition().y(),
-															rigidbodies[i]->getPosition().z()));
+					model = glm::translate(model, glm::vec3(rigidbodies_box[i]->getPosition().x(),
+															rigidbodies_box[i]->getPosition().y(),
+															rigidbodies_box[i]->getPosition().z()));
 
-					const glm::quat roat(rigidbodies[i]->getOrientation().w(), rigidbodies[i]->getOrientation().x(),
-										 rigidbodies[i]->getOrientation().y(), rigidbodies[i]->getOrientation().z());
+					const glm::quat roat(
+						rigidbodies_box[i]->getOrientation().w(), rigidbodies_box[i]->getOrientation().x(),
+						rigidbodies_box[i]->getOrientation().y(), rigidbodies_box[i]->getOrientation().z());
 
 					model = model * glm::toMat4(roat);
 
 					memcpy(&uniform_instance_buffer_pointer[i * sizeof(glm::mat4)], &model[0][0], sizeof(model));
+					offset++;
 				}
-				/*	*/
+
+				for (size_t i = 0; i < rigidbodies_sphere.size(); i++) {
+					glm::mat4 model = glm::mat4(1);
+					model = glm::translate(model, glm::vec3(rigidbodies_sphere[i]->getPosition().x(),
+															rigidbodies_sphere[i]->getPosition().y(),
+															rigidbodies_sphere[i]->getPosition().z()));
+
+					const glm::quat roat(
+						rigidbodies_sphere[i]->getOrientation().w(), rigidbodies_sphere[i]->getOrientation().x(),
+						rigidbodies_sphere[i]->getOrientation().y(), rigidbodies_sphere[i]->getOrientation().z());
+
+					model = model * glm::toMat4(roat);
+
+					memcpy(&uniform_instance_buffer_pointer[(offset + i) * sizeof(glm::mat4)], &model[0][0],
+						   sizeof(model));
+				}
 
 				glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 			}
@@ -588,16 +527,18 @@ namespace glsample {
 			}
 
 			if (this->getInput().getMouseDown(Input::MouseButton::LEFT_BUTTON)) {
-				for (size_t i = 0; i < rigidbodies.size(); i++) {
+				for (size_t i = 0; i < rigidbodies_box.size(); i++) {
 					const glm::vec3 force = camera.getLookDirection() * 150.0f;
-					rigidbodies[i]->addForce(GLM2E(force));
+					rigidbodies_box[i]->addForce(GLM2E(force));
 				}
 			}
 
 			/*	Simulate.	*/
-			this->physic_interface->simulate(
-				this->getTimer().deltaTime<float>() * this->rigidBodySettingComponent->speed,
-				this->rigidBodySettingComponent->maxSubStep, this->rigidBodySettingComponent->fixedTimeStep);
+			if (this->rigidBodySettingComponent->usePhysic) {
+				this->physic_interface->simulate(
+					this->getTimer().deltaTime<float>() * this->rigidBodySettingComponent->speed,
+					this->rigidBodySettingComponent->maxSubStep, this->rigidBodySettingComponent->fixedTimeStep);
+			}
 		}
 	};
 

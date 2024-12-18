@@ -22,9 +22,9 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
-	vec4 ambientColor;
 
-	/*	Phong/blinn settings	*/
+	/*	Phong/blinn Material settings	*/
+	vec4 ambientColor;
 	vec4 specularColor;
 	vec4 viewPos;
 	float shininess;

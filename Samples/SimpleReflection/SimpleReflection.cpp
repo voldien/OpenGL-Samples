@@ -249,7 +249,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 			this->camera.setAspect((float)width / (float)height);
 		}
@@ -334,14 +334,14 @@ namespace glsample {
 			// Transfer the result.
 			{
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 				/*	*/
 				glViewport(0, 0, width, height);
 
 				glReadBuffer(GL_COLOR_ATTACHMENT0);
 				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
 								  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 		}
 

@@ -245,7 +245,7 @@ namespace glsample {
 			int width, height;
 			this->getSize(&width, &height);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 			/*	Bind and Compute Game of Life Compute Program.	*/
 			if (this->vectorFieldSettingComponent->simulateParticles && this->uniformStageBuffer.speed > 0) {
@@ -276,7 +276,7 @@ namespace glsample {
 			}
 
 			/*	Blit game of life render framebuffer to default framebuffer.	*/
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 			/*	*/
 			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);

@@ -15,3 +15,4 @@ layout(binding = 0) uniform sampler2D spriteTexture;
 #include "base.glsl"
 
 void main() { fragColor = texture(spriteTexture, uv) * (ubo.color + gColor); }
+

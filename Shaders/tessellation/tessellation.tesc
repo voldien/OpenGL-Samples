@@ -1,5 +1,8 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
 layout(vertices = 3) out;
 
 layout(location = 0) in vec3 WorldPos_CS_in[];
@@ -13,6 +16,8 @@ layout(location = 1) out vec2 TexCoord_ES_in[3];
 layout(location = 2) out vec3 Normal_ES_in[3];
 layout(location = 3) out vec3 Tangent_ES_in[3];
 
+#include "phongblinn.glsl"
+
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -21,25 +26,30 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 
 	/*	Light source.	*/
-	vec4 direction;
-	vec4 lightColor;
-	vec4 ambientColor;
+	DirectionalLight directional;
 
+	/*	Material	*/
+	vec4 specularColor;
+	vec4 ambientColor;
+	vec4 shininess;
+
+	/*	Tessellation Settings.	*/
 	vec4 gEyeWorldPos;
 	float gDispFactor;
 	float tessLevel;
 	float maxTessellation;
 	float minTessellation;
+	float dist;
 }
 ubo;
 
-float GetTessLevel(float Distance0, float Distance1) {
-	float AvgDistance = (Distance0 + Distance1) / 2.0;
+float GetTessLevel(const in float Distance0, const in float Distance1) {
+	const float AvgDistance = (Distance0 + Distance1) / 2.0;
 
 	const float maxTessellation = ubo.maxTessellation;
 	const float minTessellation = ubo.minTessellation;
 
-	return mix(minTessellation, maxTessellation, 100 / (AvgDistance + 10));
+	return mix(minTessellation, maxTessellation, ubo.dist / (AvgDistance));
 }
 
 void main() {

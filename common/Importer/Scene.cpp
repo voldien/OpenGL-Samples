@@ -1,6 +1,7 @@
 #include "Scene.h"
 #include "GLHelper.h"
 #include "ModelImporter.h"
+#include "UIComponent.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <iostream>
@@ -8,9 +9,19 @@
 
 namespace glsample {
 
+	class SceneSettingComponent : public nekomimi::UIComponent {
+	  public:
+		SceneSettingComponent(Scene &base) : scene(base) {}
+
+		void draw() override {}
+
+	  private:
+		Scene &scene;
+	};
+
 	Scene::Scene() { this->init(); }
 
-	Scene::~Scene() {}
+	Scene::~Scene() = default;
 
 	void Scene::release() {
 
@@ -64,6 +75,7 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
+		/*	*/
 		glGenBuffers(1, &this->node_uniform_buffer);
 		glBindBuffer(GL_UNIFORM_BUFFER, this->node_uniform_buffer);
 		glBufferData(GL_UNIFORM_BUFFER, 1 << 16, nullptr, GL_DYNAMIC_DRAW);
@@ -92,6 +104,9 @@ namespace glsample {
 			// const NodeObject *node = this->renderQueue[x];
 			this->renderNode(node);
 		}
+
+		if (this->debugMode & DebugMode::Wireframe) {
+		}
 	}
 
 	void Scene::bindTexture(const MaterialObject &material, const TextureType texture_type) {
@@ -119,51 +134,49 @@ namespace glsample {
 
 		for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
 
-			/*	*/
-			const MaterialObject &material = this->materials[node->materialIndex[i]];
+			/*	Setup material.	*/
+			{
+				const MaterialObject &material = this->materials[node->materialIndex[i]];
 
-			this->bindTexture(material, TextureType::Diffuse);
-			this->bindTexture(material, TextureType::Normal);
-			this->bindTexture(material, TextureType::AlphaMask);
-
-			/*	*/
-			glPolygonMode(GL_FRONT_AND_BACK, material.wireframe_mode ? GL_LINE : GL_FILL);
-			/*	*/
-			const bool useBlending = false;//material.opacity < 1.0f; // material.maskTextureIndex >= 0;
-			glDisable(GL_STENCIL_TEST);
-
-			glDepthFunc(GL_LESS);
-
-			/*	*/
-			if (useBlending) {
-				/*	*/
-				glEnable(GL_BLEND);
-				glEnable(GL_DEPTH_TEST);
-				glDepthMask(GL_FALSE);
+				this->bindTexture(material, TextureType::Diffuse);
+				this->bindTexture(material, TextureType::Normal);
+				this->bindTexture(material, TextureType::AlphaMask);
 
 				/*	*/
-				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
-				material.blend_func_mode;
-				glBlendEquation(GL_FUNC_ADD);
-
-			} else {
+				glPolygonMode(GL_FRONT_AND_BACK, material.wireframe_mode ? GL_LINE : GL_FILL);
 				/*	*/
-				glDisable(GL_BLEND);
-				glEnable(GL_DEPTH_TEST);
-				glDepthMask(GL_TRUE);
-			}
+				const bool useBlending = false; // material.opacity < 1.0f; // material.maskTextureIndex >= 0;
+				glDisable(GL_STENCIL_TEST);
 
-			/*	*/
-			if (material.culling_both_side_mode) {
-				glDisable(GL_CULL_FACE);
-				glCullFace(GL_BACK);
-			} else {
-				glEnable(GL_CULL_FACE);
-				glCullFace(GL_BACK);
-			}
+				glDepthFunc(GL_LESS);
 
-			if (!fragcore::validateExistingProgram()) {
-				std::cout << fragcore::getProgramValidateString();
+				/*	*/
+				if (useBlending) {
+					/*	*/
+					glEnable(GL_BLEND);
+					glEnable(GL_DEPTH_TEST);
+					glDepthMask(GL_FALSE);
+
+					/*	*/
+					glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+					material.blend_func_mode;
+					glBlendEquation(GL_FUNC_ADD);
+
+				} else {
+					/*	*/
+					glDisable(GL_BLEND);
+					glEnable(GL_DEPTH_TEST);
+					glDepthMask(GL_TRUE);
+				}
+
+				/*	*/
+				if (material.culling_both_side_mode) {
+					glDisable(GL_CULL_FACE);
+					glCullFace(GL_BACK);
+				} else {
+					glEnable(GL_CULL_FACE);
+					glCullFace(GL_BACK);
+				}
 			}
 
 			const MeshObject &refMesh = this->refGeometry[node->geometryObjectIndex[i]];
@@ -200,7 +213,7 @@ namespace glsample {
 
 				int priority = computeMaterialPriority(*material);
 
-				const bool useBlending = false;// material->opacity < 1.0f;
+				const bool useBlending = false; // material->opacity < 1.0f;
 				//					(material->maskTextureIndex >= 0 && material->maskTextureIndex < refTexture.size());
 				////
 				//|| 					material->opacity < 1.0f; // || material->transparent.length() < 2;
@@ -231,6 +244,7 @@ namespace glsample {
 
 		/*	*/
 		if (ImGui::TreeNode("Nodes")) {
+			/*	*/
 		}
 	}
 

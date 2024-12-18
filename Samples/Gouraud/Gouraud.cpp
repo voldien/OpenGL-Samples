@@ -36,7 +36,7 @@ namespace glsample {
 
 			/*	*/
 			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1);
-			glm::vec4 ambientLight = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(-1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
@@ -60,8 +60,8 @@ namespace glsample {
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				ImGui::TextUnformatted("Material");
-				ImGui::ColorEdit4("Tint", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Tint", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
 				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Levels", &this->uniform.tessLevel, 1, 0.0f, 6.0f);

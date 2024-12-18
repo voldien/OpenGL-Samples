@@ -20,6 +20,7 @@ vec3 computeForceColor(const in vec3 dir) {
 	return vec3((dir.x + 1.0) / 2.0, (dir.y + 1.0) / 2.0, (dir.x - 1.0) / 2.0);
 }
 
+
 void main() {
 	const int noffsets = 4;
 	int i, j;

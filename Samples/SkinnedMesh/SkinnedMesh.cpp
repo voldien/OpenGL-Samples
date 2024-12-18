@@ -40,7 +40,7 @@ namespace glsample {
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(0.5f, 0.5f, 0.6f, 1.0f);
-			glm::vec4 ambientLight = glm::vec4(0.05, 0.05, 0.05, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.05, 0.05, 0.05, 1.0f);
 
 			/*	Material color.	*/
 			glm::vec4 tintColor = glm::vec4(1);
@@ -92,7 +92,7 @@ namespace glsample {
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				ImGui::TextUnformatted("Material Settings");
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("Debugging");

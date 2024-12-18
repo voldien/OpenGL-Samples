@@ -169,7 +169,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 		}
 
 		void draw() override {
@@ -185,7 +185,7 @@ namespace glsample {
 							  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
 							  this->uniformAlignBufferSize);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			{
 
 				if (this->mandelbrotSettingComponent->program == 0) {
@@ -205,13 +205,13 @@ namespace glsample {
 			}
 
 			/*	Blit mandelbrot framebuffer to default framebuffer.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->mandelbrot_framebuffer);
 
 			glBlitFramebuffer(0, 0, this->mandelbrot_texture_width, this->mandelbrot_texture_height, 0, 0, width,
 							  height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 		}
 
 		void update() override {

@@ -56,7 +56,7 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(1.0f / std::sqrt(2.0f), -1.0f / std::sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-			glm::vec4 ambientLight = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 lightPosition{};
 
 			PointLight pointLights[nrPointLights];
@@ -99,7 +99,7 @@ namespace glsample {
 			}
 			void draw() override {
 
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientLight[0],
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
 				ImGui::TextUnformatted("Shadow");
@@ -316,7 +316,7 @@ namespace glsample {
 					}
 				}
 
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 
 			/*	*/
@@ -388,7 +388,7 @@ namespace glsample {
 					glVertexAttribI1i(4, i);
 					this->scene.render();
 
-					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 				}
 			}
 

@@ -33,7 +33,6 @@ void main() {
 	const vec3 viewDir = ubo.viewDir.xyz;
 
 	// Compute directional light
-	vec4 pointLightColors = vec4(0);
 	vec4 pointLightSpecular = vec4(0);
 
 	/*  Blinn	*/
@@ -42,7 +41,7 @@ void main() {
 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
 
 	pointLightSpecular = (ubo.specularColor * spec);
-	pointLightColors.a = 1.0;
+	pointLightSpecular.a = 1.0;
 
 	fragColor = texture(DiffuseTexture, uv) * (ubo.ambientColor + ubo.lightColor * contriubtion + pointLightSpecular);
 }

@@ -176,7 +176,7 @@ namespace glsample {
 				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 			}
 
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 			/*	Create and configure Variable Rate Shading configuration.	*/
 			glEnable(GL_SHADING_RATE_IMAGE_PER_PRIMITIVE_NV);
@@ -212,14 +212,14 @@ namespace glsample {
 				glEnable(GL_SHADING_RATE_IMAGE_NV);
 
 				ModelViewer::draw();
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 				glDisable(GL_SHADING_RATE_IMAGE_NV);
 			}
 
 			/*	*/
 			int width = 0, height = 0;
-			getSize(&width, &height);
+			this->getSize(&width, &height);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_index, uniform_buffer,
@@ -241,7 +241,7 @@ namespace glsample {
 				const size_t workGroupY =
 					std::ceil(this->multipass_texture_height / (float)this->localWorkGroupSize[1]);
 
-				glDispatchCompute(workGroupY, workGroupY, 1);
+				glDispatchCompute(workGroupX, workGroupY, 1);
 
 				/*	Wait in till image has been written.	*/
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -252,14 +252,14 @@ namespace glsample {
 
 			/*	Blit image targets to screen.	*/
 			{
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
 
 				/*	*/
 				glReadBuffer(GL_COLOR_ATTACHMENT0);
 				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
 								  height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 		}
 
