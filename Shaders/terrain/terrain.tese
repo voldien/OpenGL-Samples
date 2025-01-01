@@ -25,6 +25,16 @@ vec3 interpolate3D(vec3 v0, vec3 v1, vec3 v2) {
 	return vec3(gl_TessCoord.x) * v0 + vec3(gl_TessCoord.y) * v1 + vec3(gl_TessCoord.z) * v2;
 }
 
+float calculateHeightDisplacement(const vec3 position, const vec2 tile_noise, const vec2 offset, const int octave) {
+	float heightMapDisp = 0;
+	for (uint i = 0; i < octave; i++) {
+		const float mag = ((i * 0.3 + 1.0) / 1);
+
+		heightMapDisp += noise(position * tile_noise.xyx * mag + offset.xyx) * (1 + 1 / (i + 0.05));
+	}
+	return heightMapDisp;
+}
+
 void main() {
 	// Interpolate the attributes of the output vertex using the barycentric coordinates
 	TexCoord_FS_in = interpolate2D(oPatch.TexCoord[0], oPatch.TexCoord[1], oPatch.TexCoord[2]);
@@ -43,34 +53,39 @@ void main() {
 	const float vPow2 = pow(v, 2);
 	const float wPow2 = pow(w, 2);
 
-	WorldPos_FS_in = oPatch.WorldPos_B300 * wPow3 + oPatch.WorldPos_B030 * uPow3 + oPatch.WorldPos_B003 * vPow3 +
-					 oPatch.WorldPos_B210 * 3.0 * wPow2 * u + oPatch.WorldPos_B120 * 3.0 * w * uPow2 +
-					 oPatch.WorldPos_B201 * 3.0 * wPow2 * v + oPatch.WorldPos_B021 * 3.0 * uPow2 * v +
-					 oPatch.WorldPos_B102 * 3.0 * w * vPow2 + oPatch.WorldPos_B012 * 3.0 * u * vPow2 +
-					 oPatch.WorldPos_B111 * 6.0 * w * u * v;
+	const vec3 VertexPosition = oPatch.WorldPos_B300 * wPow3 + oPatch.WorldPos_B030 * uPow3 +
+								oPatch.WorldPos_B003 * vPow3 + oPatch.WorldPos_B210 * 3.0 * wPow2 * u +
+								oPatch.WorldPos_B120 * 3.0 * w * uPow2 + oPatch.WorldPos_B201 * 3.0 * wPow2 * v +
+								oPatch.WorldPos_B021 * 3.0 * uPow2 * v + oPatch.WorldPos_B102 * 3.0 * w * vPow2 +
+								oPatch.WorldPos_B012 * 3.0 * u * vPow2 + oPatch.WorldPos_B111 * 6.0 * w * u * v;
 
 	/*	Displace the vertex along the normal	*/
-	float heightMapDisp = 0;
-	for (uint i = 0; i < 16; i++) {
-		const float mag = ((i * 0.3 + 1.0) / 1);
-		heightMapDisp += noise(WorldPos_FS_in * ubo.terrain.tile_noise_size.xyx * mag +
-							   ubo.terrain.tile_noise_offset.xyx) * (1 + 1 / (i+0.05));
-	}
+	const int ocatve = 16;
+	float heightMapDisp =
+		calculateHeightDisplacement(VertexPosition, ubo.terrain.tile_noise_size, ubo.terrain.tile_noise_offset, ocatve);
 
-	WorldPos_FS_in += Normal_FS_in * heightMapDisp * ubo.gDispFactor;
+	WorldPos_FS_in = VertexPosition + Normal_FS_in * heightMapDisp * ubo.gDispFactor;
 
 	/*	Recompute normal.	*/
 	// TODO: improve
 	{
 		const vec3 vertexPos0 = WorldPos_FS_in;
 
-		const vec3 vertexPos1 = WorldPos_FS_in - cross(Tangent_FS_in, Normal_FS_in) * 0.5 +
-								Normal_FS_in * noise(WorldPos_FS_in * 0.1 + vec3(0.001)) * ubo.gDispFactor;
-		const vec3 vertexPos2 = WorldPos_FS_in + Tangent_FS_in * 0.5 +
-								Normal_FS_in * noise(WorldPos_FS_in * 0.1 - vec3(0.001)) * ubo.gDispFactor;
+		const vec3 vertexPos1 =
+			VertexPosition + cross(Tangent_FS_in, Normal_FS_in) * 0.1 +
+			Normal_FS_in *
+				calculateHeightDisplacement(VertexPosition + cross(Tangent_FS_in, Normal_FS_in) * 0.1,
+											ubo.terrain.tile_noise_size, ubo.terrain.tile_noise_offset, ocatve) *
+				ubo.gDispFactor;
+		const vec3 vertexPos2 =
+			VertexPosition + Tangent_FS_in * 0.1 +
+			Normal_FS_in *
+				calculateHeightDisplacement(VertexPosition + Tangent_FS_in * 0.1, ubo.terrain.tile_noise_size,
+											ubo.terrain.tile_noise_offset, ocatve) *
+				ubo.gDispFactor;
 
-		const vec3 d1 = 10 * vertexPos1 - vertexPos0;
-		const vec3 d2 = 10 * vertexPos2 - vertexPos0;
+		const vec3 d1 = vertexPos1 - vertexPos0;
+		const vec3 d2 = vertexPos2 - vertexPos0;
 
 		Normal_FS_in = normalize(cross(d1, d2));
 	}

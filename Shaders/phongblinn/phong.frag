@@ -47,7 +47,7 @@ void main() {
 	vec4 pointLightColors = vec4(0);
 	vec4 pointLightSpecular = vec4(0);
 
-	[[unroll]] for (int i = 0; i < NR_LIGHTS; i++) {
+	[[unroll]] for (uint i = 0; i < NR_LIGHTS; i++) {
 
 		const vec3 diffVertex = (ubo.point_light[i].position - vertex);
 		const vec3 lightDir = normalize(diffVertex);

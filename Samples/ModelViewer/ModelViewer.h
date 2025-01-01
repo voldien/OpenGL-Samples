@@ -1,3 +1,4 @@
+#include "SampleHelper.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "Util/CameraController.h"
@@ -5,7 +6,6 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ShaderLoader.h>
-#include <Util/CameraController.h>
 
 namespace glsample {
 
@@ -16,26 +16,11 @@ namespace glsample {
 	  public:
 		ModelViewer();
 
-		struct point_light {
-			glm::vec3 position;
-			float range;
-			glm::vec4 color;
-			float intensity;
-			float constant_attenuation;
-			float linear_attenuation;
-			float quadratic_attenuation;
-		};
-
 		struct light_settings {
-			glm::vec4 ambientColor;
-			glm::vec4 specularColor;
-			glm::vec4 direction;
-			glm::vec4 lightColor;
-			/*	*/
-			struct point_light pointLights[4];
 
-			float gamma;
-			float exposure;
+			DirectionalLight directionalLight;
+			/*	*/
+			PointLightInstance pointLights[4];
 		};
 		struct camera_settings {
 			glm::vec4 gEyeWorldPos;
@@ -47,17 +32,17 @@ namespace glsample {
 		};
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 viewProjection;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 viewProjection{};
+			glm::mat4 modelViewProjection{};
 
 			struct light_settings lightsettings;
 			struct tessellation_settings tessellation;
 			/*	Camera settings.	*/
-			struct camera_settings camera;
+			struct camera_settings camera{};
 
 		} uniformStageBuffer;
 
@@ -73,10 +58,6 @@ namespace glsample {
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
-
-		/*	Skybox.	*/
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 		/*	Advanced.	*/
 		const std::string PBRvertexShaderPath = "Shaders/pbr/physicalbasedrendering.vert.spv";
@@ -98,6 +79,7 @@ namespace glsample {
 				// ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 				//				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				// ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+
 				ImGui::TextUnformatted("Light Settings");
 				for (size_t i = 0;
 					 i < sizeof(uniform.lightsettings.pointLights) / sizeof(uniform.lightsettings.pointLights[0]);
@@ -118,13 +100,11 @@ namespace glsample {
 				}
 
 				ImGui::TextUnformatted("Light");
-				ImGui::ColorEdit4("Color", &this->uniform.lightsettings.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::ColorEdit4("Ambient Color", &this->uniform.lightsettings.ambientColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.lightsettings.direction[0]);
-
-				ImGui::DragFloat("Exposure", &this->uniform.lightsettings.exposure);
-				ImGui::DragFloat("Gamma", &this->uniform.lightsettings.gamma);
+				// ImGui::ColorEdit4("Color", &this->uniform.lightsettings.lightColor[0],
+				// 				  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				// ImGui::ColorEdit4("Ambient Color", &this->uniform.lightsettings.ambientColor[0],
+				// 				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				// ImGui::DragFloat3("Direction", &this->uniform.lightsettings.direction[0]);
 
 				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Displacement", &this->uniform.tessellation.gDispFactor, 1, 0.0f, 100.0f);

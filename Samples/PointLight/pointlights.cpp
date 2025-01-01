@@ -35,31 +35,31 @@ namespace glsample {
 
 		static const size_t nrPointLights = 4;
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Material.	*/
 			glm::vec4 ambientColor = glm::vec4(0.075f, 0.075f, 0.075f, 1.0f);
 
-			PointLightSource pointLights[nrPointLights];
+			PointLightSource pointLights[nrPointLights]{};
 		} uniformStageBuffer;
 
 		/*	*/
 		MeshObject plan;
 
 		/*	Textures.	*/
-		unsigned int diffuse_texture;
+		unsigned int diffuse_texture{};
 
 		/*	Program.	*/
-		unsigned int pointLight_program;
+		unsigned int pointLight_program{};
 
 		/*	Uniforms.	*/
-		unsigned int uniform_buffer_index;
+		unsigned int uniform_buffer_index{};
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 

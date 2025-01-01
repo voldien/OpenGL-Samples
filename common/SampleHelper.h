@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,11 @@ namespace glsample {
 		Exp,	/*	*/
 		Exp2,	/*	*/
 		Height	/*	*/
+	};
+
+	using GammaCorrectionSettings = struct gamme_correct_settings_t {
+		float exposure = 1.0f;
+		float gamma = 2.2f;
 	};
 
 	using FogSettings = struct fog_settings_t {
@@ -90,6 +95,14 @@ namespace glsample {
 		glm::vec4 position;
 		glm::vec4 viewDir;
 		glm::vec4 position_size;
+	};
+
+	/*	Default framebuffer.	*/
+	using FrameBuffer = struct framebuffer_t {
+		unsigned int framebuffer;
+		unsigned int attachement0;
+		unsigned int intermediate;
+		unsigned int depthbuffer;
 	};
 
 	template <typename T, int m, int n>

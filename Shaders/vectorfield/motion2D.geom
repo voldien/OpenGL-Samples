@@ -27,7 +27,7 @@ void main() {
 	
 	const float arrowLength = (ubo.setting.spriteSize * ubo.setting.spriteSize) * 1.0 / 3.5;
 
-	for (int i = 0; i < gl_in.length(); i++) {
+	for (uint i = 0; i < gl_in.length(); i++) {
 
 		const vec4 glpos = gl_in[i].gl_Position;
 

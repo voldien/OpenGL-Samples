@@ -75,7 +75,7 @@ float GetTessLevel(float Distance0, float Distance1) {
 void main() {
 
 	// Set the control points of the output patch
-	for (int i = 0; i < 3; i++) {
+	for (uint i = 0; i < 3; i++) {
 		oPatch.Normal[i] = Normal_CS_in[i];
 		oPatch.TexCoord[i] = TexCoord_CS_in[i];
 	}

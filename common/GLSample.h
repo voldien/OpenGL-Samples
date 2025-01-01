@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -89,19 +89,6 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		const bool vsync = result["vsync"].as<bool>();
 		const bool gammacorrection = result["gamma-correction"].as<bool>();
 
-		if (result.count("time") > 0) {
-			/*	Create seperate thread that count down.	*/
-			if (result["time"].as<float>() > 0) {
-
-				const int64_t timeout_mili = (int64_t)(result["time"].as<float>() * 1000.0f);
-				std::thread timeout_thread = std::thread([timeout_mili]() {
-					std::this_thread::sleep_for(std::chrono::milliseconds(timeout_mili));
-					exit(EXIT_SUCCESS);
-				});
-				timeout_thread.detach();
-			}
-		}
-
 		/*	Default window size.	*/
 		int width = result["width"].as<int>();
 		int height = result["height"].as<int>();
@@ -188,8 +175,21 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		}
 		this->sampleRef->setSize(width, height);
 		this->sampleRef->vsync(vsync);
-		this->sampleRef->setColorSpace(gammacorrection);
+		// this->sampleRef->setColorSpace(gammacorrection);
 		this->sampleRef->setFullScreen(fullscreen);
+
+		if (result.count("time") > 0) {
+			/*	Create seperate thread that count down.	*/
+			if (result["time"].as<float>() > 0) {
+
+				const int64_t timeout_mili = (int64_t)(result["time"].as<float>() * 1000.0f);
+				std::thread timeout_thread = std::thread([timeout_mili]() {
+					std::this_thread::sleep_for(std::chrono::milliseconds(timeout_mili));
+					exit(EXIT_SUCCESS);
+				});
+				timeout_thread.detach();
+			}
+		}
 
 		this->sampleRef->show();
 		this->sampleRef->run();

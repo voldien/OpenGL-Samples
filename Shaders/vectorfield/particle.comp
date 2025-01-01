@@ -83,7 +83,7 @@ void main() {
 	const vec3 max = ubo.setting.particleBox.xyz;
 	const vec3 min = vec3(0, 0, 0);
 
-	[[unroll]] for (int i = 0; i < NR_Particles; i++) {}
+	[[unroll]] for (uint i = 0; i < NR_Particles; i++) {}
 
 	const uvec3 index = gl_GlobalInvocationID.xyz;
 

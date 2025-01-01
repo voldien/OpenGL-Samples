@@ -1,6 +1,7 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_include : enable
+#extension GL_EXT_control_flow_attributes : enable
 #extension GL_GOOGLE_include_directive : enable
 
 // define the number of CPs in the output patch
@@ -21,7 +22,6 @@ vec3 ProjectToPlane(const vec3 Point, const vec3 PlanePoint, const vec3 PlaneNor
 	const vec3 d = Len * PlaneNormal;
 	return (Point - d);
 }
-
 
 void CalcPositions() {
 
@@ -69,11 +69,10 @@ float GetTessLevel(float Distance0, float Distance1) {
 	return mix(minTessellation, maxTessellation, 100 / (AvgDistance + 10));
 }
 
-
 void main() {
 
 	// Set the control points of the output patch
-	for (uint i = 0; i < 3; i++) {
+	[[unroll]] for (uint i = 0; i < 3; i++) {
 		oPatch.Normal[i] = Normal_CS_in[i];
 		oPatch.Tangent[i] = Tangent_CS_in[i];
 		oPatch.TexCoord[i] = TexCoord_CS_in[i];
@@ -94,8 +93,3 @@ void main() {
 
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 }
-
-
- 
- 
- 

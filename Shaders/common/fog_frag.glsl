@@ -1,7 +1,8 @@
 #ifndef FOG_FRAG_
 #define FOG_FRAG_ 1
+#include "common.glsl"
 
-float getFogFactor(const in FogSettings fog_settings) {
+float getFogFactor(const in FogSettings fog_settings, const float depth) {
 
 	const float near = fog_settings.CameraNear;
 	const float far = fog_settings.CameraFar;
@@ -10,7 +11,7 @@ float getFogFactor(const in FogSettings fog_settings) {
 	const float startFog = fog_settings.fogStart / (far - near);
 	const float densityFog = fog_settings.fogDensity;
 
-	const float z = getExpToLinear(near, far, gl_FragCoord.z);
+	const float z = getExpToLinear(near, far, depth);
 
 	switch (fog_settings.fogType) {
 	case 1:
@@ -30,6 +31,8 @@ float getFogFactor(const in FogSettings fog_settings) {
 		return 0.0;
 	}
 }
+
+float getFogFactor(const in FogSettings fog_settings) { return getFogFactor(fog_settings, gl_FragCoord.z); }
 
 vec4 blendFog(const in vec4 color, const in FogSettings fogSettings) {
 	const float fog_factor = getFogFactor(fogSettings);

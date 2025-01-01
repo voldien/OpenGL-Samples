@@ -21,7 +21,7 @@ void main() {
 
 	[[unroll]] for (int face = 0; face < NRFaces; ++face) {
 		gl_Layer = face;					   // built-in variable that specifies to which face we render.
-		[[unroll]] for (int i = 0; i < 3; ++i) // for each triangle vertex
+		[[unroll]] for (uint i = 0; i < 3; ++i) // for each triangle vertex
 		{
 			FragVertex = gl_in[i].gl_Position;
 			// FIndex = GIndex[i];

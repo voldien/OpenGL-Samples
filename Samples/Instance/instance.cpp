@@ -24,11 +24,11 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
@@ -36,7 +36,7 @@ namespace glsample {
 
 			glm::vec4 ambientColor = glm::vec4(0.15f, 0.15f, 0.15f, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 viewPos;
+			glm::vec4 viewPos{};
 
 			float shininess = 16.0f;
 		} uniformData;
@@ -53,18 +53,18 @@ namespace glsample {
 		MeshObject instanceGeometry;
 
 		/*	*/
-		unsigned int diffuse_texture;
+		unsigned int diffuse_texture{};
 		/*	*/
-		unsigned int instance_program;
+		unsigned int instance_program{};
 
 		/*  Instance buffer model matrix.   */
-		unsigned int instance_model_buffer;
+		unsigned int instance_model_buffer{};
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_instance_buffer_binding = 1;
-		unsigned int uniform_mvp_buffer;
-		unsigned int uniform_instance_buffer;
+		unsigned int uniform_mvp_buffer{};
+		unsigned int uniform_instance_buffer{};
 		const size_t nrUniformBuffers = 3;
 
 		size_t uniformSharedBufferSize = sizeof(uniform_buffer_block);

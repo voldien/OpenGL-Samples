@@ -13,6 +13,7 @@ layout(std430,  binding=1) buffer layout_bar {
 };
 
 void main() {
+  
   uint value = subgroupMax(foo[gl_GlobalInvocationID.x]);
 
   // A single invocation in the subgroup will do the atomic operation

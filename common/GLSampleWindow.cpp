@@ -1,12 +1,15 @@
 #include "GLSampleWindow.h"
+#include "Common.h"
 #include "Core/Library.h"
 #include "Core/SystemInfo.h"
 #include "FPSCounter.h"
 #include "GLHelper.h"
 #include "GLUIComponent.h"
+#include "PostProcessing/ColorSpaceConverter.h"
 #include "SDL_scancode.h"
 #include "SDL_video.h"
 #include "imgui.h"
+#include "magic_enum.hpp"
 #include "spdlog/common.h"
 #include <GL/glew.h>
 #include <GLRendererInterface.h>
@@ -47,6 +50,51 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		}
 		ImGui::Text("WorkDirectory: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
 		// ImGui::Checkbox("Logging: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
+
+		if (this->getRefSample().getDefaultFramebuffer() > 0) {
+			GLboolean isEnabled = 0;
+			glGetBooleanv(GL_MULTISAMPLE, &isEnabled);
+			if (ImGui::Checkbox("MultiSampling (MSAA)", (bool *)&isEnabled)) {
+				if (isEnabled) {
+					glEnable(GL_MULTISAMPLE);
+				} else {
+					glDisable(GL_MULTISAMPLE);
+				}
+			}
+		}
+
+		if (this->getRefSample().getColorSpaceConverter()) {
+			const int item_selected_idx =
+				(int)this->getRefSample().getColorSpace(); // Here we store our selection data as an index.
+
+			std::string combo_preview_value = std::string(magic_enum::enum_name(this->getRefSample().getColorSpace()));
+			ImGuiComboFlags flags = 0;
+			if (ImGui::BeginCombo("ColorSpace", combo_preview_value.c_str(), flags)) {
+				for (int n = 0; n < (int)ColorSpace::MaxColorSpaces; n++) {
+					const bool is_selected = (item_selected_idx == n);
+
+					if (ImGui::Selectable(magic_enum::enum_name((ColorSpace)n).data(), is_selected)) {
+						this->getRefSample().setColorSpace((ColorSpace)n);
+					}
+
+					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+					if (is_selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+			
+			ImGui::BeginGroup();
+			ImGui::TextUnformatted("Gamma Correction Settings");
+			ImGui::DragFloat("Exposure", &this->getRefSample().getColorSpaceConverter()->getGammeSettings().exposure);
+//			ImGui::SameLine();
+			ImGui::DragFloat("Gamma", &this->getRefSample().getColorSpaceConverter()->getGammeSettings().gamma);
+			ImGui::EndGroup();
+		}
+
+		if (this->getRefSample().getPostProcessingManager()) {
+		}
 	}
 
   private:
@@ -98,6 +146,11 @@ GLSampleWindow::GLSampleWindow()
 	/*	*/
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
+	/*	*/
+	if (glMaxShaderCompilerThreadsKHR) {
+		glMaxShaderCompilerThreadsKHR(fragcore::SystemInfo::getCPUCoreCount() / 2);
+	}
+
 	std::shared_ptr<SampleSettingComponent> settingComponent = std::make_shared<SampleSettingComponent>(*this);
 	this->addUIComponent(settingComponent);
 }
@@ -106,8 +159,15 @@ void GLSampleWindow::displayMenuBar() {}
 
 void GLSampleWindow::renderUI() {
 
+	// TODO: relocate to init
+	if (this->colorSpace == nullptr) {
+		this->colorSpace = new ColorSpaceConverter();
+		this->colorSpace->initialize(getFileSystem());
+	}
+
+	// TODO: relocate to init
 	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
-	if (this->defaultFramebuffer == nullptr && multi_sample_count > 0) {
+	if (this->defaultFramebuffer == nullptr && multi_sample_count >= 0) {
 		/*	*/
 		this->createDefaultFrameBuffer();
 	}
@@ -147,6 +207,11 @@ void GLSampleWindow::renderUI() {
 		this->draw();
 
 		if (this->defaultFramebuffer) {
+
+			if (this->colorSpace) {
+				this->colorSpace->convert(this->defaultFramebuffer->attachement0);
+			}
+
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
 
@@ -289,7 +354,7 @@ void GLSampleWindow::captureScreenShot() {
 
 	/*	offload the image process and saving to filesystem.	*/
 	if (pixelData) {
-		std::thread process_thread([&, imageSizeInBytes, screen_grab_width_size, screen_grab_height_size, pixelData]() {
+		std::thread process_thread([&, imageSizeInBytes, screen_grab_width_size, screen_grab_height_size]() {
 			/*	*/
 			try {
 				fragcore::Image image(screen_grab_width_size, screen_grab_height_size, fragcore::ImageFormat::RGB24);
@@ -320,7 +385,18 @@ void GLSampleWindow::captureScreenShot() {
 	}
 }
 
-void GLSampleWindow::setColorSpace(bool srgb) {}
+void GLSampleWindow::setColorSpace(glsample::ColorSpace srgb) {
+	if (this->colorSpace != nullptr) {
+		this->colorSpace->setColorSpace(srgb);
+	}
+}
+glsample::ColorSpace GLSampleWindow::getColorSpace() const noexcept {
+	if (this->colorSpace != nullptr) {
+		return this->colorSpace->getColorSpace();
+	}
+	return ColorSpace::Raw;
+}
+
 void GLSampleWindow::vsync(bool enable_vsync) { SDL_GL_SetSwapInterval(enable_vsync); }
 
 void GLSampleWindow::enableRenderDoc(bool status) {
@@ -380,8 +456,10 @@ void GLSampleWindow::createDefaultFrameBuffer() {
 }
 
 void GLSampleWindow::updateDefaultFramebuffer() {
+
 	if (this->defaultFramebuffer != nullptr) {
 
+		/*	*/ // TODO: fix coupling.
 		const int multisamples = this->getResult()["multi-sample"].as<int>();
 
 		const int width = this->width();
@@ -398,7 +476,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 		if (multisamples > 0) {
 			glTexImage2DMultisample(texture_type, multisamples, GL_RGBA, width, height, GL_TRUE);
 		} else {
-			glTexImage2D(texture_type, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			glTexImage2D(texture_type, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		}
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -427,7 +505,15 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 			glTexImage2D(texture_type, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
 						 nullptr);
 		}
+		glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0);
+		glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f);
+		glTexParameteri(texture_type, GL_TEXTURE_BASE_LEVEL, 0);
 		glBindTexture(texture_type, 0);
+
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_type, this->defaultFramebuffer->depthbuffer,
 							   0);
 

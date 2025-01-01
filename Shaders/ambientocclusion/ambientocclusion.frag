@@ -47,7 +47,7 @@ void main() {
 	/*	*/
 	float occlusion = 0.0;
 
-	for (int i = 0; i < samples; i++) {
+	for (uint i = 0; i < samples; i++) {
 
 		/*	from tangent to view-space */
 		const vec3 sampleWorldDir = TBN * ubo.kernel[i].xyz;

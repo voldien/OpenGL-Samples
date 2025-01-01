@@ -10,25 +10,29 @@ layout(location = 1) in vec2 UV;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 
+
 #include "terrain_base.glsl"
-#include "phongblinn.glsl"
 #include "fog_frag.glsl"
 
 layout(binding = 1) uniform sampler2D DiffuseTexture;
 layout(binding = 2) uniform sampler2D NormalTexture;
-layout(binding = 2) uniform sampler2D Irradiance;
-
+layout(binding = 2) uniform sampler2D IrradianceTexture;
 
 void main() {
 
 	const vec3 alteredNormal = normal;
 
 	/*	*/
-	vec4 lightColor = computeBlinnDirectional(ubo.directional, alteredNormal, ubo.camera.viewDir.xyz, ubo.shininess.r, vec3(1));
+	vec4 lightColor =
+		computeBlinnDirectional(ubo.directional, alteredNormal, ubo.camera.viewDir.xyz, ubo.shininess.r, vec3(1));
 
-//
+	/*	*/
+	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
+	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
 
-	fragColor = texture(DiffuseTexture, UV) * (in_WorldPosition.y * 0.01)  * (lightColor + ubo.ambientColor);
+	//
+	fragColor = (lightColor + ubo.ambientColor * irradiance_color);
 	fragColor = blendFog(fragColor, ubo.fogSettings);
+	fragColor.a = 1;
 	// fragColor = vec4(normal, 1);
 }

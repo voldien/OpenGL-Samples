@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,8 +34,7 @@ namespace glsample {
 			glm::mat4 proj;
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			float exposure = 1.0f;
-			float gamma = 2.2f;
+			GammaCorrectionSettings correct_settings;
 		} FV_ALIGN(4) uniform_stage_buffer;
 
 		Skybox();

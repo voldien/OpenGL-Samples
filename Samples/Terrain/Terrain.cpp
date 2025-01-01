@@ -1,12 +1,13 @@
 #include "Common.h"
 #include "GLSampleSession.h"
+#include "PostProcessing/MistPostProcessing.h"
 #include "UIComponent.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <Scene.h>
-#include <ShaderLoader.h> 
+#include <ShaderLoader.h>
 #include <Skybox.h>
 #include <Util/CameraController.h>
 #include <glm/fwd.hpp>
@@ -55,7 +56,7 @@ namespace glsample {
 			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
-			glm::vec4 shinines = glm::vec4(1, 1, 1, 1);
+			glm::vec4 shinines = glm::vec4(8, 1, 1, 1);
 
 			/*	light source.	*/
 			DirectionalLight directional;
@@ -93,10 +94,11 @@ namespace glsample {
 		Skybox skybox;
 
 		MeshObject terrain;
-		MeshObject ocean_volume;
+		MeshObject ocean_water;
+		MistPostProcessing mistprocessing;
 
-		unsigned int terrain_program{};
-		unsigned int ocean_program{};
+		unsigned int terrain_program = 0;
+		unsigned int ocean_program = 0;
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
@@ -138,9 +140,9 @@ namespace glsample {
 			glDeleteBuffers(1, &this->terrain.vbo);
 			glDeleteBuffers(1, &this->terrain.ibo);
 
-			glDeleteVertexArrays(1, &this->ocean_volume.vao);
-			glDeleteBuffers(1, &this->ocean_volume.vbo);
-			glDeleteBuffers(1, &this->ocean_volume.ibo);
+			glDeleteVertexArrays(1, &this->ocean_water.vao);
+			glDeleteBuffers(1, &this->ocean_water.vbo);
+			glDeleteBuffers(1, &this->ocean_water.ibo);
 		}
 
 		class TerrainSettingComponent : public nekomimi::UIComponent {
@@ -166,7 +168,7 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::ColorEdit4("Specular Color", &this->stage_uniform.terrain.specularColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat("Specular Color", &this->stage_uniform.terrain.shinines[0]);
+				ImGui::DragFloat("Shin", &this->stage_uniform.terrain.shinines[0]);
 
 				ImGui::TextUnformatted("Fog Setting");
 				ImGui::DragInt("Fog Type", (int *)&this->stage_uniform.terrain.fogSettings.fogType);
@@ -182,10 +184,11 @@ namespace glsample {
 				ImGui::DragFloat("Levels", &this->stage_uniform.terrain.tessLevel, 1, 0.0f, 10.0f);
 				ImGui::DragFloat("Min Tessellation", &this->stage_uniform.terrain.minTessellation, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Max Tessellation", &this->stage_uniform.terrain.maxTessellation, 1, 0.0f, 100.0f);
-
-				ImGui::TextUnformatted("Ocean Settings");
+				ImGui::DragFloat("Distance Tessellation", &this->stage_uniform.terrain.maxTessellation, 1, 0.0f,
+								 100.0f);
 
 				ImGui::TextUnformatted("Terrain Settings");
+				ImGui::Checkbox("Show Terrain", &this->showTerrain);
 
 				ImGui::DragFloat2("Tile Scale", &this->stage_uniform.terrain.terrainSettings.tile_offset[0]);
 				ImGui::DragFloat2("Tile Noise Scale", &this->stage_uniform.terrain.terrainSettings.tile_noise_size[0]);
@@ -193,12 +196,17 @@ namespace glsample {
 								  &this->stage_uniform.terrain.terrainSettings.tile_noise_offset[0]);
 				ImGui::DragInt2("Size ", &this->stage_uniform.terrain.terrainSettings.size[0]);
 
+				ImGui::TextUnformatted("Ocean Settings");
+				ImGui::Checkbox("Show Ocean", &this->showOcean);
+
 				/*	*/
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
 			bool showWireFrame = false;
+			bool showOcean = true;
+			bool showTerrain = true;
 
 		  private:
 			struct uniform_buffer_block &stage_uniform;
@@ -245,15 +253,15 @@ namespace glsample {
 			glUniform1i(glGetUniformLocation(this->terrain_program, "DiffuseTexture"), TextureType::Diffuse);
 			glUniform1i(glGetUniformLocation(this->terrain_program, "NormalTexture"), TextureType::Normal);
 			glUniform1i(glGetUniformLocation(this->terrain_program, "Displacement"), TextureType::Displacement);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "Irradiance"), TextureType::Irradiance);
+			glUniform1i(glGetUniformLocation(this->terrain_program, "IrradianceTexture"), TextureType::Irradiance);
 			glUniformBlockBinding(this->terrain_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
 			glUseProgram(this->ocean_program);
-			glUniform1i(glGetUniformLocation(this->ocean_program, "DiffuseTexture"), TextureType::Diffuse);
+			glUniform1i(glGetUniformLocation(this->ocean_program, "DepthTexture"), TextureType::DepthBuffer);
 			glUniform1i(glGetUniformLocation(this->ocean_program, "NormalTexture"), TextureType::Normal);
-			glUniform1i(glGetUniformLocation(this->ocean_program, "Irradiance"), TextureType::Irradiance);
+			glUniform1i(glGetUniformLocation(this->ocean_program, "IrradianceTexture"), TextureType::Irradiance);
 			uniform_buffer_index = glGetUniformBlockIndex(this->ocean_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->ocean_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -312,33 +320,15 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 
+			/*	*/
 			ProcessData util(this->getFileSystem());
 			util.computeIrradiance(this->skybox.getTexture(), this->irradiance_texture, 256, 128);
 
+			this->mistprocessing.initialize(this->getFileSystem());
+
 			/*	Load geometry.	*/
-			{
-
-				Common::loadPlan(this->terrain, 1, 10, 10);
-				Common::loadCube(this->ocean_volume, 1, 1, 1);
-
-				/*	Update terrain height.	*/
-				// glBindBuffer(GL_ARRAY_BUFFER, this->terrain.vbo);
-				// ProceduralGeometry::Vertex *vertices = (ProceduralGeometry::Vertex *)glMapBufferRange(
-				// 	GL_ARRAY_BUFFER, 0, this->terrain.nrVertices * sizeof(vertices[0]),
-				// 	GL_MAP_WRITE_BIT | GL_MAP_READ_BIT);
-
-				// /*	Create Terrain Mesh Displacement.	*/
-				// float noiseScale = 5;
-				// for (size_t i = 0; i < terrain.nrVertices; i++) {
-				// 	float height = 0;
-				// 	height +=
-				// 		Math::PerlinNoise(vertices[i].vertex[0] * noiseScale, vertices[i].vertex[1] * noiseScale) *
-				// 		0.001f;
-				// 	height += Math::PerlinNoise(vertices[i].vertex[0] * 0.1, vertices[i].vertex[1] * 0.1) * 0.006;
-				// 	//	vertices[i].vertex[2] = height * 0.1f;
-				// }
-				// glUnmapBuffer(GL_ARRAY_BUFFER);
-			}
+			Common::loadPlan(this->terrain, 1, 10, 10);
+			Common::loadPlan(this->ocean_water, 20, 1, 1);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -351,22 +341,27 @@ namespace glsample {
 			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+
+			glDepthMask(GL_TRUE); //? Why needed?
+
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			/*	Terrain.	*/
-			{
+			if (this->terrainSettingComponent->showTerrain) {
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
 								  this->uniformAlignBufferSize);
 
-				glDisable(GL_CULL_FACE);
-				glDisable(GL_BLEND);
-				glEnable(GL_DEPTH_TEST);
-				glDepthMask(GL_TRUE);
-
 				/*	Draw terrain.	*/
 				glUseProgram(this->terrain_program);
+
+				glEnable(GL_CULL_FACE);
+				glDisable(GL_BLEND);
+				glCullFace(GL_BACK);
+				glEnable(GL_DEPTH_TEST);
+				glDepthMask(GL_TRUE);
+				glDepthFunc(GL_LESS);
 
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -390,10 +385,12 @@ namespace glsample {
 
 				glDrawElements(GL_PATCHES, this->terrain.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
+				/*	Render wireframe.	*/
 				if (this->terrainSettingComponent->showWireFrame) {
 
 					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 					glDepthFunc(GL_LEQUAL);
+
 					/*	*/
 					glActiveTexture(GL_TEXTURE0);
 					glBindTexture(GL_TEXTURE_2D, this->color_texture);
@@ -412,7 +409,7 @@ namespace glsample {
 			this->skybox.Render(this->camera);
 
 			// Ocean/Water
-			{
+			if (this->terrainSettingComponent->showOcean) {
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
@@ -420,18 +417,29 @@ namespace glsample {
 				/*	*/
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_FALSE);
+				glDepthFunc(GL_LESS);
+				glDisable(GL_CULL_FACE);
 
 				/*	Blending.	*/
 				glEnable(GL_BLEND);
 				glBlendEquation(GL_FUNC_ADD);
+				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0 + TextureType::DepthBuffer);
+				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->depthbuffer);
 
 				glUseProgram(this->ocean_program);
-				glBindVertexArray(this->ocean_volume.vao);
-				glDrawElements(GL_TRIANGLES, ocean_volume.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(this->ocean_water.vao);
+				glDrawElements(GL_TRIANGLES, this->ocean_water.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 
 				glUseProgram(0);
 			}
+
+			/*	Post processing.	*/
+			this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachement0,
+										this->getFrameBuffer()->depthbuffer);
 		}
 
 		void update() override {
@@ -474,7 +482,7 @@ namespace glsample {
 		TerrainGLSample() : GLSample<Terrain>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("S,skybox", "Skybox Texture File Path",
-					cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
+					cxxopts::value<std::string>()->default_value("asset/industrial_sunset_puresky_4k.exr"));
 		}
 	};
 } // namespace glsample

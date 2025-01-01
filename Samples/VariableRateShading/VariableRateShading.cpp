@@ -25,25 +25,25 @@ namespace glsample {
 			glm::mat4 modelView;
 			glm::mat4 modelViewProjection;
 
-		} uniformBuffer;
+		} uniformBuffer{};
 
-		unsigned int variable_rate_program;
-		int localWorkGroupSize[3];
-		unsigned int variable_rate_lut_texture;
+		unsigned int variable_rate_program{};
+		int localWorkGroupSize[3]{};
+		unsigned int variable_rate_lut_texture{};
 
 		/*	G-Buffer	*/
-		unsigned int multipass_framebuffer;
+		unsigned int multipass_framebuffer{};
 
 		unsigned int nthTexture = 0;
-		unsigned int multipass_texture_width;
-		unsigned int multipass_texture_height;
+		unsigned int multipass_texture_width{};
+		unsigned int multipass_texture_height{};
 		std::vector<unsigned int> multipass_textures;
-		unsigned int depthTexture;
+		unsigned int depthTexture{};
 
 		/*	*/
-		unsigned int uniform_buffer_index;
+		unsigned int uniform_buffer_index{};
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 

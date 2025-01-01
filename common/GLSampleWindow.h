@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,9 +14,10 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "ColorSpaceConverter.h"
 #include "FPSCounter.h"
 #include "GLRendererInterface.h"
+#include "PostProcessing/ColorSpaceConverter.h"
+#include "PostProcessing/PostProcessingManager.h"
 #include "SDLInput.h"
 #include "TaskScheduler/IScheduler.h"
 #include <Core/Time.h>
@@ -29,6 +30,8 @@
 class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
   public:
 	GLSampleWindow();
+	GLSampleWindow &operator=(const GLSampleWindow &) = delete;
+	GLSampleWindow &operator=(GLSampleWindow &&) = delete;
 	GLSampleWindow(const GLSampleWindow &other) = delete;
 	GLSampleWindow(GLSampleWindow &&other) = delete;
 
@@ -96,7 +99,11 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 		return &this->getRenderInterface()->as<fragcore::GLRendererInterface>();
 	}
 
-	void setColorSpace(bool srgb);
+	void setColorSpace(glsample::ColorSpace srgb);
+	glsample::ColorSpace getColorSpace() const noexcept;
+
+	glsample::ColorSpaceConverter *getColorSpaceConverter() const noexcept { return this->colorSpace; }
+
 	void vsync(bool enable_vsync);
 
 	void enableRenderDoc(bool status);
@@ -109,6 +116,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void createDefaultFrameBuffer();
 	void updateDefaultFramebuffer();
 	int getDefaultFramebuffer() const noexcept;
+	glsample::FrameBuffer *getFrameBuffer() { return this->defaultFramebuffer; }
+	glsample::PostProcessingManager *getPostProcessingManager() const noexcept { return this->postprocessingManager; }
 
 	size_t prev_frame_sample_count = 0;
 	size_t prev_frame_primitive_count = 0;
@@ -124,7 +133,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	fragcore::SDLInput input;
 	bool debugGL = true;
 
-	glsample::ColorSpaceConverter *colorSpace;
+	glsample::PostProcessingManager *postprocessingManager;
+	glsample::ColorSpaceConverter *colorSpace = nullptr;
 
 	/*	*/
 	size_t frameCount = 0;
@@ -133,15 +143,10 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	unsigned int queries[10];
 	fragcore::IFileSystem *filesystem;
 
-	int preWidth, preHeight;
+	int preWidth = -1;
+	int preHeight = -1;
 
-	/*	Default framebuffer.	*/
-	using FrameBuffer = struct framebuffer_t {
-		unsigned int framebuffer;
-		unsigned int attachement0;
-		unsigned int depthbuffer;
-	};
-	FrameBuffer *defaultFramebuffer = nullptr;
+	glsample::FrameBuffer *defaultFramebuffer = nullptr;
 
   protected:
 	spdlog::logger *logger;

@@ -66,12 +66,14 @@ namespace glsample {
 							  (frameIndex % this->nrUniformBuffer) * this->uniformAlignSize, this->uniformAlignSize);
 
 			/*	Extract current state. to restore afterward rendered the skybox.	*/
-			GLint cullstate = 0, blend = 0, depth_test = 0, depth_func = 0;
+			GLint cullstate = 0, blend = 0, depth_test = 0, depth_func = 0, cull_face_mode = 0;
+			GLboolean depth_write = 0;
 			glGetIntegerv(GL_CULL_FACE, &cullstate);
 			glGetIntegerv(GL_BLEND, &blend);
 			glGetIntegerv(GL_DEPTH_TEST, &depth_test);
 			glGetIntegerv(GL_DEPTH_FUNC, &depth_func);
-			glGetIntegerv(GL_DEPTH_FUNC, &depth_func);
+			glGetIntegerv(GL_CULL_FACE_MODE, &cull_face_mode);
+			glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_write);
 
 			/*	*/
 			glEnable(GL_CULL_FACE);
@@ -118,7 +120,8 @@ namespace glsample {
 			}
 
 			glDepthFunc(depth_func);
-			glDepthMask(GL_TRUE);
+			glDepthMask(depth_write);
+			glCullFace(cull_face_mode);
 		}
 
 		this->frameIndex = (this->frameIndex + 1) % this->nrUniformBuffer;
@@ -135,9 +138,9 @@ namespace glsample {
 			ImGui::ColorEdit4("Tint", &this->uniform_stage_buffer.tintColor[0],
 							  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
-			ImGui::DragFloat("Exposure", &this->uniform_stage_buffer.exposure);
+			ImGui::DragFloat("Exposure", &this->uniform_stage_buffer.correct_settings.exposure);
 			ImGui::SameLine();
-			ImGui::DragFloat("Gamma", &this->uniform_stage_buffer.gamma);
+			ImGui::DragFloat("Gamma", &this->uniform_stage_buffer.correct_settings.gamma);
 			ImGui::EndGroup();
 		}
 		ImGui::PopID();
@@ -161,7 +164,7 @@ namespace glsample {
 		compilerOptions.glslVersion = 330;
 
 		/*	Create skybox graphic pipeline program.	*/
-		int skybox_program =
+		const int skybox_program =
 			ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 
 		/*	Setup graphic pipeline.	*/

@@ -1,4 +1,6 @@
-#include "fog.glsl"
+#ifndef _COMMON_HEADER_
+#define _COMMON_HEADER_ 1
+#include "colorspace.glsl"
 #include "noise.glsl"
 
 // enum GBuffer : unsigned int {
@@ -14,7 +16,7 @@
 /*	Constants.	*/
 #define PI 3.1415926535897932384626433832795
 #define PI_HALF 1.5707963267948966192313216916398
-layout(constant_id = 0) const float EPSILON = 0.00001;
+layout(constant_id = 0) const float EPSILON = 1.19209e-07;
 
 struct Camera {
 	float near;
@@ -24,6 +26,25 @@ struct Camera {
 	vec4 position;
 	vec4 viewDir;
 	vec4 position_size;
+};
+
+struct FogSettings {
+	/*	*/
+	vec4 fogColor;
+	/*	*/
+	float CameraNear;
+	float CameraFar;
+	float fogStart;
+	float fogEnd;
+	/*	*/
+	float fogDensity;
+	uint fogType;
+	float fogItensity;
+	float fogHeight;
+};
+
+struct Frustum {
+	vec4 planes;
 };
 
 vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist) {
@@ -55,6 +76,20 @@ vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist)
 	return normal;
 }
 
+vec4 bump(const in float height, const in float dist) {
+
+	const float x = 0; // dFdx(height) * dist;
+	const float y = 0; // dFdy(height) * dist;
+
+	const vec4 normal = vec4(x, y, 1, 0);
+
+	return normalize(normal);
+}
+
+float getExpToLinear(const in float start, const in float end, const in float expValue) {
+	return ((2.0f * start) / (end + start - expValue * (end - start)));
+}
+
 float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
 
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -62,8 +97,7 @@ float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233)
 vec3 equirectangular(const in vec2 xy) {
 	const vec2 tc = xy / vec2(2.0) - 0.5;
 
-	const vec2 thetaphi =
-		((tc * 2.0) - vec2(1.0)) * vec2(3.1415926535897932384626433832795, 1.5707963267948966192313216916398);
+	const vec2 thetaphi = ((tc * 2.0) - vec2(1.0)) * vec2(PI, PI_HALF);
 	const vec3 rayDirection =
 		vec3(cos(thetaphi.y) * cos(thetaphi.x), sin(thetaphi.y), cos(thetaphi.y) * sin(thetaphi.x));
 
@@ -82,9 +116,14 @@ vec3 fresnelSchlickRoughness(const in float cosTheta, const in vec3 F0, const in
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-vec3 FresnelSchlick(const vec3 SpecularColor, const vec3 E, const vec3 H) {
-	return SpecularColor + (1.0f - SpecularColor) * pow(1.0f - clamp(dot(E, H), 0, 1), 5);
+vec3 FresnelSchlick(const in vec3 F0, const in vec3 V, const in vec3 N) {
+	const float cosTheta = max(dot(N, V), 0.0);
+	const float power = 5.0;
+	const float fresnel_ratio = pow(1.0 - cosTheta, power);
+	return mix(F0, vec3(1.0), fresnel_ratio);
 }
+
+vec3 FresnelSteinberg(const in vec3 F0, const in vec3 V, const in vec3 N) { return vec3(0); }
 
 /**
  *
@@ -109,17 +148,96 @@ vec2 getParallax(const in sampler2D heightMap, const in vec2 uv, const in vec3 c
 	return (uv + (cameraDir.xy * v)).xy;
 }
 
-vec3 hsv2rgb(const in vec3 c) {
-	const vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-	const vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+#define CLAMP01(T) clamp((T), 0.0, 1.0)
+#define EASE(T) smoothstep(0.0, 1.0, (T))
+
+vec3 CatmulRom(in float T, vec3 D, vec3 C, vec3 B, vec3 A) {
+	return 0.5 * ((2.0 * B) + (-A + C) * T + (2.0 * A - 5.0 * B + 4.0 * C - D) * T * T +
+				  (-A + 3.0 * B - 3.0 * C + D) * T * T * T);
 }
 
-vec3 acesFilm(const vec3 x) {
-    const float a = 2.51;
-    const float b = 0.03;
-    const float c = 2.43;
-    const float d = 0.59;
-    const float e = 0.14;
-    return clamp((x * (a * x + b)) / (x * (c * x + d ) + e), 0.0, 1.0);
+vec3 ColorRampConstant(in float T, const in vec4[4] A, const in int num) {
+	//[[unroll]]
+	for (uint i = 0; i < num; i++) {
+		if (T < A[i].w) {
+			return A[i].rgb;
+		}
+	}
 }
+
+vec3 ColorRampLinear(in float T, const in vec4[4] Ramp, const in int num) {
+
+	// for (uuint i = 0; i < num; i++) {
+	// 	if (T < A[i].w) {
+	// 		// return A[i].rgb;
+	// 	}
+	// }
+	vec4 A = Ramp[0];
+	vec4 B = Ramp[1];
+	vec4 C = Ramp[2];
+	vec4 D = Ramp[3];
+
+	// Distances =
+	float AB = B.w - A.w;
+	float BC = C.w - B.w;
+	float CD = D.w - C.w;
+
+	// Intervales :
+	float iAB = CLAMP01((T - A.w) / AB);
+	float iBC = CLAMP01((T - B.w) / BC);
+	float iCD = CLAMP01((T - C.w) / CD);
+
+	// Pondérations :
+	float pA = 1.0 - iAB;
+	float pB = iAB - iBC;
+	float pC = iBC - iCD;
+	float pD = iCD;
+
+	return pA * A.xyz + pB * B.xyz + pC * C.xyz + pD * D.xyz;
+}
+
+vec3 ColorRamp_Smoothstep(in float T, vec4 A, in vec4 B, in vec4 C, in vec4 D) {
+	// Distances =
+	float AB = B.w - A.w;
+	float BC = C.w - B.w;
+	float CD = D.w - C.w;
+
+	// Intervales :
+	float iAB = CLAMP01((T - A.w) / AB);
+	float iBC = CLAMP01((T - B.w) / BC);
+	float iCD = CLAMP01((T - C.w) / CD);
+
+	// Pondérations :
+	vec4 p = vec4(1.0 - iAB, iAB - iBC, iBC - iCD, iCD);
+	p = EASE(p);
+	return p.x * A.xyz + p.y * B.xyz + p.z * C.xyz + p.w * D.xyz;
+}
+
+vec3 ColorRamp_BSpline(in float T, vec4 A, in vec4 B, in vec4 C, in vec4 D) {
+	// Distances =
+	float AB = B.w - A.w;
+	float BC = C.w - B.w;
+	float CD = D.w - C.w;
+
+	// Intervales :
+	float iAB = CLAMP01((T - A.w) / AB);
+	float iBC = CLAMP01((T - B.w) / BC);
+	float iCD = CLAMP01((T - C.w) / CD);
+
+	// Pondérations :
+	vec4 p = vec4(1.0 - iAB, iAB - iBC, iBC - iCD, iCD);
+	vec3 cA = CatmulRom(p.x, A.xyz, A.xyz, B.xyz, C.xyz);
+	vec3 cB = CatmulRom(p.y, A.xyz, B.xyz, C.xyz, D.xyz);
+	vec3 cC = CatmulRom(p.z, B.xyz, C.xyz, D.xyz, D.xyz);
+	vec3 cD = D.xyz;
+
+	if (T < B.w)
+		return cA.xyz;
+	if (T < C.w)
+		return cB.xyz;
+	if (T < D.w)
+		return cC.xyz;
+	return cD.xyz;
+}
+
+#endif

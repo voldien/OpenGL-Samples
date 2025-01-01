@@ -38,11 +38,11 @@ namespace glsample {
 		}
 
 		using UniformBufferBlock = struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0.0f, 0.0f);
@@ -58,8 +58,8 @@ namespace glsample {
 
 		std::vector<fragcore::RigidBody *> rigidbodies_box;
 		std::vector<fragcore::RigidBody *> rigidbodies_sphere;
-		fragcore::RigidBody *planeRigibody;
-		fragcore::RigidBody *sphere_camera_collider_rig;
+		fragcore::RigidBody *planeRigibody{};
+		fragcore::RigidBody *sphere_camera_collider_rig{};
 
 		const std::array<size_t, 3> grid_aray = {8, 16, 8};
 
@@ -69,17 +69,17 @@ namespace glsample {
 		MeshObject sphereMesh;
 
 		/*	White texture for each object.	*/
-		unsigned int white_texture;
+		unsigned int white_texture{};
 		/*	*/
-		unsigned int graphic_program;
-		unsigned int hyperplane_program;
+		unsigned int graphic_program{};
+		unsigned int hyperplane_program{};
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_instance_buffer_binding = 1;
 
-		unsigned int uniform_buffer;
-		unsigned int ssbo_instance_buffer;
+		unsigned int uniform_buffer{};
+		unsigned int ssbo_instance_buffer{};
 
 		const size_t nrUniformBuffers = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
@@ -91,7 +91,7 @@ namespace glsample {
 
 		size_t instanceBatch = 0;
 
-		PhysicInterface *physic_interface;
+		PhysicInterface *physic_interface{};
 
 		/*	RigidBody Rendering Path.	*/
 		const std::string vertexInstanceShaderPath = "Shaders/instance/instance_ssbo.vert.spv";

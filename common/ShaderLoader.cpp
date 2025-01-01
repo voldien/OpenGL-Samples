@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -179,6 +179,15 @@ int ShaderLoader::loadComputeProgram(const fragcore::ShaderCompiler::CompilerCon
 									 const std::vector<uint32_t> *compute_binary) {
 
 	std::vector<char> compute_source;
+	if (glSpecializeShaderARB) {
+		/*	Load SPIRV.	*/
+		// if (compute_binary) {
+		// 	compute_source.resize(compute_binary[0].size() * sizeof(uint32_t));
+		// 	std::memcpy(compute_source.data(), compute_binary[0].data(), compute_source.size());
+		// }
+	} else {
+	}
+
 	if (compute_binary) {
 
 		const std::vector<char> vertex_source_code =
@@ -215,7 +224,6 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 		char log[4096];
 		glGetProgramInfoLog(program, sizeof(log), nullptr, log);
 		fragcore::checkError();
-
 		throw cxxexcept::RuntimeException("Failed to link program: {}", log);
 	}
 
@@ -291,10 +299,9 @@ int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vec
 	glGetProgramiv(program, GL_LINK_STATUS, &lstatus);
 	fragcore::checkError();
 	if (lstatus != GL_TRUE) {
-		char log[4096];
+		GLchar log[4096];
 		glGetProgramInfoLog(program, sizeof(log), nullptr, log);
 		fragcore::checkError();
-
 		throw cxxexcept::RuntimeException("Failed to link program: {}", log);
 	}
 
@@ -330,9 +337,10 @@ static void checkShaderError(int shader) {
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
 		fragcore::checkError();
 
-		char log[4096];
+		GLchar log[4096];
 		glGetShaderInfoLog(shader, sizeof(log), &maxLength, log);
 		fragcore::checkError();
+		std::cout << log << std::endl;
 	}
 }
 
@@ -350,16 +358,18 @@ int ShaderLoader::loadShader(const std::vector<char> &source, const int type) {
 
 	/*	Load as Spirv if data is Spirv file and supported.	*/
 	if (spirv_magic_number == magic_number && glSpecializeShaderARB) {
+
 		glShaderBinary(1, &shader, GL_SHADER_BINARY_FORMAT_SPIR_V_ARB, source.data(), source.size());
+		fragcore::checkError();
 		glSpecializeShaderARB(shader, "main", 0, nullptr, nullptr);
+		fragcore::checkError();
 	} else {
 		glShaderSource(shader, 1, (const GLchar **)&source_data, nullptr);
 		fragcore::checkError();
+		/*	*/
+		glCompileShader(shader);
+		fragcore::checkError();
 	}
-
-	/*	*/
-	glCompileShader(shader);
-	fragcore::checkError();
 
 	/*	*/
 	checkShaderError(shader);

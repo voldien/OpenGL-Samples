@@ -22,6 +22,7 @@ download_zip_asset_urls = [
 download_asset_directly = [
     # Textures
     "https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/4k/snowy_forest_4k.exr",
+    "https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/4k/industrial_sunset_puresky_4k.exr"
 ]
 
 output = sys.argv[1]

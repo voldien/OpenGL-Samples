@@ -48,7 +48,7 @@ void main() {
 
 	[[unroll]] for (int face = 0; face < NrLayers; ++face) {
 		gl_Layer = face;							 // built-in variable that specifies to which face we render.
-		[[unroll]] for (int i = 0; i < NrFaces; ++i) // for each triangle vertex
+		[[unroll]] for (uint i = 0; i < NrFaces; ++i) // for each triangle vertex
 		{
 			OutVertex = gl_in[i].gl_Position.xyz;
 			gl_Position = (ubo.ViewProjection[gl_Layer]) * gl_in[i].gl_Position;

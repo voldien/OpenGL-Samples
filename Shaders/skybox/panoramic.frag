@@ -18,17 +18,17 @@ layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-#include"common.glsl"
-
-
+#include "common.glsl"
 
 void main() {
 
 	const vec2 uv = inverse_equirectangular(normalize(vVertex));
 
 	fragColor = textureLod(PanoramaTexture, uv, 0) * ubo.tintColor;
-	fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
 
+	fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
 	const float gamma = ubo.gamma;
-	fragColor = pow(fragColor, vec4(1.0 / ubo.gamma));
+	fragColor = pow(fragColor, vec4(1.0 / gamma));
+
+	fragColor = fragColor * ubo.tintColor;
 }

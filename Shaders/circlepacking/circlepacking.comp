@@ -45,7 +45,7 @@ void main() {
 
 	/*	Determine if it can grow.	*/
 	int canGrow = 1;
-	for (int i = 0; i < ubo.nrGrowing; i++) {
+	for (uint i = 0; i < ubo.nrGrowing; i++) {
 		Circle circle = previous_circle_state.circles[i];
 		if (circle.radius < current_circle.radius) {
 			canGrow = 0 * canGrow;

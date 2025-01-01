@@ -1,6 +1,7 @@
 #include "ModelViewer.h"
 #include "ImageImport.h"
 #include "ModelImporter.h"
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -40,11 +41,6 @@ namespace glsample {
 			const std::vector<uint32_t> pbr_evolution_binary =
 				IOUtil::readFileData<uint32_t>(this->PBREvoluationShaderPath, this->getFileSystem());
 
-			const std::vector<uint32_t> vertex_skybox_binary =
-				IOUtil::readFileData<uint32_t>(this->vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-			const std::vector<uint32_t> fragment_skybox_binary =
-				IOUtil::readFileData<uint32_t>(this->fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
-
 			/*	Setup compiler convert options.	*/
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -56,20 +52,12 @@ namespace glsample {
 												 &pbr_control_binary, &pbr_evolution_binary);
 
 			/*	Create skybox graphic pipeline program.	*/
-			this->skybox_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+			this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
 		}
 
 		/*	Setup graphic pipeline.	*/
-		glUseProgram(this->skybox_program);
-		int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-		glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-		glUniform1i(glGetUniformLocation(this->skybox_program, "PanoramaTexture"), 0);
-		glUseProgram(0);
-
-		/*	Setup graphic pipeline.	*/
 		glUseProgram(this->physical_based_rendering_program);
-		uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
+		int uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
 
 		glUniform1i(glGetUniformLocation(this->physical_based_rendering_program, "albedoMap"), 0);
 		glUniform1i(glGetUniformLocation(this->physical_based_rendering_program, "normalMap"), 1);

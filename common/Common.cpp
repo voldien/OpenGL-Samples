@@ -139,9 +139,7 @@ void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segment
 	cubeMesh.nrVertices = vertices.size();
 }
 
-void Common::mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes) {
-
-}
+void Common::mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes) {}
 
 int Common::createColorTexture(unsigned int width, unsigned int height, const fragcore::Color &color) {
 	GLuint texRef;
@@ -150,9 +148,12 @@ int Common::createColorTexture(unsigned int width, unsigned int height, const fr
 	FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, texRef));
 	FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_FLOAT, color.data()));
 
-	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST));
 	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-	/*	Border clamped to max value, it makes the outside area.	*/
+
+	/*	*/
+	FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 0));
+
 	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
 	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
 

@@ -26,7 +26,7 @@ void main() {
 	const vec3 identity = vec3(1.0, 0.0, 0.0);
 	const float arrowLength = 1.0 / 3.5;
 
-	for (int i = 0; i < gl_in.length(); i++) {
+	for (uint i = 0; i < gl_in.length(); i++) {
 
 		const vec4 glpos = gl_in[i].gl_Position;
 

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -108,8 +108,8 @@ namespace glsample {
 		virtual Intersection intersectionFrustum(const Frustum &frustum) const noexcept;
 
 	  protected: /*	Makes the object only inheritable .	*/
-		Frustum() noexcept = default;
-		Frustum(const Frustum &other) noexcept;
+		Frustum() = default;
+		Frustum(const Frustum &other);
 
 	  private:					/*	Attributes.	*/
 		Plane<float> planes[6]; /*	*/

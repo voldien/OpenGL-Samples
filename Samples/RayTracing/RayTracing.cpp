@@ -40,33 +40,33 @@ namespace glsample {
 
 			unsigned int sampleIndex;
 
-		} uniformBuffer;
+		} uniformBuffer{};
 
 		/*	Framebuffers.	*/
-		unsigned int raytracing_framebuffer;
-		unsigned int raytracing_render_texture; /*	No round robin required, since once updated, it is instantly
+		unsigned int raytracing_framebuffer{};
+		unsigned int raytracing_render_texture{}; /*	No round robin required, since once updated, it is instantly
 												   blitted. thus no implicit sync between frames.	*/
-		unsigned int raytracing_display_texture;
-		size_t raytracing_texture_width;
-		size_t raytracing_texture_height;
+		unsigned int raytracing_display_texture{};
+		size_t raytracing_texture_width{};
+		size_t raytracing_texture_height{};
 
 		Scene scene;   /*	World Scene.	*/
 		Skybox skybox; /*	*/
 		CameraController camera;
 
 		/*	*/
-		unsigned int raytracing_program;
-		int localWorkGroupSize[3];
+		unsigned int raytracing_program{};
+		int localWorkGroupSize[3]{};
 
 		unsigned int nthTexture = 0;
 
-		unsigned int skytexture;
+		unsigned int skytexture{};
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_pointlight_buffer_binding = 1;
-		unsigned int uniform_buffer;
-		unsigned int uniform_pointlight_buffer;
+		unsigned int uniform_buffer{};
+		unsigned int uniform_pointlight_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformLightBufferSize = 0;
@@ -88,7 +88,7 @@ namespace glsample {
 				// ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR); ImGui::DragFloat3("Direction",
 				// &this->uniform.direction[0]);
 
-				int tmp;
+				int tmp = 0;
 				if (ImGui::DragInt("Max Samples", &MaxSamples)) {
 					// TODO add
 				}
@@ -100,7 +100,7 @@ namespace glsample {
 
 			bool showWireFrame = false;
 			bool showLight = false;
-			int MaxSamples;
+			int MaxSamples{};
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -144,7 +144,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -216,7 +216,7 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,

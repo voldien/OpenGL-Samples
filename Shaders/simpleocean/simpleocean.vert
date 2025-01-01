@@ -1,5 +1,7 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
 layout(location = 0) in vec3 Vertex;
 layout(location = 1) in vec2 TextureCoord;
@@ -11,15 +13,18 @@ layout(location = 1) out vec2 UV;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
 
-layout(constant_id = 0) const int MaxWaves = 64;
+#include "common.glsl"
+#include "light.glsl"
+
+layout(constant_id = 10) const int MaxWaves = 128;
 
 struct Wave {
-	float wavelength;
-	float amplitude;
-	float speed;
-	float steepness;
-	vec2 direction;
-	vec2 padding;
+	float wavelength;	/*	*/
+	float amplitude;	/*	*/
+	float speed;		/*	*/
+	float rolling;		/*	*/
+	vec2 direction;		/*	*/
+	vec2 creast_offset; /*	*/
 };
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
@@ -30,96 +35,89 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 
 	/*	Light source.	*/
-	vec4 lookDirection;
-	vec4 direction;
-	vec4 lightColor;
-	vec4 specularColor;
-	vec4 ambientColor;
-	vec4 position;
+	DirectionalLight directional;
+	Camera camera;
 
-	Wave waves[64];
+	Wave waves[MaxWaves];
 	int nrWaves;
 	float time;
+	float stepness;
+	float rolling;
 
 	/*	Material	*/
+	vec4 oceanColor;
+	vec4 specularColor;
+	vec4 ambientColor;
 	float shininess;
 	float fresnelPower;
-	vec4 oceanColor;
 }
 ubo;
 
-vec3 computeNormal(const in float time) {
+float computeHeightStepness(const in float time, in const Wave w) {
+	return 2 * pow(((w.amplitude * sin(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed)) * (1.0 / 2.0)),
+				   w.rolling);
+}
 
+float computeHeight(const in float time, in const Wave w, const in vec2 UV) {
+	return w.amplitude * sin(dot(w.direction, UV.xy) * w.wavelength + time * w.speed);
+}
+
+vec3 computeBiNormal(const in float time, const in vec2 UV) {
 	float normalX = 0;
-	float normalY = 0;
 
-	for (int i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
+	for (uint i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
 
 		const Wave w = ubo.waves[i];
 
-		normalX += -(w.wavelength * w.direction.x * w.amplitude *
-					 cos(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed));
-		normalY += -(w.wavelength * w.direction.y * w.amplitude *
-					 cos(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed));
+		normalX += (w.wavelength * w.direction.x * UV.x) * w.amplitude *
+				   cos(dot(w.direction, UV.xy) * w.wavelength + time * w.speed);
 	}
-
-	return vec3(normalX, 1, normalY);
+	return vec3(1, 0, normalX);
 }
 
-float computeHeight(const in float time, in const Wave w) {
-	return w.amplitude * sin(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed);
-}
-
-// Gerstner Waves
-vec3 computeGerstnerWaves(const in float time, in const Wave wave) {
-	float height = 0;
-	float x = Vertex.x;
-	float y = Vertex.y;
-
-	for (int i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
-		height += computeHeight(ubo.time, ubo.waves[i]);
-	}
-
-	return vec3(x, height, y);
-}
-
-// TODO: compute
-vec3 computeTangent(const in float time) {
+vec3 computeTangent(const in float time, const in vec2 UV) {
 	float normalX = 0;
 	float normalY = 0;
 
-	for (int i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
+	for (uint i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
 
 		const Wave w = ubo.waves[i];
 
-		normalX += -(w.wavelength * w.direction.x * w.amplitude *
-					 cos(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed));
-		normalY += -(w.wavelength * w.direction.y * w.amplitude *
-					 cos(dot(w.direction, Vertex.xy) * w.wavelength + time * w.speed));
+		normalY += (w.wavelength * w.direction.y * UV.y) * w.amplitude *
+				   cos(dot(w.direction, UV.xy) * w.wavelength + time * w.speed);
 	}
 
-	return Tangent.xyz;// vec3(normalX, 1, normalY);
+	return vec3(0, 1, normalY);
+}
+
+vec3 computeNormal(const in float time, const in vec2 UV) {
+
+	const vec3 surface_binormal = computeBiNormal(time, UV);
+	const vec3 surface_tangent = computeTangent(time, UV);
+
+	const vec3 surface_normal = cross(surface_binormal, surface_tangent);
+
+	return normalize(surface_normal);
 }
 
 void main() {
 
-	float height = 0;
-	
-	for (int i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
-		height += computeHeight(ubo.time, ubo.waves[i]);
+	/*	*/
+	if (ubo.rolling != 0) {
 	}
 
-	const vec3 surface_normal = normalize(computeNormal(ubo.time));
-	const vec3 surface_tangent = normalize(computeTangent(ubo.time));
+	float height = 0;
+	for (uint i = 0; i < min(ubo.nrWaves, MaxWaves); i++) {
+		height += computeHeight(ubo.time, ubo.waves[i], TextureCoord);
+	}
+
+	const vec3 surface_normal = computeNormal(ubo.time, TextureCoord);
 
 	const vec3 surface_vertex = Vertex + Normal * height;
 
 	gl_Position = ubo.modelViewProjection * vec4(surface_vertex, 1.0);
 
 	vertex = (ubo.model * vec4(surface_vertex, 1.0)).xyz;
-	normal = surface_normal; //(ubo.model * vec4(surface_normal, 0.0)).xyz;
-	// normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
-	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
-
+	normal = normalize((ubo.model * vec4(surface_normal, 0.0)).xyz);
 	UV = TextureCoord;
 }

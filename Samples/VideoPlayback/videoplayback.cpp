@@ -253,7 +253,7 @@ namespace glsample {
 
 					this->audio_bit_rate = pAudioCodecParam->bit_rate;
 					this->audio_sample_rate = pAudioCodecParam->sample_rate;
-					this->audio_channel = pAudioCodecParam->channels;
+					this->audio_channel = pAudioCodecParam->ch_layout.nb_channels;
 				}
 
 				AVCodecParameters *pVideoCodecParam = video_st->codecpar;

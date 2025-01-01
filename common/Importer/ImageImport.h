@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,15 +45,15 @@ namespace glsample {
 		virtual ~TextureImporter();
 
 		int loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::Raw,
-						const TextureCompression compression = TextureCompression::Default);
+						const TextureCompression compression = TextureCompression::None);
 		int loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::Raw,
-						   const TextureCompression compression = TextureCompression::Default);
+						   const TextureCompression compression = TextureCompression::None);
 
 		int loadCubeMap(const std::string &px, const std::string &nx, const std::string &py, const std::string &ny,
 						const std::string &pz, const std::string &nz, const ColorSpace colorSpace = ColorSpace::Raw,
-						const TextureCompression compression = TextureCompression::Default);
+						const TextureCompression compression = TextureCompression::None);
 		int loadCubeMap(const std::vector<std::string> &paths, const ColorSpace colorSpace = ColorSpace::Raw,
-						const TextureCompression compression = TextureCompression::Default);
+						const TextureCompression compression = TextureCompression::None);
 
 	  private:
 		fragcore::IFileSystem *filesystem = nullptr;

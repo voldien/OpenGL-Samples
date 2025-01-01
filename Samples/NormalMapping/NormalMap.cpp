@@ -20,17 +20,17 @@ namespace glsample {
 			this->addUIComponent(this->normalMapSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(20.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProj;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProj{};
+			glm::mat4 modelViewProjection{};
 
 			/*	*/
 			glm::vec4 tintColor = glm::vec4(1, 1, 1, 1);
@@ -51,11 +51,11 @@ namespace glsample {
 		Scene scene; /*	World Scene.	*/
 
 		/*	*/
-		unsigned int normalMapping_program;
+		unsigned int normalMapping_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 

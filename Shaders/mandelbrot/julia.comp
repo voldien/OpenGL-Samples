@@ -38,7 +38,7 @@ vec4 computeMandel(in vec2 uv) {
 
 	const float max_range = lthreadhold * lthreadhold;
 	
-	int i = 0;
+	uint i = 0;
 	for (; i < samples; i++) {
 
 		z = squareImaginary(z) + c + uv;

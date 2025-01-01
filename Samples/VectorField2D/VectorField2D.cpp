@@ -496,7 +496,7 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	*/
-			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
+			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -517,11 +517,7 @@ namespace glsample {
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 				glBindVertexArray(this->particles.vao);
-				// glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle),
-				// 					  reinterpret_cast<void *>(read_buffer_index * this->ParticleMemorySize));
-				// glVertexAttribPointer(
-				// 	1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle),
-				// 	reinterpret_cast<void *>(read_buffer_index * this->ParticleMemorySize + sizeof(glm::vec4)));
+
 				glDrawArrays(GL_POINTS, 0, this->uniformStageBuffer.particleSetting.nrparticles);
 				glBindVertexArray(0);
 
@@ -553,11 +549,7 @@ namespace glsample {
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->particles.vao);
-				// glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(Particle),
-				// 					  reinterpret_cast<void *>(read_buffer_index * this->ParticleMemorySize));
-				// glVertexAttribPointer(
-				// 	1, 4, GL_FLOAT, GL_FALSE, sizeof(Particle),
-				// 	reinterpret_cast<void *>(read_buffer_index * this->ParticleMemorySize + sizeof(glm::vec4)));
+
 				glDrawArrays(GL_POINTS, 0, this->uniformStageBuffer.particleSetting.nrparticles);
 				glBindVertexArray(0);
 

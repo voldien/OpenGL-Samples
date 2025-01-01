@@ -4,7 +4,6 @@
 #extension GL_GOOGLE_include_directive : enable
 
 layout(location = 0) in vec3 Vertex;
-layout(location = 1) in vec2 TextureCoord;
 layout(location = 2) in vec3 Normal;
 layout(location = 3) in vec3 Tangent;
 
@@ -19,8 +18,6 @@ layout(location = 3) out vec3 FragIN_tangent;
 void main() {
 
 	// TODO: compute X,Y from vertex ID.
-	// TODO: compute UV from vertex ID.
-
 	const float x = float(gl_VertexID % ubo.terrain.size.x);
 	const float y = float(gl_VertexID / ubo.terrain.size.y);
 

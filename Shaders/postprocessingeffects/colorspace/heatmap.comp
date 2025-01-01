@@ -1,0 +1,43 @@
+#version 460 core
+#extension GL_ARB_derivative_control : enable
+#extension GL_ARB_enhanced_layouts : enable
+#extension GL_ARB_shader_image_load_store : enable
+#extension GL_ARB_explicit_attrib_location : enable
+
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout(set = 0, binding = 1, rgba16f) uniform image2D texture0;
+
+#include "../postprocessing_base.glsl"
+
+void main() {
+
+	const vec4 ramp[4] = {vec4(0, 0.02, 0.05, 0.086), vec4(0.166239, 0.038374, 0.005713, 0.26), vec4(1, 1, 1, 0.527273),
+						  vec4(0.601909, 0.678011, 1, 1.0)};
+
+	/*	*/
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(texture0)))) {
+		return;
+	}
+
+	// Get output fragcolor texture coordinate.
+	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 fragColor = imageLoad(texture0, TexCoord);
+	const float lumen = RGB2Luminance(fragColor.rgb);
+
+	const float minLumen = 0;
+	const float maxLumen = 5;
+
+	// TODO: fix
+	const float range = minLumen + maxLumen;
+
+	const float t = clamp(lumen / range, 0, 1);
+
+	const vec3 heatColor = ColorRampLinear(t, ramp, 4);
+
+	imageStore(texture0, TexCoord, vec4(heatColor, 1.0));
+}

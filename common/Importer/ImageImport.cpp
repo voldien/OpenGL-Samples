@@ -232,7 +232,7 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths, const Co
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
 
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
+	/*	*/
 	FVALIDATE_GL_CALL(glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
 
 	const float border[4] = {1, 1, 1, 1};

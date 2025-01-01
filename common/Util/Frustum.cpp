@@ -2,7 +2,7 @@
 
 namespace glsample {
 
-	Frustum::Frustum(const Frustum &other) noexcept : Camera(other) {}
+	Frustum::Frustum(const Frustum &other) : Camera(other) {}
 
 	void Frustum::calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
 									const Vector3 &right) {

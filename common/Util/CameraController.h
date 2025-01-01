@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,6 @@ namespace glsample {
 	class CameraController : public Frustum {
 	  public:
 		~CameraController() override = default;
-		CameraController() = default;
 
 		void update(const float deltaTime) noexcept;
 

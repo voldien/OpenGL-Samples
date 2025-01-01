@@ -15,8 +15,7 @@ layout(location = 1) out vec2 TexCoord_FS_in;
 layout(location = 2) out vec3 Normal_FS_in;
 
 /*	Include common.	*/
-#include"ocean_base.glsl"
-
+#include "ocean_base.glsl"
 
 layout(binding = 2) uniform sampler2D gDisplacementMap;
 

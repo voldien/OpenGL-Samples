@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,9 +40,9 @@ namespace glsample {
 
 	using MeshObject = struct geometry_object_t {
 		/*	*/
-		unsigned int vao = -1;
-		unsigned int vbo = -1;
-		unsigned int ibo = -1;
+		unsigned int vao = 0;
+		unsigned int vbo = 0;
+		unsigned int ibo = 0;
 
 		size_t nrIndicesElements = 0;
 		size_t nrVertices = 0;

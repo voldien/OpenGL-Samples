@@ -25,8 +25,9 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 modelViewProjection;
 
-	/*	Light source.	*/
+	/*	*/
 	vec4 ambientColor;
+	/*	Light source.	*/
 	point_light point_light[4];
 }
 ubo;
@@ -38,7 +39,7 @@ void main() {
 	vec4 pointLightColors = vec4(0);
 
 	/*	Compute directional light	*/
-	[[unroll]] for (int i = 0; i < 4; i++) {
+	[[unroll]] for (uint i = 0; i < 4; i++) {
 		const vec3 diffVertex = (ubo.point_light[i].position - vertex);
 		const float dist = length(diffVertex);
 

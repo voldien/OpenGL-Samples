@@ -1,0 +1,34 @@
+#version 460 core
+#extension GL_ARB_derivative_control : enable
+#extension GL_ARB_enhanced_layouts : enable
+#extension GL_ARB_shader_image_load_store : enable
+#extension GL_ARB_explicit_attrib_location : enable
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout(set = 0, binding = 1, rgba16f) uniform image2D texture0;
+
+layout(push_constant) uniform Settings {
+	layout(offset = 0) float exposure;
+	layout(offset = 4) float gamma;
+}
+settings;
+
+void main() {
+
+	/*	*/
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(texture0)))) {
+		return;
+	}
+
+	// Get output fragcolor texture coordinate.
+	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 fragColor = imageLoad(texture0, TexCoord);
+	fragColor = vec4(1.0) - exp(-fragColor * settings.exposure);
+
+	const float gamma = settings.gamma;
+	fragColor = pow(fragColor, vec4(1.0 / gamma));
+
+	imageStore(texture0, TexCoord, vec4(fragColor.rgb, 1.0));
+}

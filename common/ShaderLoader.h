@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,6 @@ namespace glsample {
 		static int loadComputeProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
 									  const std::vector<uint32_t> *compute);
 		static int loadComputeProgram(const std::vector<const std::vector<char> *> &computePaths);
-		static int loadComputeProgram(const std::vector<char> &compute);
 
 		/**
 		 * @brief

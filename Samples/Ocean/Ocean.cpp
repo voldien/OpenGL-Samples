@@ -1,3 +1,4 @@
+#include "PostProcessing/MistPostProcessing.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -23,69 +24,68 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		typedef struct _ocean_vertex_t {
+		using OceanVertex = struct _ocean_vertex_t {
 			/*	*/
 			float h0[2];
 			float ht_real_img[2];
-		} OceanVertex;
+		};
 
 		/*	*/
 		MeshObject ocean;
+		Skybox skybox;
+		MistPostProcessing mistProcessing;
 
 		/*	*/
-		int skybox_panoramic_texture;
+		unsigned int skybox_panoramic_texture = 0;
+		unsigned int irradiance_texture = 0;
+		unsigned int color_texture = 0;
 
 		/*	*/
-		unsigned int skybox_program;
-		unsigned int ocean_graphic_program;
-		unsigned int spectrum_compute_program;
-		unsigned int kff_compute_program;
+		unsigned int ocean_graphic_program = 0;
+		unsigned int spectrum_compute_program = 0;
+		unsigned int kff_compute_program = 0;
 
 		/*	*/
 		unsigned int ocean_width = 128;
 		unsigned int ocean_height = 128;
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientColor = glm::vec4(0.4);
 
-			float width, height;
-			float speed;
-			float delta;
-			float patchSize;
+			float width{}, height{};
+			float speed{};
+			float delta{};
+			float patchSize{};
 
-			glm::vec4 gEyeWorldPos;
-			float gDispFactor;
-			float tessLevel;
+			glm::vec4 gEyeWorldPos{};
+			float gDispFactor{};
+			float tessLevel{};
 
 		} uniformStageBuffer;
 
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
 		unsigned int ssbo_ocean_buffer_binding = 1;
 
 		CameraController camera;
-		Skybox skybox;
 
-		typedef struct particle_t {
+		using Particle = struct particle_t {
 			glm::vec4 position; /*	Position, time	*/
 			glm::vec4 velocity; /*	Velocity.	*/
-		} Particle;
+		};
 
-		/*	*/
-		const std::string vertexSkyboxShaderPath = "Shaders/skybox/skybox.vert.spv";
-		const std::string fragmentSkyboxShaderPath = "Shaders/skybox/panoramic.frag.spv";
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/ocean/ocean.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/ocean/ocean.frag.spv";
@@ -119,7 +119,6 @@ namespace glsample {
 
 		void Release() override {
 			/*	*/
-			glDeleteProgram(this->skybox_program);
 			glDeleteProgram(this->ocean_graphic_program);
 			glDeleteProgram(this->spectrum_compute_program);
 			glDeleteProgram(this->kff_compute_program);
@@ -199,7 +198,6 @@ namespace glsample {
 				const std::vector<uint32_t> compute_kff_binary =
 					IOUtil::readFileData<uint32_t>(computeKFFShaderPath, this->getFileSystem());
 
-				/*	Load graphic program for skybox.	*/
 				this->ocean_graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ocean_binary, &fragment_binary, nullptr,
 													 &control_binary, &evolution_binary);
@@ -208,15 +206,6 @@ namespace glsample {
 				this->spectrum_compute_program =
 					ShaderLoader::loadComputeProgram(compilerOptions, &compute_spectrum_binary);
 				this->kff_compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_kff_binary);
-
-				/*	Load shader binaries.	*/
-				std::vector<uint32_t> vertex_skybox_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexSkyboxShaderPath, this->getFileSystem());
-				std::vector<uint32_t> fragment_skybox_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentSkyboxShaderPath, this->getFileSystem());
-
-				this->skybox_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
 
 			/*	Setup ocean Graphic Pipeline.	*/
@@ -247,13 +236,6 @@ namespace glsample {
 										this->ssbo_ocean_buffer_binding);
 			glUseProgram(0);
 
-			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->skybox_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "PanoramaTexture"), 0);
-			glUseProgram(0);
-
 			/*	Compute uniform size that is aligned with the requried for the hardware.	*/
 			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
@@ -266,47 +248,16 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load Ocean plan geometry.	*/
-			{
-				std::vector<ProceduralGeometry::Vertex> vertices;
-				std::vector<unsigned int> indices;
-				ProceduralGeometry::generatePlan(1, vertices, indices, this->ocean_width, this->ocean_height);
-
-				/*	Create array buffer, for rendering static geometry.	*/
-				glGenVertexArrays(1, &this->ocean.vao);
-				glBindVertexArray(this->ocean.vao);
-
-				glGenBuffers(1, &this->ocean.vbo);
-				glBindBuffer(GL_ARRAY_BUFFER, ocean.vbo);
-				glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-							 GL_STATIC_DRAW);
-
-				glGenBuffers(1, &this->ocean.ibo);
-				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ocean.ibo);
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(),
-							 GL_STATIC_DRAW);
-				this->ocean.nrIndicesElements = indices.size();
-
-				/*	*/
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-									  (void *)(sizeof(float) * 3));
-
-				glEnableVertexAttribArray(2);
-				glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
-
-				glEnableVertexAttribArray(3);
-				glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(OceanVertex), (void *)(sizeof(float) * 2));
-
-				glBindVertexArray(0);
-			}
+			Common::loadPlan(this->ocean, 1);
 
 			/*	Load skybox for reflective.	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_panoramic_texture = textureImporter.loadImage2D(skyboxPath);
-			this->skybox.Init(this->skybox_panoramic_texture, this->skybox_program);
+			this->skybox.Init(this->skybox_panoramic_texture, Skybox::loadDefaultProgram(this->getFileSystem()));
+
+			/*	*/
+			ProcessData util(this->getFileSystem());
+			util.computeIrradiance(this->skybox_panoramic_texture, this->irradiance_texture, 256, 128);
 		}
 
 		void draw() override {
@@ -345,38 +296,55 @@ namespace glsample {
 
 			/*	Render ocean.	*/
 			{
+				glUseProgram(this->ocean_graphic_program);
+
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				glDepthFunc(GL_LESS);
+
 				/*	Bind reflective material.	*/
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic_texture);
 
-				glUseProgram(this->ocean_graphic_program);
+				/*	Bind reflective material.	*/
+				glActiveTexture(GL_TEXTURE0 + 11);//TODO:fix
+				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->ocean.vao);
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
 				glDrawElements(GL_PATCHES, this->ocean_width * this->ocean_height * 2, GL_UNSIGNED_INT, nullptr);
+
+				if (this->oceanSettingComponent->showWireFrame) {
+
+					glPolygonMode(GL_FRONT_AND_BACK, this->oceanSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+					glDepthFunc(GL_LEQUAL);
+
+					/*	*/
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, this->color_texture);
+
+					glPatchParameteri(GL_PATCH_VERTICES, 3);
+					glDrawElements(GL_PATCHES, this->ocean.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				}
+
 				glBindVertexArray(0);
+				glUseProgram(0);
 			}
 
 			/*	Render Skybox.	*/
-			{
-				/*	Draw triangle*/
-				this->skybox.Render(this->camera);
-			}
+			this->skybox.Render(this->camera);
 
-			/*	Post processing.	*/
-			{}
+
 		}
 
 		void update() override {
 
 			/*	*/
-			const float elapsedTime = getTimer().getElapsed<float>();
-			camera.update(getTimer().deltaTime<float>());
+			this->camera.update(getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(0.95f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1));
 			this->uniformStageBuffer.view = camera.getViewMatrix();
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * camera.getViewMatrix() * this->uniformStageBuffer.model;
@@ -402,8 +370,6 @@ namespace glsample {
 		}
 	};
 } // namespace glsample
-
-// TODO param, ocean with,height, skybox
 
 int main(int argc, const char **argv) {
 	try {

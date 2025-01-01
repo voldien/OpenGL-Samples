@@ -30,7 +30,7 @@ void main() {
 	const vec3 axis[3] = {normal[0], tangent[0], cross(normalize(tangent[0]), normalize(normal[0]))};
 	const vec4 axisColor[3] = {vec4(0, 0, 1, 0.8), vec4(1, 0, 0, 0.8), vec4(0, 1, 0, 0.8)};
 
-	[[unroll]] for (int i = 0; i < 3; i++) {
+	[[unroll]] for (uint i = 0; i < 3; i++) {
 		gl_Position = ubo.ViewProj * vec4(gl_in[0].gl_Position.xyz, 1.0);
 		normalColor = axisColor[i];
 		EmitVertex();

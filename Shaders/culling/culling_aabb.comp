@@ -59,7 +59,7 @@ void main() {
 	const AABB instance = aabb.aabb[aabb_index];
 
 	uint count = 0;
-	[[unroll]] for (int i = 0; i < nrPlanees; i++) {
+	[[unroll]] for (uint i = 0; i < nrPlanees; i++) {
 		
 		/*	*/
 		count += intersectionAABB(ubo.planes[i], instance);

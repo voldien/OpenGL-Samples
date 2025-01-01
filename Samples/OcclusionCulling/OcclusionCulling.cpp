@@ -37,12 +37,12 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProj;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProj{};
+			glm::mat4 modelViewProjection{};
 
 			/*	*/
 			glm::vec4 tintColor = glm::vec4(1, 1, 1, 1);
@@ -62,15 +62,15 @@ namespace glsample {
 		ConditionalScene scene;
 
 		/*	Textures.	*/
-		unsigned int diffuse_texture;
-		unsigned int normal_texture;
+		unsigned int diffuse_texture{};
+		unsigned int normal_texture{};
 
 		/*	*/
-		unsigned int normalMapping_program;
+		unsigned int normalMapping_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 

@@ -2,6 +2,7 @@
 #include "IOUtil.h"
 #include "ShaderLoader.h"
 #include <GL/glew.h>
+
 using namespace glsample;
 
 ProcessData::ProcessData(fragcore::IFileSystem *filesystem) : filesystem(filesystem) {}
@@ -40,7 +41,7 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 
 	if (this->irradiance_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> compute_marching_cube_generator_binary =
+		const std::vector<uint32_t> compute_irradiance_env_binary =
 			IOUtil::readFileData<uint32_t>(irradiance_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -48,8 +49,7 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 		compilerOptions.glslVersion = 410;
 
 		/*  */
-		this->irradiance_program =
-			ShaderLoader::loadComputeProgram(compilerOptions, &compute_marching_cube_generator_binary);
+		this->irradiance_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_irradiance_env_binary);
 	}
 
 	glUseProgram(this->irradiance_program);
@@ -78,8 +78,10 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 	/*	The image where the graphic version will be stored as.	*/
 	glBindImageTexture(1, irradiance_target, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-	glDispatchCompute(std::ceil(width / (float)localWorkGroupSize[0]), std::ceil(height / (float)localWorkGroupSize[1]),
-					  1);
+	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]);
+	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]);
+
+	glDispatchCompute(WorkGroupX, WorkGroupY, 1);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 

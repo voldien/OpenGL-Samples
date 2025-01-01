@@ -18,7 +18,7 @@ writeBuffer;
 
 void main() {
 
-	[[unroll]] for (int i = 0; i < NR_Particles; i++) {
+	[[unroll]] for (uint i = 0; i < NR_Particles; i++) {
 
 		/*	Particle index.	*/
 		const uint pindex = gl_GlobalInvocationID.x * NR_Particles + i;
@@ -46,29 +46,26 @@ void main() {
 		vec2 newVelocity = velocity + (-velocity * dragVelocityChange) * delta;
 
 		/*	Check bounds.	*/
-		if (position.x + EPSILON > max_bound.x) {
-			newVelocity = reflect(newVelocity, vec2(-1, 0));
-		}
-		if (position.y + EPSILON > max_bound.y) {
-			newVelocity = reflect(newVelocity, vec2(0, -1));
-		}
 		if (position.x - EPSILON < min_bound.x) {
 			newVelocity = reflect(newVelocity, vec2(1, 0));
-		}
-		if (position.y - EPSILON < min_bound.y) {
+		} else if (position.y - EPSILON < min_bound.y) {
 			newVelocity = reflect(newVelocity, vec2(0, 1));
+		}
+
+		if (position.x + EPSILON > max_bound.x) {
+			newVelocity = reflect(newVelocity, vec2(-1, 0));
+		} else if (position.y + EPSILON > max_bound.y) {
+			newVelocity = reflect(newVelocity, vec2(0, -1));
 		}
 
 		/*	Update the position.	*/
 		position += newVelocity * delta;
 
 		/*	Final position update.	*/
-		position.xy = clamp(position.xy, min_bound, max_bound);
+		position.xy = max(position.xy, vec2(0));
 
 		/*	Update particle.	*/
 		writeBuffer.particle[pindex].position.xy = position;
-		// writeBuffer.particle[pindex].time = readBuffer.particle[pindex].time - ubo.deltaTime;
 		writeBuffer.particle[pindex].velocity.xy = newVelocity;
 	}
 }
-

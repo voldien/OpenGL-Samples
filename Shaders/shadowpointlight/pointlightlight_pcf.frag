@@ -50,7 +50,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube ShadowTexture, const in int index) {
+float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube ShadowTexture, const in uint index) {
 
 	const vec3 frag2Light = (fragPosLightSpace - ubo.point_light[index].position);
 
@@ -72,7 +72,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 	const float diskRadius = (1.0 + (viewDistance / far_plane)) / ubo.diskRadius;
 	const int samples = 20;
 
-	[[unroll]] for (int i = 0; i < samples; i++) {
+	[[unroll]] for (uint i = 0; i < samples; i++) {
 		/*	*/
 		float closestDepth = texture(ShadowTexture, frag2Light + ubo.PCFFilters[i].xyz * diskRadius).r;
 		closestDepth *= far_plane; // undo mapping [0;1]
@@ -86,7 +86,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 void main() {
 	vec4 pointLightColors = vec4(0);
 
-	[[unroll]] for (int i = 0; i < 4; i++) {
+	[[unroll]] for (uint i = 0; i < 4; i++) {
 		/*	*/
 		vec3 diffVertex = (ubo.point_light[i].position - vertex);
 

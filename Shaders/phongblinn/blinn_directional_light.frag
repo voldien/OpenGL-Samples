@@ -18,6 +18,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
+	/*	*/
 	vec4 specularColor;
 	vec4 ambientColor;
 	vec4 viewDir;
@@ -35,7 +36,7 @@ void main() {
 	// Compute directional light
 	vec4 pointLightSpecular = vec4(0);
 
-	/*  Blinn	*/
+	/*  Blinn/Phong	*/
 	const vec3 halfwayDir = normalize(ubo.direction.xyz + viewDir);
 	const float spec = pow(max(dot(normal, halfwayDir), 0.0), ubo.shininess);
 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));

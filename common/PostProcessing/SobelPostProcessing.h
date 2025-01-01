@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 Valdemar Lindberg
+ * Copyright (c) 2024 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,20 +14,20 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "GLSampleSession.h"
-#include "Math3D/Color.h"
+#include "PostProcessing.h"
 
 namespace glsample {
 
-	class FVDECLSPEC ColorSpaceConverter {
-
-		enum ColorSpaceType {
-			Linear = 0,
-			Gamma = 1,
-			ACES = 2,
-		};
-
+	class FVDECLSPEC SobelProcessing : public PostProcessing {
 	  public:
-		ColorSpaceConverter();
+		SobelProcessing() = default;
+		~SobelProcessing() override;
+
+		void initialize(fragcore::IFileSystem *filesystem) override;
+
+		void convert(unsigned int texture);
+
+	  private:
+		int sobel_program = -1;
 	};
 } // namespace glsample

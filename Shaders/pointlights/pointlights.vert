@@ -25,8 +25,10 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
 	mat4 modelView;
 	mat4 modelViewProjection;
-	/*	Light source.	*/
+
+	/*	*/
 	vec4 ambientColor;
+	/*	Light source.	*/
 	point_light point_light[4];
 }
 ubo;

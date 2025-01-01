@@ -74,12 +74,16 @@ void main() {
 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
 
 	/*	*/
+	// vec4 lightColor =
+	// 	computeBlinnDirectional(ubo.directional, alteredNormal, ubo.camera.viewDir.xyz, ubo.shininess.r, vec3(1));
+
+	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
 	const vec4 irradiance_color = texture(Irradiance, irradiance_uv).rgba;
 
 	vec4 color = texture(DiffuseTexture, UV);
 
-	//computeBlinnDirectional
+	// computeBlinnDirectional
 
 	const vec4 lighting =
 		(ubo.ambientColor * irradiance_color + (ubo.lightColor * contriubtion + spec) * shadow) * color;

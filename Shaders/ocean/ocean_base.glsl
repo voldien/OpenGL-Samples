@@ -1,3 +1,5 @@
+#include "common.glsl"
+
 struct particle_t {
 	vec2 h0;
 	vec2 ht_real_img;
@@ -35,5 +37,3 @@ layout(binding = 0) uniform UniformBufferBlock {
 	float tessLevel;
 }
 ubo;
-
-const float PI = 3.14;
