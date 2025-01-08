@@ -35,7 +35,7 @@ void ColorSpaceConverter::initialize(fragcore::IFileSystem *filesystem) {
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-		compilerOptions.glslVersion = 410;
+		compilerOptions.glslVersion = 420;
 
 		/*  */
 		this->aes_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_AES_binary);

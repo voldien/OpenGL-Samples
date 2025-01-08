@@ -1,13 +1,11 @@
 #include "MistPostProcessing.h"
-#include "Core/Object.h"
+#include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include <IOUtil.h>
 
 using namespace glsample;
 
-MistPostProcessing::MistPostProcessing() {
-	this->setName("MistFog");
-}
+MistPostProcessing::MistPostProcessing() { this->setName("MistFog"); }
 
 MistPostProcessing::~MistPostProcessing() {
 	if (this->mist_program >= 0) {
@@ -38,11 +36,22 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	glUseProgram(this->mist_program);
 
-	glUniform1i(glGetUniformLocation(this->mist_program, "texture0"), 0);
-	glUniform1i(glGetUniformLocation(this->mist_program, "DepthTexture"), 1);
+	glUniform1i(glGetUniformLocation(this->mist_program, "texture0"), (int)GBuffer::Albedo);
+	glUniform1i(glGetUniformLocation(this->mist_program, "DepthTexture"), (int)GBuffer::Depth);
 	glUniform1i(glGetUniformLocation(this->mist_program, "IrradianceTexture"), 2);
 
 	glUseProgram(0);
+
+	/*	*/
+	GLint minMapBufferSize = 0;
+	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+	this->uniformAlignSize = Math::align<size_t>(sizeof(MistUniformBuffer), (size_t)minMapBufferSize);
+
+	/*	Create uniform buffer.	*/
+	glGenBuffers(1, &this->uniform_buffer);
+	glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+	glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignSize * 1, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	glGenVertexArrays(1, &this->vao);
 }
@@ -53,6 +62,17 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 
 	glBindVertexArray(this->vao);
 
+	/*	Update uniform values.	*/
+	glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+	void *uniformPointer =
+		glMapBufferRange(GL_UNIFORM_BUFFER, 0 * this->uniformAlignSize,
+						 this->uniformAlignSize, GL_MAP_WRITE_BIT);
+	memcpy(uniformPointer, &this->mistsettings, sizeof(this->mistsettings));
+	glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+	glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+					  (1 % 1) * this->uniformAlignSize, this->uniformAlignSize);
+
 	glUseProgram(this->mist_program);
 
 	/*	*/
@@ -61,11 +81,11 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 	glDisable(GL_DEPTH_TEST);
 
 	/*	*/
-	glActiveTexture(GL_TEXTURE0 + 0);
+	glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Albedo);
 	glBindTexture(GL_TEXTURE_2D, frame_texture);
 
 	/*	*/
-	glActiveTexture(GL_TEXTURE0 + 1);
+	glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Depth);
 	glBindTexture(GL_TEXTURE_2D, depth_texture);
 
 	/*	*/

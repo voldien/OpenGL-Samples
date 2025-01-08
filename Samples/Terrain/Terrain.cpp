@@ -375,6 +375,10 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->terrain_heightMap);
 
 				/*	*/
+				glActiveTexture(GL_TEXTURE0 + TextureType::DepthBuffer);
+				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->depthbuffer);
+
+				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 

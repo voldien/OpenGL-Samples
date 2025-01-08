@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,9 +58,9 @@ namespace glsample {
 	};
 
 	using TextureObject = struct texture_object_t {
-		unsigned int width{};
-		unsigned int height{};
-		unsigned int depth{};
+		unsigned int width = 0;
+		unsigned int height = 0;
+		unsigned int depth = 0;
 		unsigned int texture = 0;
 	};
 
@@ -78,7 +78,7 @@ namespace glsample {
 		fragcore::IScheduler *getSchedular() noexcept { return this->schedular; }
 
 	  protected:
-		fragcore::IFileSystem *activeFileSystem{};
-		fragcore::IScheduler *schedular{};
+		fragcore::IFileSystem *activeFileSystem = nullptr;
+		fragcore::IScheduler *schedular = nullptr;
 	};
 } // namespace glsample

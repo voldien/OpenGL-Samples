@@ -145,7 +145,7 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 
 			/*	BoneID.	*/
 			glEnableVertexAttribArrayARB(4);
-			glVertexAttribPointerARB(4, 4, GL_UNSIGNED_INT, GL_FALSE, vertexStride,
+			glVertexAttribIPointer(4, 4, GL_UNSIGNED_INT, vertexStride,
 									 reinterpret_cast<void *>(refModel_base.boneIndexOffset));
 
 			/*	Weight.	*/

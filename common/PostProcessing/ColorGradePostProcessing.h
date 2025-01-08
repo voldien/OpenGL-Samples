@@ -15,33 +15,23 @@
  */
 #pragma once
 #include "PostProcessing.h"
-#include "SampleHelper.h"
 
 namespace glsample {
 
-	class FVDECLSPEC MistPostProcessing : public PostProcessing {
-	  public:
-		MistPostProcessing();
-		~MistPostProcessing() override;
+	class FVDECLSPEC ColorGradePostProcessing : public PostProcessing {
 
-		using MistUniformBuffer = struct mist_uniform_buffer_t {
-			glm::mat4 proj;
-			glm::mat4 viewRotation;
-			CameraInstance instance;
-			FogSettings fogSettings;
-		};
+	  public:
+		ColorGradePostProcessing();
+		~ColorGradePostProcessing() override;
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void render(unsigned int skybox, unsigned int frame_texture, unsigned int depth_texture);
-
-		MistUniformBuffer mistsettings;
+	  public:
+		void convert(unsigned int texture);
 
 	  private:
-		int mist_program = -1;
-		unsigned int vao = 0;
-		unsigned int uniform_buffer = 0;
-		unsigned int uniform_buffer_binding;
-		size_t uniformAlignSize = sizeof(MistUniformBuffer);
+		int hue_color_grade_program = -1;
+
+		// int localWorkGroupSize[3];
 	};
 } // namespace glsample

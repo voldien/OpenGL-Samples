@@ -13,7 +13,6 @@ layout(set = 0, binding = 0) uniform sampler2D texture0;
 layout(set = 0, binding = 1) uniform sampler2D depth0;
 layout(set = 0, binding = 2) uniform sampler2D IrradianceTexture;
 
-#include "fog.glsl"
 #include "fog_frag.glsl"
 #include "postprocessing_base.glsl"
 

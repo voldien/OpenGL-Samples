@@ -5,6 +5,7 @@
 #include "assimp/Importer.hpp"
 #include "assimp/ProgressHandler.hpp"
 #include "assimp/config.h"
+#include "assimp/scene.h"
 #include <IO/IOUtil.h>
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
@@ -91,7 +92,8 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 
 	/*	*/
 	const aiScene *pScene =
-		importer.ReadFile(path.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_GenBoundingBoxes);
+		importer.ReadFile(path.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_GenBoundingBoxes |
+											aiProcess_PopulateArmatureData);
 
 	if (pScene == nullptr) {
 		throw RuntimeException("Failed to load file: {} - Error: {}", path, importer.GetErrorString());
@@ -171,18 +173,18 @@ void ModelImporter::initScene(const aiScene *scene) {
 	// process_textures_thread.detach();
 
 	const size_t nr_threads = fragcore::Math::clamp<size_t>(scene->mNumMeshes / 4, 1, SystemInfo::getCPUCoreCount());
-	std::vector<std::thread> threads(nr_threads);
+	std::vector<std::thread> model_threads(nr_threads);
 
 	/*	Multithread the loading of all the geometry data.	*/
-	for (size_t index_thread = 0; index_thread < threads.size(); index_thread++) {
+	for (size_t index_thread = 0; index_thread < model_threads.size(); index_thread++) {
 
 		const size_t start_mesh = (scene->mNumMeshes / nr_threads) * index_thread;
 		size_t num_mesh = (scene->mNumMeshes / nr_threads);
-		if (index_thread == threads.size() - 1) {
+		if (index_thread == model_threads.size() - 1) {
 			num_mesh *= 2;
 		}
 
-		threads[index_thread] = std::thread([&, start_mesh, num_mesh]() {
+		model_threads[index_thread] = std::thread([&, start_mesh, num_mesh]() {
 			if (scene->HasMeshes()) {
 
 				for (size_t x = start_mesh; x < fragcore::Math::min<size_t>(start_mesh + num_mesh, scene->mNumMeshes);
@@ -194,11 +196,6 @@ void ModelImporter::initScene(const aiScene *scene) {
 	}
 	/*	*/
 	std::thread process_animation_light_camera_thread([&]() {
-		/*	*/
-		for (size_t x = 0; x < scene->mNumMeshes; x++) {
-			this->initBoneSkeleton(scene->mMeshes[x], x);
-		}
-
 		if (scene->HasAnimations()) {
 			for (size_t x = 0; x < scene->mNumAnimations; x++) {
 				this->initAnimation(scene->mAnimations[x], x);
@@ -206,6 +203,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 		}
 
 		if (scene->HasLights()) {
+			this->lights.resize(scene->mNumLights);
 			for (unsigned int x = 0; x < scene->mNumLights; x++) {
 				this->initLight(scene->mLights[x], x);
 			}
@@ -218,14 +216,11 @@ void ModelImporter::initScene(const aiScene *scene) {
 	});
 	// process_animation_light_camera_thread.detach();
 
-	/*	Wait intill done.	*/
-	// process_model_thread.join();
-
 	process_textures_thread.join();
 	process_animation_light_camera_thread.join();
 
-	for (size_t i = 0; i < threads.size(); i++) {
-		threads[i].join();
+	for (size_t i = 0; i < model_threads.size(); i++) {
+		model_threads[i].join();
 	}
 
 	/*	*/
@@ -239,6 +234,11 @@ void ModelImporter::initScene(const aiScene *scene) {
 	}
 
 	this->initNoodeRoot(scene->mRootNode, nullptr);
+
+	/*	*/
+	for (size_t x = 0; x < scene->mNumMeshes; x++) {
+		this->initBoneSkeleton(scene->mMeshes[x], x);
+	}
 }
 
 void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
@@ -247,6 +247,8 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 
 	/*	iterate through each child of parent node.	*/
 	for (size_t node_index = 0; node_index < node->mNumChildren; node_index++) {
+		aiNode *child_node = node->mChildren[node_index];
+
 		unsigned int meshCount = 0;
 		aiVector3D position, scale;
 		aiQuaternion rotation;
@@ -254,7 +256,7 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 		NodeObject *pobject = new NodeObject();
 
 		/*	extract position, rotation, position from transformation matrix.	*/
-		node->mChildren[node_index]->mTransformation.Decompose(scale, rotation, position);
+		child_node->mTransformation.Decompose(scale, rotation, position);
 		if (parent) {
 			pobject->parent = parent;
 		} else {
@@ -266,7 +268,7 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 		pobject->localRotation = glm::quat(rotation.w, rotation.x, rotation.y, rotation.z);
 		pobject->localScale = glm::vec3(scale.x, scale.y, scale.z);
 
-		pobject->modelLocalTransform = aiMatrix4x4ToGlm(&node->mChildren[node_index]->mTransformation);
+		pobject->modelLocalTransform = aiMatrix4x4ToGlm(&child_node->mTransformation);
 
 		if (parent) {
 			pobject->modelGlobalTransform = parent->modelGlobalTransform * pobject->modelLocalTransform;
@@ -280,14 +282,14 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 		if (node->mChildren[node_index]->mMeshes) {
 
 			/*	*/
-			for (size_t y = 0; y < node->mChildren[node_index]->mNumMeshes; y++) {
+			for (size_t y = 0; y < child_node->mNumMeshes; y++) {
 
 				/*	Get material for mesh object.	*/
 				const MaterialObject &materialRef =
-					getMaterials()[this->sceneRef->mMeshes[*node->mChildren[node_index]->mMeshes]->mMaterialIndex];
+					getMaterials()[this->sceneRef->mMeshes[*child_node->mMeshes]->mMaterialIndex];
 
 				/*	*/
-				const int meshIndex = node->mChildren[node_index]->mMeshes[y];
+				const int meshIndex = child_node->mMeshes[y];
 				pobject->materialIndex.push_back(this->sceneRef->mMeshes[meshIndex]->mMaterialIndex);
 
 				pobject->geometryObjectIndex.push_back(meshIndex);
@@ -297,10 +299,12 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 			}
 		}
 
+		/*	*/
 		this->nodes.push_back(pobject);
+		this->nodeByName[std::string(child_node->mName.C_Str())] = pobject;
 
 		/*	*/
-		this->initNoodeRoot(node->mChildren[node_index], pobject);
+		this->initNoodeRoot(child_node, pobject);
 	}
 }
 
@@ -311,18 +315,29 @@ SkeletonSystem *ModelImporter::initBoneSkeleton(const aiMesh *mesh, unsigned int
 	/*	Load bones.	*/
 	if (mesh->HasBones()) {
 
-		for (uint32_t i = 0; i < mesh->mNumBones; i++) {
-			const uint32_t BoneIndex = 0;
-			const std::string BoneName(mesh->mBones[i]->mName.data);
+		for (uint32_t bone_index = 0; bone_index < mesh->mNumBones; bone_index++) {
 
-			glm::mat4 to = aiMatrix4x4ToGlm(&mesh->mBones[i]->mOffsetMatrix);
+			const std::string BoneName(mesh->mBones[bone_index]->mName.data);
 
-			Bone bone;
-			bone.inverseBoneMatrix = to;
-			bone.name = BoneName;
-			bone.boneIndex = i;
+			if (skeleton.bones.find(BoneName) == skeleton.bones.end()) {
 
-			skeleton.bones[BoneName] = bone;
+				NodeObject *nodeObj = this->getNodeByName(BoneName);
+
+				glm::mat4 nodeGlobalTransform = glm::mat4(1);
+				if (nodeObj) {
+					nodeGlobalTransform = nodeObj->modelGlobalTransform;
+				}
+
+				Bone bone;
+				bone.name = BoneName;
+				bone.boneIndex = bone_index;
+				bone.offsetBoneMatrix = aiMatrix4x4ToGlm(&mesh->mBones[bone_index]->mOffsetMatrix);
+				bone.finalTransform =
+					nodeGlobalTransform * bone.offsetBoneMatrix; /*	Compute default final transformation*/
+				bone.armature_bone = nodeObj;
+
+				skeleton.bones[BoneName] = bone;
+			}
 		}
 
 		this->skeletons.push_back(skeleton);
@@ -848,8 +863,16 @@ AnimationObject *ModelImporter::initAnimation(const aiAnimation *pAnimation, uns
 
 	return &this->animations.back();
 }
+
 LightObject *ModelImporter::initLight(const aiLight *light, unsigned int index) {
-	LightObject *lightOb = nullptr;
+	LightObject *lightOb = &this->lights[index];
+
+	lightOb->name = light->mName.C_Str();
+	lightOb->position = glm::vec3(light->mPosition.x, light->mPosition.y, light->mPosition.z);
+	lightOb->direction = glm::vec3(light->mDirection.x, light->mDirection.y, light->mDirection.z);
+	lightOb->mUp = glm::vec3(light->mUp.x, light->mUp.y, light->mUp.z);
+
+	lightOb->mColorDiffuse = glm::vec4(light->mColorDiffuse.r, light->mColorDiffuse.g, light->mColorDiffuse.b, 1);
 
 	return lightOb;
 }
@@ -922,6 +945,13 @@ struct Face {
 };
 
 void ModelImporter::convert2Adjcent(const aiMesh *paiMesh, std::vector<unsigned int> &Indices) {}
+
+NodeObject *ModelImporter::getNodeByName(const std::string &name) const noexcept {
+	if (this->nodeByName.find(name) != this->nodeByName.end()) {
+		return nodeByName.at(name);
+	}
+	return nullptr;
+}
 
 std::vector<MaterialObject *> ModelImporter::getMaterials(const size_t texture_index) noexcept {
 	std::vector<MaterialObject *> ref_materials;

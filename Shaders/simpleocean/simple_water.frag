@@ -14,7 +14,7 @@ layout(location = 3) in vec3 tangent;
 #include "phongblinn.glsl"
 
 layout(set = 0, binding = 0) uniform sampler2D ReflectionTexture;
-layout(set = 0, binding = 1) uniform sampler2D DepthTexture;
+layout(set = 0, binding = 11) uniform sampler2D DepthTexture;
 
 struct Terrain {
 	ivec2 size;
@@ -79,11 +79,19 @@ void main() {
 		computePhongDirectional(ubo.directional, heightNormal.xyz, viewDir.xyz, ubo.shininess.r, ubo.specularColor.rgb);
 
 	/*	Compute depth difference	*/
-	const float current_z = getExpToLinear(ubo.camera.near, ubo.camera.far, texture(DepthTexture, gl_FragCoord.xy).r);
+	const vec2 screen_uv = gl_FragCoord.xy / vec2(2560, 1440);
+	const float current_z = getExpToLinear(ubo.camera.near, ubo.camera.far, texture(DepthTexture, screen_uv).r);
 	const float shader_z = getExpToLinear(ubo.camera.near, ubo.camera.far, gl_FragCoord.z);
 
-	float inter = clamp((shader_z - current_z) / 100.0, 0.2, 1);
+	const float diff_depth = min(shader_z - current_z, 0) * 0.001;
+	const float translucent = smoothstep(0.0, 1, 8 * diff_depth * 0.00000001); // clamp(  (1 / 0.02) * diff_depth *2, 0, 1);
 
-	fragColor = (lightColor + ubo.ambientColor);
-	fragColor.a = inter;
+	const vec4 bottomOceanColor = vec4(0.5373, 0.6353, 0.9529, 1.0);
+	const vec4 surfaceOceanColor = vec4(0.3804, 0.8706, 0.9922, 1.0);
+
+	const vec4 mixColor = mix(bottomOceanColor, surfaceOceanColor, translucent * 10);
+
+	fragColor = (lightColor + ubo.ambientColor) * mixColor;
+	// fragColor = vec4(1 - translucent);
+	fragColor.a = 1 - translucent;
 }

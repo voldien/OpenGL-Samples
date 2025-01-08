@@ -18,6 +18,7 @@
 #include "GLSampleSession.h"
 #include "ImportHelper.h"
 #include "ModelImporter.h"
+#include "SampleHelper.h"
 #include "Skybox.h"
 #include <deque>
 
@@ -73,9 +74,10 @@ namespace glsample {
 
 		virtual void update(const float deltaTime);
 
-		// virtual void updateBuffers();
+		virtual void updateBuffers();
 
-		virtual void render(); // TODO, add camera.
+		virtual void render(Camera<float> *camera); // TODO, add camera.
+		virtual void render();
 
 		virtual void renderNode(const NodeObject *node);
 
@@ -97,6 +99,12 @@ namespace glsample {
 		int computeMaterialPriority(const MaterialObject &material) const noexcept;
 
 	  protected:
+		using CommonConstantData = struct _common_constant_data_t {
+			CameraInstance camera;
+			FrustumInstance frustum;
+		};
+		CommonConstantData* stageCommonBuffer;
+
 		/*	TODO add queue structure.	*/
 		std::deque<const NodeObject *> renderQueue;
 
@@ -110,14 +118,10 @@ namespace glsample {
 
 	  protected: /*	Default texture if texture from material is missing.*/
 		std::array<int, 10> default_textures;
-		int normalDefault = -1;
-		int diffuseDefault = -1;
-		int roughnessSpecularDefault = -1;
-		int emissionDefault = -1;
 
 		DebugMode debugMode;
 
-		unsigned int node_uniform_buffer;
+		unsigned int node_and_common_uniform_buffer;
 
 	  public:
 		template <typename T = Scene> static T loadFrom(ModelImporter &importer) {

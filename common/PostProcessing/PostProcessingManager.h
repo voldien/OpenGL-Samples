@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,13 +14,16 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "GLSampleSession.h"
-#include "IO/IFileSystem.h"
-#include "Math3D/Color.h"
 #include "PostProcessing.h"
+#include "SampleHelper.h"
+#include <initializer_list>
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class FVDECLSPEC PostProcessingManager : public fragcore::Object {
 	  public:
 		PostProcessingManager() = default;
@@ -29,8 +32,18 @@ namespace glsample {
 		void addPostProcessing(PostProcessing &postProcessing);
 
 		size_t getNrPostProcessing() const noexcept;
-		PostProcessing &getPostProcessing(const size_t index) const noexcept;
+		PostProcessing &getPostProcessing(const size_t index);
+
+		bool isEnabled(const size_t index) const noexcept;
+		void enablePostProcessing(const size_t index, const bool enabled);
+
+		/*TODO:	Add Swap supported*/
+
+		void render(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets);
 
 	  protected:
+		// TODO: shared_pointer
+		std::vector<PostProcessing *> postProcessings;
+		std::vector<bool> post_enabled;
 	};
 } // namespace glsample

@@ -1,3 +1,4 @@
+#include "GLUIComponent.h"
 #include "PostProcessing/MistPostProcessing.h"
 #include "SampleHelper.h"
 #include "Skybox.h"
@@ -23,8 +24,7 @@ namespace glsample {
 		SimpleOcean() : GLSampleWindow() {
 			this->setTitle("Simple Ocean");
 
-			this->simpleOceanSettingComponent =
-				std::make_shared<SimpleOceanSettingComponent>(this->uniform_stage_buffer);
+			this->simpleOceanSettingComponent = std::make_shared<SimpleOceanSettingComponent>(*this);
 			this->addUIComponent(this->simpleOceanSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -97,9 +97,10 @@ namespace glsample {
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t oceanUniformSize = 0;
 
-		class SimpleOceanSettingComponent : public nekomimi::UIComponent {
+		class SimpleOceanSettingComponent : public GLUIComponent<SimpleOcean> {
 		  public:
-			SimpleOceanSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
+			SimpleOceanSettingComponent(SimpleOcean &sample)
+				: GLUIComponent(sample), uniform(this->getRefSample().uniform_stage_buffer) {
 				this->setName("Simple Ocean Settings");
 			}
 
@@ -149,13 +150,24 @@ namespace glsample {
 				ImGui::ColorEdit4("Ocean Base Color", &this->uniform.ocean.oceanColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
+				ImGui::TextUnformatted("Fog Settings");
+				ImGui::DragInt("Fog Type", (int *)&this->getRefSample().mistprocessing.mistsettings.fogSettings.fogType);
+				ImGui::ColorEdit4("Fog Color", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::DragFloat("Fog Density", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogDensity);
+				ImGui::DragFloat("Fog Intensity", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogIntensity);
+				ImGui::DragFloat("Fog Start", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogStart);
+				ImGui::DragFloat("Fog End", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogEnd);
+
 				/*	*/
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("Use MistFog", &this->useMistFogPost);
 			}
 
 			bool showWireFrame = false;
 			bool useGerstner = false;
+			bool useMistFogPost = false;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -295,7 +307,7 @@ namespace glsample {
 				}
 
 				/*	*/
-				glDisable(GL_CULL_FACE);
+				glEnable(GL_CULL_FACE);
 				glEnable(GL_DEPTH_TEST);
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				glDepthFunc(GL_LESS);
@@ -318,6 +330,20 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + 10);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
+				/*	*/
+				glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Depth);
+				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->depthbuffer);
+
+				glCullFace(GL_FRONT);
+				glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+				/*	Draw triangle.	*/
+				glBindVertexArray(this->plan.vao);
+				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+
+				/*	*/
+
+				glCullFace(GL_BACK);
+				glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
 				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
@@ -341,8 +367,10 @@ namespace glsample {
 			}
 
 			/*	Post processing.	*/
-			this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachement0,
-										this->getFrameBuffer()->depthbuffer);
+			if (this->simpleOceanSettingComponent->useMistFogPost) {
+				this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachement0,
+											this->getFrameBuffer()->depthbuffer);
+			}
 		}
 
 		void update() override {
@@ -365,9 +393,18 @@ namespace glsample {
 				this->uniform_stage_buffer.ocean.modelViewProjection = this->uniform_stage_buffer.ocean.proj *
 																	   this->uniform_stage_buffer.ocean.view *
 																	   this->uniform_stage_buffer.ocean.model;
-				this->uniform_stage_buffer.ocean.camera.position = glm::vec4(this->camera.getPosition(), 0);
+
 				this->uniform_stage_buffer.ocean.time = elapsedTime;
+
+				this->uniform_stage_buffer.ocean.camera.position = glm::vec4(this->camera.getPosition(), 0);
+				this->uniform_stage_buffer.ocean.camera.near = this->camera.getNear();
+				this->uniform_stage_buffer.ocean.camera.far = this->camera.getFar();
 			}
+
+			this->mistprocessing.mistsettings.proj = this->camera.getProjectionMatrix();
+			this->mistprocessing.mistsettings.fogSettings.cameraNear = this->camera.getNear();
+			this->mistprocessing.mistsettings.fogSettings.cameraFar = this->camera.getFar();
+			this->mistprocessing.mistsettings.viewRotation = camera.getRotationMatrix();
 
 			/*  */
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

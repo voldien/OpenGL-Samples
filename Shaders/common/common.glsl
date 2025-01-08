@@ -16,16 +16,18 @@
 /*	Constants.	*/
 #define PI 3.1415926535897932384626433832795
 #define PI_HALF 1.5707963267948966192313216916398
+#define E_CONSTANT 2.7182818284590
 layout(constant_id = 0) const float EPSILON = 1.19209e-07;
 
 struct Camera {
-	float near;
-	float far;
-	float aspect;
-	float fov;
-	vec4 position;
-	vec4 viewDir;
-	vec4 position_size;
+	float near;			/*	*/
+	float far;			/*	*/
+	float aspect;		/*	*/
+	float fov;			/*	*/
+	vec4 position;		/*	*/
+	vec4 viewDir;		/*	*/
+	vec4 position_size; /*	*/
+	ivec4 screen_width_padding;
 };
 
 struct FogSettings {

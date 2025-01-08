@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -102,7 +102,6 @@ using MaterialObject = struct material_object_t : public AssetObject {
 };
 
 using NodeObject = struct node_object_t : public AssetObject {
-
 	/*	*/
 	glm::vec3 localPosition;
 	glm::quat localRotation;
@@ -165,8 +164,10 @@ using ModelSystemObject = struct model_system_object : public AssetObject {
 };
 
 using Bone = struct bone_t : public AssetObject {
-	glm::mat4 inverseBoneMatrix{};
+	glm::mat4 finalTransform{};
+	glm::mat4 offsetBoneMatrix;
 	size_t boneIndex{};
+	NodeObject *armature_bone;
 };
 
 using SkeletonSystem = struct model_skeleton_t : public AssetObject {
@@ -203,11 +204,8 @@ using AnimationObject = struct animation_object_t : public AssetObject {
 using LightObject = struct light_object_t : public AssetObject {
 
 	// C_ENUM aiLightSourceType mType;
-
-	glm::vec3 mPosition;
-
-	glm::vec3 mDirection;
-
+	glm::vec3 position;
+	glm::vec3 direction;
 	glm::vec3 mUp;
 
 	float mAttenuationConstant;
@@ -269,6 +267,8 @@ class FVDECLSPEC ModelImporter {
 
 	void convert2Adjcent(const aiMesh *mesh, std::vector<unsigned int> &indices);
 
+	NodeObject *getNodeByName(const std::string &name) const noexcept;
+
   public:
 	std::vector<NodeObject *> getNodes() const noexcept { return this->nodes; }
 	const std::vector<ModelSystemObject> &getModels() const noexcept { return this->models; }
@@ -295,6 +295,7 @@ class FVDECLSPEC ModelImporter {
 	std::string filepath;
 	aiScene *sceneRef{};
 	std::vector<NodeObject *> nodes;
+	std::map<std::string, NodeObject *> nodeByName;
 
 	std::vector<ModelSystemObject> models;
 	std::vector<MaterialObject> materials;
@@ -307,6 +308,8 @@ class FVDECLSPEC ModelImporter {
 
 	std::vector<AnimationObject> animations;
 	std::map<std::string, VertexBoneData> vertexBoneData;
+
+	std::vector<LightObject> lights;
 
 	NodeObject *rootNode{};
 	glm::mat4 global{};

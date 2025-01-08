@@ -191,14 +191,14 @@ FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	SET(SPIRV "${FILE_NAME}.spv")
 	IF(GLSLLANGVALIDATOR)
 		IF(CMAKE_BUILD_TYPE STREQUAL "Release")
-			SET(SPIRV_BUILD_SETTINGS "")
+			SET(SPIRV_BUILD_SETTINGS -g0)
 		ELSE()
-			SET(SPIRV_BUILD_SETTINGS -g -Od)
+			SET(SPIRV_BUILD_SETTINGS -g -gVS -Od)
 		ENDIF()
 		ADD_CUSTOM_COMMAND(
 			OUTPUT ${SPIRV}
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
-			COMMAND ${GLSLLANGVALIDATOR} -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-env vulkan1.1 ${SPIRV_BUILD_SETTINGS} -o ${SPIRV} ${GLSL} 
+			COMMAND ${GLSLLANGVALIDATOR} --define-macro gl_InstanceID=gl_InstanceIndex --define-macro gl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-env vulkan1.1 ${SPIRV_BUILD_SETTINGS} -o ${SPIRV} ${GLSL} 
 			DEPENDS ${GLSL})
 	ELSEIF(GLSLC)
 		IF(CMAKE_BUILD_TYPE STREQUAL "Release")

@@ -1,3 +1,4 @@
+#include "GLUIComponent.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -20,29 +21,29 @@ namespace glsample {
 		SkinnedMesh() : GLSampleWindow() {
 			this->setTitle("Skinned Mesh");
 
-			this->skinnedSettingComponent = std::make_shared<SkinnedMeshSettingComponent>(this->uniformStageBuffer);
+			this->skinnedSettingComponent = std::make_shared<SkinnedMeshSettingComponent>(*this);
 			this->addUIComponent(this->skinnedSettingComponent);
 
-			this->camera.setPosition(glm::vec3(18.5f));
+			this->camera.setPosition(glm::vec3(25.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 			this->camera.enableLook(true);
 			this->camera.enableNavigation(true);
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProj;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProj{};
+			glm::mat4 modelViewProjection{};
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(0.5f, 0.5f, 0.6f, 1.0f);
-			glm::vec4 ambientColor = glm::vec4(0.05, 0.05, 0.05, 1.0f);
 
 			/*	Material color.	*/
+			glm::vec4 ambientColor = glm::vec4(0.05, 0.05, 0.05, 1.0f);
 			glm::vec4 tintColor = glm::vec4(1);
 
 		} uniformStageBuffer;
@@ -51,16 +52,16 @@ namespace glsample {
 
 		Scene scene;
 
-		unsigned int skinned_graphic_program;
-		unsigned int skinned_debug_weight_program;
-		unsigned int skinned_bone_program;
-		unsigned int axis_orientation_program;
+		unsigned int skinned_graphic_program{};
+		unsigned int skinned_debug_weight_program{};
+		unsigned int skinned_bone_program{};
+		unsigned int axis_orientation_program{};
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_skeleton_buffer_binding = 1;
-		unsigned int uniform_buffer;
-		unsigned int uniform_skeleton_buffer;
+		unsigned int uniform_buffer{};
+		unsigned int uniform_skeleton_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformSkeletonBufferSize = 0;
@@ -79,12 +80,11 @@ namespace glsample {
 		const std::string vertexAxisShaderPath = "Shaders/skinnedmesh/skinnedmesh_debug.vert.spv";
 		const std::string fragmentAxisShaderPath = "Shaders/skinnedmesh/skinnedmesh_debug.frag.spv";
 
-		class SkinnedMeshSettingComponent : public nekomimi::UIComponent {
+		class SkinnedMeshSettingComponent : public GLUIComponent<SkinnedMesh> {
 
 		  public:
-			SkinnedMeshSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
-				this->setName("Skinned Mesh");
-			}
+			SkinnedMeshSettingComponent(SkinnedMesh &sample)
+				: GLUIComponent(sample, "SkinnedMesh"), uniform(this->getRefSample().uniformStageBuffer) {}
 			void draw() override {
 				ImGui::TextUnformatted("Light Settings");
 				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
@@ -100,6 +100,8 @@ namespace glsample {
 				ImGui::Checkbox("Show Bone", &this->showBone);
 				ImGui::Checkbox("Show Weight", &this->showWeight);
 				ImGui::Checkbox("Show Axis", &this->showAxis);
+
+				this->getRefSample().scene.renderUI();
 			}
 
 			bool showWireFrame = false;
@@ -178,8 +180,8 @@ namespace glsample {
 			int uniform_buffer_index = glGetUniformBlockIndex(this->skinned_graphic_program, "UniformBufferBlock");
 			int uniform_skeleton_buffer_index =
 				glGetUniformBlockIndex(this->skinned_graphic_program, "UniformSkeletonBufferBlock");
-			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "NormalTexture"), 1);
+			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "DiffuseTexture"), TextureType::Diffuse);
+			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "NormalTexture"), TextureType::Normal);
 			glUniformBlockBinding(this->skinned_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUniformBlockBinding(this->skinned_graphic_program, uniform_skeleton_buffer_index,
 								  this->uniform_skeleton_buffer_binding);
@@ -316,6 +318,17 @@ namespace glsample {
 					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 			}
 
+			/*	Update Bone Transformation.	*/
+			for (auto it = skeleton.bones.begin(); it != skeleton.bones.end(); it++) {
+				glm::mat4 nodeGlobalTransform = glm::mat4(1);
+				Bone *bone = &(*it).second;
+				if (bone->armature_bone) {
+					nodeGlobalTransform = bone->armature_bone->modelGlobalTransform;
+				}
+
+				bone->finalTransform = nodeGlobalTransform * bone->offsetBoneMatrix;
+			}
+
 			/*	*/
 			{
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -339,7 +352,10 @@ namespace glsample {
 				int i = 0;
 				for (auto it = skeleton.bones.begin(); it != skeleton.bones.end(); it++) {
 
-					memcpy(&uniformPointer[i++][0], &(*it).second.inverseBoneMatrix[0][0], sizeof(uniformPointer[0]));
+					const size_t bone_index = (*it).second.boneIndex;
+
+					memcpy(&uniformPointer[bone_index][0][0], &(*it).second.finalTransform[0][0],
+						   sizeof(uniformPointer[0]));
 				}
 			}
 			glUnmapBuffer(GL_UNIFORM_BUFFER);

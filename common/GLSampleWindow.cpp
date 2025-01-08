@@ -5,9 +5,17 @@
 #include "FPSCounter.h"
 #include "GLHelper.h"
 #include "GLUIComponent.h"
+#include "PostProcessing/BlurPostProcessing.h"
+#include "PostProcessing/ColorGradePostProcessing.h"
 #include "PostProcessing/ColorSpaceConverter.h"
+#include "PostProcessing/PostProcessing.h"
+
+#include "PostProcessing/BloomPostProcessing.h"
+#include "PostProcessing/PostProcessingManager.h"
+#include "PostProcessing/SobelPostProcessing.h"
 #include "SDL_scancode.h"
 #include "SDL_video.h"
+#include "SampleHelper.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include "spdlog/common.h"
@@ -84,16 +92,42 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 				}
 				ImGui::EndCombo();
 			}
-			
+
 			ImGui::BeginGroup();
 			ImGui::TextUnformatted("Gamma Correction Settings");
 			ImGui::DragFloat("Exposure", &this->getRefSample().getColorSpaceConverter()->getGammeSettings().exposure);
-//			ImGui::SameLine();
+			//			ImGui::SameLine();
 			ImGui::DragFloat("Gamma", &this->getRefSample().getColorSpaceConverter()->getGammeSettings().gamma);
 			ImGui::EndGroup();
 		}
 
+		/*	Display All Framebuffer textures.	*/
+
+		/*	List all builtin post processing.	*/
 		if (this->getRefSample().getPostProcessingManager()) {
+			//	ImGui::BeginChild();
+			ImGui::BeginGroup();
+			PostProcessingManager *manager = this->getRefSample().getPostProcessingManager();
+			/*	*/
+			for (size_t post_index = 0; post_index < manager->getNrPostProcessing(); post_index++) {
+				PostProcessing &postEffect = manager->getPostProcessing(post_index);
+
+				ImGui::PushID(post_index);
+
+				/*	*/
+				ImGui::TextUnformatted(postEffect.getName().c_str());
+				// if (ImGui::BeginChild(postEffect.getName().c_str())) {
+				bool isEnabled = manager->isEnabled(post_index);
+				if (ImGui::Checkbox("Enabled", &isEnabled)) {
+					manager->enablePostProcessing(post_index, isEnabled);
+				}
+				//}
+				// ImGui::EndChild();
+
+				ImGui::PopID();
+			}
+
+			ImGui::EndGroup();
 		}
 	}
 
@@ -110,6 +144,7 @@ GLSampleWindow::GLSampleWindow()
 	stdout_sink->set_color_mode(spdlog::color_mode::always);
 	stdout_sink->set_pattern("[%Y-%m-%d %T.%e] [%^%l%$] %v");
 	stdout_sink->set_pattern("%g:%# [%^%l%$] %v");
+
 	/*	*/
 	this->logger = new spdlog::logger("glsample", {stdout_sink});
 	this->logger->set_level(spdlog::level::trace);
@@ -155,6 +190,12 @@ GLSampleWindow::GLSampleWindow()
 	this->addUIComponent(settingComponent);
 }
 
+GLSampleWindow::~GLSampleWindow() {
+	delete this->colorSpace;
+	delete this->postprocessingManager;
+	/*	*/
+}
+
 void GLSampleWindow::displayMenuBar() {}
 
 void GLSampleWindow::renderUI() {
@@ -163,6 +204,24 @@ void GLSampleWindow::renderUI() {
 	if (this->colorSpace == nullptr) {
 		this->colorSpace = new ColorSpaceConverter();
 		this->colorSpace->initialize(getFileSystem());
+
+		this->postprocessingManager = new PostProcessingManager();
+
+		SobelProcessing *sobelPostProcessing = new SobelProcessing();
+		sobelPostProcessing->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*sobelPostProcessing);
+
+		ColorGradePostProcessing *colorgrade = new ColorGradePostProcessing();
+		colorgrade->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*colorgrade);
+
+		BlurPostProcessing *blur = new BlurPostProcessing();
+		blur->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*blur);
+
+		BloomPostProcessing *bloom = new BloomPostProcessing();
+		bloom->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*bloom);
 	}
 
 	// TODO: relocate to init
@@ -206,8 +265,15 @@ void GLSampleWindow::renderUI() {
 		/*	*/
 		this->draw();
 
-		if (this->defaultFramebuffer) {
+		/*	*/
+		if (this->postprocessingManager) {
+			this->postprocessingManager->render(
+				{std::make_tuple(GBuffer::Albedo, this->defaultFramebuffer->attachement0),
+				 std::make_tuple(GBuffer::Depth, this->defaultFramebuffer->depthbuffer)});
+		}
 
+		/*	*/
+		if (this->defaultFramebuffer) {
 			if (this->colorSpace) {
 				this->colorSpace->convert(this->defaultFramebuffer->attachement0);
 			}

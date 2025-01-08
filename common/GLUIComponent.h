@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@ namespace glsample {
 	  public:
 		GLUIComponent(T &base, const std::string &name = "Sample Settings") : base(base) { this->setName(name); }
 
-		void draw() override {}
+		void draw() override = 0;
 
 	  protected:
 		T &getRefSample() const { return this->base; }

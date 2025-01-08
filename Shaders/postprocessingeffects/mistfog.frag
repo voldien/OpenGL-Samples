@@ -18,25 +18,29 @@ layout(set = 0, binding = 2) uniform sampler2D IrradianceTexture;
 
 layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
-	mat4 modelViewProjection;
-	vec4 tintColor;
-	FogSettings fogSettings;
+	mat4 viewRotation;
 	Camera camera;
+	FogSettings fogSettings;
 }
 ubo;
 
 void main() {
 
-	const vec3 direction = vec3(1);
+	const vec3 direction = normalize(mat3(ubo.viewRotation) * vec3(2 * uv - 1, 1)); //(ubo.proj * ).xyz;
 
-		/*	*/
-	const vec2 irradiance_uv = inverse_equirectangular(normalize(direction));
+	vec3 cr = normalize(cross(direction, vec3(0, -1, 0)));
+
+	const float aat = 1;// clamp(pow(abs(1 - dot(direction, vec3(0, 1, 0))), 1.05), 0, 1);
+
+	/*	*/
+	const vec2 irradiance_uv = inverse_equirectangular(direction);
 	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
 
-	const float depth = texture(DepthTexture, gl_FragCoord.xy).r;
+	const float depth = texture(DepthTexture, uv).r;
 
 	const float fogFactor = getFogFactor(ubo.fogSettings, depth);
 
-	fragColor.rgb = mix(texture(texture0, uv).rgb, irradiance_color.rgb, fogFactor);
+	fragColor.rgb = mix(texture(texture0, uv).rgb, irradiance_color.rgb * ubo.fogSettings.fogColor.rgb, clamp(fogFactor * aat, 0, 1));
+	// fragColor.rgb = vec3(aat); // direction;
 	fragColor.a = 1;
 }

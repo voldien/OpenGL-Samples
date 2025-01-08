@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -17,6 +17,7 @@
 #include "GLSampleSession.h"
 #include "IO/IFileSystem.h"
 #include "Math3D/Color.h"
+#include "SampleHelper.h"
 
 namespace glsample {
 
@@ -29,11 +30,10 @@ namespace glsample {
 
 		virtual void bind() {};
 
-		virtual void draw() {};
-
-		virtual bool isEnabled() { return false; }
+		virtual void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) {};
 
 	  protected:
+	  	std::vector<GBuffer> required_buffer;
 		bool computeShaderSupported = true;
 	};
 } // namespace glsample

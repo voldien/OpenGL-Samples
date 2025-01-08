@@ -4,6 +4,8 @@
 #include "UIComponent.h"
 #include "imgui.h"
 #include <GL/glew.h>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/geometric.hpp>
 #include <iostream>
 #include <ostream>
 
@@ -57,6 +59,7 @@ namespace glsample {
 
 		for (size_t i = 0; i < arrs.size(); i++) {
 
+			// TODO: use common
 			FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)texRef[i]));
 			FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, *texRef[i]));
 			FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, arrs[i]));
@@ -75,10 +78,20 @@ namespace glsample {
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
+		/*	Align the uniform buffer size to hardware specific.	*/
+		GLint minMapBufferSize = 0;
+		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+
+		const size_t node_ubo_size = 100;
+		const size_t common_ubo_size = Math::align<size_t>(sizeof(CommonConstantData), minMapBufferSize);
+
 		/*	*/
-		glGenBuffers(1, &this->node_uniform_buffer);
-		glBindBuffer(GL_UNIFORM_BUFFER, this->node_uniform_buffer);
+		glGenBuffers(1, &this->node_and_common_uniform_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, this->node_and_common_uniform_buffer);
 		glBufferData(GL_UNIFORM_BUFFER, 1 << 16, nullptr, GL_DYNAMIC_DRAW);
+
+		this->stageCommonBuffer = (CommonConstantData *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, common_ubo_size,
+																		 GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
@@ -88,6 +101,10 @@ namespace glsample {
 		for (size_t x = 0; x < this->animations.size(); x++) {
 		}
 	}
+
+	void Scene::updateBuffers() {}
+
+	void Scene::render(Camera<float> *camera) {}
 
 	void Scene::render() {
 
@@ -242,10 +259,40 @@ namespace glsample {
 
 	void Scene::renderUI() {
 
-		/*	*/
+		/*	*/ // TODO: add
 		if (ImGui::TreeNode("Nodes")) {
+
+			for (size_t i = 0; i < nodes.size(); i++) {
+				ImGui::PushID(i);
+
+				ImGui::TextUnformatted(nodes[i]->name.c_str());
+				if (ImGui::DragFloat3("Position", &nodes[i]->localPosition[0])) {
+					glm::mat4 globaMat =
+						nodes[i]->parent == nullptr ? glm::mat4(1) : nodes[i]->parent->modelGlobalTransform;
+					nodes[i]->modelGlobalTransform = glm::translate(globaMat, nodes[i]->localPosition);
+				}
+
+				if (ImGui::DragFloat4("Rotation (Quat)", &nodes[i]->localRotation[0])) {
+					nodes[i]->localRotation = glm::normalize(nodes[i]->localRotation);
+					glm::mat4 globaMat =
+						nodes[i]->parent == nullptr ? glm::mat4(1) : nodes[i]->parent->modelGlobalTransform;
+					nodes[i]->modelGlobalTransform =
+						glm::translate(globaMat, nodes[i]->localPosition) * glm::mat4_cast(nodes[i]->localRotation);
+				}
+
+				ImGui::PopID();
+			}
+
 			/*	*/
+			ImGui::TreePop();
 		}
+		if (ImGui::BeginChild("Materials")) {
+		}
+		ImGui::EndChild();
+
+		if (ImGui::BeginChild("Textures")) {
+		}
+		ImGui::EndChild();
 	}
 
 } // namespace glsample

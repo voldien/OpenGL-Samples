@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,11 +20,11 @@
 namespace glsample {
 
 	enum class ColorSpace : unsigned int {
-		Raw = 0, /*	Linear.	*/
-		SRGB,	 /*	SRGB encoded.	*/
-		ACES,	 /*	*/
-		FalseColor,
-		KhronosPBRNeutral,
+		Raw = 0,		   /*	Linear.	*/
+		SRGB,			   /*	SRGB encoded.	*/
+		ACES,			   /*	*/
+		KhronosPBRNeutral, /*	*/
+		FalseColor,		   /*	*/
 		MaxColorSpaces
 	};
 

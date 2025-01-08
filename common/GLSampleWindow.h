@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	GLSampleWindow &operator=(GLSampleWindow &&) = delete;
 	GLSampleWindow(const GLSampleWindow &other) = delete;
 	GLSampleWindow(GLSampleWindow &&other) = delete;
+	~GLSampleWindow() override;
 
 	/**
 	 * @brief
@@ -133,7 +134,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	fragcore::SDLInput input;
 	bool debugGL = true;
 
-	glsample::PostProcessingManager *postprocessingManager;
+	glsample::PostProcessingManager *postprocessingManager = nullptr;
 	glsample::ColorSpaceConverter *colorSpace = nullptr;
 
 	/*	*/
@@ -141,7 +142,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	size_t frameBufferIndex = 0;
 	size_t frameBufferCount = 0;
 	unsigned int queries[10];
-	fragcore::IFileSystem *filesystem;
+	fragcore::IFileSystem *filesystem;	/*	*/
 
 	int preWidth = -1;
 	int preHeight = -1;

@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,12 +20,14 @@ namespace glsample {
 
 	class FVDECLSPEC SobelProcessing : public PostProcessing {
 	  public:
-		SobelProcessing() = default;
+		SobelProcessing();
 		~SobelProcessing() override;
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void convert(unsigned int texture);
+		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override;
+
+		void render(unsigned int texture);
 
 	  private:
 		int sobel_program = -1;

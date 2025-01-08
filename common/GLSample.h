@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,7 +44,12 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 	GLSample &operator=(const GLSample &) = delete;
 	GLSample &operator=(GLSample &&) = delete;
 	explicit GLSample(T *sampleRef) : sampleRef(sampleRef) {}
-	~GLSample() override { this->sampleRef->Release(); }
+	~GLSample() override {
+		this->sampleRef->Release();
+		delete this->sampleRef;
+		delete this->getFileSystem();
+		delete this->getSchedular();
+	}
 
 	void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) override {
 
@@ -90,6 +95,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		const bool gammacorrection = result["gamma-correction"].as<bool>();
 
 		/*	Default window size.	*/
+		int window_x = 0, window_y = 0;
 		int width = result["width"].as<int>();
 		int height = result["height"].as<int>();
 		const int msaa = result["multi-sample"].as<int>();
@@ -156,26 +162,34 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		/*	Set debugging state.	*/
 		this->sampleRef->debug(debug);
 
+		fragcore::SDLDisplay display = fragcore::SDLDisplay::getPrimaryDisplay();
+		if (display_index >= 0) {
+			display = fragcore::SDLDisplay::getDisplay(display_index);
+		}
+
 		/*	*/
 		if (fullscreen) {
-			/* Compute window size	*/
-			fragcore::SDLDisplay display = fragcore::SDLDisplay::getPrimaryDisplay();
-			if (display_index >= 0) {
-				display = fragcore::SDLDisplay::getDisplay(display_index);
-			}
 
+			/* Compute window size	*/
 			width = display.width();
 			height = display.height();
-		}
-		/*	*/
-		if (width == -1 || height == -1) {
-			fragcore::SDLDisplay display = fragcore::SDLDisplay::getPrimaryDisplay();
+
+			window_x = display.x();
+			window_y = display.y();
+		} else if (width == -1 || height == -1) {
+
+			/* Compute window size	*/
 			width = display.width() / 2;
 			height = display.height() / 2;
+
+			window_x = display.x() + width;
+			window_y = display.y() + height;
 		}
+		this->sampleRef->setPosition(window_x, window_y);
 		this->sampleRef->setSize(width, height);
+
 		this->sampleRef->vsync(vsync);
-		// this->sampleRef->setColorSpace(gammacorrection);
+		// this->sampleRef->setColorSpace(gammacorrection);*
 		this->sampleRef->setFullScreen(fullscreen);
 
 		if (result.count("time") > 0) {
@@ -196,5 +210,5 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 	}
 
   private:
-	T *sampleRef;
+	T *sampleRef = nullptr;
 };

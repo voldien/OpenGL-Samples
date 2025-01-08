@@ -6,10 +6,12 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
+precision mediump float;
+precision mediump int;
+
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(set = 0, binding = 1, rgba16f) uniform image2D texture0;
-
 
 #include "colorspace.glsl"
 

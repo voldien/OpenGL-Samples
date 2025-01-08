@@ -1,12 +1,16 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_compute_shader : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(rgba8, binding = 0) uniform writeonly image2D img_output;
 
-layout(constant_id = 0) const float lthreadhold = 2.0;
+layout(constant_id = 16) const float lthreadhold = 2.0;
+
+#include "common.glsl"
 
 /*	*/
 layout(set = 0, binding = 1, std140) uniform UniformBufferBlock {
@@ -18,6 +22,8 @@ layout(set = 0, binding = 1, std140) uniform UniformBufferBlock {
 	int nrSamples;
 }
 ubo;
+
+
 
 /*	*/
 vec2 squareImaginary(in const vec2 number) {
@@ -59,7 +65,7 @@ vec4 computeMandel(in vec2 uv) {
 	const vec3 f = vec3(2.1, 2.0, 3.0);
 	const vec3 g = vec3(0.0, 0.1, 0.0);
 
-	return vec4(d + e * cos(6.28318 * (f * t + g)), 1.0);
+	return vec4(d + e * cos(2 * PI * (f * t + g)), 1.0);
 }
 
 void main() {
@@ -79,5 +85,5 @@ void main() {
 
 	/*	Apply gamma correction.	*/
 	const float gamma = 2.2;
-	imageStore(img_output, pixel_coords, pow(pixel, vec4(1.0 / gamma)) );
+	imageStore(img_output, pixel_coords, pow(pixel, vec4(1.0 / gamma)));
 }

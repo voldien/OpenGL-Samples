@@ -9,6 +9,8 @@ layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec2 UV;
 layout(location = 2) in vec3 normal;
 
+layout(origin_upper_left) in vec4 gl_FragCoord;
+
 #include "common.glsl"
 #include "phongblinn.glsl"
 
@@ -50,9 +52,10 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(binding = 0) uniform sampler2D ReflectionTexture;
+layout(set = 0, binding = 0) uniform sampler2D ReflectionTexture;
 
-layout(binding = 10) uniform sampler2D IrradianceTexture;
+layout(set = 0, binding = 10) uniform sampler2D IrradianceTexture;
+layout(set = 0, binding = 6) uniform sampler2D DepthTexture;
 
 void main() {
 
@@ -76,9 +79,16 @@ void main() {
 	/*	*/
 	const vec3 fresnel = FresnelSchlick(vec3(0.02) * ubo.fresnelPower, viewDir, normal);
 
-	const vec4 gradientWaterDepth = vec4(0);
+	const vec2 screen_uv = gl_FragCoord.xy / vec2(2560, 1440);
+	const float current_z = getExpToLinear(ubo.camera.near, ubo.camera.far, texture(DepthTexture, screen_uv).r);
+	const float shader_z = getExpToLinear(ubo.camera.near, ubo.camera.far, gl_FragCoord.z);
+
+	// const vec4 gradientWaterDepth = vec4(shader_z - current_z < 1.8 ? pow(shader_z - current_z, 1.2) : 0.001) * 100;
 
 	const vec4 color = mix(ubo.oceanColor, texture(ReflectionTexture, reflection_uv), vec4(fresnel.rgb, 1));
 	fragColor = color * (ubo.ambientColor * irradiance_color + lightColor);
-	fragColor.a = 1;
+	// fragColor = vec4(0, 0, 0, 0);
+	// fragColor.a = 1;
+
+	// fragColor.r = gradientWaterDepth.r;
 }

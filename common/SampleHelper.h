@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,14 @@
 namespace glsample {
 
 	enum class GBuffer : unsigned int {
+		Albedo = 0,			   /*	*/
 		WorldSpace = 1,		   /*	*/
 		TextureCoordinate = 2, /*	*/
-		Albedo = 0,			   /*	*/
 		Normal = 3,			   /*	*/
 		Specular = 4,		   /*	Roughness*/
 		Emission = 5,		   /*	*/
+		Velocity = 7,
+		Depth = 6
 	};
 
 	// TODO: relocate
@@ -38,6 +40,8 @@ namespace glsample {
 		Height	/*	*/
 	};
 
+	using UnfiformSubBuffer = struct uniform_sub_buffer_t {};
+
 	using GammaCorrectionSettings = struct gamme_correct_settings_t {
 		float exposure = 1.0f;
 		float gamma = 2.2f;
@@ -45,12 +49,13 @@ namespace glsample {
 
 	using FogSettings = struct fog_settings_t {
 		glm::vec4 fogColor = glm::vec4(0.3, 0.3, 0.45, 1);
-
+		/*	*/
 		float cameraNear = 0.15f;
 		float cameraFar = 1000.0f;
 		float fogStart = 100;
 		float fogEnd = 1000;
 
+		/*	*/
 		float fogDensity = 0.1f;
 		FogType fogType = FogType::Exp;
 		float fogIntensity = 1.0f;
@@ -88,28 +93,34 @@ namespace glsample {
 	};
 
 	using CameraInstance = struct camera_instance_t {
-		float near;
-		float far;
-		float aspect;
-		float fov;
-		glm::vec4 position;
-		glm::vec4 viewDir;
-		glm::vec4 position_size;
+		float near = 0.15;
+		float far = 1000;
+		float aspect = 1.0;
+		float fov_radian = 0.9;
+		glm::vec4 position = glm::vec4(0);
+		glm::vec4 viewDir = glm::vec4(0, 0, 1, 0);
+		glm::vec4 position_size = glm::vec4(0);
+		glm::ivec4 screen_width_padding = glm::ivec4(1);
 	};
 
-	/*	Default framebuffer.	*/
+	using FrustumInstance = struct frustum_instance_t {
+		glm::vec4 planes[6];
+	};
+
 	using FrameBuffer = struct framebuffer_t {
 		unsigned int framebuffer;
+		/*	*/
 		unsigned int attachement0;
 		unsigned int intermediate;
+
 		unsigned int depthbuffer;
 	};
 
 	template <typename T, int m, int n>
 	inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, n> &em) noexcept {
 		glm::mat<m, n, float, glm::precision::highp> mat;
-		for (int i = 0; i < m; ++i) {
-			for (int j = 0; j < n; ++j) {
+		for (unsigned int i = 0; i < m; ++i) {
+			for (unsigned int j = 0; j < n; ++j) {
 				mat[j][i] = em(i, j);
 			}
 		}
@@ -121,7 +132,7 @@ namespace glsample {
 	template <typename T, int m>
 	inline glm::vec<m, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, 1> &em) noexcept {
 		glm::vec<m, float, glm::precision::highp> v;
-		for (int i = 0; i < m; ++i) {
+		for (unsigned int i = 0; i < m; ++i) {
 			v[i] = em(i);
 		}
 		return v;
@@ -129,7 +140,7 @@ namespace glsample {
 
 	template <typename T, int m> inline Eigen::Matrix<T, m, 1> GLM2E(const glm::vec<m, T> &em) noexcept {
 		Eigen::Matrix<T, m, 1> v;
-		for (int i = 0; i < m; ++i) {
+		for (unsigned int i = 0; i < m; ++i) {
 			v(i) = em[i];
 		}
 		return v;
@@ -137,8 +148,8 @@ namespace glsample {
 
 	template <typename T, int m, int n> inline Eigen::Matrix<T, m, n> GLM2E(const glm::mat<m, n, T> &em) noexcept {
 		Eigen::Matrix<T, m, n> mat;
-		for (int i = 0; i < m; ++i) {
-			for (int j = 0; j < n; ++j) {
+		for (unsigned int i = 0; i < m; ++i) {
+			for (unsigned int j = 0; j < n; ++j) {
 				mat(j, i) = em[i][j];
 			}
 		}

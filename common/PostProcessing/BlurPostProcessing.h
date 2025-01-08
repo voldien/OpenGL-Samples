@@ -15,33 +15,31 @@
  */
 #pragma once
 #include "PostProcessing.h"
-#include "SampleHelper.h"
 
 namespace glsample {
 
-	class FVDECLSPEC MistPostProcessing : public PostProcessing {
-	  public:
-		MistPostProcessing();
-		~MistPostProcessing() override;
+	class FVDECLSPEC BlurPostProcessing : public PostProcessing {
 
-		using MistUniformBuffer = struct mist_uniform_buffer_t {
-			glm::mat4 proj;
-			glm::mat4 viewRotation;
-			CameraInstance instance;
-			FogSettings fogSettings;
-		};
+	  public:
+		BlurPostProcessing();
+		~BlurPostProcessing() override;
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void render(unsigned int skybox, unsigned int frame_texture, unsigned int depth_texture);
+		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override;
 
-		MistUniformBuffer mistsettings;
+	  public:
+		void convert(unsigned int texture);
 
 	  private:
-		int mist_program = -1;
-		unsigned int vao = 0;
-		unsigned int uniform_buffer = 0;
-		unsigned int uniform_buffer_binding;
-		size_t uniformAlignSize = sizeof(MistUniformBuffer);
+		int guassian_blur_compute_program = -1;
+
+		/*	*/
+		float variance;
+		int samples;
+		float radius;
+		float mean = 0;
+
+		int localWorkGroupSize[3];
 	};
 } // namespace glsample

@@ -1,8 +1,25 @@
+#include "common.glsl"
 #include "material.glsl"
+
+struct common_data {
+	Camera camera;
+	Frustum frustum;
+};
 
 struct Node {
 	mat4 model;
 };
+
+layout(set = 1, binding = 0, std140) uniform UniformCommonBufferBlock {
+	common_data constant;
+
+	mat4 view;
+	mat4 proj;
+}
+constantCommon;
+
+layout(set = 1, binding = 2, std140) uniform UniformSkeletonBufferBlock { mat4 gBones[512]; }
+skeletonUBO2;
 
 layout(binding = 0) uniform sampler2D DiffuseTexture;
 layout(binding = 1) uniform sampler2D NormalTexture;

@@ -46,7 +46,7 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-		compilerOptions.glslVersion = 410;
+		compilerOptions.glslVersion = 420;
 
 		/*  */
 		this->irradiance_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_irradiance_env_binary);
@@ -117,7 +117,7 @@ void ProcessData::computeBump2Normal(unsigned int bump_source, unsigned int norm
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-		compilerOptions.glslVersion = 410;
+		compilerOptions.glslVersion = 420;
 
 		/*  */
 		this->bump2normal_program =
