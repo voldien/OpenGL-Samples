@@ -19,6 +19,7 @@
 #include "PostProcessing/ColorSpaceConverter.h"
 #include "PostProcessing/PostProcessingManager.h"
 #include "SDLInput.h"
+#include "SampleHelper.h"
 #include "TaskScheduler/IScheduler.h"
 #include <Core/Time.h>
 #include <IO/IFileSystem.h>
@@ -87,8 +88,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	bool supportSPIRV() const;
 
 	/*	*/
-	cxxopts::ParseResult &getResult() noexcept { return this->parseResult; }
-	void setCommandResult(cxxopts::ParseResult &result) noexcept { this->parseResult = result; }
+	const cxxopts::ParseResult &getResult() noexcept { return this->parseResult; }
+	void setCommandResult(cxxopts::ParseResult &result) noexcept { this->parseResult = result; this->internalInit(); }
 
 	fragcore::SDLInput &getInput() noexcept { return this->input; }
 	const fragcore::SDLInput &getInput() const noexcept { return this->input; }
@@ -127,6 +128,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void displayMenuBar() override;
 	void renderUI() override; // TODO: rename
 
+	void internalInit();
+
   private:
 	cxxopts::ParseResult parseResult;
 	glsample::FPSCounter<float> fpsCounter;
@@ -148,6 +151,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	int preHeight = -1;
 
 	glsample::FrameBuffer *defaultFramebuffer = nullptr;
+	glsample::FrameBuffer* MMSAFrameBuffer = nullptr;
 
   protected:
 	spdlog::logger *logger;

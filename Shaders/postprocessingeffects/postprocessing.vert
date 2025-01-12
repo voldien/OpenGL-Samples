@@ -11,7 +11,7 @@ layout(location = 0) out vec2 uv;
 
 void main() {
 
-	const vec2 vertex[4] = {vec2(-1, 1), vec2(1, 1), vec2(-1, -1),  vec2(1, -1)};
+	const vec2 vertex[4] = {vec2(-1, 1), vec2(1, 1), vec2(-1, -1), vec2(1, -1)};
 
 	const vec2 Vertex = vertex[gl_VertexID % 4];
 

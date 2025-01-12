@@ -1,10 +1,15 @@
 #include "SobelPostProcessing.h"
+#include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include <IOUtil.h>
 
 using namespace glsample;
 
-SobelProcessing::SobelProcessing() { this->setName("Sobel Edge Detection"); }
+SobelProcessing::SobelProcessing() {
+	this->setName("Sobel Edge Detection");
+	this->addRequireBuffer(GBuffer::Color);
+	this->addRequireBuffer(GBuffer::IntermediateTarget);
+}
 
 SobelProcessing::~SobelProcessing() {
 	if (this->sobel_program >= 0) {
@@ -25,16 +30,15 @@ void SobelProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		compilerOptions.glslVersion = 420;
 
 		/*  */
-		this->sobel_program = ShaderLoader::loadComputeProgram(compilerOptions, &sobel_edeg_detection_compute_post_processing_binary);
+		this->sobel_program =
+			ShaderLoader::loadComputeProgram(compilerOptions, &sobel_edeg_detection_compute_post_processing_binary);
 	}
 
 	glUseProgram(this->sobel_program);
 
-	glUniform1i(glGetUniformLocation(this->sobel_program, "texture0"), 0);
+	glUniform1i(glGetUniformLocation(this->sobel_program, "ColorTexture"), 0);
 
 	glUseProgram(0);
-
-	// glGenVertexArrays(1, &this->vao);
 }
 
 void SobelProcessing::draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) {

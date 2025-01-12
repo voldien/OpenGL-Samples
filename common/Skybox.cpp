@@ -67,15 +67,17 @@ namespace glsample {
 
 			/*	Extract current state. to restore afterward rendered the skybox.	*/
 			GLint cullstate = 0, blend = 0, depth_test = 0, depth_func = 0, cull_face_mode = 0;
-			GLboolean depth_write = 0;
+			GLboolean depth_write = 0, use_multisample = 0;
 			glGetIntegerv(GL_CULL_FACE, &cullstate);
 			glGetIntegerv(GL_BLEND, &blend);
 			glGetIntegerv(GL_DEPTH_TEST, &depth_test);
 			glGetIntegerv(GL_DEPTH_FUNC, &depth_func);
 			glGetIntegerv(GL_CULL_FACE_MODE, &cull_face_mode);
 			glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_write);
+			glGetBooleanv(GL_MULTISAMPLE, &use_multisample);
 
 			/*	*/
+			glDisable(GL_MULTISAMPLE);
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_FRONT);
 			glDisable(GL_BLEND);
@@ -109,14 +111,15 @@ namespace glsample {
 
 			if (blend) {
 				glEnable(GL_BLEND);
-			} else {
-				glDisable(GL_BLEND);
 			}
 
-			if (depth_test) {
-				glEnable(GL_DEPTH_TEST);
-			} else {
+			/*	Optioncally restore depth.	*/
+			if (!depth_test) {
 				glDisable(GL_DEPTH_TEST);
+			}
+
+			if (use_multisample) {
+				glEnable(GL_MULTISAMPLE);
 			}
 
 			glDepthFunc(depth_func);

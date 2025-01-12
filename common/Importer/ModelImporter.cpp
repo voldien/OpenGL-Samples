@@ -170,8 +170,8 @@ void ModelImporter::initScene(const aiScene *scene) {
 			this->models[x].bound.aabb.max[2] = aabb.mMax.z;
 		}
 	});
-	// process_textures_thread.detach();
 
+	/*	*/
 	const size_t nr_threads = fragcore::Math::clamp<size_t>(scene->mNumMeshes / 4, 1, SystemInfo::getCPUCoreCount());
 	std::vector<std::thread> model_threads(nr_threads);
 
@@ -815,13 +815,13 @@ void ModelImporter::loadTexturesFromMaterials(aiMaterial *pmaterial) {
 
 AnimationObject *ModelImporter::initAnimation(const aiAnimation *pAnimation, unsigned int index) {
 
-	AnimationObject clip = AnimationObject();
+	AnimationObject animation_clip = AnimationObject();
 
-	clip.name = pAnimation->mName.C_Str();
+	animation_clip.name = pAnimation->mName.C_Str();
 
 	unsigned int channel_index = 0;
 
-	clip.duration = pAnimation->mDuration;
+	animation_clip.duration = pAnimation->mDuration;
 
 	for (size_t i = 0; i < pAnimation->mNumChannels; i++) {
 		const aiNodeAnim *nodeAnimation = pAnimation->mChannels[i];
@@ -836,30 +836,44 @@ AnimationObject *ModelImporter::initAnimation(const aiAnimation *pAnimation, uns
 				KeyFrame key;
 				key.time = nodeAnimation->mPositionKeys[x].mTime;
 				key.value = nodeAnimation->mPositionKeys[x].mValue.x;
-
-				positionCurve.keyframes[x];
 			}
-			clip.curves.push_back(positionCurve);
+			animation_clip.curves.push_back(positionCurve);
 		}
 
 		if (nodeAnimation->mNumRotationKeys > 0) {
+
+			Curve rotation_curve;
+
+			rotation_curve.name = nodeAnimation->mNodeName.C_Str();
+			rotation_curve.keyframes.resize(nodeAnimation->mNumRotationKeys);
+
 			for (unsigned int x = 0; x < nodeAnimation->mNumRotationKeys; x++) {
+				KeyFrame key;
+				key.time = nodeAnimation->mRotationKeys[x].mTime;
+				key.value = nodeAnimation->mRotationKeys[x].mValue.x;
 			}
+			animation_clip.curves.push_back(rotation_curve);
 		}
 
 		if (nodeAnimation->mNumScalingKeys > 0) {
-			for (unsigned int x = 0; x < nodeAnimation->mNumScalingKeys; x++) {
+
+			Curve scale_curve;
+
+			scale_curve.name = nodeAnimation->mNodeName.C_Str();
+			scale_curve.keyframes.resize(nodeAnimation->mNumScalingKeys);
+
+			for (unsigned int x = 0; x < nodeAnimation->mNumRotationKeys; x++) {
+				KeyFrame key;
+				key.time = nodeAnimation->mScalingKeys[x].mTime;
+				key.value = nodeAnimation->mScalingKeys[x].mValue.x;
 			}
+			animation_clip.curves.push_back(scale_curve);
 		}
 	}
 
-	// for (unsigned int x = 0; x < panimation->mNumChannels; x++) {
-	//	this->initAnimationPosition(panimation->mChannels[x], clip);
-	//	this->initAnimationRotation(panimation->mChannels[x], clip);
-	//	this->initAnimationScale(panimation->mChannels[x], clip);
-	//}
+	/*	*/
 
-	this->animations.push_back(clip);
+	this->animations.push_back(animation_clip);
 
 	return &this->animations.back();
 }

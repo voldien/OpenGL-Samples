@@ -18,23 +18,22 @@
 
 namespace glsample {
 
-	class FVDECLSPEC ColorGradePostProcessing : public PostProcessing {
+	class FVDECLSPEC ChromaticAbberationPostProcessing : public PostProcessing {
 
 	  public:
-		ColorGradePostProcessing();
-		~ColorGradePostProcessing() override;
+		ChromaticAbberationPostProcessing();
+		~ChromaticAbberationPostProcessing() override;
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override {}
+		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override;
 
 	  public:
 		void convert(unsigned int texture);
 
 	  private:
-		int hue_color_grade_program = -1;
-		int grayscale_color_grade_program = -1;
+		int chromatic_abberation_graphic_program = -1;
 
-		int localWorkGroupSize[3];
+		int vao;
 	};
 } // namespace glsample

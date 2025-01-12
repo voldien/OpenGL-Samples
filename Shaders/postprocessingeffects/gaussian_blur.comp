@@ -12,7 +12,8 @@ precision mediump int;
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(set = 0, binding = 1, rgba16f) uniform image2D texture0;
+layout(set = 0, binding = 1, rgba16f) uniform image2D ColorTexture;
+layout(set = 0, binding = 2, rgba16f) uniform image2D TargetTexture;
 
 layout(push_constant) uniform Settings {
 	layout(offset = 0) float variance;
@@ -39,7 +40,7 @@ float getGuas2D(const in float x, const in float y, const in float variance) {
 vec4 blurHorizontal(const in float radius, const in float variance, const in int samples) {
 	int y;
 
-	const ivec2 resolution = imageSize(texture0);
+	const ivec2 resolution = imageSize(ColorTexture);
 
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -55,7 +56,7 @@ vec4 blurHorizontal(const in float radius, const in float variance, const in int
 
 		const float guas = getGuas2D(0, y, variance);
 
-		color1 += imageLoad(texture0, uv).rgba * vec4(guas.xxx, 1.0);
+		color1 += imageLoad(ColorTexture, uv).rgba * vec4(guas.xxx, 1.0);
 		total += guas;
 	}
 
@@ -65,7 +66,7 @@ vec4 blurHorizontal(const in float radius, const in float variance, const in int
 vec4 blurVertical(const in float radius, const in float variance, const in int samples) {
 	int x;
 
-	const ivec2 resolution = imageSize(texture0);
+	const ivec2 resolution = imageSize(ColorTexture);
 
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -79,7 +80,7 @@ vec4 blurVertical(const in float radius, const in float variance, const in int s
 		const ivec2 uv = TexCoord + ivec2(vec2(x, 0) * radius);
 		const float guas = getGuas2D(x, 0, variance);
 
-		color1 += imageLoad(texture0, uv).rgba * vec4(vec3(guas), 1.0);
+		color1 += imageLoad(ColorTexture, uv).rgba * vec4(vec3(guas), 1.0);
 		total += guas;
 	}
 
@@ -90,7 +91,7 @@ vec4 blurVertical(const in float radius, const in float variance, const in int s
 void main() {
 
 	/*	*/
-	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(texture0)))) {
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(ColorTexture)))) {
 		return;
 	}
 
@@ -103,7 +104,7 @@ void main() {
 
 		memoryBarrierImage();
 
-		imageStore(texture0, TexCoord, vec4(verticalBlur.rgb, 1.0));
+		imageStore(ColorTexture, TexCoord, vec4(verticalBlur.rgb, 1.0));
 
 		memoryBarrierImage();
 	}
@@ -115,6 +116,6 @@ void main() {
 
 		memoryBarrierImage();
 
-		imageStore(texture0, TexCoord, vec4(blurHorizontalBlur.rgb, 1.0));
+		imageStore(ColorTexture, TexCoord, vec4(blurHorizontalBlur.rgb, 1.0));
 	}
 }

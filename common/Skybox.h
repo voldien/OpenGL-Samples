@@ -62,7 +62,7 @@ namespace glsample {
 
 		int frameIndex = 0;
 
-		int skybox_texture_panoramic;
+		unsigned int skybox_texture_panoramic;
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;

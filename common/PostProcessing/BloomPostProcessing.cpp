@@ -8,15 +8,15 @@ using namespace glsample;
 BloomPostProcessing::BloomPostProcessing() { this->setName("Bloom"); }
 
 BloomPostProcessing::~BloomPostProcessing() {
-	if (this->guassian_blur_compute_program >= 0) {
-		glDeleteProgram(this->guassian_blur_compute_program);
+	if (this->bloom_blur_compute_program >= 0) {
+		glDeleteProgram(this->bloom_blur_compute_program);
 	}
 }
 
 void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	const char *sobel_compute_path = "Shaders/postprocessingeffects/gaussian_blur.comp.spv";
 
-	if (this->guassian_blur_compute_program == -1) {
+	if (this->bloom_blur_compute_program == -1) {
 		/*	*/
 		const std::vector<uint32_t> guassian_blur_compute_binary =
 			IOUtil::readFileData<uint32_t>(sobel_compute_path, filesystem);
@@ -26,15 +26,15 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		compilerOptions.glslVersion = 420;
 
 		/*  */
-		this->guassian_blur_compute_program =
+		this->bloom_blur_compute_program =
 			ShaderLoader::loadComputeProgram(compilerOptions, &guassian_blur_compute_binary);
 	}
 
-	glUseProgram(this->guassian_blur_compute_program);
+	glUseProgram(this->bloom_blur_compute_program);
 
-	glGetProgramiv(this->guassian_blur_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+	glGetProgramiv(this->bloom_blur_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 
-	glUniform1i(glGetUniformLocation(this->guassian_blur_compute_program, "texture0"), 0);
+	glUniform1i(glGetUniformLocation(this->bloom_blur_compute_program, "ColorTexture"), 0);
 
 	glUseProgram(0);
 
@@ -70,13 +70,13 @@ void BloomPostProcessing::convert(unsigned int texture) {
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
-	glUseProgram(this->guassian_blur_compute_program);
+	glUseProgram(this->bloom_blur_compute_program);
 
 	/*	*/
-	glUniform1f(glGetUniformLocation(this->guassian_blur_compute_program, "settings.variance"), 1);
-	glUniform1f(glGetUniformLocation(this->guassian_blur_compute_program, "settings.mean"), 0);
-	glUniform1f(glGetUniformLocation(this->guassian_blur_compute_program, "settings.radius"), 2);
-	glUniform1i(glGetUniformLocation(this->guassian_blur_compute_program, "settings.samples"), 7);
+	glUniform1f(glGetUniformLocation(this->bloom_blur_compute_program, "settings.variance"), 1);
+	glUniform1f(glGetUniformLocation(this->bloom_blur_compute_program, "settings.mean"), 0);
+	glUniform1f(glGetUniformLocation(this->bloom_blur_compute_program, "settings.radius"), 2);
+	glUniform1i(glGetUniformLocation(this->bloom_blur_compute_program, "settings.samples"), 7);
 
 	/*	The image where the graphic version will be stored as.	*/
 	glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);

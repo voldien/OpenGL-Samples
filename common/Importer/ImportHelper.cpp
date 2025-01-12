@@ -221,7 +221,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 		std::vector<MaterialObject *> materials = modelLoader.getMaterials(texture_index);
 
 		TextureAssetObject &tex = Reftextures[texture_index];
-		ColorSpace colorSpace = ColorSpace::Raw;
+		ColorSpace colorSpace = ColorSpace::RawLinear;
 		TextureCompression compression = TextureCompression::Default;
 
 		/*	Determine color space, based on the texture usages.	*/

@@ -109,15 +109,16 @@ namespace glsample {
 		class AmbientOcclusionSettingComponent : public GLUIComponent<ScreenSpaceAmbientOcclusion> {
 		  public:
 			AmbientOcclusionSettingComponent(ScreenSpaceAmbientOcclusion &base)
-				: GLUIComponent<ScreenSpaceAmbientOcclusion>(base, "Ambient Occlusion Settings") {}
+				: GLUIComponent<ScreenSpaceAmbientOcclusion>(base, "Ambient Occlusion Settings"),
+				  uniform_ssao(getRefSample().uniformStageBlockSSAO) {}
 
 			void draw() override {
 
 				ImGui::TextUnformatted("Ambient Occlusion Settings");
-				ImGui::DragFloat("Intensity", &this->getRefSample().uniformStageBlockSSAO.intensity, 0.1f, 0.0f);
-				ImGui::DragFloat("Radius", &this->getRefSample().uniformStageBlockSSAO.radius, 0.35f, 0.0f);
-				ImGui::DragInt("Sample", &this->getRefSample().uniformStageBlockSSAO.samples, 1, 0);
-				ImGui::DragFloat("Bias", &this->getRefSample().uniformStageBlockSSAO.bias, 0.01f, 0, 1);
+				ImGui::DragFloat("Intensity", &uniform_ssao.intensity, 0.1f, 0.0f);
+				ImGui::DragFloat("Radius", &uniform_ssao.radius, 0.35f, 0.0f);
+				ImGui::DragInt("Sample", &uniform_ssao.samples, 1, 0);
+				ImGui::DragFloat("Bias", &uniform_ssao.bias, 0.01f, 0, 1);
 				ImGui::Checkbox("DownSample", &this->downScale);
 				ImGui::Checkbox("Use Depth Only", &this->useDepthOnly);
 
@@ -132,6 +133,8 @@ namespace glsample {
 				ImGui::Checkbox("Show GBuffer", &this->showGBuffers);
 				ImGui::Checkbox("Show Wireframe", &this->showWireframe);
 				ImGui::Checkbox("Use AO", &this->useAO);
+
+				this->drawCameraController(this->getRefSample().camera);
 			}
 
 			bool showWireframe = false;
@@ -142,7 +145,7 @@ namespace glsample {
 			bool useAO = true;
 
 		  private:
-			// struct UniformSSAOBufferBlock &uniform;
+			struct UniformSSAOBufferBlock &uniform_ssao;
 		};
 		std::shared_ptr<AmbientOcclusionSettingComponent> ambientOcclusionSettingComponent;
 

@@ -74,7 +74,8 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 			"W,width", "Set Window Width", cxxopts::value<int>()->default_value("-1"))(
 			"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"))(
 			"D,display", "Display", cxxopts::value<int>()->default_value("-1"))(
-			"m,multi-sample", "Set MSAA", cxxopts::value<int>()->default_value("0"));
+			"m,multi-sample", "Set MSAA", cxxopts::value<int>()->default_value("0"))(
+			"p,use-postprocessing", "Use Post Processing", cxxopts::value<bool>()->default_value("true"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);
@@ -92,7 +93,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		const bool debug = result["debug"].as<bool>();
 		const bool fullscreen = result["fullscreen"].as<bool>();
 		const bool vsync = result["vsync"].as<bool>();
-		const bool gammacorrection = result["gamma-correction"].as<bool>();
+		const glsample::ColorSpace gammacorrection = glsample::ColorSpace::SRGB;
 
 		/*	Default window size.	*/
 		int window_x = 0, window_y = 0;
@@ -118,15 +119,6 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 		/*	*/
 		this->sampleRef = new T();
-		this->sampleRef->setCommandResult(result);
-
-		if (msaa > 0) {
-			/*	Set Default framebuffer multisampling.	*/
-			glEnable(GL_MULTISAMPLE);
-		}
-
-		/*	Prevent residual errors to cause crash.	*/
-		fragcore::resetErrorFlag();
 
 		/*	Check if required extensions */
 		bool all_required = true;
@@ -144,14 +136,26 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 				}
 			}
 		}
+
 		/*	*/
 		if (!all_required) {
 			this->sampleRef->getLogger().info("Bye Bye ^^");
 			delete this->sampleRef;
 			return;
 		}
+
+		/*	Prevent residual errors to cause crash.	*/
+		fragcore::resetErrorFlag();
+
 		/*	Internal initialize.	*/
 		this->sampleRef->setFileSystem(activeFileSystem);
+
+		this->sampleRef->setCommandResult(result);
+
+		if (msaa > 0) {
+			/*	Set Default framebuffer multisampling.	*/
+			glEnable(GL_MULTISAMPLE);
+		}
 
 		/*	Init the sample.	*/
 		this->sampleRef->Initialize();
@@ -189,7 +193,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		this->sampleRef->setSize(width, height);
 
 		this->sampleRef->vsync(vsync);
-		// this->sampleRef->setColorSpace(gammacorrection);*
+		this->sampleRef->setColorSpace(gammacorrection);
 		this->sampleRef->setFullScreen(fullscreen);
 
 		if (result.count("time") > 0) {
@@ -207,6 +211,8 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 		this->sampleRef->show();
 		this->sampleRef->run();
+
+		this->sampleRef->getLogger().info("Bye Bye ^^");
 	}
 
   private:

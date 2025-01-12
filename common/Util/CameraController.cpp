@@ -85,6 +85,9 @@ void CameraController::setPosition(const glm::vec3 &position) noexcept {
 	this->update();
 }
 
+const glm::vec3 CameraController::getRotation() const noexcept { return {}; }
+void CameraController::setRotation(const glm::vec3 &rotation) noexcept {}
+
 const glm::vec3 &CameraController::getUp() const noexcept { return this->up; }
 
 void CameraController::lookAt(const glm::vec3 &position) noexcept {

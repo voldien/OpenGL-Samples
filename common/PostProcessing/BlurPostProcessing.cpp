@@ -34,7 +34,7 @@ void BlurPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	glGetProgramiv(this->guassian_blur_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 
-	glUniform1i(glGetUniformLocation(this->guassian_blur_compute_program, "texture0"), 0);
+	glUniform1i(glGetUniformLocation(this->guassian_blur_compute_program, "ColorTexture"), 0);
 
 	glUseProgram(0);
 
@@ -45,7 +45,7 @@ void BlurPostProcessing::draw(const std::initializer_list<std::tuple<GBuffer, un
 	unsigned int texture = std::get<1>(*render_targets.begin());
 
 	/*	*/ // TODO: relocate
-	for (auto it = render_targets.begin(); it != render_targets.end(); it++) {
+	for (const auto *it = render_targets.begin(); it != render_targets.end(); it++) {
 		GBuffer target = std::get<0>(*it);
 		unsigned int texture = std::get<1>(*it);
 		if (glBindTextureUnit) {

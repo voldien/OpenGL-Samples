@@ -16,13 +16,17 @@
 #pragma once
 #include "GLSampleSession.h"
 #include "Math3D/Color.h"
+#include "RenderDesc.h"
+#include "SampleHelper.h"
+#include <initializer_list>
 
 namespace glsample {
 
 	enum class ColorSpace : unsigned int {
-		Raw = 0,		   /*	Linear.	*/
+		RawLinear = 0,	   /*	Linear.	*/
 		SRGB,			   /*	SRGB encoded.	*/
 		ACES,			   /*	*/
+		Filmic,			   /*	*/
 		KhronosPBRNeutral, /*	*/
 		FalseColor,		   /*	*/
 		MaxColorSpaces
@@ -40,7 +44,10 @@ namespace glsample {
 
 		static int createColorTexture(unsigned int width, unsigned int height, const fragcore::Color &color);
 
-		//	static int createFrameBuffer();
+		static void createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachments);
+		static void updateFrameBuffer(FrameBuffer *framebuffer,
+									  const std::initializer_list<fragcore::TextureDesc> &desc,
+									  const fragcore::TextureDesc &depthstencil);
 	};
 
 	extern void refreshWholeRoundRobinBuffer(unsigned int bufferType, unsigned int buffer, const unsigned int robin,

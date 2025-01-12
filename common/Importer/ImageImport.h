@@ -44,15 +44,15 @@ namespace glsample {
 		TextureImporter(fragcore::IFileSystem *filesystem);
 		virtual ~TextureImporter();
 
-		int loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::Raw,
+		int loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::RawLinear,
 						const TextureCompression compression = TextureCompression::None);
-		int loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::Raw,
+		int loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::RawLinear,
 						   const TextureCompression compression = TextureCompression::None);
 
 		int loadCubeMap(const std::string &px, const std::string &nx, const std::string &py, const std::string &ny,
-						const std::string &pz, const std::string &nz, const ColorSpace colorSpace = ColorSpace::Raw,
+						const std::string &pz, const std::string &nz, const ColorSpace colorSpace = ColorSpace::RawLinear,
 						const TextureCompression compression = TextureCompression::None);
-		int loadCubeMap(const std::vector<std::string> &paths, const ColorSpace colorSpace = ColorSpace::Raw,
+		int loadCubeMap(const std::vector<std::string> &paths, const ColorSpace colorSpace = ColorSpace::RawLinear,
 						const TextureCompression compression = TextureCompression::None);
 
 	  private:

@@ -76,7 +76,7 @@ namespace glsample {
 
 		virtual void updateBuffers();
 
-		virtual void render(Camera<float> *camera); // TODO, add camera.
+		virtual void render(Camera<float> *camera);
 		virtual void render();
 
 		virtual void renderNode(const NodeObject *node);
@@ -103,7 +103,11 @@ namespace glsample {
 			CameraInstance camera;
 			FrustumInstance frustum;
 		};
-		CommonConstantData* stageCommonBuffer;
+		using NodeData = struct _node_data_t {
+			glm::mat4 model;
+		};
+		CommonConstantData *stageCommonBuffer;
+		NodeData *stageNodeData;
 
 		/*	TODO add queue structure.	*/
 		std::deque<const NodeObject *> renderQueue;

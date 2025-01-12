@@ -9,7 +9,7 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec2 uv;
 
 /*  */
-layout(set = 0, binding = 0) uniform sampler2D texture0;
+layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
 layout(set = 0, binding = 1) uniform sampler2D DepthTexture;
 layout(set = 0, binding = 2) uniform sampler2D IrradianceTexture;
 
@@ -40,7 +40,7 @@ void main() {
 
 	const float fogFactor = getFogFactor(ubo.fogSettings, depth);
 
-	fragColor.rgb = mix(texture(texture0, uv).rgb, irradiance_color.rgb * ubo.fogSettings.fogColor.rgb, clamp(fogFactor * aat, 0, 1));
+	fragColor.rgb = mix(texture(ColorTexture, uv).rgb, irradiance_color.rgb * ubo.fogSettings.fogColor.rgb, clamp(fogFactor * aat, 0, 1));
 	// fragColor.rgb = vec3(aat); // direction;
 	fragColor.a = 1;
 }

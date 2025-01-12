@@ -27,7 +27,13 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
+				 void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override ;
+
+
 	  public:
+
+
+
 		void convert(unsigned int texture);
 
 		void setColorSpace(const glsample::ColorSpace srgb) noexcept;
@@ -36,13 +42,14 @@ namespace glsample {
 		GammaCorrectionSettings &getGammeSettings() noexcept { return this->correct_settings; }
 
 	  private:
-		ColorSpace colorSpace = ColorSpace::Raw;
+		ColorSpace colorSpace = ColorSpace::RawLinear;
 		int aes_program = -1;
 		int gamma_program = -1;
 		int falsecolor_program = -1;
 		int kronos_neutral_pbr_program = -1;
+		int filmic_program = -1;
 		GammaCorrectionSettings correct_settings;
 
-		// int localWorkGroupSize[3];
+		std::array<int, (size_t)ColorSpace::MaxColorSpaces * 3> compute_programs_local_workgroup_sizes{};
 	};
 } // namespace glsample

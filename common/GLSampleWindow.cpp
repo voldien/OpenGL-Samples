@@ -3,16 +3,18 @@
 #include "Core/Library.h"
 #include "Core/SystemInfo.h"
 #include "FPSCounter.h"
-#include "GLHelper.h"
 #include "GLUIComponent.h"
-#include "PostProcessing/BlurPostProcessing.h"
-#include "PostProcessing/ColorGradePostProcessing.h"
-#include "PostProcessing/ColorSpaceConverter.h"
-#include "PostProcessing/PostProcessing.h"
 
 #include "PostProcessing/BloomPostProcessing.h"
+#include "PostProcessing/BlurPostProcessing.h"
+#include "PostProcessing/ChromaticAbberationPostProcessing.h"
+#include "PostProcessing/ColorGradePostProcessing.h"
+#include "PostProcessing/ColorSpaceConverter.h"
+#include "PostProcessing/GrainPostProcessing.h"
+#include "PostProcessing/PostProcessing.h"
 #include "PostProcessing/PostProcessingManager.h"
 #include "PostProcessing/SobelPostProcessing.h"
+
 #include "SDL_scancode.h"
 #include "SDL_video.h"
 #include "SampleHelper.h"
@@ -42,6 +44,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 	SampleSettingComponent(GLSampleWindow &base) : GLUIComponent(base) {}
 
 	void draw() override {
+
+		ImGui::SeparatorText("Debug");
 		ImGui::Text("FPS %d", this->getRefSample().getFPSCounter().getFPS());
 		ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
 		ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
@@ -63,6 +67,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			GLboolean isEnabled = 0;
 			glGetBooleanv(GL_MULTISAMPLE, &isEnabled);
 			if (ImGui::Checkbox("MultiSampling (MSAA)", (bool *)&isEnabled)) {
+
 				if (isEnabled) {
 					glEnable(GL_MULTISAMPLE);
 				} else {
@@ -71,6 +76,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			}
 		}
 
+		ImGui::SeparatorText("Color Space Settings");
 		if (this->getRefSample().getColorSpaceConverter()) {
 			const int item_selected_idx =
 				(int)this->getRefSample().getColorSpace(); // Here we store our selection data as an index.
@@ -96,16 +102,13 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			ImGui::BeginGroup();
 			ImGui::TextUnformatted("Gamma Correction Settings");
 			ImGui::DragFloat("Exposure", &this->getRefSample().getColorSpaceConverter()->getGammeSettings().exposure);
-			//			ImGui::SameLine();
 			ImGui::DragFloat("Gamma", &this->getRefSample().getColorSpaceConverter()->getGammeSettings().gamma);
 			ImGui::EndGroup();
 		}
 
-		/*	Display All Framebuffer textures.	*/
-
 		/*	List all builtin post processing.	*/
-		if (this->getRefSample().getPostProcessingManager()) {
-			//	ImGui::BeginChild();
+		if (this->getRefSample().getPostProcessingManager() && ImGui::CollapsingHeader("Post Processing")) {
+
 			ImGui::BeginGroup();
 			PostProcessingManager *manager = this->getRefSample().getPostProcessingManager();
 			/*	*/
@@ -116,18 +119,30 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 
 				/*	*/
 				ImGui::TextUnformatted(postEffect.getName().c_str());
-				// if (ImGui::BeginChild(postEffect.getName().c_str())) {
+
 				bool isEnabled = manager->isEnabled(post_index);
 				if (ImGui::Checkbox("Enabled", &isEnabled)) {
 					manager->enablePostProcessing(post_index, isEnabled);
 				}
-				//}
-				// ImGui::EndChild();
+				float enabled_intensity = postEffect.getIntensity();
+				if (ImGui::SliderFloat("Intensity", &enabled_intensity, 0.0, 1)) {
+					postEffect.setItensity(enabled_intensity);
+				}
 
 				ImGui::PopID();
 			}
 
 			ImGui::EndGroup();
+		}
+
+		/*	Display All Framebuffer textures.	*/
+		const glsample::FrameBuffer *framebuffer = this->getRefSample().getFrameBuffer();
+		if (ImGui::CollapsingHeader("FrameBuffer Texture Targets") && framebuffer) {
+			for (size_t attach_index = 0; attach_index < framebuffer->usedAttachments; attach_index++) {
+				ImGui::Image(static_cast<ImTextureID>(framebuffer->attachments[attach_index]), ImVec2(256, 256),
+							 ImVec2(1, 1), ImVec2(0, 0));
+			}
+			ImGui::Image(framebuffer->depthbuffer, ImVec2(256, 256), ImVec2(1, 1), ImVec2(0, 0));
 		}
 	}
 
@@ -135,8 +150,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 };
 
 GLSampleWindow::GLSampleWindow()
-	: nekomimi::MIMIWindow(nekomimi::MIMIWindow::GfxBackEnd::ImGUI_OpenGL), preWidth(this->width()),
-	  preHeight(this->height()) {
+	: nekomimi::MIMIWindow(nekomimi::GfxBackEnd::ImGUI_OpenGL), preWidth(this->width()), preHeight(this->height()) {
 
 	/* Create logger	*/
 	auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -196,11 +210,7 @@ GLSampleWindow::~GLSampleWindow() {
 	/*	*/
 }
 
-void GLSampleWindow::displayMenuBar() {}
-
-void GLSampleWindow::renderUI() {
-
-	// TODO: relocate to init
+void GLSampleWindow::internalInit() {
 	if (this->colorSpace == nullptr) {
 		this->colorSpace = new ColorSpaceConverter();
 		this->colorSpace->initialize(getFileSystem());
@@ -222,14 +232,40 @@ void GLSampleWindow::renderUI() {
 		BloomPostProcessing *bloom = new BloomPostProcessing();
 		bloom->initialize(getFileSystem());
 		this->postprocessingManager->addPostProcessing(*bloom);
+
+		ChromaticAbberationPostProcessing *chromatic = new ChromaticAbberationPostProcessing();
+		chromatic->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*chromatic);
+
+		GrainPostProcessing *grain = new GrainPostProcessing();
+		grain->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*grain);
 	}
 
 	// TODO: relocate to init
 	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
-	if (this->defaultFramebuffer == nullptr && multi_sample_count >= 0) {
-		/*	*/
-		this->createDefaultFrameBuffer();
+	const bool useFBO = true;
+	if (this->MMSAFrameBuffer == nullptr && multi_sample_count > 0) {
+
+		this->MMSAFrameBuffer = new glsample::FrameBuffer();
+		memset(MMSAFrameBuffer, 0, sizeof(*this->MMSAFrameBuffer));
+		Common::createFrameBuffer(MMSAFrameBuffer, 1);
 	}
+	if (this->defaultFramebuffer == nullptr && useFBO) {
+		/*	*/
+		this->defaultFramebuffer = new glsample::FrameBuffer();
+		memset(defaultFramebuffer, 0, sizeof(*this->defaultFramebuffer));
+		Common::createFrameBuffer(defaultFramebuffer, 1);
+	}
+	if (getDefaultFramebuffer() > 0) {
+		/*	*/
+		this->updateDefaultFramebuffer();
+	}
+}
+
+void GLSampleWindow::displayMenuBar() {}
+
+void GLSampleWindow::renderUI() {
 
 	/*	Make sure all commands are flush before resizing.	*/
 	if (this->preWidth != this->width() || this->preHeight != this->height()) {
@@ -257,25 +293,41 @@ void GLSampleWindow::renderUI() {
 	}
 
 	{
+
 		/*	*/
-		if (this->defaultFramebuffer) {
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
-		}
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getDefaultFramebuffer());
 
 		/*	*/
 		this->draw();
 
-		/*	*/
-		if (this->postprocessingManager) {
-			this->postprocessingManager->render(
-				{std::make_tuple(GBuffer::Albedo, this->defaultFramebuffer->attachement0),
-				 std::make_tuple(GBuffer::Depth, this->defaultFramebuffer->depthbuffer)});
+		/*	Transfer Multisampled texture to FBO.	*/
+		if (this->MMSAFrameBuffer && this->MMSAFrameBuffer->framebuffer == getDefaultFramebuffer()) {
+			/*	*/
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->MMSAFrameBuffer->framebuffer);
+
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glViewport(0, 0, this->width(), this->height());
+
+			glBlitFramebuffer(0, 0, this->width(), this->height(), 0, 0, this->width(), this->height(),
+							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		/*	*/
+		if (this->postprocessingManager) {
+			/*	*/
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
+
+			this->postprocessingManager->render(
+				{std::make_tuple(GBuffer::Albedo, this->defaultFramebuffer->attachments[0]),
+				 std::make_tuple(GBuffer::Depth, this->defaultFramebuffer->depthbuffer)});
+		}
+
+		/*	Transfer last result to the default OpenGL Framebuffer.	*/
 		if (this->defaultFramebuffer) {
 			if (this->colorSpace) {
-				this->colorSpace->convert(this->defaultFramebuffer->attachement0);
+				this->colorSpace->convert(this->defaultFramebuffer->attachments[0]);
 			}
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -460,7 +512,7 @@ glsample::ColorSpace GLSampleWindow::getColorSpace() const noexcept {
 	if (this->colorSpace != nullptr) {
 		return this->colorSpace->getColorSpace();
 	}
-	return ColorSpace::Raw;
+	return ColorSpace::RawLinear;
 }
 
 void GLSampleWindow::vsync(bool enable_vsync) { SDL_GL_SetSwapInterval(enable_vsync); }
@@ -507,88 +559,56 @@ bool GLSampleWindow::supportSPIRV() const {
 void GLSampleWindow::createDefaultFrameBuffer() {
 
 	if (this->defaultFramebuffer == nullptr) {
-		this->defaultFramebuffer = new FrameBuffer();
+		this->defaultFramebuffer = new glsample::FrameBuffer();
 		memset(defaultFramebuffer, 0, sizeof(*this->defaultFramebuffer));
 	}
-
-	glGenFramebuffers(1, &this->defaultFramebuffer->framebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
-
-	glGenTextures(1, &this->defaultFramebuffer->attachement0);
-	glGenTextures(1, &this->defaultFramebuffer->depthbuffer);
-
-	this->updateDefaultFramebuffer();
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void GLSampleWindow::updateDefaultFramebuffer() {
 
+	const unsigned int multi_sample_count = this->getResult()["multi-sample"].as<int>();
+	if (this->MMSAFrameBuffer) {
+		Common::updateFrameBuffer(this->MMSAFrameBuffer,
+								  {{
+									  .width = this->width(),
+									  .height = this->height(),
+									  .nrSamples = multi_sample_count,
+
+								  }},
+								  {
+									  .width = this->width(),
+									  .height = this->height(),
+									  .nrSamples = multi_sample_count,
+								  });
+	}
+
 	if (this->defaultFramebuffer != nullptr) {
+		Common::updateFrameBuffer(this->defaultFramebuffer,
+								  {{
+									  .width = this->width(),
+									  .height = this->height(),
+									  .depth = 1,
+									  .nrSamples = 0,
 
-		/*	*/ // TODO: fix coupling.
-		const int multisamples = this->getResult()["multi-sample"].as<int>();
-
-		const int width = this->width();
-		const int height = this->height();
-
-		GLenum texture_type = GL_TEXTURE_2D;
-		if (multisamples > 0) {
-			texture_type = GL_TEXTURE_2D_MULTISAMPLE;
-			glEnable(GL_MULTISAMPLE);
-		}
-
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
-		glBindTexture(texture_type, this->defaultFramebuffer->attachement0);
-		if (multisamples > 0) {
-			glTexImage2DMultisample(texture_type, multisamples, GL_RGBA, width, height, GL_TRUE);
-		} else {
-			glTexImage2D(texture_type, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		}
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-		/*	Border clamped to max value, it makes the outside area.	*/
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
-
-		FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
-
-		FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
-
-		glBindTexture(texture_type, 0);
-
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture_type,
-							   this->defaultFramebuffer->attachement0, 0);
-
-		/*	*/
-		glBindTexture(texture_type, this->defaultFramebuffer->depthbuffer);
-		if (multisamples > 0) {
-			glTexImage2DMultisample(texture_type, multisamples, GL_DEPTH_COMPONENT32, width, height, GL_TRUE);
-		} else {
-			glTexImage2D(texture_type, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
-						 nullptr);
-		}
-		glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0);
-		glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f);
-		glTexParameteri(texture_type, GL_TEXTURE_BASE_LEVEL, 0);
-		glBindTexture(texture_type, 0);
-
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_type, this->defaultFramebuffer->depthbuffer,
-							   0);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+								  }},
+								  {
+									  .width = this->width(),
+									  .height = this->height(),
+									  .nrSamples = 0,
+								  });
 	}
 }
 
 int GLSampleWindow::getDefaultFramebuffer() const noexcept {
-	if (defaultFramebuffer) {
+
+	if (this->MMSAFrameBuffer) {
+		GLboolean isEnabled = 0;
+		glGetBooleanv(GL_MULTISAMPLE, &isEnabled);
+		if (isEnabled) {
+			return this->MMSAFrameBuffer->framebuffer;
+		}
+	}
+	if (this->defaultFramebuffer) {
 		return this->defaultFramebuffer->framebuffer;
 	}
 	return 0;

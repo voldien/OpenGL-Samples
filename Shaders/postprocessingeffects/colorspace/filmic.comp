@@ -13,7 +13,7 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(set = 0, binding = 1, rgba16f) uniform image2D ColorTexture;
 
-#include "colorspace.glsl"
+#include "common.glsl"
 
 void main() {
 
@@ -22,11 +22,10 @@ void main() {
 		return;
 	}
 
-	/* Get output fragcolor texture coordinate.	*/
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
 	vec4 fragColor = imageLoad(ColorTexture, TexCoord);
-	fragColor.rgb = PBRNeutralToneMapping(fragColor.rgb);
+	fragColor.rgb = filmic(fragColor.rgb);
 
 	imageStore(ColorTexture, TexCoord, vec4(fragColor.rgb, 1.0));
 }

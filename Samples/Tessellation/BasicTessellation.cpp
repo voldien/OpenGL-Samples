@@ -171,7 +171,7 @@ namespace glsample {
 			/*	Load Diffuse and Height Map Texture.	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->diffuse_texture = textureImporter.loadImage2D(diffuseTexturePath, ColorSpace::SRGB);
-			this->heightmap_texture = textureImporter.loadImage2D(heightTexturePath, ColorSpace::Raw);
+			this->heightmap_texture = textureImporter.loadImage2D(heightTexturePath, ColorSpace::RawLinear);
 			this->color_texture = Common::createColorTexture(1, 1, Color(0, 1, 0, 1));
 
 			GLint minMapBufferSize = 0;
@@ -236,6 +236,8 @@ namespace glsample {
 
 					glPatchParameteri(GL_PATCH_VERTICES, 3);
 					glDrawElements(GL_PATCHES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				}
 
 				glBindVertexArray(0);

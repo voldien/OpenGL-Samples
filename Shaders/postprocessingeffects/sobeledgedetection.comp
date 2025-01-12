@@ -6,38 +6,39 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout(set = 0, binding = 1, rgba16) uniform coherent image2D texture0;
+layout(set = 0, binding = 1, rgba16) uniform coherent image2D ColorTexture;
+layout(set = 0, binding = 2, rgba16f) uniform coherent image2D TargetTexture;
 
 void main() {
 
 	/*	*/
-	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(texture0)))) {
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(ColorTexture)))) {
 		return;
 	}
-	
+
 	// Compute sample coordinate.
 	ivec2 TexDiff = ivec2(1, 1);
 	ivec2 sampleTexCoord = ivec2(gl_GlobalInvocationID.xy);
 
 	// TODO add recompute of the sample kernel coordinates.
 	const ivec2 lb = ivec2(-1 * TexDiff.x, -1 * TexDiff.y);
-	const vec4 p00 = imageLoad(texture0, sampleTexCoord + lb);
+	const vec4 p00 = imageLoad(ColorTexture, sampleTexCoord + lb);
 	const ivec2 b = ivec2(0.0 * TexDiff.x, -1 * TexDiff.y);
-	const vec4 p10 = imageLoad(texture0, sampleTexCoord + b);
+	const vec4 p10 = imageLoad(ColorTexture, sampleTexCoord + b);
 	const ivec2 rb = ivec2(1 * TexDiff.x, -1 * TexDiff.y);
-	const vec4 p20 = imageLoad(texture0, sampleTexCoord + rb);
+	const vec4 p20 = imageLoad(ColorTexture, sampleTexCoord + rb);
 
 	const ivec2 l = ivec2(-1 * TexDiff.x, 0.0 * TexDiff.y);
-	const vec4 p01 = imageLoad(texture0, sampleTexCoord + l);
+	const vec4 p01 = imageLoad(ColorTexture, sampleTexCoord + l);
 	const ivec2 r = ivec2(1 * TexDiff.x, 0.0 * TexDiff.y);
-	const vec4 p21 = imageLoad(texture0, sampleTexCoord + r);
+	const vec4 p21 = imageLoad(ColorTexture, sampleTexCoord + r);
 
 	const ivec2 lt = ivec2(-1 * TexDiff.x, 1 * TexDiff.y);
-	const vec4 p02 = imageLoad(texture0, sampleTexCoord + lt);
+	const vec4 p02 = imageLoad(ColorTexture, sampleTexCoord + lt);
 	const ivec2 t = ivec2(-1 * TexDiff.x, 1 * TexDiff.y);
-	const vec4 p12 = imageLoad(texture0, sampleTexCoord + t);
+	const vec4 p12 = imageLoad(ColorTexture, sampleTexCoord + t);
 	const ivec2 rt = ivec2(1 * TexDiff.x, 1 * TexDiff.y);
-	const vec4 p22 = imageLoad(texture0, sampleTexCoord + rt);
+	const vec4 p22 = imageLoad(ColorTexture, sampleTexCoord + rt);
 
 	/* Compute Matrix X and Y.	*/
 	const vec3 gx = -p00.xyz + p20.xyz + 2.0 * (p21.xyz - p01.xyz) - p02.xyz + p22.xyz;
@@ -46,8 +47,12 @@ void main() {
 	/* Compute the final.	*/
 	const vec3 g = sqrt(gx * gx + gy * gy);
 
-	/*	*/
-	memoryBarrierImage();
+	// float prop = step(_ThresHold, length(round(g.rgb)));
+	// float4 edge = lerp(color.rgba, _Color.rgba, prop);
+	// g = edge.rgb;
+	// g = 1 - (1 - color.rgb) * (1 - g.rgb * _Color * length(g));
 
-	imageStore(texture0, sampleTexCoord, vec4(g.rgb, 1));
+	/*	*/
+
+	imageStore(TargetTexture, sampleTexCoord, vec4(g.rgb, 1));
 }

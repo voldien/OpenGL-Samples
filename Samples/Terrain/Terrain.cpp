@@ -442,7 +442,7 @@ namespace glsample {
 			}
 
 			/*	Post processing.	*/
-			this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachement0,
+			this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachments[0],
 										this->getFrameBuffer()->depthbuffer);
 		}
 

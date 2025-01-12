@@ -23,17 +23,29 @@ namespace glsample {
 
 	class FVDECLSPEC PostProcessing : public fragcore::Object {
 	  public:
-		PostProcessing() = default;
+		PostProcessing();
 		~PostProcessing() override = default;
 
 		virtual void initialize(fragcore::IFileSystem *filesystem) = 0;
 
 		virtual void bind() {};
 
-		virtual void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) {};
+		virtual void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets);
+
+		float getIntensity() const noexcept;
+		void setItensity(const float intensity);
+
+		bool isBufferRequired(const GBuffer required_data_buffer) const noexcept;
 
 	  protected:
-	  	std::vector<GBuffer> required_buffer;
+		void addRequireBuffer(const GBuffer required_data_buffer) noexcept;
+		void removeRequireBuffer(const GBuffer required_data_buffer) noexcept;
+
+		int createVAO();
+
+	  protected:
+		std::vector<GBuffer> required_buffer;
 		bool computeShaderSupported = true;
+		float intensity = 1;
 	};
 } // namespace glsample

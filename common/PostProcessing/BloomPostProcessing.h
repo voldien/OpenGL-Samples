@@ -32,13 +32,16 @@ namespace glsample {
 		void convert(unsigned int texture);
 
 	  private:
-		int guassian_blur_compute_program = -1;
+		int bloom_blur_compute_program = -1;
+		int overlay_program = -1;
 
 		/*	*/
 		float variance;
 		int samples;
 		float radius;
 		float mean = 0;
+
+		float threadshold = 1;
 
 		int localWorkGroupSize[3];
 	};

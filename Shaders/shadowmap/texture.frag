@@ -81,14 +81,10 @@ void main() {
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
 	const vec4 irradiance_color = texture(Irradiance, irradiance_uv).rgba;
 
-	vec4 color = texture(DiffuseTexture, UV);
+	const vec4 color = texture(DiffuseTexture, UV);
+	const vec4 lighting = (ubo.ambientColor * irradiance_color + (ubo.lightColor * contriubtion + spec) * shadow);
 
-	// computeBlinnDirectional
-
-	const vec4 lighting =
-		(ubo.ambientColor * irradiance_color + (ubo.lightColor * contriubtion + spec) * shadow) * color;
-
-	fragColor = lighting;
+	fragColor = vec4(lighting.rgb, 1) * color;
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
 	if (fragColor.a < 0.8) {
 		discard;

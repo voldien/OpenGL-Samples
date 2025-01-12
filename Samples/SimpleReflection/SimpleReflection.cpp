@@ -169,7 +169,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->skybox_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::Raw);
+			this->skybox_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::RawLinear);
 			this->skybox.Init(this->skybox_texture, this->skybox_program);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/

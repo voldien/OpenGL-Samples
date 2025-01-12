@@ -7,7 +7,7 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(binding = 1, rgba16) uniform readonly image2D texture0;
+layout(binding = 1, rgba16) uniform readonly image2D ColorTexture;
 
 layout(binding = 0, r8ui) uniform coherent writeonly uimage2D variableRateLUT;
 
@@ -17,9 +17,9 @@ void main() {
 	ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
 	ivec2 fragSize = imageSize(variableRateLUT);
-	ivec2 TexSize = imageSize(texture0);
+	ivec2 TexSize = imageSize(ColorTexture);
 
-	float distance = imageLoad(texture0, TexCoord).r;
+	float distance = imageLoad(ColorTexture, TexCoord).r;
 
 	imageStore(variableRateLUT, TexCoord, uvec4(1.0));
 }

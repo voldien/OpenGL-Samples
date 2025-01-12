@@ -1,5 +1,7 @@
 #include "Common.h"
 #include "GLHelper.h"
+#include "GLSampleSession.h"
+#include "RenderDesc.h"
 #include <ProceduralGeometry.h>
 
 using namespace glsample;
@@ -166,6 +168,132 @@ int Common::createColorTexture(unsigned int width, unsigned int height, const fr
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return texRef;
+}
+
+void Common::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachments) {
+
+	glGenFramebuffers(1, &framebuffer->framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->framebuffer);
+
+	glGenTextures(nrAttachments, framebuffer->attachments.data());
+	glGenTextures(1, &framebuffer->depthbuffer);
+	framebuffer->usedAttachments = nrAttachments;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_list<fragcore::TextureDesc> &desc,
+							   const fragcore::TextureDesc &depthstencil) {
+
+	unsigned int attachment_index = 0;
+	std::array<GLenum, 8> attachments_mapping;
+	for (auto it = desc.begin(); it != desc.end(); it++) {
+		const fragcore::TextureDesc &target_desc = *(it);
+
+		const unsigned int width = target_desc.width;
+		const unsigned int height = target_desc.height;
+		const unsigned int depth = target_desc.depth;
+		const unsigned int multisamples = target_desc.nrSamples;
+		const GLenum internal_format = GL_RGBA16F;
+
+		GLenum texture_type = GL_TEXTURE_2D;
+		if (depth > 1) {
+			texture_type = GL_TEXTURE_2D_ARRAY;
+		}
+
+		if (multisamples > 0) {
+			texture_type = GL_TEXTURE_2D_MULTISAMPLE;
+		}
+
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer->framebuffer);
+		glBindTexture(texture_type, framebuffer->attachments[attachment_index]);
+		if (multisamples > 0) {
+			glTexImage2DMultisample(texture_type, multisamples, internal_format, width, height, GL_TRUE);
+		} else {
+			if (depth > 1) {
+				glTexImage3D(texture_type, 0, internal_format, width, height, depth, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+							 nullptr);
+			} else {
+				glTexImage2D(texture_type, 0, internal_format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			}
+		}
+
+		if (multisamples == 0) {
+
+			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+			/*	Border clamped to max value, it makes the outside area.	*/
+			glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0));
+
+			FVALIDATE_GL_CALL(glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_BASE_LEVEL, 0));
+		}
+
+		glBindTexture(texture_type, 0);
+
+		if (depth == 1) {
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture_type,
+								   framebuffer->attachments[attachment_index], 0);
+		} else {
+			// TODO: add a
+			glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, framebuffer->attachments[attachment_index],
+									  0, 0);
+		}
+
+		attachments_mapping[attachment_index] = GL_COLOR_ATTACHMENT0 + attachment_index;
+
+		attachment_index++;
+	}
+
+	glDrawBuffers(framebuffer->usedAttachments, attachments_mapping.data());
+
+	{
+
+		const unsigned int multisamples = depthstencil.nrSamples;
+		const unsigned int width = depthstencil.width;
+		const unsigned int height = depthstencil.height;
+		const unsigned int depth = depthstencil.depth;
+
+		GLenum texture_type = GL_TEXTURE_2D;
+		if (multisamples > 0) {
+			texture_type = GL_TEXTURE_2D_MULTISAMPLE;
+		}
+
+		/*	*/
+		glBindTexture(texture_type, framebuffer->depthbuffer);
+		if (multisamples > 0) {
+			glTexImage2DMultisample(texture_type, multisamples, GL_DEPTH_COMPONENT32, width, height, GL_TRUE);
+		} else {
+			glTexImage2D(texture_type, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+						 nullptr);
+		}
+		if (multisamples == 0) {
+
+			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+			glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0);
+			glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f);
+			glTexParameteri(texture_type, GL_TEXTURE_BASE_LEVEL, 0);
+		}
+
+		glBindTexture(texture_type, 0);
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_type, framebuffer->depthbuffer, 0);
+	}
+
+	/*  Validate if created properly.*/
+	const int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
+		throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void glsample::refreshWholeRoundRobinBuffer(unsigned int bufferType, unsigned int buffer, const unsigned int robin,

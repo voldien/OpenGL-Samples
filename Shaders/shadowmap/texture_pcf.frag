@@ -6,7 +6,7 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
-//7layout(early_fragment_tests) in;
+// 7layout(early_fragment_tests) in;
 
 layout(location = 0) out vec4 fragColor;
 
@@ -20,7 +20,7 @@ layout(binding = 9) uniform sampler2DShadow ShadowTexture;
 layout(binding = 10) uniform sampler2D Irradiance;
 
 #include "common.glsl"
-#include"scene.glsl"
+#include "scene.glsl"
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -38,8 +38,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	float shadowStrength;
 }
 ubo;
-
-#define EPSILON 0.00001
 
 float ShadowCalculation(const in vec4 fragPosLightSpace) {
 
@@ -63,7 +61,7 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 	[[unroll]] for (int y = -1; y <= 1; y++) {
 		[[unroll]] for (int x = -1; x <= 1; x++) {
 
-			vec2 Offsets = vec2(x * xOffset, y * yOffset);
+			const vec2 Offsets = vec2(x * xOffset, y * yOffset);
 			vec3 UVC = vec3(projCoords.xy + Offsets, projCoords.z + EPSILON);
 			shadowFactor += texture(ShadowTexture, UVC);
 		}
@@ -78,7 +76,6 @@ void main() {
 	vec3 halfwayDir = normalize(ubo.direction.xyz + viewDir);
 	float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), 8);
 
-	vec4 color = texture(DiffuseTexture, UV);
 	float shadow = max(ubo.shadowStrength - ShadowCalculation(lightSpace), 0);
 
 	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
@@ -87,11 +84,12 @@ void main() {
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
 	const vec4 irradiance_color = texture(Irradiance, irradiance_uv).rgba;
 
-	vec4 lighting = (ubo.ambientColor * irradiance_color + (ubo.lightColor * contriubtion + spec) * shadow) * color;
+	const vec4 color = texture(DiffuseTexture, UV);
+	const vec4 lighting = (ubo.ambientColor * irradiance_color + (ubo.lightColor * contriubtion + spec) * shadow);
 
-	fragColor = lighting;
+	fragColor = vec4(lighting.rgb, 1) * color;
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
-	if(fragColor.a < 0.8){
+	if (fragColor.a < 0.8) {
 		discard;
 	}
 }

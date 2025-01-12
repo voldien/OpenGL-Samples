@@ -15,26 +15,50 @@
  */
 #pragma once
 #include "PostProcessing.h"
+#include "SampleHelper.h"
 
 namespace glsample {
 
-	class FVDECLSPEC ColorGradePostProcessing : public PostProcessing {
+	class FVDECLSPEC SSAOPostProcessing : public PostProcessing {
 
 	  public:
-		ColorGradePostProcessing();
-		~ColorGradePostProcessing() override;
+		SSAOPostProcessing();
+		~SSAOPostProcessing() override;
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override {}
+		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override;
 
 	  public:
 		void convert(unsigned int texture);
 
 	  private:
-		int hue_color_grade_program = -1;
-		int grayscale_color_grade_program = -1;
+		int guassian_blur_compute_program = -1;
 
-		int localWorkGroupSize[3];
+		/*	*/
+		float variance;
+		int samples;
+		float radius;
+		static const int maxKernels = 64;
+		struct UniformSSAOBufferBlock {
+			glm::mat4 proj{};
+			
+			/*	*/
+			int samples = 64;
+			float radius = 2.5f;
+			float intensity = 0.8f;
+			float bias = 0.025;
+
+			glm::vec4 kernel[maxKernels]{};
+
+			glm::vec4 color{};
+			glm::vec2 screen{};
+			CameraInstance camera;
+
+		} uniformStageBlockSSAO;
+		/*	Random direction texture.	*/
+		unsigned int random_texture{};
+
+		// int localWorkGroupSize[3];
 	};
 } // namespace glsample

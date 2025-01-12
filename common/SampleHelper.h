@@ -22,13 +22,19 @@ namespace glsample {
 
 	enum class GBuffer : unsigned int {
 		Albedo = 0,			   /*	*/
+		Color = 0,			   /*	*/
 		WorldSpace = 1,		   /*	*/
 		TextureCoordinate = 2, /*	*/
 		Normal = 3,			   /*	*/
 		Specular = 4,		   /*	Roughness*/
 		Emission = 5,		   /*	*/
-		Velocity = 7,
-		Depth = 6
+		Depth = 6,			   /*	*/
+		Velocity = 7,		   /*	*/
+		Roughness = 8,		   /*	*/
+		Metallic,			   /*	*/
+		SubSurface,			   /*	*/
+		LightPass,			   /*	*/
+		IntermediateTarget	   /*	*/
 	};
 
 	// TODO: relocate
@@ -100,7 +106,7 @@ namespace glsample {
 		glm::vec4 position = glm::vec4(0);
 		glm::vec4 viewDir = glm::vec4(0, 0, 1, 0);
 		glm::vec4 position_size = glm::vec4(0);
-		glm::ivec4 screen_width_padding = glm::ivec4(1);
+		glm::uvec4 screen_width_padding = glm::ivec4(1);
 	};
 
 	using FrustumInstance = struct frustum_instance_t {
@@ -108,12 +114,10 @@ namespace glsample {
 	};
 
 	using FrameBuffer = struct framebuffer_t {
-		unsigned int framebuffer;
-		/*	*/
-		unsigned int attachement0;
-		unsigned int intermediate;
-
-		unsigned int depthbuffer;
+		unsigned int framebuffer = 0;
+		std::array<unsigned int, 8> attachments;
+		unsigned int usedAttachments = 0;
+		unsigned int depthbuffer = 0;
 	};
 
 	template <typename T, int m, int n>

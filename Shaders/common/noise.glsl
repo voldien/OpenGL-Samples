@@ -4,6 +4,8 @@ float mod289(const in float x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 mod289(const in vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 perm(const in vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
 
+float simple_rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
+
 float noise(const in vec3 p) {
 	vec3 a = floor(p);
 	vec3 d = p - a;

@@ -81,7 +81,7 @@ namespace glsample {
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->variable_rate_program);
 			this->uniform_buffer_index = glGetUniformBlockIndex(this->variable_rate_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->variable_rate_program, "texture0"), 0);
+			glUniform1i(glGetUniformLocation(this->variable_rate_program, "ColorTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->variable_rate_program, "variableRateLUT"), 1);
 			glUniformBlockBinding(this->variable_rate_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glGetProgramiv(this->variable_rate_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);

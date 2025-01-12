@@ -2,6 +2,7 @@
 #include "PostProcessing/MistPostProcessing.h"
 #include "SampleHelper.h"
 #include "Skybox.h"
+#include "Util/CameraController.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -151,11 +152,15 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("Fog Settings");
-				ImGui::DragInt("Fog Type", (int *)&this->getRefSample().mistprocessing.mistsettings.fogSettings.fogType);
-				ImGui::ColorEdit4("Fog Color", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogColor[0],
+				ImGui::DragInt("Fog Type",
+							   (int *)&this->getRefSample().mistprocessing.mistsettings.fogSettings.fogType);
+				ImGui::ColorEdit4("Fog Color",
+								  &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::DragFloat("Fog Density", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogDensity);
-				ImGui::DragFloat("Fog Intensity", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogIntensity);
+				ImGui::DragFloat("Fog Density",
+								 &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogDensity);
+				ImGui::DragFloat("Fog Intensity",
+								 &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogIntensity);
 				ImGui::DragFloat("Fog Start", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogStart);
 				ImGui::DragFloat("Fog End", &this->getRefSample().mistprocessing.mistsettings.fogSettings.fogEnd);
 
@@ -163,6 +168,9 @@ namespace glsample {
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Use MistFog", &this->useMistFogPost);
+
+				// TODO: relocate for reuse.
+				drawCameraController(this->getRefSample().camera);
 			}
 
 			bool showWireFrame = false;
@@ -237,7 +245,7 @@ namespace glsample {
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
-			this->reflection_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::Raw);
+			this->reflection_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::RawLinear);
 			this->skybox.Init(this->reflection_texture, Skybox::loadDefaultProgram(this->getFileSystem()));
 
 			/*	*/
@@ -368,7 +376,7 @@ namespace glsample {
 
 			/*	Post processing.	*/
 			if (this->simpleOceanSettingComponent->useMistFogPost) {
-				this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachement0,
+				this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachments[0],
 											this->getFrameBuffer()->depthbuffer);
 			}
 		}

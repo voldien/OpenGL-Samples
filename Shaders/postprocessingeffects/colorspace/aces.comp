@@ -11,21 +11,21 @@ precision mediump int;
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout(set = 0, binding = 1, rgba16f) uniform image2D texture0;
+layout(set = 0, binding = 1, rgba16f) uniform image2D ColorTexture;
 
 #include "common.glsl"
 
 void main() {
 
 	/*	*/
-	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(texture0)))) {
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(ColorTexture)))) {
 		return;
 	}
 
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
-	vec4 fragColor = imageLoad(texture0, TexCoord);
+	vec4 fragColor = imageLoad(ColorTexture, TexCoord);
 	fragColor.rgb = acesFilm(fragColor.rgb);
 
-	imageStore(texture0, TexCoord, vec4(fragColor.rgb, 1.0));
+	imageStore(ColorTexture, TexCoord, vec4(fragColor.rgb, 1.0));
 }

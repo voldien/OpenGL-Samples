@@ -27,7 +27,7 @@ struct Camera {
 	vec4 position;		/*	*/
 	vec4 viewDir;		/*	*/
 	vec4 position_size; /*	*/
-	ivec4 screen_width_padding;
+	uvec4 screen_width_padding;
 };
 
 struct FogSettings {
@@ -103,7 +103,7 @@ vec3 equirectangular(const in vec2 xy) {
 	const vec3 rayDirection =
 		vec3(cos(thetaphi.y) * cos(thetaphi.x), sin(thetaphi.y), cos(thetaphi.y) * sin(thetaphi.x));
 
-	return rayDirection;
+	return normalize(rayDirection);
 }
 
 vec2 inverse_equirectangular(const in vec3 direction) {

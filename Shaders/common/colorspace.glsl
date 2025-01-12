@@ -7,6 +7,7 @@ vec3 hsv2rgb(const in vec3 c) {
 	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
+// Narkowicz 2015, "ACES Filmic Tone Mapping Curve"
 vec3 acesFilm(const in vec3 x) {
 	const float a = 2.51;
 	const float b = 0.03;
@@ -14,6 +15,13 @@ vec3 acesFilm(const in vec3 x) {
 	const float d = 0.59;
 	const float e = 0.14;
 	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
+// Filmic Tonemapping Operators http://filmicworlds.com/blog/filmic-tonemapping-operators/
+vec3 filmic(const in vec3 x) {
+  vec3 X = max(vec3(0.0), x - 0.004);
+  vec3 result = (X * (6.2 * X + 0.5)) / (X * (6.2 * X + 1.7) + 0.06);
+  return pow(result, vec3(2.2));
 }
 
 float RGB2Luminance(const in vec3 rgb) { return dot(vec3(0.2126, 0.7152, 0.0722), rgb); }
@@ -30,8 +38,9 @@ vec3 PBRNeutralToneMapping(in vec3 color) {
 	color -= offset;
 
 	float peak = max(color.r, max(color.g, color.b));
-	if (peak < startCompression)
+	if (peak < startCompression) {
 		return color;
+	}
 
 	const float d = 1. - startCompression;
 	float newPeak = 1. - d * d / (peak + d - startCompression);

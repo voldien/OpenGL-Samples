@@ -71,7 +71,7 @@ namespace glsample {
 
 		size_t audio_sample_rate{};
 		size_t audio_bit_rate{};
-		size_t audio_channel{};
+		size_t audio_channels{};
 
 		/*  */
 		struct AVFrame *frame = nullptr;
@@ -253,7 +253,7 @@ namespace glsample {
 
 					this->audio_bit_rate = pAudioCodecParam->bit_rate;
 					this->audio_sample_rate = pAudioCodecParam->sample_rate;
-					this->audio_channel = pAudioCodecParam->ch_layout.nb_channels;
+					this->audio_channels = pAudioCodecParam->channels;
 				}
 
 				AVCodecParameters *pVideoCodecParam = video_st->codecpar;
@@ -313,8 +313,9 @@ namespace glsample {
 					throw cxxexcept::RuntimeException("Failed to init SWR : {}", buf);
 				}
 
-				if ((result = av_samples_alloc_array_and_samples(&destBuffer, &destBufferLinesize, 2, 4096,
-																 AV_SAMPLE_FMT_FLT, 0)) < 0) {
+				result =
+					av_samples_alloc_array_and_samples(&destBuffer, &destBufferLinesize, 2, 4096, AV_SAMPLE_FMT_FLT, 0);
+				if (result < 0) {
 					char buf[AV_ERROR_MAX_STRING_SIZE];
 					av_strerror(result, buf, sizeof(buf));
 					throw cxxexcept::RuntimeException("Failed to allocate ({}) : {}", result, buf);

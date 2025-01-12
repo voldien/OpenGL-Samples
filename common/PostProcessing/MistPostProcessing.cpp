@@ -14,16 +14,16 @@ MistPostProcessing::~MistPostProcessing() {
 }
 
 void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
-	const char *frag_path = "Shaders/postprocessingeffects/mistfog.frag.spv";
-	const char *vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
+	const char *mist_fog_frag_path = "Shaders/postprocessingeffects/mistfog.frag.spv";
+	const char *post_vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 
 	if (this->mist_program == -1) {
 		/*	*/
 		const std::vector<uint32_t> vertex_mistfog_post_processing_binary =
-			IOUtil::readFileData<uint32_t>(vertex_path, filesystem);
+			IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
 
 		const std::vector<uint32_t> fragment_mistfog_post_processing_binary =
-			IOUtil::readFileData<uint32_t>(frag_path, filesystem);
+			IOUtil::readFileData<uint32_t>(mist_fog_frag_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -36,7 +36,7 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	glUseProgram(this->mist_program);
 
-	glUniform1i(glGetUniformLocation(this->mist_program, "texture0"), (int)GBuffer::Albedo);
+	glUniform1i(glGetUniformLocation(this->mist_program, "ColorTexture"), (int)GBuffer::Albedo);
 	glUniform1i(glGetUniformLocation(this->mist_program, "DepthTexture"), (int)GBuffer::Depth);
 	glUniform1i(glGetUniformLocation(this->mist_program, "IrradianceTexture"), 2);
 
@@ -65,8 +65,7 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 	/*	Update uniform values.	*/
 	glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 	void *uniformPointer =
-		glMapBufferRange(GL_UNIFORM_BUFFER, 0 * this->uniformAlignSize,
-						 this->uniformAlignSize, GL_MAP_WRITE_BIT);
+		glMapBufferRange(GL_UNIFORM_BUFFER, 0 * this->uniformAlignSize, this->uniformAlignSize, GL_MAP_WRITE_BIT);
 	memcpy(uniformPointer, &this->mistsettings, sizeof(this->mistsettings));
 	glUnmapBuffer(GL_UNIFORM_BUFFER);
 
@@ -74,11 +73,6 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 					  (1 % 1) * this->uniformAlignSize, this->uniformAlignSize);
 
 	glUseProgram(this->mist_program);
-
-	/*	*/
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
 
 	/*	*/
 	glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Albedo);
@@ -91,6 +85,11 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 	/*	*/
 	glActiveTexture(GL_TEXTURE0 + 2);
 	glBindTexture(GL_TEXTURE_2D, skybox);
+
+	/*	*/
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 

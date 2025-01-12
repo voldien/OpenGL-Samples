@@ -97,7 +97,7 @@ namespace glsample {
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
 				ImGui::Checkbox("Shadow Alpha Clipping", &this->useShadowClip);
 				ImGui::TextUnformatted("Depth Texture");
-				ImGui::Image(static_cast<ImTextureID>(this->depth), ImVec2(512, 512));
+				ImGui::Image(static_cast<ImTextureID>(this->depth), ImVec2(512, 512), ImVec2(1, 1), ImVec2(0, 0));
 			}
 
 			float distance = 50.0;

@@ -21,18 +21,16 @@ ubo;
 void main() {
 
 	const vec3 hyperplane_up = normalize(normalDistance[0].xyz);
-
 	const vec3 VPosition = hyperplane_up * normalDistance[0].w;
 
 	/*  */
-	const vec3 tangent = normalize(cross(hyperplane_up, vec3(0.0, 1.0, 0.0)));
+	const vec3 tangent = normalize(cross(hyperplane_up, vec3(1.0, 0.0, 0.0)));
 	const vec3 bitangent = normalize(cross(hyperplane_up, tangent));
 
 	/*  */
 	vec3 vertexPosition = VPosition - (tangent * 1000.0) + (bitangent * 1000.0);
 	gl_Position = ubo.viewProj * vec4(vertexPosition, 1.0);
-	gl_Position = gl_Position.xyww;
-
+	gl_Position = gl_Position.xyzw;
 	out_texturecoord = vec2(0.0f, 0.0f);
 	out_color = in_color[0];
 	EmitVertex();
@@ -40,7 +38,7 @@ void main() {
 	/*  */
 	vertexPosition = VPosition + (tangent * 1000.0) + (bitangent * 1000.0);
 	gl_Position = ubo.viewProj * vec4(vertexPosition, 1.0);
-	gl_Position = gl_Position.xyww;
+	gl_Position = gl_Position.xyzw;
 	out_texturecoord = vec2(0.0f, 1.0f);
 	out_color = in_color[0];
 	EmitVertex();
@@ -48,7 +46,7 @@ void main() {
 	/*  */
 	vertexPosition = VPosition - (tangent * 1000.0) + (bitangent * 1000.0);
 	gl_Position = ubo.viewProj * vec4(vertexPosition, 1.0);
-	gl_Position = gl_Position.xyww;
+	gl_Position = gl_Position.xyzw;
 	out_texturecoord = vec2(1.0f, 0.0f);
 	out_color = in_color[0];
 	EmitVertex();
@@ -56,7 +54,7 @@ void main() {
 	/*  */
 	vertexPosition = VPosition + (tangent * 10000.0) + (bitangent * 10000.0);
 	gl_Position = ubo.viewProj * vec4(vertexPosition, 1.0);
-	gl_Position = gl_Position.xyww;
+	gl_Position = gl_Position.xyzw;
 	out_texturecoord = vec2(1.0f, 1.0f);
 	out_color = in_color[0];
 	EmitVertex();
