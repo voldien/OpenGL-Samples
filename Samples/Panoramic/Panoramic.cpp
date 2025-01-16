@@ -1,4 +1,5 @@
 #include "Math/Math.h"
+#include "SampleHelper.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "Util/ProcessDataUtil.h"
@@ -46,14 +47,13 @@ namespace glsample {
 			glm::mat4 modelViewProjection{};
 
 			/*	Light source.	*/
-			glm::vec4 direction = glm::vec4(0.7, 0.7, 1, 1);
-			glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
+			DirectionalLight directional;
+			CameraInstance camera;
 
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
-			glm::vec4 ambientColor = glm::vec4(0.3, 0.3, 0.3, 1);
-			glm::vec4 viewDir{};
+			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1);
 
-			float shininess = 8.0f;
+			glm::vec4 shininess = glm::vec4(8.0f);
 		} uniformStageBuffer;
 
 		/*	Point light shadow maps.	*/
@@ -92,21 +92,22 @@ namespace glsample {
 			void draw() override {
 
 				ImGui::TextUnformatted("Lightning");
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+				ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
 				ImGui::TextUnformatted("Material");
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Specular", &this->uniform.specularColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::DragFloat("Shininess", &this->uniform.shininess[0]);
+
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::TextUnformatted("Depth Texture");
 			}
 
 			bool showWireFrame = false;
-			bool animate = false;
-
-			bool lightvisible[4] = {true, true, true, true};
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -402,7 +403,9 @@ namespace glsample {
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
-			this->uniformStageBuffer.viewDir = glm::vec4(this->camera.getLookDirection(), 0);
+
+			this->uniformStageBuffer.camera.viewDir = glm::vec4(this->camera.getLookDirection(), 0);
+			this->uniformStageBuffer.camera.position = glm::vec4(this->camera.getPosition(), 0);
 
 			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 

@@ -118,6 +118,7 @@ namespace glsample {
 				glDisable(GL_DEPTH_TEST);
 			}
 
+			/*	*/
 			if (use_multisample) {
 				glEnable(GL_MULTISAMPLE);
 			}
@@ -131,8 +132,9 @@ namespace glsample {
 	}
 
 	void Skybox::RenderImGUI() {
+
 		ImGui::PushID(10);
-		if (ImGui::CollapsingHeader("Skybox  Settings", &this->skybox_settings_visable,
+		if (ImGui::CollapsingHeader("Skybox Settings", &this->skybox_settings_visable,
 									ImGuiTreeNodeFlags_CollapsingHeader)) {
 
 			ImGui::BeginGroup();

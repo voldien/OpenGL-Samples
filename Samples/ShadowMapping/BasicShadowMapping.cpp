@@ -1,3 +1,4 @@
+#include "SampleHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -39,10 +40,13 @@ namespace glsample {
 			glm::mat4 lightModelProject;
 
 			/*	light source.	*/
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
-			glm::vec3 cameraPosition;
+			DirectionalLight directional;
+			CameraInstance camera;
+
+			/*	*/
+			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
+			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1.0f);
+			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1.0f);
 
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
@@ -87,11 +91,19 @@ namespace glsample {
 
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+				ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
+
+				ImGui::TextUnformatted("Material Settings");
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::ColorEdit4("Diffuse", &this->uniform.diffuseColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				ImGui::ColorEdit4("Specular", &this->uniform.specularColor[0],
+								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoAlpha);
+				ImGui::DragFloat("Shininess", &this->uniform.specularColor[3]);
+
 				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
@@ -197,6 +209,8 @@ namespace glsample {
 				glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
 				glUniform1i(glGetUniformLocation(this->graphic_program, "AlphaMaskedTexture"), 2);
 				glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), shadowBinding);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureType::Irradiance);
+
 				glUniformBlockBinding(this->graphic_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
 				glUseProgram(0);
@@ -207,6 +221,7 @@ namespace glsample {
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), 0);
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "AlphaMaskedTexture"), 2);
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), shadowBinding);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureType::Irradiance);
 				glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
 				glUseProgram(0);
@@ -307,15 +322,16 @@ namespace glsample {
 					glm::ortho(-this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
 							   -this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
 							   near_plane, far_plane);
-				glm::mat4 lightView =
-					glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
-								glm::vec3(this->uniformStageBuffer.direction.x, this->uniformStageBuffer.direction.y,
-										  this->uniformStageBuffer.direction.z),
-								glm::vec3(0.0f, 1.0f, 0.0f));
+				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+												  glm::vec3(this->uniformStageBuffer.directional.lightDirection.x,
+															this->uniformStageBuffer.directional.lightDirection.y,
+															this->uniformStageBuffer.directional.lightDirection.z),
+												  glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
 				glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
 				this->uniformStageBuffer.lightModelProject = lightSpaceMatrix;
+				this->uniformStageBuffer.camera = this->camera;
 
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_shadow_buffer_binding, this->uniform_buffer,
@@ -395,7 +411,6 @@ namespace glsample {
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
-			this->uniformStageBuffer.cameraPosition = this->camera.getPosition();
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

@@ -6,7 +6,6 @@
 
 layout(early_fragment_tests) in;
 
-
 layout(location = 0) in vec2 coord;
 layout(location = 1) in vec3 color;
 layout(location = 2) in vec3 normal;
@@ -15,8 +14,9 @@ layout(location = 0) out vec4 fragColor;
 
 layout(binding = 10) uniform sampler2D IrradianceMap;
 
-#include "marchinbcube_common.glsl"
 #include "fog_frag.glsl"
+#include "marchinbcube_common.glsl"
+#include "pbr.glsl"
 
 void main() {
 

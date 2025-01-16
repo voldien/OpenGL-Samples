@@ -36,7 +36,7 @@ namespace glsample {
 		} uniformStageBuffer{};
 
 		/*	*/
-		ModelImporter *modelLoader{};
+		ModelImporter *modelLoader = nullptr;
 
 		Skybox skybox;
 
@@ -109,6 +109,9 @@ namespace glsample {
 			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
 			glUniform1i(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), 2);
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
+
+			//TODO: add
+			//glBindFragDataLocation(this->multipass_program, 0,"");
 			glUseProgram(0);
 
 			/*	load Textures	*/

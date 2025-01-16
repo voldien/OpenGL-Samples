@@ -26,23 +26,28 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override;
+		void
+		draw(glsample::FrameBuffer *framebuffer,
+			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
 	  public:
-		void convert(unsigned int texture);
+		void convert(FrameBuffer *framebuffer, unsigned int texture);
 
 	  private:
-		int bloom_blur_compute_program = -1;
+		int bloom_blur_graphic_program = -1;
 		int overlay_program = -1;
+		int downsample_compute_program = -1;
+		int upsample_compute_program = -1;
+
+		unsigned int texture_sampler = 0;
 
 		/*	*/
 		float variance;
 		int samples;
 		float radius;
 		float mean = 0;
-
-		float threadshold = 1;
-
 		int localWorkGroupSize[3];
+		float threadshold = 1;
+		int vao = 0;
 	};
 } // namespace glsample

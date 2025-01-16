@@ -1,15 +1,29 @@
 #include "PostProcessing/PostProcessing.h"
+#include "GLSampleSession.h"
+#include "SampleHelper.h"
+#include "ShaderLoader.h"
+#include <IOUtil.h>
 
 using namespace glsample;
 
 PostProcessing::PostProcessing() : computeShaderSupported(glewIsExtensionSupported("GL_ARB_compute_shader")) {}
 
-void PostProcessing::draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) {
+void PostProcessing::draw(
+	glsample::FrameBuffer *framebuffer,
+	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
 
 	/*	*/
+	this->mapped_buffer.clear();
 	for (const auto *it = render_targets.begin(); it != render_targets.end(); it++) {
-		GBuffer target = std::get<0>(*it);
-		unsigned int texture = std::get<1>(*it);
+
+		const GBuffer target = std::get<0>(*it);
+		const unsigned int &texture = std::get<1>(*it);
+
+		this->mapped_buffer[target] = &texture;
+
+		if (target == GBuffer::IntermediateTarget) {
+			continue;
+		}
 
 		if (glBindTextureUnit) {
 			glBindTextureUnit(static_cast<unsigned int>(target), texture);
@@ -19,11 +33,18 @@ void PostProcessing::draw(const std::initializer_list<std::tuple<GBuffer, unsign
 		}
 	}
 
+	/*	*/
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 float PostProcessing::getIntensity() const noexcept { return this->intensity; }
 void PostProcessing::setItensity(const float intensity) { this->intensity = intensity; }
+
+const unsigned int &PostProcessing::getMappedBuffer(const GBuffer buffer_target) const noexcept {
+	static unsigned int temp = 0;
+	return this->mapped_buffer.find(buffer_target) != this->mapped_buffer.end() ? *this->mapped_buffer.at(buffer_target)
+																				: temp;
+}
 
 void PostProcessing::addRequireBuffer(const GBuffer required_data_buffer) noexcept {
 	this->required_buffer.push_back(required_data_buffer);
@@ -35,4 +56,25 @@ int PostProcessing::createVAO() {
 	glGenVertexArrays(1, &vao);
 
 	return vao;
+}
+
+int PostProcessing::createOverlayGraphicProgram(fragcore::IFileSystem *filesystem) {
+	/*	*/
+	const std::string vertexOverlayShaderPath = "Shaders/postprocessingeffects/overlay.vert.spv";
+	const std::string fragmentOverlayTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
+
+	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+	compilerOptions.glslVersion = 330;
+
+	const std::vector<uint32_t> texture_vertex_binary =
+		IOUtil::readFileData<uint32_t>(vertexOverlayShaderPath, filesystem);
+	const std::vector<uint32_t> texture_fragment_binary =
+		IOUtil::readFileData<uint32_t>(fragmentOverlayTextureShaderPath, filesystem);
+
+	/*	Load shader	*/
+	int overlay_graphic_program =
+		ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
+
+	return overlay_graphic_program;
 }

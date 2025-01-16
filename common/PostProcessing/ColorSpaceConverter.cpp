@@ -114,7 +114,7 @@ void ColorSpaceConverter::initialize(fragcore::IFileSystem *filesystem) {
 	}
 }
 
-void ColorSpaceConverter::draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) {}
+void ColorSpaceConverter::draw(glsample::FrameBuffer* framebuffer, const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) {}
 
 void ColorSpaceConverter::convert(unsigned int texture) {
 

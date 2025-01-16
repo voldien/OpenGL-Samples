@@ -19,14 +19,13 @@
 namespace glsample {
 
 	class FVDECLSPEC DepthOfFieldProcessing : public PostProcessing {
-
 	  public:
 		DepthOfFieldProcessing();
 		~DepthOfFieldProcessing() override;
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override;
+		void draw(glsample::FrameBuffer* framebuffer, const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) override;
 
 	  public:
 		void convert(unsigned int texture);

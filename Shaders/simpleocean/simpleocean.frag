@@ -13,6 +13,7 @@ layout(origin_upper_left) in vec4 gl_FragCoord;
 
 #include "common.glsl"
 #include "phongblinn.glsl"
+#include "pbr.glsl"
 
 layout(constant_id = 10) const int MaxWaves = 128;
 

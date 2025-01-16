@@ -14,6 +14,8 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Util/Camera.h"
+#include "Util/CameraController.h"
 #include <Eigen/Eigen>
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
@@ -34,10 +36,10 @@ namespace glsample {
 		Metallic,			   /*	*/
 		SubSurface,			   /*	*/
 		LightPass,			   /*	*/
-		IntermediateTarget	   /*	*/
+		IntermediateTarget,	   /*	*/
+		IntermediateTarget2	   /*	*/
 	};
 
-	// TODO: relocate
 	enum class FogType : unsigned int {
 		None,	/*	*/
 		Linear, /*	*/
@@ -48,12 +50,12 @@ namespace glsample {
 
 	using UnfiformSubBuffer = struct uniform_sub_buffer_t {};
 
-	using GammaCorrectionSettings = struct gamme_correct_settings_t {
+	using GammaCorrectionSettings = struct alignas(16) gamme_correct_settings_t {
 		float exposure = 1.0f;
 		float gamma = 2.2f;
 	};
 
-	using FogSettings = struct fog_settings_t {
+	using FogSettings = struct alignas(16) fog_settings_t {
 		glm::vec4 fogColor = glm::vec4(0.3, 0.3, 0.45, 1);
 		/*	*/
 		float cameraNear = 0.15f;
@@ -68,7 +70,7 @@ namespace glsample {
 		float fogHeight = 0;
 	};
 
-	using MaterialInstance = struct material_instance_t {
+	using MaterialInstance = struct alignas(16) material_instance_t {
 		glm::mat4 model;
 
 		/*	Color attributes.	*/
@@ -82,12 +84,14 @@ namespace glsample {
 		/*	*/
 	};
 
+	using BlinnPhongMaterialData = struct alignas(16) blinn_phong_material_data_t {};
+
 	using DirectionalLight = struct directional_light_t {
 		glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	};
 
-	using PointLightInstance = struct point_light_instance_t {
+	using PointLightInstance = struct alignas(16) point_light_instance_t {
 		glm::vec3 position;
 		float range;
 		glm::vec4 color;
@@ -98,7 +102,21 @@ namespace glsample {
 		float quadratic_attenuation;
 	};
 
-	using CameraInstance = struct camera_instance_t {
+	using CameraInstance = struct alignas(16) camera_instance_t {
+		/*	*/
+		template <typename T> camera_instance_t &operator=(Camera<T> &camera) {
+			this->near = camera.getNear();
+			this->far = camera.getFar();
+			return *this;
+		}
+		/*	*/
+		camera_instance_t &operator=(CameraController &camera) {
+			this->near = camera.getNear();
+			this->far = camera.getFar();
+			this->position = glm::vec4(camera.getPosition(), 0);
+			return *this;
+		}
+
 		float near = 0.15;
 		float far = 1000;
 		float aspect = 1.0;
@@ -109,14 +127,14 @@ namespace glsample {
 		glm::uvec4 screen_width_padding = glm::ivec4(1);
 	};
 
-	using FrustumInstance = struct frustum_instance_t {
+	using FrustumInstance = struct alignas(16) frustum_instance_t {
 		glm::vec4 planes[6];
 	};
 
 	using FrameBuffer = struct framebuffer_t {
 		unsigned int framebuffer = 0;
-		std::array<unsigned int, 8> attachments;
-		unsigned int usedAttachments = 0;
+		std::array<unsigned int, 16> attachments;
+		unsigned int nrAttachments = 0;
 		unsigned int depthbuffer = 0;
 	};
 

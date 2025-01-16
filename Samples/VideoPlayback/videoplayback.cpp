@@ -303,10 +303,10 @@ namespace glsample {
 					this->pVideoCtx->height, AV_PIX_FMT_RGBA, SWS_BICUBIC, nullptr, nullptr, nullptr);
 				if (this->sws_ctx == nullptr) {
 				}
-				// Initialize SWR context swr_alloc_set_opts2
-				swr_alloc_set_opts2(&this->swrContext, &pAudioCtx->ch_layout, AV_SAMPLE_FMT_FLT, pAudioCtx->sample_rate,
-									&pAudioCtx->ch_layout, pAudioCtx->sample_fmt, pAudioCtx->sample_rate, 0, nullptr);
-
+				// Initialize SWR context
+				this->swrContext = swr_alloc_set_opts(nullptr, pAudioCtx->channel_layout, AV_SAMPLE_FMT_FLT,
+													  pAudioCtx->sample_rate, pAudioCtx->channel_layout,
+													  pAudioCtx->sample_fmt, pAudioCtx->sample_rate, 0, nullptr);
 				if ((result = swr_init(swrContext)) != 0) {
 					char buf[AV_ERROR_MAX_STRING_SIZE];
 					av_strerror(result, buf, sizeof(buf));

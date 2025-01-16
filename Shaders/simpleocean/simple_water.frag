@@ -31,7 +31,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 viewProjection;
 	mat4 modelViewProjection;
 
-	// TODO: replace later.
 	Camera camera;
 
 	Terrain terrain;
@@ -57,6 +56,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
+/*	Works, but can get cause mosaic, because of low sampling for far away objects.	*/
 vec4 bump2(const in float height, const in float dist) {
 
 	const float x = dFdxFine(height) * dist;
@@ -72,26 +72,38 @@ void main() {
 	/*	*/
 	const vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
 
+	/*	*/
 	const float height = noise(vertex);
 	const vec3 heightNormal = normalize((ubo.model * bump2(height, 0.1)).xyz);
 
+	/*	*/
 	const vec4 lightColor =
 		computePhongDirectional(ubo.directional, heightNormal.xyz, viewDir.xyz, ubo.shininess.r, ubo.specularColor.rgb);
 
+	/*	*/
+	const vec3 reflection = normalize(reflect(-viewDir, heightNormal));
+	const vec2 reflection_uv = inverse_equirectangular(reflection);
+
 	/*	Compute depth difference	*/
-	const vec2 screen_uv = gl_FragCoord.xy / vec2(2560, 1440);
+	const vec2 texSize = textureSize(DepthTexture, 0).xy;
+	const vec2 screen_uv = gl_FragCoord.xy / texSize;
 	const float current_z = getExpToLinear(ubo.camera.near, ubo.camera.far, texture(DepthTexture, screen_uv).r);
 	const float shader_z = getExpToLinear(ubo.camera.near, ubo.camera.far, gl_FragCoord.z);
 
-	const float diff_depth = min(shader_z - current_z, 0) * 0.001;
-	const float translucent = smoothstep(0.0, 1, 8 * diff_depth * 0.00000001); // clamp(  (1 / 0.02) * diff_depth *2, 0, 1);
+	/*	*/
+	const float diff_depth = abs(shader_z - current_z); //, 0;
 
-	const vec4 bottomOceanColor = vec4(0.5373, 0.6353, 0.9529, 1.0);
-	const vec4 surfaceOceanColor = vec4(0.3804, 0.8706, 0.9922, 1.0);
+	const float blend_water_depth = 0.050; // ubo.shininess.x;
+	float translucent = clamp(diff_depth / blend_water_depth, 0, 1);
+	translucent = 1 - translucent;
+	translucent = translucent * translucent / (2 * (translucent * translucent - translucent) + 1);
 
-	const vec4 mixColor = mix(bottomOceanColor, surfaceOceanColor, translucent * 10);
+	/*	*/
+	const vec4 bottomOceanColor = vec4(0.2196, 0.2471, 0.2941, 1.0);
+	const vec4 surfaceOceanColor = vec4(0.8902, 0.9176, 1.0, 1.0);
 
-	fragColor = (lightColor + ubo.ambientColor) * mixColor;
-	// fragColor = vec4(1 - translucent);
+	const vec4 mixColor = mix(bottomOceanColor, surfaceOceanColor, 1 - translucent);
+
+	fragColor = (lightColor + ubo.ambientColor) * mixColor * texture(ReflectionTexture, reflection_uv);
 	fragColor.a = 1 - translucent;
 }

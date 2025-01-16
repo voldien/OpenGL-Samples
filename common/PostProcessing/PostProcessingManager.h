@@ -37,9 +37,8 @@ namespace glsample {
 		bool isEnabled(const size_t index) const noexcept;
 		void enablePostProcessing(const size_t index, const bool enabled);
 
-		/*TODO:	Add Swap supported*/
-
-		void render(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets);
+		void render(glsample::FrameBuffer *framebuffer,
+					const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets);
 
 	  protected:
 		// TODO: shared_pointer

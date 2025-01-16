@@ -26,9 +26,5 @@ void main() {
 
 	fragColor = textureLod(PanoramaTexture, uv, 0) * ubo.tintColor;
 
-	// fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
-	// const float gamma = ubo.gamma;
-	// fragColor = pow(fragColor, vec4(1.0 / gamma));
-
 	fragColor = fragColor * ubo.tintColor;
 }

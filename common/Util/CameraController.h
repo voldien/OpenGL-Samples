@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Node.h"
 #include "Util/Frustum.h"
 #include <SDL2/SDL_keyboard.h>
 #include <SDLInput.h>
@@ -27,7 +28,7 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class CameraController : public Frustum {
+	class CameraController : public Frustum, public Node {
 	  public:
 		~CameraController() override = default;
 

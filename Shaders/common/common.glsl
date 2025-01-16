@@ -46,7 +46,7 @@ struct FogSettings {
 };
 
 struct Frustum {
-	vec4 planes;
+	vec4 planes[6];
 };
 
 vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist) {
@@ -93,7 +93,6 @@ float getExpToLinear(const in float start, const in float end, const in float ex
 }
 
 float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
-
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
 
 vec3 equirectangular(const in vec2 xy) {
@@ -113,19 +112,6 @@ vec2 inverse_equirectangular(const in vec3 direction) {
 	uv += 0.5;
 	return uv;
 }
-
-vec3 fresnelSchlickRoughness(const in float cosTheta, const in vec3 F0, const in float roughness) {
-	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-
-vec3 FresnelSchlick(const in vec3 F0, const in vec3 V, const in vec3 N) {
-	const float cosTheta = max(dot(N, V), 0.0);
-	const float power = 5.0;
-	const float fresnel_ratio = pow(1.0 - cosTheta, power);
-	return mix(F0, vec3(1.0), fresnel_ratio);
-}
-
-vec3 FresnelSteinberg(const in vec3 F0, const in vec3 V, const in vec3 N) { return vec3(0); }
 
 /**
  *
@@ -240,6 +226,25 @@ vec3 ColorRamp_BSpline(in float T, vec4 A, in vec4 B, in vec4 C, in vec4 D) {
 	if (T < D.w)
 		return cC.xyz;
 	return cD.xyz;
+}
+
+float getGuas2D(const in float x, const in float y, const in float variance) {
+	const float inverse_2pi = (1.0 / sqrt(2.0 * PI));
+
+	return inverse_2pi * (1.0 / (variance)) * exp(-0.5 * (((x * x) + (y * y)) / (variance * variance)));
+}
+
+vec3 calcViewPosition(const in vec2 coords, const in mat4 inverseProj, const in float fragmentDepth) {
+	/*	Convert from screenspace to Normalize Device Coordinate.	*/
+	const vec4 ndc = vec4(coords.x * 2.0 - 1.0, coords.y * 2.0 - 1.0, fragmentDepth * 2.0 - 1.0, 1.0);
+
+	/*	Transform to view space using inverse camera projection matrix.	*/
+	vec4 vs_pos = inverseProj * ndc;
+
+	/*	*/
+	vs_pos.xyz = vs_pos.xyz / vs_pos.w;
+
+	return vs_pos.xyz;
 }
 
 #endif

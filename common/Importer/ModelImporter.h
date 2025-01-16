@@ -186,10 +186,10 @@ using TextureAssetObject = struct texture_asset_object_t {
 };
 
 using KeyFrame = struct key_frame_t {
-	float time;
-	float value;
-	float tangentIn;
-	float tangentOut;
+	float time;		  /*	*/
+	float value;	  /*	*/
+	float tangentIn;  /*	*/
+	float tangentOut; /*	*/
 };
 
 using Curve = struct curve_t : public AssetObject {
@@ -197,6 +197,7 @@ using Curve = struct curve_t : public AssetObject {
 };
 
 using AnimationObject = struct animation_object_t : public AssetObject {
+	std::map<std::string, Curve> curves__s;
 	std::vector<Curve> curves;
 	float duration;
 };
@@ -259,7 +260,6 @@ class FVDECLSPEC ModelImporter {
 	TextureAssetObject *initTexture(aiTexture *texture, unsigned int index);
 
 	AnimationObject *initAnimation(const aiAnimation *animation, unsigned int index);
-	void loadCurve(aiNodeAnim *curve, Curve *animationClip);
 	//
 
 	LightObject *initLight(const aiLight *light, unsigned int index);
@@ -287,13 +287,13 @@ class FVDECLSPEC ModelImporter {
 
 	const std::string &getDirectoryPath() const noexcept { return this->filepath; }
 
-	const glm::mat4 &globalTransform() const noexcept { return this->global; }
+	const glm::mat4 &globalTransform() const noexcept { return this->globalNodeTransform; }
 
   private:
-	fragcore::IFileSystem *fileSystem;
+	fragcore::IFileSystem *fileSystem = nullptr;
 
 	std::string filepath;
-	aiScene *sceneRef{};
+	const aiScene *sceneRef = nullptr;
 	std::vector<NodeObject *> nodes;
 	std::map<std::string, NodeObject *> nodeByName;
 
@@ -311,6 +311,6 @@ class FVDECLSPEC ModelImporter {
 
 	std::vector<LightObject> lights;
 
-	NodeObject *rootNode{};
-	glm::mat4 global{};
+	NodeObject *rootNode = nullptr;
+	glm::mat4 globalNodeTransform;
 };

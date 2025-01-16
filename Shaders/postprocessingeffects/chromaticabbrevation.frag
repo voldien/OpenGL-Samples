@@ -7,12 +7,11 @@ precision mediump float;
 precision mediump int;
 
 /*  */
-layout(location = 0) out vec4 fragColor;
-layout(location = 0) in vec2 uv;
+layout(location = 1) out vec4 fragColor;
+layout(location = 0) in vec2 screenUV;
 
 /*  */
 layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
-
 
 layout(push_constant) uniform Settings {
 	layout(offset = 0) float redOffset;
@@ -26,9 +25,9 @@ settings;
 
 void main() {
 
-	const vec2 direction = uv - settings.direction_center;
+	const vec2 direction = screenUV - settings.direction_center;
 
-	fragColor.r = texture(ColorTexture, uv + (direction * vec2(settings.redOffset))).r;
-	fragColor.g = texture(ColorTexture, uv + (direction * vec2(settings.greenOffset))).g;
-	fragColor.ba = texture(ColorTexture, uv + (direction * vec2(settings.blueOffset))).ba;
+	fragColor.r = texture(ColorTexture, screenUV + (direction * vec2(settings.redOffset))).r;
+	fragColor.g = texture(ColorTexture, screenUV + (direction * vec2(settings.greenOffset))).g;
+	fragColor.ba = texture(ColorTexture, screenUV + (direction * vec2(settings.blueOffset))).ba;
 }

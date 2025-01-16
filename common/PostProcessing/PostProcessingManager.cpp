@@ -18,17 +18,19 @@ void PostProcessingManager::enablePostProcessing(const size_t index, const bool 
 }
 
 void PostProcessingManager::render(
-	const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) { /*	*/
+	glsample::FrameBuffer *framebuffer,
+	const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) { /*	*/
 
 	/*	*/
 	for (size_t i = 0; i < this->getNrPostProcessing(); i++) {
 		if (this->isEnabled(i)) {
+			/*	*/
 			PostProcessing &postprocessing = getPostProcessing(i);
 
 			postprocessing.bind();
 
 			/*	Render.	*/
-			postprocessing.draw(render_targets);
+			postprocessing.draw(framebuffer, render_targets);
 		}
 	}
 }

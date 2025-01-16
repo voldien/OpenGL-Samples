@@ -2,6 +2,8 @@
 #include <GL/glew.h>
 #include <GLHelper.h>
 #include <ImageLoader.h>
+#include <cmath>
+#include <limits>
 #include <magic_enum.hpp>
 
 using namespace fragcore;
@@ -157,38 +159,44 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		}
 	}
 
+	const size_t power_of_2 = std::floor(std::log(Math::max(image.width(), image.height())) / std::log(2));
+	const size_t max_mipmap = Math::clamp<size_t>(power_of_2 - 4, 0, std::numeric_limits<size_t>::max());
+
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));
 
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));
 
-	/*	Offload with PBO buffer.	*/
+	/*	Offload with PBO buffer.	*/ // TODO: add support
 
-	/*	*/
+	/*	Alignment.	*/
 	FVALIDATE_GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
 	FVALIDATE_GL_CALL(glPixelStorei(GL_PACK_ALIGNMENT, 4));
 
-	/*	wrap and filter	*/
+	/*	wrap and filter.	*/
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT));
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT));
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_REPEAT));
 
-	/*	*/
+	/*	Filtering.	*/
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
+	/*	*/
 	FVALIDATE_GL_CALL(glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16));
 
+	/*	*/
 	const float border[4] = {1, 1, 1, 1};
 	FVALIDATE_GL_CALL(glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, &border[0]));
 
-	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MIN_LOD, 1));
-	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAX_LOD, 5));
+	/*	*/
+	FVALIDATE_GL_CALL(glTexParameterf(target, GL_TEXTURE_MIN_LOD, -1000));
+	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAX_LOD, 1000));
 
 	FVALIDATE_GL_CALL(glTexParameterf(target, GL_TEXTURE_LOD_BIAS, 0.0f));
 
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0));
 
-	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 5));
+	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, max_mipmap));
 
 	FVALIDATE_GL_CALL(
 		glTexImage2D(target, 0, internalformat, image.width(), image.height(), 0, format, type, image.getPixelData()));

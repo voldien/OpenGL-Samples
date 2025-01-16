@@ -1,0 +1,56 @@
+#version 460 core
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, rgba16f) uniform readonly image2D SourceTexture;
+layout(set = 0, binding = 1, rgba16f) uniform writeonly image2D TargetTexture;
+
+layout(push_constant) uniform Settings {
+	layout(offset = 0) int filterRadius;
+}
+settings;
+
+#include "common.glsl"
+
+void main() {
+
+	/*  */
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(TargetTexture)))) {
+		return;
+	}
+
+	const uvec2 downSampleCoordinate = gl_GlobalInvocationID.xy;
+	const uvec2 sourceSize = imageSize(SourceTexture);
+
+	const uvec2 SourceImageCoordinate = downSampleCoordinate * 2;
+
+	const uint x = settings.filterRadius;
+	const uint y = settings.filterRadius;
+
+	const vec3 a = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - 2 * x, SourceImageCoordinate.y + 2 * y)).rgb;
+	const vec3 b = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x, SourceImageCoordinate.y + 2 * y)).rgb;
+	const vec3 c = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + 2 * x, SourceImageCoordinate.y + 2 * y)).rgb;
+
+	const vec3 d = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - 2 * x, SourceImageCoordinate.y)).rgb;
+	const vec3 e = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x, SourceImageCoordinate.y)).rgb;
+	const vec3 f = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + 2 * x, SourceImageCoordinate.y)).rgb;
+
+	const vec3 g = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - 2 * x, SourceImageCoordinate.y - 2 * y)).rgb;
+	const vec3 h = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x, SourceImageCoordinate.y - 2 * y)).rgb;
+	const vec3 i = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + 2 * x, SourceImageCoordinate.y - 2 * y)).rgb;
+
+	const vec3 j = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - x, SourceImageCoordinate.y + y)).rgb;
+	const vec3 k = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + x, SourceImageCoordinate.y + y)).rgb;
+	const vec3 l = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - x, SourceImageCoordinate.y - y)).rgb;
+	const vec3 m = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + x, SourceImageCoordinate.y - y)).rgb;
+
+	vec3 downsample = e * 0.125;
+	downsample += (a + c + g + i) * 0.03125;
+	downsample += (b + d + f + h) * 0.0625;
+	downsample += (j + k + l + m) * 0.125;
+
+	/*	*/
+	imageStore(TargetTexture, ivec2(downSampleCoordinate), vec4(downsample, 1));
+}

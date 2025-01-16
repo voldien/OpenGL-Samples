@@ -30,21 +30,29 @@ namespace glsample {
 
 		virtual void bind() {};
 
-		virtual void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets);
+		virtual void draw(glsample::FrameBuffer *framebuffer,
+						  const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets);
 
 		float getIntensity() const noexcept;
 		void setItensity(const float intensity);
 
 		bool isBufferRequired(const GBuffer required_data_buffer) const noexcept;
 
+		/*	TODO: add ImGUI support one way or another.	*/
+
 	  protected:
 		void addRequireBuffer(const GBuffer required_data_buffer) noexcept;
 		void removeRequireBuffer(const GBuffer required_data_buffer) noexcept;
 
+		const unsigned int &getMappedBuffer(const GBuffer buffer_target) const noexcept;
+
 		int createVAO();
+
+		int createOverlayGraphicProgram(fragcore::IFileSystem *filesystem);
 
 	  protected:
 		std::vector<GBuffer> required_buffer;
+		std::map<GBuffer, const unsigned int *> mapped_buffer;
 		bool computeShaderSupported = true;
 		float intensity = 1;
 	};

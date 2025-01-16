@@ -65,7 +65,7 @@ namespace glsample {
 		}
 
 	  protected:
-		T &getRefSample() const { return this->base; }
+		T &getRefSample() const noexcept { return this->base; }
 
 	  private:
 		T &base;

@@ -6,7 +6,7 @@
 /*  */
 layout(location = 0) out vec4 fragColor;
 /*  */
-layout(location = 0) in vec2 uv;
+layout(location = 0) in vec2 screenUV;
 
 /*  */
 layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
@@ -26,7 +26,7 @@ ubo;
 
 void main() {
 
-	const vec3 direction = normalize(mat3(ubo.viewRotation) * vec3(2 * uv - 1, 1)); //(ubo.proj * ).xyz;
+	const vec3 direction = normalize(mat3(ubo.viewRotation) * vec3(2 * screenUV - 1, 1)); //(ubo.proj * ).xyz;
 
 	vec3 cr = normalize(cross(direction, vec3(0, -1, 0)));
 
@@ -36,11 +36,11 @@ void main() {
 	const vec2 irradiance_uv = inverse_equirectangular(direction);
 	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
 
-	const float depth = texture(DepthTexture, uv).r;
+	const float depth = texture(DepthTexture, screenUV).r;
 
 	const float fogFactor = getFogFactor(ubo.fogSettings, depth);
 
-	fragColor.rgb = mix(texture(ColorTexture, uv).rgb, irradiance_color.rgb * ubo.fogSettings.fogColor.rgb, clamp(fogFactor * aat, 0, 1));
+	fragColor.rgb = mix(texture(ColorTexture, screenUV).rgb, irradiance_color.rgb * ubo.fogSettings.fogColor.rgb, clamp(fogFactor * aat, 0, 1));
 	// fragColor.rgb = vec3(aat); // direction;
 	fragColor.a = 1;
 }

@@ -13,7 +13,7 @@ layout(location = 0) in flat int GIndex[];
 
 layout(location = 0) out vec4 FragVertex;
 
-layout(constant_id = 0) const float NRFaces = 6;
+layout(constant_id = 8) const float NRFaces = 6;
 
 #include "pbr_common.glsl"
 

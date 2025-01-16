@@ -1,4 +1,5 @@
 #include "GLUIComponent.h"
+#include "SampleHelper.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -39,8 +40,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection{};
 
 			/*	light source.	*/
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-			glm::vec4 lightColor = glm::vec4(0.5f, 0.5f, 0.6f, 1.0f);
+			DirectionalLight directional;
 
 			/*	Material color.	*/
 			glm::vec4 ambientColor = glm::vec4(0.05, 0.05, 0.05, 1.0f);
@@ -87,9 +87,9 @@ namespace glsample {
 				: GLUIComponent(sample, "SkinnedMesh"), uniform(this->getRefSample().uniformStageBuffer) {}
 			void draw() override {
 				ImGui::TextUnformatted("Light Settings");
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+				ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
+				ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
 
 				ImGui::TextUnformatted("Material Settings");
 				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],

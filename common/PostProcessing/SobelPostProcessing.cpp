@@ -1,4 +1,5 @@
 #include "SobelPostProcessing.h"
+#include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include <IOUtil.h>
@@ -35,35 +36,40 @@ void SobelProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	}
 
 	glUseProgram(this->sobel_program);
+	glGetProgramiv(this->sobel_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 
 	glUniform1i(glGetUniformLocation(this->sobel_program, "ColorTexture"), 0);
+	glUniform1i(glGetUniformLocation(this->sobel_program, "TargetTexture"), 1);
 
 	glUseProgram(0);
 }
 
-void SobelProcessing::draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) {
-	unsigned int texture = std::get<1>(*render_targets.begin());
-	this->render(texture);
+void SobelProcessing::draw(
+	glsample::FrameBuffer *framebuffer,
+	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+	PostProcessing::draw(framebuffer, render_targets);
+
+	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color),
+				 this->getMappedBuffer(GBuffer::IntermediateTarget));
 }
 
-void SobelProcessing::render(unsigned int texture) {
+void SobelProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int source_texture,
+							 unsigned int target_texture) {
+
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	GLint width = 0;
 	GLint height = 0;
 
-	glBindTexture(GL_TEXTURE_2D, texture);
+	glBindTexture(GL_TEXTURE_2D, source_texture);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
-	GLint localWorkGroupSize[3];
-
 	glUseProgram(this->sobel_program);
 
-	glGetProgramiv(this->sobel_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
-
 	/*	The image where the graphic version will be stored as.	*/
-	glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(0, source_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+	glBindImageTexture(1, target_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]);
 	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]);
@@ -75,4 +81,9 @@ void SobelProcessing::render(unsigned int texture) {
 	glUseProgram(0);
 
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	/*	Swap buffers.	(ping pong)	*/
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
+	std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
 }

@@ -43,7 +43,7 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(0.7, 0.7, 1, 1);
 			glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
-			glm::vec4 ambientColor = glm::vec4(0.3, 0.3, 0.3, 1);
+			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1);
 			glm::vec4 viewDir;
 
 			float shininess = 8;

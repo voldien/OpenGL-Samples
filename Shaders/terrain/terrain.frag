@@ -31,7 +31,7 @@ void main() {
 	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
 
 	//
-	fragColor = (lightColor + ubo.ambientColor * irradiance_color);
+	fragColor = (lightColor + ubo.ambientColor * irradiance_color) * ubo.diffuseColor;
 	fragColor = blendFog(fragColor, ubo.fogSettings);
 	fragColor.a = 1;
 	// fragColor = vec4(normal, 1);

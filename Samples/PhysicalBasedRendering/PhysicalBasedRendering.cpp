@@ -160,7 +160,7 @@ namespace glsample {
 			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "Normal"), 1);
 			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "AmbientOcclusion"), 2);
 			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "HightMap"), 3);
-			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "Irradiance"), 4);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"), 4);
 			glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
@@ -176,7 +176,7 @@ namespace glsample {
 			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "Normal"), 1);
 			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "AmbientOcclusion"), 2);
 			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "HightMap"), 3);
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "Irradiance"), 4);
+			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "IrradianceTexture"), 4);
 			glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			uniform_buffer_index =

@@ -22,8 +22,11 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int &irrad
 									const unsigned int height) {
 
 	glGenTextures(1, &irradiance_target);
+
 	glBindTexture(GL_TEXTURE_2D, irradiance_target);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+
+	/*	*/
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -31,7 +34,9 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int &irrad
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+
 	glBindTexture(GL_TEXTURE_2D, 0);
+
 	ProcessData::computeIrradiance(env_source, irradiance_target);
 }
 

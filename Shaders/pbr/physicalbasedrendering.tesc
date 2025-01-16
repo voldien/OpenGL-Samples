@@ -83,9 +83,9 @@ void main() {
 	CalcPositions();
 
 	/*	Calculate the distance from the camera to the three control points	*/
-	float EyeToVertexDistance0 = distance(ubo.camera.gEyeWorldPos.xyz, (ubo.view * vec4(oPatch.WorldPos_B030, 1)).xyz);
-	float EyeToVertexDistance1 = distance(ubo.camera.gEyeWorldPos.xyz, (ubo.view * vec4(oPatch.WorldPos_B021, 1)).xyz);
-	float EyeToVertexDistance2 = distance(ubo.camera.gEyeWorldPos.xyz, (ubo.view * vec4(oPatch.WorldPos_B201, 1)).xyz);
+	float EyeToVertexDistance0 = 0;// distance(ubo.camera.gEyeWorldPos.xyz, (ubo.view * vec4(oPatch.WorldPos_B030, 1)).xyz);
+	float EyeToVertexDistance1 = 0;// distance(ubo.camera.gEyeWorldPos.xyz, (ubo.view * vec4(oPatch.WorldPos_B021, 1)).xyz);
+	float EyeToVertexDistance2 = 0;// distance(ubo.camera.gEyeWorldPos.xyz, (ubo.view * vec4(oPatch.WorldPos_B201, 1)).xyz);
 
 	/*	Calculate the tessellation levels	*/
 	gl_TessLevelOuter[0] = GetTessLevel(EyeToVertexDistance1, EyeToVertexDistance2) * ubo.tessellation.tessLevel;

@@ -24,7 +24,7 @@ layout(push_constant) uniform Settings {
 settings;
 
 #include "postprocessing_base.glsl"
-layout(constant_id = 16) const int MAX_SAMPLES = 10;
+layout(constant_id = 16) const int MAX_SAMPLES = 11;
 
 // const T exp_inverse = (static_cast<T>(1.0) / (static_cast<T>(2.0) * standard_deviation * standard_deviation));
 // const T sqr_2_pi_inverse = 1.0 / (standard_deviation * static_cast<T>(std::sqrt(2 * Math::PI)));
@@ -33,9 +33,9 @@ layout(constant_id = 16) const int MAX_SAMPLES = 10;
 // const T exponent = exp_inverse * -(exp_num_sqrt * exp_num_sqrt);
 // const T value = sqr_2_pi_inverse * std::exp(exponent);
 
-float getGuas2D(const in float x, const in float y, const in float variance) {
-	return (1.0 / (2 * PI * variance * variance)) * pow(E_CONSTANT, -0.5 * ((x * x) + (y * y)) / (variance * variance));
-}
+const uint work_group_nr_samples = (16 + (MAX_SAMPLES - 1) / 2) * (16 + (MAX_SAMPLES - 1) / 2);
+shared vec4 localResult[work_group_nr_samples];
+shared vec4 localResult2[work_group_nr_samples];
 
 vec4 blurHorizontal(const in float radius, const in float variance, const in int samples) {
 	int y;
@@ -95,21 +95,34 @@ void main() {
 		return;
 	}
 
+	/*	Cache data to shared.	.	*/
+	{
+		const int samples = settings.samples;
+		const int start = clamp(-((samples - 1) / 2), -MAX_SAMPLES, -1);
+		const int end = clamp(((samples - 1) / 2), 1, MAX_SAMPLES);
+		for (int x = start; x <= end; x++) {
+		}
+	}
+	memoryBarrierShared();
+
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
-	/*	*/
+	/*	Vertical Blur.	*/
 	{
 
 		const vec4 verticalBlur = blurVertical(settings.radius, settings.variance, settings.samples);
 
 		memoryBarrierImage();
 
+		localResult2[gl_LocalInvocationIndex] = verticalBlur;
+		memoryBarrierShared();
+
 		imageStore(ColorTexture, TexCoord, vec4(verticalBlur.rgb, 1.0));
 
 		memoryBarrierImage();
 	}
 
-	/*	*/
+	/*	Horizontal Blur.	*/
 	{
 
 		const vec4 blurHorizontalBlur = blurHorizontal(settings.radius, settings.variance, settings.samples);

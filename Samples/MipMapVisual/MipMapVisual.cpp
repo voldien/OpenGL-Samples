@@ -93,9 +93,11 @@ namespace glsample {
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				/*	*/
 				for (size_t i = 0; i < mip_colors.size(); i++) {
+					ImGui::PushID(i);
 					ImGui::Text("Color Mipmap %zu", i);
 					ImGui::ColorEdit3("Color", (float *)&mip_colors[i],
 									  ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+					ImGui::PopID();
 				}
 			}
 

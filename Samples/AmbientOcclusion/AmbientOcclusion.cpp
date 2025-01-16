@@ -281,7 +281,7 @@ namespace glsample {
 
 			/*	Setup graphic program.	*/
 			glUseProgram(this->texture_program);
-			glUniform1i(glGetUniformLocation(this->texture_program, "diffuse"), 0);
+			glUniform1i(glGetUniformLocation(this->texture_program, "ColorTexture"), 0);
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/

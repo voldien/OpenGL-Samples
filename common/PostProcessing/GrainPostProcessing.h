@@ -26,7 +26,9 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override;
+		void
+		draw(glsample::FrameBuffer *framebuffer,
+			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
 	  public:
 		void convert(unsigned int texture);
@@ -34,5 +36,12 @@ namespace glsample {
 	  private:
 		int grain_program = -1;
 		unsigned int vao = 0;
+
+		using GrainSettings = struct alignas(16) grain_settings_t {
+			float time;
+			float intensity;
+			float speed;
+		};
+		GrainSettings grainSettings;
 	};
 } // namespace glsample

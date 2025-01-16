@@ -50,14 +50,14 @@ ModelImporter::ModelImporter(ModelImporter &&other)
 	: filepath(other.filepath), nodes(other.nodes), models(other.models), materials(other.materials),
 	  textures(other.textures), textureMapping(other.textureMapping), textureIndexMapping(other.textureIndexMapping),
 	  skeletons(other.skeletons), animations(other.animations), vertexBoneData(other.vertexBoneData),
-	  rootNode(other.rootNode), global(other.global) {
+	  rootNode(other.rootNode), globalNodeTransform(other.globalNodeTransform) {
 	this->fileSystem = std::exchange(other.fileSystem, nullptr);
 }
 
 ModelImporter &ModelImporter::operator=(ModelImporter &&other) {
 	this->fileSystem = std::exchange(other.fileSystem, nullptr);
 
-	this->global = other.global;
+	this->globalNodeTransform = other.globalNodeTransform;
 	this->rootNode = other.rootNode;
 	this->filepath = other.filepath;
 
@@ -77,7 +77,7 @@ ModelImporter &ModelImporter::operator=(ModelImporter &&other) {
 class CustomProgress : public Assimp::ProgressHandler {
   public:
 	bool Update(float percentage = -1.f) override {
-		std::cout << "\33[2K\r" << "Loading Model: " << percentage * 100 << "/100" << std::flush;
+		std::cout << "\33[2K\r" << "Loading Model: " << percentage * 100.0f << "/100" << std::flush;
 		return true;
 	}
 };
@@ -91,26 +91,16 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	importer.SetProgressHandler(new CustomProgress());
 
 	/*	*/
-	const aiScene *pScene =
-		importer.ReadFile(path.c_str(), aiProcessPreset_TargetRealtime_Quality | aiProcess_GenBoundingBoxes |
-											aiProcess_PopulateArmatureData);
+	this->sceneRef = importer.ReadFile(path.c_str(), aiProcessPreset_TargetRealtime_Quality |
+														 aiProcess_GenBoundingBoxes | aiProcess_PopulateArmatureData);
 
-	if (pScene == nullptr) {
+	if (this->sceneRef == nullptr) {
 		throw RuntimeException("Failed to load file: {} - Error: {}", path, importer.GetErrorString());
 	}
 
-	/*	*/
-	this->sceneRef = (aiScene *)pScene;
+	this->globalNodeTransform = aiMatrix4x4ToGlm(&this->sceneRef->mRootNode->mTransformation);
 
-	if (pScene) {
-
-		this->global = aiMatrix4x4ToGlm(&pScene->mRootNode->mTransformation);
-
-		this->initScene(pScene);
-
-	} else {
-		throw RuntimeException("Failed to load model: {}", path);
-	}
+	this->initScene(this->sceneRef);
 }
 
 void ModelImporter::clear() noexcept {
@@ -126,6 +116,8 @@ void ModelImporter::clear() noexcept {
 	this->materials.clear();
 	this->textures.clear();
 	this->animations.clear();
+	this->lights.clear();
+	this->skeletons.clear();
 }
 
 void ModelImporter::initScene(const aiScene *scene) {
@@ -211,6 +203,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 		if (scene->HasCameras()) {
 			for (unsigned int x = 0; x < scene->mNumCameras; x++) {
+				/*	*/
 			}
 		}
 	});
@@ -241,13 +234,13 @@ void ModelImporter::initScene(const aiScene *scene) {
 	}
 }
 
-void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
+void ModelImporter::initNoodeRoot(const aiNode *ai_node, NodeObject *parent) {
 	size_t gameObjectCount = 0;
 	size_t meshCount = 0;
 
 	/*	iterate through each child of parent node.	*/
-	for (size_t node_index = 0; node_index < node->mNumChildren; node_index++) {
-		aiNode *child_node = node->mChildren[node_index];
+	for (size_t node_index = 0; node_index < ai_node->mNumChildren; node_index++) {
+		aiNode *child_node = ai_node->mChildren[node_index];
 
 		unsigned int meshCount = 0;
 		aiVector3D position, scale;
@@ -263,11 +256,10 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 			pobject->parent = nullptr;
 		}
 
-		// TODO, resolve relative to world transform model matrix.
 		pobject->localPosition = glm::vec3(position.x, position.y, position.z);
 		pobject->localRotation = glm::quat(rotation.w, rotation.x, rotation.y, rotation.z);
 		pobject->localScale = glm::vec3(scale.x, scale.y, scale.z);
-
+		/*	*/
 		pobject->modelLocalTransform = aiMatrix4x4ToGlm(&child_node->mTransformation);
 
 		if (parent) {
@@ -276,25 +268,24 @@ void ModelImporter::initNoodeRoot(const aiNode *node, NodeObject *parent) {
 			pobject->modelGlobalTransform = this->globalTransform() * pobject->modelLocalTransform;
 		}
 
-		pobject->name = node->mChildren[node_index]->mName.C_Str();
+		pobject->name = ai_node->mChildren[node_index]->mName.C_Str();
 
 		/*	*/
-		if (node->mChildren[node_index]->mMeshes) {
+		if (ai_node->mChildren[node_index]->mMeshes) {
 
 			/*	*/
-			for (size_t y = 0; y < child_node->mNumMeshes; y++) {
+			for (unsigned int mesh_index = 0; mesh_index < child_node->mNumMeshes; mesh_index++) {
 
 				/*	Get material for mesh object.	*/
 				const MaterialObject &materialRef =
 					getMaterials()[this->sceneRef->mMeshes[*child_node->mMeshes]->mMaterialIndex];
 
 				/*	*/
-				const int meshIndex = child_node->mMeshes[y];
+				const int meshIndex = child_node->mMeshes[mesh_index];
 				pobject->materialIndex.push_back(this->sceneRef->mMeshes[meshIndex]->mMaterialIndex);
 
 				pobject->geometryObjectIndex.push_back(meshIndex);
 
-				// TODO: compute max volume.*
 				pobject->bound = this->models[meshIndex].bound;
 			}
 		}
@@ -354,16 +345,18 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 	/*	*/
 	const size_t vertexSize = sizeof(float) * 3;
-	const size_t uvSize = nrUVs * sizeof(float) * 2;
+	const size_t uvSize = nrUVs * (sizeof(float) * 2);
 	const size_t normalSize = sizeof(float) * 3;
 	const size_t tangentSize = sizeof(float) * 3;
+	const size_t boneIDSize = sizeof(unsigned int);
+	const size_t boneWeightSize = sizeof(float);
 
 	/*	*/
 	const size_t boneWeightCount = 4;
 	size_t boneByteSize = 0;
 	size_t bonecount = 0;
 	if (aimesh->HasBones()) {
-		boneByteSize = sizeof(float) * boneWeightCount + sizeof(unsigned int) * boneWeightCount;
+		boneByteSize = boneIDSize * boneWeightCount + boneWeightSize * boneWeightCount;
 		bonecount = boneWeightCount;
 	}
 
@@ -372,9 +365,6 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	const uint floatStride = StrideSize / sizeof(float);
 
 	const size_t indicesSize = 4;
-
-	// TODO: add
-	aimesh->HasTextureCoords(0);
 
 	/*	*/
 	float *vertices = (float *)malloc(aimesh->mNumVertices * StrideSize);
@@ -398,12 +388,11 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 			const aiVector3D *Tangent = aimesh->mTangents ? &(aimesh->mTangents[x]) : nullptr;
 
 			/*	Vertex position.	*/
-
 			*pVertex++ = Pos->x;
 			*pVertex++ = Pos->y;
 			*pVertex++ = Pos->z;
 
-			/*	*/
+			/*	UV coordinates.	*/
 			if (aimesh->GetNumUVChannels() > 0) {
 				for (unsigned int uv_index = 0; uv_index < aimesh->GetNumUVChannels(); uv_index++) {
 					if (aimesh->HasTextureCoords(uv_index)) {
@@ -416,7 +405,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 				*pVertex++ = 0;
 			}
 
-			/*	*/
+			/*	Normals.	*/
 			if (aimesh->HasNormals()) {
 				pNormal->Normalize();
 				*pVertex++ = pNormal->x;
@@ -442,6 +431,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 			if (aimesh->GetNumColorChannels() > 0) {
 				for (unsigned int color_index = 0; color_index < aimesh->GetNumColorChannels(); color_index++) {
+					aimesh->mColors[color_index][x];
 				}
 			}
 
@@ -469,8 +459,9 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	/*	Load bones.	*/
 	if (aimesh->HasBones()) {
 
+		/*	*/
 		pmesh->boneIndexOffset = (vertexSize + uvSize + normalSize + tangentSize);
-		pmesh->boneWeightOffset = (vertexSize + uvSize + normalSize + tangentSize + bonecount * sizeof(unsigned int));
+		pmesh->boneWeightOffset = (vertexSize + uvSize + normalSize + tangentSize + bonecount * boneIDSize);
 
 		const uint BoneStrideOffset = (pmesh->boneIndexOffset / sizeof(float));
 
@@ -503,6 +494,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		}
 	}
 
+	/*	Primitive Indices.	*/
 	size_t nrFaces = 0;
 	if (aimesh->HasFaces()) {
 
@@ -566,6 +558,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		}
 	}
 
+	/*	*/
 	pmesh->indicesData = Indice;
 	pmesh->indicesStride = indicesSize;
 	pmesh->nrIndices = nrFaces;
@@ -678,12 +671,16 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 				case aiTextureType::aiTextureType_LIGHTMAP:
 					break;
 				case aiTextureType::aiTextureType_REFLECTION:
+					material->reflectionIndex = texIndex;
 					break;
 				case aiTextureType::aiTextureType_BASE_COLOR: /*	PBR.	*/
+					material->diffuseIndex = texIndex;
 					break;
 				case aiTextureType::aiTextureType_NORMAL_CAMERA:
+					material->normalIndex = texIndex;
 					break;
 				case aiTextureType::aiTextureType_EMISSION_COLOR:
+					material->emissionIndex = texIndex;
 					break;
 				case aiTextureType::aiTextureType_METALNESS:
 					break;
@@ -702,66 +699,66 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 	} /**/
 
 	/*	Assign shader attributes.	*/
+	{
+		if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material->ambient = color;
+		}
+		if (ref_material->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material->diffuse = color;
+		}
+		if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material->emission = color;
+		}
+		if (ref_material->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material->specular = color;
+		}
+		if (ref_material->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material->transparent = color;
+		}
+		if (ref_material->Get(AI_MATKEY_REFLECTIVITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material->reflectivity = color;
+		}
+		if (ref_material->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
+			material->shinininessStrength = shininessStrength;
+		}
 
-	/*	Color.	*/
-	if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
-		material->ambient = color;
-	}
-	if (ref_material->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
-		material->diffuse = color;
-	}
-	if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
-		material->emission = color;
-	}
-	if (ref_material->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
-		material->specular = color;
-	}
-	if (ref_material->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
-		material->transparent = color;
-	}
-	if (ref_material->Get(AI_MATKEY_REFLECTIVITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
-		material->reflectivity = color;
-	}
-	if (ref_material->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
-		material->shinininessStrength = shininessStrength;
-	}
+		float tmp = NAN;
+		if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
+			//	material->shinininessStrength = tmp;
+		}
+		if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
+			//	material->shinininessStrength = tmp;
+		}
+		if (ref_material->Get(AI_MATKEY_SHININESS, tmp) == aiReturn::aiReturn_SUCCESS) {
+			//	material->shinininessStrength = tmp;
+		}
+		if (ref_material->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+			//	material->shinininessStrength = tmp;
+		}
+		if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+			material->opacity = tmp;
+		}
 
-	float tmp = NAN;
-	if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
-		//	material->shinininessStrength = tmp;
-	}
-	if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
-		//	material->shinininessStrength = tmp;
-	}
-	if (ref_material->Get(AI_MATKEY_SHININESS, tmp) == aiReturn::aiReturn_SUCCESS) {
-		//	material->shinininessStrength = tmp;
-	}
-	if (ref_material->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
-		//	material->shinininessStrength = tmp;
-	}
-	if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
-		material->opacity = tmp;
-	}
+		aiBlendMode blendfunc;
+		if (ref_material->Get(AI_MATKEY_BLEND_FUNC, blendfunc) == aiReturn::aiReturn_SUCCESS) {
+			material->blend_func_mode = blendfunc;
+		}
 
-	aiBlendMode blendfunc;
-	if (ref_material->Get(AI_MATKEY_BLEND_FUNC, blendfunc) == aiReturn::aiReturn_SUCCESS) {
-		material->blend_func_mode = blendfunc;
-	}
+		int twosided = 0;
+		if (ref_material->Get(AI_MATKEY_TWOSIDED, twosided) == aiReturn::aiReturn_SUCCESS) {
+			material->culling_both_side_mode = twosided;
+		}
 
-	int twosided = 0;
-	if (ref_material->Get(AI_MATKEY_TWOSIDED, twosided) == aiReturn::aiReturn_SUCCESS) {
-		material->culling_both_side_mode = twosided;
-	}
+		aiShadingMode model;
+		if (ref_material->Get(AI_MATKEY_SHADING_MODEL, model) == aiReturn::aiReturn_SUCCESS) {
+			material->shade_model = model;
+		}
+		//_AI_MATKEY_TEXFLAGS_BASE
 
-	aiShadingMode model;
-	if (ref_material->Get(AI_MATKEY_SHADING_MODEL, model) == aiReturn::aiReturn_SUCCESS) {
-		material->shade_model = model;
-	}
-	//_AI_MATKEY_TEXFLAGS_BASE
-
-	int use_wireframe = 0;
-	if (ref_material->Get(AI_MATKEY_ENABLE_WIREFRAME, use_wireframe) == aiReturn::aiReturn_SUCCESS) {
-		material->wireframe_mode = use_wireframe;
+		int use_wireframe = 0;
+		if (ref_material->Get(AI_MATKEY_ENABLE_WIREFRAME, use_wireframe) == aiReturn::aiReturn_SUCCESS) {
+			material->wireframe_mode = use_wireframe;
+		}
 	}
 
 	return material;
@@ -871,7 +868,13 @@ AnimationObject *ModelImporter::initAnimation(const aiAnimation *pAnimation, uns
 		}
 	}
 
-	/*	*/
+	/*	Mesh.	*/
+	for (unsigned int i = 0; i < pAnimation->mNumMeshChannels; i++) {
+	}
+
+	/*	Morph.	*/
+	for (unsigned int i = 0; i < pAnimation->mNumMorphMeshChannels; i++) {
+	}
 
 	this->animations.push_back(animation_clip);
 
@@ -882,6 +885,7 @@ LightObject *ModelImporter::initLight(const aiLight *light, unsigned int index) 
 	LightObject *lightOb = &this->lights[index];
 
 	lightOb->name = light->mName.C_Str();
+
 	lightOb->position = glm::vec3(light->mPosition.x, light->mPosition.y, light->mPosition.z);
 	lightOb->direction = glm::vec3(light->mDirection.x, light->mDirection.y, light->mDirection.z);
 	lightOb->mUp = glm::vec3(light->mUp.x, light->mUp.y, light->mUp.z);
@@ -889,49 +893,6 @@ LightObject *ModelImporter::initLight(const aiLight *light, unsigned int index) 
 	lightOb->mColorDiffuse = glm::vec4(light->mColorDiffuse.r, light->mColorDiffuse.g, light->mColorDiffuse.b, 1);
 
 	return lightOb;
-}
-
-void ModelImporter::loadCurve(aiNodeAnim *nodeAnimation, Curve *curve) {
-
-	if (nodeAnimation->mNumPositionKeys <= 0) {
-		return;
-	}
-
-	// nodeAnimation->mNodeName
-
-	// curve->addCurve(VDCurve(position->mNumPositionKeys));
-	// curve->addCurve(VDCurve(position->mNumPositionKeys));
-	// curve->addCurve(VDCurve(position->mNumPositionKeys));
-	//
-	// curve->getCurve(curve->getNumCurves() - 3).setCurveFlag(VDCurve::eTransformPosX);
-	// curve->getCurve(curve->getNumCurves() - 2).setCurveFlag(VDCurve::eTransformPosY);
-	// animationClip->getCurve(animationClip->getNumCurves() - 1).setCurveFlag(VDCurve::eTransformPosZ);
-	//
-	// animationClip->getCurve(animationClip->getNumCurves() - 3).setName(position->mNodeName.data);
-	// animationClip->getCurve(animationClip->getNumCurves() - 2).setName(position->mNodeName.data);
-	// animationClip->getCurve(animationClip->getNumCurves() - 1).setName(position->mNodeName.data);
-	//
-	// for (unsigned int x = 0; x < position->mNumPositionKeys; x++) {
-	//	// curve Position X
-	//	animationClip->getCurve(animationClip->getNumCurves() - 3)
-	//		.getKey(x)
-	//		.setValue(position->mPositionKeys[x].mValue.x);
-	//	animationClip->getCurve(animationClip->getNumCurves() -
-	// 3).getKey(x).setTime(position->mPositionKeys[x].mTime);
-	//
-	//	// curve Position Y
-	//	animationClip->getCurve(animationClip->getNumCurves() - 2)
-	//		.getKey(x)
-	//		.setValue(position->mPositionKeys[x].mValue.y);
-	//	animationClip->getCurve(animationClip->getNumCurves() -
-	// 2).getKey(x).setTime(position->mPositionKeys[x].mTime);
-	//	// curve Position Z
-	//	animationClip->getCurve(animationClip->getNumCurves() - 1)
-	//		.getKey(x)
-	//		.setValue(position->mPositionKeys[x].mValue.z);
-	//	animationClip->getCurve(animationClip->getNumCurves() -
-	// 1).getKey(x).setTime(position->mPositionKeys[x].mTime);
-	//}
 }
 
 TextureAssetObject *ModelImporter::initTexture(aiTexture *texture, unsigned int index) {
@@ -987,6 +948,8 @@ std::vector<MaterialObject *> ModelImporter::getMaterials(const size_t texture_i
 		if (getMaterials()[i].specularIndex == (int)texture_index) {
 			found = true;
 		}
+		//TODO: add more
+
 		/*	*/
 		if (found) {
 			ref_materials.push_back(&this->materials[i]);

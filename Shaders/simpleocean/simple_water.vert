@@ -33,7 +33,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 viewProjection;
 	mat4 modelViewProjection;
 
-	// TODO: replace later.
 	Camera camera;
 
 	Terrain terrain;

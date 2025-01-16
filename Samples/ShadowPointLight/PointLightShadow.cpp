@@ -56,7 +56,7 @@ namespace glsample {
 			glm::vec4 direction = glm::vec4(1.0f / std::sqrt(2.0f), -1.0f / std::sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
 			glm::vec4 lightPosition{};
 
 			PointLight pointLights[nrPointLights];

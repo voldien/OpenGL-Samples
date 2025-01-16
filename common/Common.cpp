@@ -177,7 +177,7 @@ void Common::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachme
 
 	glGenTextures(nrAttachments, framebuffer->attachments.data());
 	glGenTextures(1, &framebuffer->depthbuffer);
-	framebuffer->usedAttachments = nrAttachments;
+	framebuffer->nrAttachments = nrAttachments;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -185,7 +185,7 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 							   const fragcore::TextureDesc &depthstencil) {
 
 	unsigned int attachment_index = 0;
-	std::array<GLenum, 8> attachments_mapping;
+	std::array<GLenum, 16> attachments_mapping;
 	for (auto it = desc.begin(); it != desc.end(); it++) {
 		const fragcore::TextureDesc &target_desc = *(it);
 
@@ -205,7 +205,10 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 		}
 
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer->framebuffer);
+
+		// TODO: verify if texture
 		glBindTexture(texture_type, framebuffer->attachments[attachment_index]);
+
 		if (multisamples > 0) {
 			glTexImage2DMultisample(texture_type, multisamples, internal_format, width, height, GL_TRUE);
 		} else {
@@ -219,12 +222,13 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 
 		if (multisamples == 0) {
 
-			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 			/*	Border clamped to max value, it makes the outside area.	*/
-			glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, GL_MIRROR_CLAMP_TO_EDGE);
+			glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, GL_MIRROR_CLAMP_TO_EDGE);
+			glTexParameteri(texture_type, GL_TEXTURE_WRAP_R, GL_MIRROR_CLAMP_TO_EDGE);
 
 			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0));
 
@@ -235,22 +239,23 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 
 		glBindTexture(texture_type, 0);
 
+		const GLenum attachment = GL_COLOR_ATTACHMENT0 + attachment_index;
 		if (depth == 1) {
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture_type,
-								   framebuffer->attachments[attachment_index], 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, texture_type, framebuffer->attachments[attachment_index],
+								   0);
 		} else {
 			// TODO: add a
-			glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, framebuffer->attachments[attachment_index],
-									  0, 0);
+			glFramebufferTextureLayer(GL_FRAMEBUFFER, attachment, framebuffer->attachments[attachment_index], 0, 0);
 		}
 
-		attachments_mapping[attachment_index] = GL_COLOR_ATTACHMENT0 + attachment_index;
+		attachments_mapping[attachment_index] = attachment;
 
 		attachment_index++;
 	}
 
-	glDrawBuffers(framebuffer->usedAttachments, attachments_mapping.data());
+	glDrawBuffers(framebuffer->nrAttachments, attachments_mapping.data());
 
+	/*	Depth/stencil buffer.	*/
 	{
 
 		const unsigned int multisamples = depthstencil.nrSamples;

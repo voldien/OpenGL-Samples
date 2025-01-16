@@ -16,6 +16,7 @@
 #pragma once
 #include "GLSampleSession.h"
 #include "Math3D/Color.h"
+#include "Node.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 #include <initializer_list>

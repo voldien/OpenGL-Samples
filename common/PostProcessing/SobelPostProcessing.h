@@ -25,11 +25,13 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override;
+		void draw(glsample::FrameBuffer *framebuffer,
+				  const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) override;
 
-		void render(unsigned int texture);
+		void render(glsample::FrameBuffer *framebuffer, unsigned int source_texture, unsigned int target_texture);
 
 	  private:
 		int sobel_program = -1;
+		int localWorkGroupSize[3];
 	};
 } // namespace glsample

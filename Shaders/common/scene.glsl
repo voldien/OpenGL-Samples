@@ -1,4 +1,5 @@
 #include "common.glsl"
+#include "light.glsl"
 #include "material.glsl"
 
 struct common_data {

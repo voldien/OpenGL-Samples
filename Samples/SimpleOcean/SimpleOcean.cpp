@@ -65,7 +65,7 @@ namespace glsample {
 			/*	Material	*/
 			glm::vec4 oceanColor = glm::vec4(0.4, 0.65, 1, 1);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
 			float shininess = 8;
 			float fresnelPower = 1.333f;
 		};
@@ -251,10 +251,10 @@ namespace glsample {
 			/*	*/
 			ProcessData util(this->getFileSystem());
 			util.computeIrradiance(this->reflection_texture, this->irradiance_texture, 256, 128);
-
 			/*	*/
 			this->color_texture = Common::createColorTexture(1, 1, Color(0, 1, 0, 1));
 
+			/*	*/
 			this->mistprocessing.initialize(this->getFileSystem());
 
 			/*	Align uniform buffer in respect to driver requirement.	*/

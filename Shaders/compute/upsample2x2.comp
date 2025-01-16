@@ -1,0 +1,59 @@
+#version 460 core
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D SourceTexture;
+layout(set = 0, binding = 1, rgba16f) uniform restrict writeonly image2D TargetTexture;
+
+layout(push_constant) uniform Settings {
+	layout(offset = 0) int upscale;
+	layout(offset = 4) int filterRadius;
+	layout(offset = 8) uvec2 finalSize;
+}
+settings;
+
+#include "common.glsl"
+
+void main() {
+
+	/*  */
+	// TODO: prevent from getting outside valid region
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(TargetTexture) ))) {
+		return;
+	}
+
+	const uvec2 upsampleCoordinate = gl_GlobalInvocationID.xy;
+
+	const vec2 sourceSizeInverse = 1.0 / textureSize(SourceTexture, 0);
+
+	const float x = sourceSizeInverse.x * settings.filterRadius * 0.5;
+	const float y = sourceSizeInverse.y * settings.filterRadius * 0.5;
+	const vec2 texCoord = upsampleCoordinate * sourceSizeInverse * 0.5;
+
+	vec3 a = texture(SourceTexture, vec2(texCoord.x - 2 * x, texCoord.y + 2 * y)).rgb;
+	vec3 b = texture(SourceTexture, vec2(texCoord.x, texCoord.y + 2 * y)).rgb;
+	vec3 c = texture(SourceTexture, vec2(texCoord.x + 2 * x, texCoord.y + 2 * y)).rgb;
+
+	vec3 d = texture(SourceTexture, vec2(texCoord.x - 2 * x, texCoord.y)).rgb;
+	vec3 e = texture(SourceTexture, vec2(texCoord.x, texCoord.y)).rgb;
+	vec3 f = texture(SourceTexture, vec2(texCoord.x + 2 * x, texCoord.y)).rgb;
+
+	vec3 g = texture(SourceTexture, vec2(texCoord.x - 2 * x, texCoord.y - 2 * y)).rgb;
+	vec3 h = texture(SourceTexture, vec2(texCoord.x, texCoord.y - 2 * y)).rgb;
+	vec3 i = texture(SourceTexture, vec2(texCoord.x + 2 * x, texCoord.y - 2 * y)).rgb;
+
+	vec3 j = texture(SourceTexture, vec2(texCoord.x - x, texCoord.y + y)).rgb;
+	vec3 k = texture(SourceTexture, vec2(texCoord.x + x, texCoord.y + y)).rgb;
+	vec3 l = texture(SourceTexture, vec2(texCoord.x - x, texCoord.y - y)).rgb;
+	vec3 m = texture(SourceTexture, vec2(texCoord.x + x, texCoord.y - y)).rgb;
+
+	vec3 upsample = e * 4.0;
+	upsample += (b + d + f + h) * 2.0;
+	upsample += (a + c + g + i);
+
+	upsample *= 1.0 / 16.0;
+
+	imageStore(TargetTexture, ivec2(upsampleCoordinate), vec4(upsample, 1));
+}

@@ -2,15 +2,17 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
 layout(location = 0) out float fragColor;
 
-layout(location = 0) in vec2 uv;
+layout(location = 0) in vec2 screenUV;
 
-layout(binding = 1) uniform sampler2D WorldTexture;
 layout(binding = 2) uniform sampler2D DepthTexture;
-layout(binding = 3) uniform sampler2D NormalTexture;
 layout(binding = 4) uniform sampler2D NormalRandomize;
+
+#include "common.glsl"
 
 layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 proj;
@@ -25,50 +27,42 @@ layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-float getExpToLinear(const in float start, const in float end, const in float expValue) {
-	return ((2.0 * start) / (end + start - expValue * (end - start)));
-}
-
 vec3 calcViewPosition(vec2 coords) {
-	float fragmentDepth = texture(DepthTexture, coords).r;
+	const float fragmentDepth = texture(DepthTexture, coords).r;
 
-	vec4 ndc = vec4(coords.x * 2.0 - 1.0, coords.y * 2.0 - 1.0, fragmentDepth * 2.0 - 1.0, 1.0);
-
-	vec4 vs_pos = ndc; // u_projection_inverse * ndc;
-
-	vs_pos.xyz = vs_pos.xyz / vs_pos.w;
-
-	return vs_pos.xyz;
+	return calcViewPosition(coords, inverse(ubo.proj), fragmentDepth);
 }
 
 void main() {
+	const vec3 viewPos = calcViewPosition(screenUV);
 
+	/*	*/
 	const vec2 noiseScale = ubo.screen / vec2(textureSize(NormalRandomize, 0).xy);
 
 	/*	*/
-	const vec3 srcPosition = texture(WorldTexture, uv).xyz;
-	// vec3 viewNormal = cross(dFdy(viewPos.xyz), dFdx(viewPos.xyz));
+	vec3 viewNormal = cross(dFdy(viewPos.xyz), dFdx(viewPos.xyz));
+	viewNormal = normalize(viewNormal * -1.0);
 
-	const vec3 srcNormal = texture(NormalTexture, uv).rgb;
-	const vec3 randVec = texture(NormalRandomize, uv * (ubo.screen / 3.0)).xyz;
+	// we calculate a random offset using the noise texture sample.
+	// This will be applied as rotation to all samples for our current fragments.
+	vec3 randomVec = texture(NormalRandomize, screenUV * noiseScale).xyz;
 
-	/*	*/
-	const vec3 tangent = normalize(randVec - srcNormal * dot(randVec, srcNormal));
-	const vec3 bitangent = cross(srcNormal, tangent);
-	const mat3 TBN = mat3(tangent, bitangent, srcNormal);
+	// here we apply the Gramm-Schmidt process to calculate the TBN matrix
+	// with a random offset applied.
+	vec3 tangent = normalize(randomVec - viewNormal * dot(randomVec, viewNormal));
+	vec3 bitangent = cross(viewNormal, tangent);
+	mat3 TBN = mat3(tangent, bitangent, viewNormal);
 
-	/*	*/
-	vec3 samplePos = calcViewPosition(uv);
+	float occlusion_factor = 0.0;
 
-	/*	*/
-	const float kernelRadius = ubo.radius;
 	const int samples = clamp(ubo.samples, 1, 64);
 
-	float occlusion = 0.0;
+	for (uint i = 0; i < samples; i++) {
 
-	for (uint i = 0; i < ubo.samples; i++) {
-		/*	from tangent to view-space */
-		const vec3 sampleWorldDir = TBN * ubo.kernel[i].xyz;
+		vec3 samplePos = TBN * ubo.kernel[i].xyz;
+
+		// here we calculate the sampling point position in view space.
+		samplePos = viewPos + samplePos * ubo.radius;
 
 		/*	From view to clip-space.	*/
 		vec4 offset = vec4(samplePos, 1.0);
@@ -76,15 +70,20 @@ void main() {
 		offset.xyz /= offset.w;				 // perspective divide
 		offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
 
-		float sampleDepth = calcViewPosition(offset.xy).z;
+		// this is the geometry's depth i.e. the view_space_geometry_depth
+		// this value is negative in my coordinate system
+		float geometryDepth = calcViewPosition(offset.xy).z;
 
-		/*	*/
-		const float rangeCheck = smoothstep(0.0, 1.0, kernelRadius / abs(srcPosition.z - sampleDepth));
-
-		occlusion += ((sampleDepth >= srcPosition.z + ubo.bias ? 1.0 : 0.0) * rangeCheck);
+		float rangeCheck = smoothstep(0.0, 1.0, ubo.radius / abs(viewPos.z - geometryDepth));
+		occlusion_factor += float(geometryDepth >= samplePos.z + + ubo.bias) * rangeCheck;
 	}
 
-	/* Average and clamp ambient occlusion	*/
-	occlusion = 1.0 - (occlusion / float(samples)) * ubo.intensity;
-	fragColor = occlusion;
+	// we will devide the accmulated occlusion by the number of samples to get the average occlusion value.
+	float average_occlusion_factor = occlusion_factor / samples;
+
+	float visibility_factor = 1.0 - average_occlusion_factor;
+
+	visibility_factor = pow(visibility_factor, 2.0);
+
+	fragColor = visibility_factor;
 }

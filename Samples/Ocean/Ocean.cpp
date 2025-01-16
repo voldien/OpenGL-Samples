@@ -59,7 +59,7 @@ namespace glsample {
 			/*light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0);
 			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientColor = glm::vec4(0.4);
+			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1);
 
 			float width{}, height{};
 			float speed{};
@@ -306,7 +306,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->skybox_panoramic_texture);
 
 				/*	Bind reflective material.	*/
-				glActiveTexture(GL_TEXTURE0 + 11);//TODO:fix
+				glActiveTexture(GL_TEXTURE0 + 11); // TODO:fix
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				/*	Draw triangle.	*/
@@ -333,8 +333,6 @@ namespace glsample {
 
 			/*	Render Skybox.	*/
 			this->skybox.Render(this->camera);
-
-
 		}
 
 		void update() override {

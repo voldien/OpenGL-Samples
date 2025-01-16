@@ -18,8 +18,11 @@ layout(binding = 0) uniform sampler2D DiffuseTexture;
 layout(binding = 1) uniform sampler2D NormalTexture;
 
 void main() {
+
+	/*	Compute normal.	*/
+
 	/*	Compute directional light	*/
-	const vec4 lightColor = computeLightContributionFactor(ubo.direction.xyz, FragIN_normal) * ubo.lightColor;
+	const vec4 lightColor = computeLightContributionFactor(ubo.directional.direction.xyz, FragIN_normal) * ubo.directional.lightColor;
 
 	/*	*/
 	fragColor = texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor);

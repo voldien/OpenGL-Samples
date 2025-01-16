@@ -55,10 +55,11 @@ void main() {
 	transform[1][1] = scale;
 	transform[2][2] = scale;
 
-	uint pindex = gl_GlobalInvocationID.x;
+	const uint pindex = gl_GlobalInvocationID.x;
 	if (gl_GlobalInvocationID.x == 0) {
 		instances.instanceCount = 0;
 	}
+
 	barrier(); // Wait till all threads reach this point
 
 	// TOOD: improve

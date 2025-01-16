@@ -16,10 +16,11 @@ layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec4 lightSpace;
 
 layout(binding = 9) uniform sampler2DShadow ShadowTexture;
-layout(binding = 10) uniform sampler2D Irradiance;
 
 #include "common.glsl"
 #include "scene.glsl"
+
+#include "phongblinn.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -28,11 +29,14 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 modelViewProjection;
 	mat4 lightSpaceMatrix;
+
 	/*	Light source.	*/
-	vec4 direction;
-	vec4 lightColor;
+	DirectionalLight directional;
+	Camera camera;
+
 	vec4 ambientColor;
-	vec3 cameraPosition;
+	vec4 diffuseColor;
+	vec4 specularColor;
 
 	float bias;
 	float shadowStrength;
@@ -47,7 +51,7 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 	// transform to [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
 
-	const float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(ubo.direction).xyz)), ubo.bias);
+	const float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(ubo.directional.direction).xyz)), ubo.bias);
 	projCoords.z *= (1 - bias);
 
 	float shadow = textureProj(ShadowTexture, projCoords, 0).r;
@@ -64,25 +68,19 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 
 void main() {
 
-	vec3 viewDir = normalize(ubo.cameraPosition.xyz - vertex);
+	vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
 
-	vec3 halfwayDir = normalize(ubo.direction.xyz + viewDir);
-	float spec = pow(max(dot(normalize(normal), halfwayDir), 0.0), 8);
-
-	float shadow = max(ubo.shadowStrength - ShadowCalculation(lightSpace), 0);
-
-	float contriubtion = max(0.0, dot(-normalize(ubo.direction.xyz), normalize(normal)));
-
+	const float shadow = max(ubo.shadowStrength - ShadowCalculation(lightSpace), 0);
 	/*	*/
-	// vec4 lightColor =
-	// 	computeBlinnDirectional(ubo.directional, alteredNormal, ubo.camera.viewDir.xyz, ubo.shininess.r, vec3(1));
+	vec4 lightColor =
+		computeBlinnDirectional(ubo.directional, normal, viewDir, ubo.specularColor.a, ubo.specularColor.rgb);
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
-	const vec4 irradiance_color = texture(Irradiance, irradiance_uv).rgba;
+	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
 
-	const vec4 color = texture(DiffuseTexture, UV);
-	const vec4 lighting = (ubo.ambientColor * irradiance_color + (ubo.lightColor * contriubtion + spec) * shadow);
+	const vec4 color = texture(DiffuseTexture, UV) * ubo.diffuseColor;
+	const vec4 lighting = (ubo.ambientColor * irradiance_color + lightColor * shadow);
 
 	fragColor = vec4(lighting.rgb, 1) * color;
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;

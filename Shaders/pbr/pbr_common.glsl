@@ -1,3 +1,7 @@
+#include"light.glsl"
+#include"common.glsl"
+#include"pbr.glsl"
+
 struct point_light {
 	vec3 position;
 	float range;
@@ -19,13 +23,8 @@ struct light_settings {
 	vec4 direction;
 	vec4 lightColor;
 	point_light point_light[4];
-	float gamma;
-	float exposure;
 };
 
-struct camera_settings {
-	vec4 gEyeWorldPos;
-};
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -38,7 +37,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	light_settings lightsettings;
 	tessellation_settings tessellation;
 	/*	Camera settings.	*/
-	camera_settings camera;
+	Camera camera;
 }
 ubo;
 
@@ -56,5 +55,3 @@ struct OutputPatch {
 	vec3 Normal[3];
 	vec2 TexCoord[3];
 };
-
-const float PI = 3.14159265359;

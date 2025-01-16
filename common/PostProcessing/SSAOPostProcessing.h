@@ -27,22 +27,30 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) override;
+		void
+		draw(glsample::FrameBuffer *framebuffer,
+			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
 	  public:
 		void convert(unsigned int texture);
 
 	  private:
-		int guassian_blur_compute_program = -1;
+		int ssao_depth_only_program = -1;
+		int ssao_depth_world_program = -1;
+		int overlay_program = -1;
+		int downsample_compute_program = -1;
+
+		int uniform_ssao_buffer_binding = 0;
 
 		/*	*/
 		float variance;
 		int samples;
 		float radius;
 		static const int maxKernels = 64;
+
 		struct UniformSSAOBufferBlock {
 			glm::mat4 proj{};
-			
+
 			/*	*/
 			int samples = 64;
 			float radius = 2.5f;
@@ -56,8 +64,13 @@ namespace glsample {
 			CameraInstance camera;
 
 		} uniformStageBlockSSAO;
+
+		size_t uniformSSAOBufferAlignSize = sizeof(UniformSSAOBufferBlock);
+		unsigned int uniform_ssao_buffer = 0;
 		/*	Random direction texture.	*/
-		unsigned int random_texture{};
+		unsigned int random_texture = 0;
+		unsigned int white_texture = 0;
+		unsigned int vao = 0;
 
 		// int localWorkGroupSize[3];
 	};

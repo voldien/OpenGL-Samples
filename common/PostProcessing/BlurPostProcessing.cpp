@@ -1,11 +1,16 @@
 #include "BlurPostProcessing.h"
+#include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include <IOUtil.h>
 
 using namespace glsample;
 
-BlurPostProcessing::BlurPostProcessing() { this->setName("Blur"); }
+BlurPostProcessing::BlurPostProcessing() {
+	this->setName("Blur");
+	this->addRequireBuffer(GBuffer::Color);
+	this->addRequireBuffer(GBuffer::IntermediateTarget);
+}
 
 BlurPostProcessing::~BlurPostProcessing() {
 	if (this->guassian_blur_compute_program >= 0) {
@@ -35,28 +40,16 @@ void BlurPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glGetProgramiv(this->guassian_blur_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 
 	glUniform1i(glGetUniformLocation(this->guassian_blur_compute_program, "ColorTexture"), 0);
+	glUniform1i(glGetUniformLocation(this->guassian_blur_compute_program, "TargetTexture"), 1);
 
 	glUseProgram(0);
-
-	// glGenVertexArrays(1, &this->vao);
 }
 
-void BlurPostProcessing::draw(const std::initializer_list<std::tuple<GBuffer, unsigned int>> &render_targets) {
-	unsigned int texture = std::get<1>(*render_targets.begin());
-
-	/*	*/ // TODO: relocate
-	for (const auto *it = render_targets.begin(); it != render_targets.end(); it++) {
-		GBuffer target = std::get<0>(*it);
-		unsigned int texture = std::get<1>(*it);
-		if (glBindTextureUnit) {
-			glBindTextureUnit(static_cast<unsigned int>(target), texture);
-		} else {
-			glActiveTexture(GL_TEXTURE0 + static_cast<unsigned int>(target));
-			glBindTexture(GL_TEXTURE_2D, texture);
-		}
-	}
-
-	this->convert(texture);
+void BlurPostProcessing::draw(
+	glsample::FrameBuffer *framebuffer,
+	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+	PostProcessing::draw(framebuffer, render_targets);
+	this->convert(this->getMappedBuffer(GBuffer::Color));
 }
 
 void BlurPostProcessing::convert(unsigned int texture) {

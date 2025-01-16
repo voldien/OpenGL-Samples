@@ -44,7 +44,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection{};
 
 			/*	*/
-			glm::vec4 ambientColor = glm::vec4(0.4, 0.4, 0.4, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 viewPos = glm::vec4(0);
 

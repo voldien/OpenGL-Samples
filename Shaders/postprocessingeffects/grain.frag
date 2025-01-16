@@ -6,10 +6,10 @@
 
 /*  */
 layout(location = 0) out vec4 fragColor;
+layout(location = 0) in vec2 screenUV;
+
 /*  */
-layout(location = 0) in vec2 uv;
-/*  */
-layout(set = 0, binding = 1) uniform sampler2D ColorTexture;
+layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
 
 layout(push_constant) uniform Settings {
 	layout(offset = 0) float time;
@@ -23,7 +23,7 @@ settings;
 void main() {
 
 	/*  */
-	const float noise_value = simple_rand(uv * settings.time) * settings.intensity;
+	const float noise_value = simple_rand(screenUV * settings.time) * settings.intensity;
 
-	fragColor = texture(ColorTexture, uv) + noise_value;
+	fragColor = texture(ColorTexture, screenUV) + noise_value;
 }

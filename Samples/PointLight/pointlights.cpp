@@ -44,7 +44,7 @@ namespace glsample {
 			/*	Material.	*/
 			glm::vec4 ambientColor = glm::vec4(0.075f, 0.075f, 0.075f, 1.0f);
 
-			PointLightSource pointLights[nrPointLights]{};
+			PointLightSource pointLights[nrPointLights] = {};
 		} uniformStageBuffer;
 
 		/*	*/

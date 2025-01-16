@@ -89,7 +89,10 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	/*	*/
 	const cxxopts::ParseResult &getResult() noexcept { return this->parseResult; }
-	void setCommandResult(cxxopts::ParseResult &result) noexcept { this->parseResult = result; this->internalInit(); }
+	void setCommandResult(cxxopts::ParseResult &result) noexcept {
+		this->parseResult = result;
+		this->internalInit();
+	}
 
 	fragcore::SDLInput &getInput() noexcept { return this->input; }
 	const fragcore::SDLInput &getInput() const noexcept { return this->input; }
@@ -126,7 +129,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
   protected:
 	void displayMenuBar() override;
-	void renderUI() override; // TODO: rename
+	void renderUI() override;
 
 	void internalInit();
 
@@ -145,13 +148,13 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	size_t frameBufferIndex = 0;
 	size_t frameBufferCount = 0;
 	unsigned int queries[10];
-	fragcore::IFileSystem *filesystem;	/*	*/
+	fragcore::IFileSystem *filesystem; /*	*/
 
 	int preWidth = -1;
 	int preHeight = -1;
 
 	glsample::FrameBuffer *defaultFramebuffer = nullptr;
-	glsample::FrameBuffer* MMSAFrameBuffer = nullptr;
+	glsample::FrameBuffer *MMSAFrameBuffer = nullptr;
 
   protected:
 	spdlog::logger *logger;

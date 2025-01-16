@@ -10,9 +10,13 @@
 #include "PostProcessing/ChromaticAbberationPostProcessing.h"
 #include "PostProcessing/ColorGradePostProcessing.h"
 #include "PostProcessing/ColorSpaceConverter.h"
+#include "PostProcessing/DepthOfFieldPostProcessing.h"
 #include "PostProcessing/GrainPostProcessing.h"
+#include "PostProcessing/MistPostProcessing.h"
 #include "PostProcessing/PostProcessing.h"
 #include "PostProcessing/PostProcessingManager.h"
+#include "PostProcessing/SSAOPostProcessing.h"
+#include "PostProcessing/SSSPostProcessing.h"
 #include "PostProcessing/SobelPostProcessing.h"
 
 #include "SDL_scancode.h"
@@ -138,7 +142,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		/*	Display All Framebuffer textures.	*/
 		const glsample::FrameBuffer *framebuffer = this->getRefSample().getFrameBuffer();
 		if (ImGui::CollapsingHeader("FrameBuffer Texture Targets") && framebuffer) {
-			for (size_t attach_index = 0; attach_index < framebuffer->usedAttachments; attach_index++) {
+			for (size_t attach_index = 0; attach_index < framebuffer->nrAttachments; attach_index++) {
 				ImGui::Image(static_cast<ImTextureID>(framebuffer->attachments[attach_index]), ImVec2(256, 256),
 							 ImVec2(1, 1), ImVec2(0, 0));
 			}
@@ -211,7 +215,10 @@ GLSampleWindow::~GLSampleWindow() {
 }
 
 void GLSampleWindow::internalInit() {
+
 	if (this->colorSpace == nullptr) {
+
+		// TODO: add try catch.
 		this->colorSpace = new ColorSpaceConverter();
 		this->colorSpace->initialize(getFileSystem());
 
@@ -240,9 +247,24 @@ void GLSampleWindow::internalInit() {
 		GrainPostProcessing *grain = new GrainPostProcessing();
 		grain->initialize(getFileSystem());
 		this->postprocessingManager->addPostProcessing(*grain);
+
+		SSAOPostProcessing *ssao = new SSAOPostProcessing();
+		ssao->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*ssao);
+
+		DepthOfFieldProcessing *depthOfField = new DepthOfFieldProcessing();
+		depthOfField->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*depthOfField);
+
+		MistPostProcessing *mistFog = new MistPostProcessing();
+		mistFog->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*mistFog);
+
+		SSSPostProcessing *sss = new SSSPostProcessing();
+		sss->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*sss);
 	}
 
-	// TODO: relocate to init
 	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
 	const bool useFBO = true;
 	if (this->MMSAFrameBuffer == nullptr && multi_sample_count > 0) {
@@ -255,7 +277,7 @@ void GLSampleWindow::internalInit() {
 		/*	*/
 		this->defaultFramebuffer = new glsample::FrameBuffer();
 		memset(defaultFramebuffer, 0, sizeof(*this->defaultFramebuffer));
-		Common::createFrameBuffer(defaultFramebuffer, 1);
+		Common::createFrameBuffer(defaultFramebuffer, 2);
 	}
 	if (getDefaultFramebuffer() > 0) {
 		/*	*/
@@ -320,8 +342,10 @@ void GLSampleWindow::renderUI() {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
 
 			this->postprocessingManager->render(
+				this->defaultFramebuffer,
 				{std::make_tuple(GBuffer::Albedo, this->defaultFramebuffer->attachments[0]),
-				 std::make_tuple(GBuffer::Depth, this->defaultFramebuffer->depthbuffer)});
+				 std::make_tuple(GBuffer::Depth, this->defaultFramebuffer->depthbuffer),
+				 std::make_tuple(GBuffer::IntermediateTarget, this->defaultFramebuffer->attachments[1])});
 		}
 
 		/*	Transfer last result to the default OpenGL Framebuffer.	*/
@@ -585,12 +609,19 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 	if (this->defaultFramebuffer != nullptr) {
 		Common::updateFrameBuffer(this->defaultFramebuffer,
 								  {{
-									  .width = this->width(),
-									  .height = this->height(),
-									  .depth = 1,
-									  .nrSamples = 0,
+									   .width = this->width(),
+									   .height = this->height(),
+									   .depth = 1,
+									   .nrSamples = 0,
 
-								  }},
+								   },
+								   {
+									   .width = this->width(),
+									   .height = this->height(),
+									   .depth = 1,
+									   .nrSamples = 0,
+
+								   }},
 								  {
 									  .width = this->width(),
 									  .height = this->height(),

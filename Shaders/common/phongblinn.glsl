@@ -3,11 +3,13 @@
 #include "light.glsl"
 
 vec4 computeBlinnDirectional(const in DirectionalLight light, const in vec3 normal, const in vec3 viewDir,
-						  const in float shininess, const in vec3 specularColor) {
+							 const in float shininess, const in vec3 specularColor) {
 
 	/*  Blinn	*/
-	const vec3 halfwayDir = normalize(normalize(light.direction.xyz) + viewDir);
-	const float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+	const vec3 halfwayDir = normalize(-normalize(light.direction.xyz) + viewDir);
+
+	const float normal_halfway_contr = max(dot(normal, halfwayDir), 0.0);
+	const float spec = pow(normal_halfway_contr, shininess);
 	const float contribution = computeLightContributionFactor(normalize(light.direction.xyz), normal);
 
 	vec4 pointLightSpecular;
@@ -21,6 +23,7 @@ vec4 computePhongDirectional(const in DirectionalLight light, const in vec3 norm
 
 	/*	*/
 	const vec3 reflectDir = reflect(-normalize(light.direction.xyz), normal);
+
 	const float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 	const float contribution = computeLightContributionFactor(normalize(light.direction.xyz), normal);
 

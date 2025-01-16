@@ -12,3 +12,4 @@ layout(location = 0) in vec4 FragIN_weight;
 #include "skinnedmesh_common.glsl"
 
 void main() { fragColor = FragIN_weight; }
+

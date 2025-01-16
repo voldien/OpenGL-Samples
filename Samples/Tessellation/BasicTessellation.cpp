@@ -38,7 +38,7 @@ namespace glsample {
 			/*	light source.	*/
 			DirectionalLight directional;
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientColor = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f);
+			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1);
 			glm::vec4 shininess = glm::vec4(8, 0, 0, 0);
 
 			/*	Tessellation settings.	*/
@@ -237,7 +237,7 @@ namespace glsample {
 					glPatchParameteri(GL_PATCH_VERTICES, 3);
 					glDrawElements(GL_PATCHES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 				}
 
 				glBindVertexArray(0);
