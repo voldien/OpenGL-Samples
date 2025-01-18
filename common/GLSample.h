@@ -61,26 +61,29 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 		/*	Default common options between all samples.	*/
 		cxxopts::Options options("OpenGL Sample: " + fragcore::SystemInfo::getApplicationName(), helperInfo);
-		cxxopts::OptionAdder &addr = options.add_options(fragcore::SystemInfo::getApplicationName())(
-			"h,help", "helper information.")("d,debug", "Enable Debug View.",
-											 cxxopts::value<bool>()->default_value("true"))( // TODO: default to debug during development and false during release
-			"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
-			"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
-			"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
-			"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
-			"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."))(
-			"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"))(
-			"G,gamma-correction", "Enable Gamma Correction", cxxopts::value<bool>()->default_value("false"))(
-			"W,width", "Set Window Width", cxxopts::value<int>()->default_value("-1"))(
-			"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"))(
-			"D,display", "Display", cxxopts::value<int>()->default_value("-1"))(
-			"m,multi-sample", "Set MSAA", cxxopts::value<int>()->default_value("0"))(
-			"p,use-postprocessing", "Use Post Processing", cxxopts::value<bool>()->default_value("true"));
+		cxxopts::OptionAdder &addr =
+			options.add_options(fragcore::SystemInfo::getApplicationName())("h,help", "helper information.")(
+				"d,debug", "Enable Debug View.",
+				cxxopts::value<bool>()->default_value(
+					"true"))( // TODO: default to debug during development and false during release
+				"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
+				"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
+				"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
+				"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
+				"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."))(
+				"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"))(
+				"G,gamma-correction", "Enable Gamma Correction", cxxopts::value<bool>()->default_value("false"))(
+				"W,width", "Set Window Width", cxxopts::value<int>()->default_value("-1"))(
+				"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"))(
+				"D,display", "Display", cxxopts::value<int>()->default_value("-1"))(
+				"m,multi-sample", "Set MSAA", cxxopts::value<int>()->default_value("0"))(
+				"p,use-postprocessing", "Use Post Processing", cxxopts::value<bool>()->default_value("true"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);
 
 		/*	Parse the command line input.	*/
+		options.allow_unrecognised_options();
 		auto result = options.parse(argc, (char **&)argv);
 
 		/*	If mention help, Display help and exit!	*/

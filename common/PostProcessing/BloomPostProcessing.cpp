@@ -7,11 +7,19 @@
 
 using namespace glsample;
 
-BloomPostProcessing::BloomPostProcessing() { this->setName("Bloom"); }
+BloomPostProcessing::BloomPostProcessing() {
+	this->setName("Bloom");
+	this->addRequireBuffer(GBuffer::Color);
+	this->addRequireBuffer(GBuffer::IntermediateTarget);
+	this->addRequireBuffer(GBuffer::IntermediateTarget2);
+}
 
 BloomPostProcessing::~BloomPostProcessing() {
 	if (this->bloom_blur_graphic_program >= 0) {
 		glDeleteProgram(this->bloom_blur_graphic_program);
+	}
+	if (glIsSampler(this->texture_sampler)) {
+		glDeleteSamplers(1, &this->texture_sampler);
 	}
 }
 
@@ -25,8 +33,7 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	if (this->bloom_blur_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary =
-			IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
+		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
 		const std::vector<uint32_t> guassian_blur_compute_binary =
 			IOUtil::readFileData<uint32_t>(bloom_frag_path, filesystem);
 
@@ -88,11 +95,18 @@ void BloomPostProcessing::draw(
 	this->convert(framebuffer, this->getMappedBuffer(GBuffer::Color));
 }
 
-void BloomPostProcessing::convert(FrameBuffer *framebuffer, unsigned int texture) {
+void BloomPostProcessing::convert(FrameBuffer *framebuffer, unsigned int color_texture) {
+
+	unsigned int intermediate0 = this->getMappedBuffer(GBuffer::IntermediateTarget);
+	unsigned int intermediate1 = this->getMappedBuffer(GBuffer::IntermediateTarget2);
+
+	unsigned int readTexture = color_texture;
+	unsigned int targetTexture = intermediate0;
 
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-	glBindSampler(0, this->texture_sampler);
+	glBindSampler((int)GBuffer::Albedo, this->texture_sampler);
+
 	{
 		GLint width = 0;
 		GLint height = 0;
@@ -104,23 +118,31 @@ void BloomPostProcessing::convert(FrameBuffer *framebuffer, unsigned int texture
 		size_t nr_down_samples = 6;
 
 		glUseProgram(this->downsample_compute_program);
+
 		for (size_t i = 0; i < nr_down_samples; i++) {
 
 			glUniform1i(glGetUniformLocation(this->downsample_compute_program, "settings.filterRadius"), 1);
 
+			/*	*/
+			if (i == 1) {
+				readTexture = intermediate0;
+				targetTexture = intermediate1;
+			}
 			/*	The image where the graphic version will be stored as.	*/
-			// glActiveTexture(GL_TEXTURE0);
-			// glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[i % 2]);
-			glBindImageTexture(0, framebuffer->attachments[i % 2], 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-			glBindImageTexture(1, framebuffer->attachments[(i + 1) % 2], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			// TODO: add support for sampler instead of image
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, readTexture);
+			glBindImageTexture(0, readTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+			glBindImageTexture(1, targetTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 			const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]) / (1 << (i + 1));
 			const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]) / (1 << (i + 1));
 
 			if (WorkGroupX > 0 && WorkGroupY > 0) {
-
 				glDispatchCompute(WorkGroupX, WorkGroupY, 1);
 			}
+
+			std::swap(readTexture, targetTexture);
 		}
 
 		/*	*/
@@ -131,8 +153,8 @@ void BloomPostProcessing::convert(FrameBuffer *framebuffer, unsigned int texture
 
 			/*	The image where the graphic version will be stored as.	*/
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[i % 2]);
-			glBindImageTexture(1, framebuffer->attachments[(i + 1) % 2], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			glBindTexture(GL_TEXTURE_2D, readTexture);
+			glBindImageTexture(1, targetTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 			const unsigned int WorkGroupX =
 				std::ceil(width / (float)localWorkGroupSize[0]) / (1 << (nr_down_samples - i - 1));
@@ -143,35 +165,36 @@ void BloomPostProcessing::convert(FrameBuffer *framebuffer, unsigned int texture
 
 				glDispatchCompute(WorkGroupX, WorkGroupY, 1);
 			}
+
+			std::swap(readTexture, targetTexture);
 		}
 
-	glBindSampler(0, 0);
+		glBindSampler(0, 0);
 	}
 
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 	{
-		glBindVertexArray(this->vao);
+
 		glUseProgram(this->overlay_program);
 
+		/*	*/
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[0]);
+		glBindTexture(GL_TEXTURE_2D, readTexture);
+
+		/*	*/
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
 
 		/*	Draw overlay.	*/
 		glEnable(GL_BLEND);
 		glBlendEquation(GL_FUNC_ADD);
-		glBlendFunc(GL_ONE, GL_DST_COLOR);
+		glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
 
+		glBindVertexArray(this->vao);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-		glUseProgram(0);
-
 		glBindVertexArray(0);
 
-		return;
-
-		/*	Swap buffers.	(ping pong)	*/
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
-		/*	*/
-		std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
+		glUseProgram(0);
 	}
 }

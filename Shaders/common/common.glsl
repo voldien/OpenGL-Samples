@@ -247,4 +247,8 @@ vec3 calcViewPosition(const in vec2 coords, const in mat4 inverseProj, const in 
 	return vs_pos.xyz;
 }
 
+vec2 pixelate_screenUV(const in vec2 screenUV, const in float pixel_size, const in vec2 aspect_ratio) {
+	return floor(screenUV * pixel_size * aspect_ratio) / (pixel_size * aspect_ratio);
+}
+
 #endif

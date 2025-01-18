@@ -24,14 +24,7 @@ layout(push_constant) uniform Settings {
 settings;
 
 #include "postprocessing_base.glsl"
-layout(constant_id = 16) const int MAX_SAMPLES = 11;
-
-// const T exp_inverse = (static_cast<T>(1.0) / (static_cast<T>(2.0) * standard_deviation * standard_deviation));
-// const T sqr_2_pi_inverse = 1.0 / (standard_deviation * static_cast<T>(std::sqrt(2 * Math::PI)));
-// const T exp_num_sqrt = (i - theta + offset);
-
-// const T exponent = exp_inverse * -(exp_num_sqrt * exp_num_sqrt);
-// const T value = sqr_2_pi_inverse * std::exp(exponent);
+layout(constant_id = 16) const int MAX_SAMPLES = 15;
 
 const uint work_group_nr_samples = (16 + (MAX_SAMPLES - 1) / 2) * (16 + (MAX_SAMPLES - 1) / 2);
 shared vec4 localResult[work_group_nr_samples];
@@ -114,6 +107,7 @@ void main() {
 
 		memoryBarrierImage();
 
+		/*	Save result to the local shared.	*/
 		localResult2[gl_LocalInvocationIndex] = verticalBlur;
 		memoryBarrierShared();
 

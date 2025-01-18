@@ -120,15 +120,22 @@ namespace glsample {
 
 	void Scene::updateBuffers() {
 		size_t index = 0;
+		/*	*/
 		for (const NodeObject *node : this->renderQueue) {
 			this->stageNodeData[index++].model = node->modelGlobalTransform;
 		}
 		glBindBuffer(GL_UNIFORM_BUFFER, this->node_and_common_uniform_buffer);
-		glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, index * sizeof(NodeData));		// TODO: fix offset
+
+		glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, index * sizeof(NodeData)); // TODO: fix offset
+		/*	*/
 		glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(CommonConstantData) * 3); // TODO: fix offset
 	}
 
-	void Scene::render(Camera<float> *camera) {}
+	void Scene::render(Camera<float> *camera) {
+		this->stageCommonBuffer->camera = *camera;
+		/*	*/
+		this->stageCommonBuffer->proj[0] = camera->getProjectionMatrix();
+	}
 
 	void Scene::render() {
 

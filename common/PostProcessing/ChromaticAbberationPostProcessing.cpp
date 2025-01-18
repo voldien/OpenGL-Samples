@@ -3,6 +3,7 @@
 #include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
+#include "imgui.h"
 #include <IOUtil.h>
 
 using namespace glsample;
@@ -43,7 +44,7 @@ void ChromaticAbberationPostProcessing::initialize(fragcore::IFileSystem *filesy
 
 	glUniform1i(glGetUniformLocation(this->chromatic_abberation_graphic_program, "ColorTexture"), 0);
 	glBindFragDataLocation(this->chromatic_abberation_graphic_program, 1, "fragColor");
-	
+
 	glUseProgram(0);
 
 	this->vao = createVAO();
@@ -51,7 +52,7 @@ void ChromaticAbberationPostProcessing::initialize(fragcore::IFileSystem *filesy
 
 void ChromaticAbberationPostProcessing::draw(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) {
+	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
 	this->convert(framebuffer, this->getMappedBuffer(GBuffer::Color));
@@ -69,11 +70,15 @@ void ChromaticAbberationPostProcessing::convert(glsample::FrameBuffer *framebuff
 	glBindVertexArray(this->vao);
 
 	/*	*/
-	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.redOffset"), 0.01f);
-	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.greenOffset"), 0.02f);
-	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.blueOffset"), 0.03f);
-	glUniform2f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.direction_center"), 0.5f,
-				0.5f);
+	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.redOffset"),
+				this->settings.redOffset);
+	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.greenOffset"),
+				this->settings.greenOffset);
+	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.blueOffset"),
+				this->settings.blueOffset);
+	glUniform2f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.direction_center"),
+				this->settings.direction_center[0], this->settings.direction_center[1]);
+
 	/*	*/
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
@@ -86,8 +91,14 @@ void ChromaticAbberationPostProcessing::convert(glsample::FrameBuffer *framebuff
 	glBindVertexArray(0);
 
 	/*	Swap buffers.	(ping pong)	*/
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
-	/*	*/
 	std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
+}
+
+void ChromaticAbberationPostProcessing::renderUI() {
+	ImGui::DragFloat("Red Offset", &this->settings.redOffset);
+	ImGui::DragFloat("Green Offset", &this->settings.greenOffset);
+	ImGui::DragFloat("Blue Offset", &this->settings.blueOffset);
+	ImGui::DragFloat2("Center Offset", &this->settings.direction_center[0]);
 }

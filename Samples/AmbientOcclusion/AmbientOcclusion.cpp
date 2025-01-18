@@ -44,21 +44,25 @@ namespace glsample {
 
 			/*	Light source.	*/
 			DirectionalLight directional_light;
+
+			/*	Material settings.	*/
 			glm::vec4 specularColor{};
 			glm::vec4 ambientColor{};
 			glm::vec4 viewDir{};
-
 			float shininess{};
+
 		} uniformStageBlock;
 
 		struct UniformSSAOBufferBlock {
 			glm::mat4 proj{};
+
 			/*	*/
 			int samples = 64;
-			float radius = 2.5f;
-			float intensity = 0.8f;
+			float radius = 10.5f;
+			float intensity = 1.0f;
 			float bias = 0.025;
 
+			/*	*/
 			glm::vec4 kernel[maxKernels]{};
 
 			glm::vec4 color{};
@@ -76,6 +80,7 @@ namespace glsample {
 		unsigned int multipass_texture_width{};
 		unsigned int multipass_texture_height{};
 		std::vector<unsigned int> multipass_textures;
+		unsigned int world_position_sampler = 0;
 		unsigned int depthTexture{};
 
 		unsigned int ssao_framebuffer{};
@@ -361,6 +366,7 @@ namespace glsample {
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseW, noiseH, 0, GL_RGB, GL_FLOAT, ssaoRandomNoise.data());
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 				/*	Border clamped to max value, it makes the outside area.	*/
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -372,6 +378,17 @@ namespace glsample {
 				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
+
+			/*	Create sampler.	*/
+			glCreateSamplers(1, &this->world_position_sampler);
+			glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+			glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glSamplerParameterf(this->world_position_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
+			glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAX_LOD, 0);
+			glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_LOD, 0);
 
 			/*	Create multipass framebuffer.	*/
 			{
@@ -552,6 +569,7 @@ namespace glsample {
 					/*	*/
 					glActiveTexture(GL_TEXTURE0 + i);
 					glBindTexture(GL_TEXTURE_2D, this->multipass_textures[i]);
+					glBindSampler(i, this->world_position_sampler);
 				}
 				glActiveTexture(GL_TEXTURE4);
 				glBindTexture(GL_TEXTURE_2D, this->depthTexture);

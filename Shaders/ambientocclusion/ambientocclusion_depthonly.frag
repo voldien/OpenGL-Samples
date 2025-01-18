@@ -27,7 +27,7 @@ layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-vec3 calcViewPosition(vec2 coords) {
+vec3 calcViewPosition(const in vec2 coords) {
 	const float fragmentDepth = texture(DepthTexture, coords).r;
 
 	return calcViewPosition(coords, inverse(ubo.proj), fragmentDepth);
@@ -45,24 +45,25 @@ void main() {
 
 	// we calculate a random offset using the noise texture sample.
 	// This will be applied as rotation to all samples for our current fragments.
-	vec3 randomVec = texture(NormalRandomize, screenUV * noiseScale).xyz;
+	const vec3 randomVec = texture(NormalRandomize, screenUV * noiseScale).xyz;
 
 	// here we apply the Gramm-Schmidt process to calculate the TBN matrix
 	// with a random offset applied.
-	vec3 tangent = normalize(randomVec - viewNormal * dot(randomVec, viewNormal));
-	vec3 bitangent = cross(viewNormal, tangent);
-	mat3 TBN = mat3(tangent, bitangent, viewNormal);
+	const vec3 tangent = normalize(randomVec - viewNormal * dot(randomVec, viewNormal));
+	const vec3 bitangent = cross(viewNormal, tangent);
+	const mat3 TBN = mat3(tangent, bitangent, viewNormal);
 
 	float occlusion_factor = 0.0;
 
+	const float kernelRadius = ubo.radius;
 	const int samples = clamp(ubo.samples, 1, 64);
 
 	for (uint i = 0; i < samples; i++) {
 
-		vec3 samplePos = TBN * ubo.kernel[i].xyz;
+		const vec3 sampleWorldDir = TBN * ubo.kernel[i].xyz;
 
-		// here we calculate the sampling point position in view space.
-		samplePos = viewPos + samplePos * ubo.radius;
+		/*	here we calculate the sampling point position in view space.	*/
+		const vec3 samplePos = viewPos + sampleWorldDir * ubo.radius;
 
 		/*	From view to clip-space.	*/
 		vec4 offset = vec4(samplePos, 1.0);
@@ -72,16 +73,16 @@ void main() {
 
 		// this is the geometry's depth i.e. the view_space_geometry_depth
 		// this value is negative in my coordinate system
-		float geometryDepth = calcViewPosition(offset.xy).z;
+		const float geometryDepth = calcViewPosition(offset.xy).z;
 
-		float rangeCheck = smoothstep(0.0, 1.0, ubo.radius / abs(viewPos.z - geometryDepth));
-		occlusion_factor += float(geometryDepth >= samplePos.z + + ubo.bias) * rangeCheck;
+		const float rangeCheck = smoothstep(0.0, 1.0, ubo.radius / abs(viewPos.z - geometryDepth));
+		occlusion_factor += float(geometryDepth >= samplePos.z + +ubo.bias) * rangeCheck;
 	}
 
 	// we will devide the accmulated occlusion by the number of samples to get the average occlusion value.
-	float average_occlusion_factor = occlusion_factor / samples;
+	const float average_occlusion_factor = occlusion_factor / samples;
 
-	float visibility_factor = 1.0 - average_occlusion_factor;
+	float visibility_factor = 1.0 - average_occlusion_factor * ubo.intensity;
 
 	visibility_factor = pow(visibility_factor, 2.0);
 

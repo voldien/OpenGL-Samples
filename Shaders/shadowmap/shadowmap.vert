@@ -8,7 +8,7 @@
 layout(location = 0) in vec3 Vertex;
 layout(location = 1) in vec2 TextureCoord;
 
-layout(location = 0) out vec2 OutTextureCoord;
+layout(location = 0) out vec2 UV;
 
 #include "common.glsl"
 #include "phongblinn.glsl"
@@ -36,5 +36,5 @@ ubo;
 
 void main() {
 	gl_Position = ubo.lightSpaceMatrix * ubo.model * vec4(Vertex, 1.0);
-	OutTextureCoord = TextureCoord;
+	UV = TextureCoord;
 }

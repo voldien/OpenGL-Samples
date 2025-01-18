@@ -2,44 +2,54 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, rgba16f) uniform readonly image2D SourceTexture;
 layout(set = 0, binding = 1, rgba16f) uniform writeonly image2D TargetTexture;
 
-layout(push_constant) uniform Settings {
-	layout(offset = 0) int filterRadius;
-}
+layout(push_constant) uniform Settings { layout(offset = 0) int filterRadius; }
 settings;
 
 #include "common.glsl"
 
 void main() {
 
+	const ivec2 sourceSize = imageSize(SourceTexture);
+	const ivec2 targetSize = imageSize(TargetTexture);
+
+	const vec2 ratioSize = ceil(vec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy) / vec2(sourceSize));
+
+	const ivec2 targetDownSampleSize = targetSize * int(ratioSize.x);
+	const ivec2 sourceDownSampleSize = targetDownSampleSize * 2;
+
 	/*  */
-	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(TargetTexture)))) {
+	if (any(greaterThan(gl_GlobalInvocationID.xy, targetDownSampleSize))) {
 		return;
 	}
 
+	/*	*/
 	const uvec2 downSampleCoordinate = gl_GlobalInvocationID.xy;
-	const uvec2 sourceSize = imageSize(SourceTexture);
-
 	const uvec2 SourceImageCoordinate = downSampleCoordinate * 2;
 
 	const uint x = settings.filterRadius;
 	const uint y = settings.filterRadius;
 
-	const vec3 a = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - 2 * x, SourceImageCoordinate.y + 2 * y)).rgb;
+	const vec3 a = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - 2 * x, SourceImageCoordinate.y + 2 * y) %
+												sourceDownSampleSize)
+					   .rgb;
 	const vec3 b = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x, SourceImageCoordinate.y + 2 * y)).rgb;
-	const vec3 c = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + 2 * x, SourceImageCoordinate.y + 2 * y)).rgb;
+	const vec3 c =
+		imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + 2 * x, SourceImageCoordinate.y + 2 * y)).rgb;
 
 	const vec3 d = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - 2 * x, SourceImageCoordinate.y)).rgb;
 	const vec3 e = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x, SourceImageCoordinate.y)).rgb;
 	const vec3 f = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + 2 * x, SourceImageCoordinate.y)).rgb;
 
-	const vec3 g = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - 2 * x, SourceImageCoordinate.y - 2 * y)).rgb;
+	const vec3 g =
+		imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - 2 * x, SourceImageCoordinate.y - 2 * y)).rgb;
 	const vec3 h = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x, SourceImageCoordinate.y - 2 * y)).rgb;
-	const vec3 i = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + 2 * x, SourceImageCoordinate.y - 2 * y)).rgb;
+	const vec3 i =
+		imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + 2 * x, SourceImageCoordinate.y - 2 * y)).rgb;
 
 	const vec3 j = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x - x, SourceImageCoordinate.y + y)).rgb;
 	const vec3 k = imageLoad(SourceTexture, ivec2(SourceImageCoordinate.x + x, SourceImageCoordinate.y + y)).rgb;

@@ -1,30 +1,7 @@
-#include"light.glsl"
-#include"common.glsl"
-#include"pbr.glsl"
-
-struct point_light {
-	vec3 position;
-	float range;
-	vec4 color;
-	float intensity;
-	float constant_attenuation;
-	float linear_attenuation;
-	float qudratic_attenuation;
-};
-
-struct tessellation_settings {
-	float tessLevel;
-	float gDispFactor;
-};
-
-struct light_settings {
-	vec4 ambientColor;
-	vec4 specularColor;
-	vec4 direction;
-	vec4 lightColor;
-	point_light point_light[4];
-};
-
+#include "common.glsl"
+#include "light.glsl"
+#include "pbr.glsl"
+#include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -34,7 +11,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 viewProjection;
 	mat4 modelViewProjection;
 
-	light_settings lightsettings;
+	//	light_settings lightsettings;
 	tessellation_settings tessellation;
 	/*	Camera settings.	*/
 	Camera camera;

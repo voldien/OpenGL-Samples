@@ -33,12 +33,12 @@ namespace glsample {
 		virtual void draw(glsample::FrameBuffer *framebuffer,
 						  const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets);
 
+		virtual void renderUI() {};
+
 		float getIntensity() const noexcept;
 		void setItensity(const float intensity);
 
 		bool isBufferRequired(const GBuffer required_data_buffer) const noexcept;
-
-		/*	TODO: add ImGUI support one way or another.	*/
 
 	  protected:
 		void addRequireBuffer(const GBuffer required_data_buffer) noexcept;

@@ -1,14 +1,22 @@
 #include "PostProcessing/SSAOPostProcessing.h"
 #include "Common.h"
+#include "GLSampleSession.h"
 #include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
+#include "imgui.h"
 #include <IOUtil.h>
 #include <random>
 
 using namespace glsample;
 
-SSAOPostProcessing::SSAOPostProcessing() { this->setName("Space Space Ambient Occlusion"); }
+SSAOPostProcessing::SSAOPostProcessing() {
+	this->setName("Space Space Ambient Occlusion");
+	this->addRequireBuffer(GBuffer::Color);
+	this->addRequireBuffer(GBuffer::Depth);
+	this->addRequireBuffer(GBuffer::Normal);
+}
+
 SSAOPostProcessing::~SSAOPostProcessing() {
 	if (this->ssao_depth_only_program >= 0) {
 		glDeleteProgram(this->ssao_depth_only_program);
@@ -21,6 +29,14 @@ SSAOPostProcessing::~SSAOPostProcessing() {
 	}
 	if (this->downsample_compute_program >= 0) {
 		glDeleteProgram(this->downsample_compute_program);
+	}
+
+	if (glIsBuffer(this->uniform_ssao_buffer)) {
+		glDeleteBuffers(1, &this->uniform_ssao_buffer);
+	}
+
+	if (glIsTexture(this->random_texture)) {
+		glDeleteTextures(1, &this->random_texture);
 	}
 }
 
@@ -160,6 +176,17 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
+	/*	Create sampler.	*/
+	glCreateSamplers(1, &this->world_position_sampler);
+	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glSamplerParameterf(this->world_position_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
+	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAX_LOD, 0);
+	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_LOD, 0);
+
 	this->overlay_program = this->createOverlayGraphicProgram(filesystem);
 	this->vao = createVAO();
 }
@@ -226,4 +253,13 @@ void SSAOPostProcessing::draw(
 	}
 
 	glBindVertexArray(0);
+}
+
+void SSAOPostProcessing::renderUI() {
+	ImGui::DragFloat("Intensity", &uniformStageBlockSSAO.intensity, 0.1f, 0.0f);
+	ImGui::DragFloat("Radius", &uniformStageBlockSSAO.radius, 0.35f, 0.0f);
+	ImGui::DragInt("Sample", &uniformStageBlockSSAO.samples, 1, 0);
+	ImGui::DragFloat("Bias", &uniformStageBlockSSAO.bias, 0.01f, 0, 1);
+	ImGui::Checkbox("DownSample", &this->downScale);
+	ImGui::Checkbox("Use Depth Only", &this->useDepthOnly);
 }

@@ -19,6 +19,7 @@
 #include "PostProcessing/SSSPostProcessing.h"
 #include "PostProcessing/SobelPostProcessing.h"
 
+#include "PostProcessing/VolumetricScattering.h"
 #include "SDL_scancode.h"
 #include "SDL_video.h"
 #include "SampleHelper.h"
@@ -133,6 +134,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 					postEffect.setItensity(enabled_intensity);
 				}
 
+				postEffect.renderUI();
+
 				ImGui::PopID();
 			}
 
@@ -216,6 +219,7 @@ GLSampleWindow::~GLSampleWindow() {
 
 void GLSampleWindow::internalInit() {
 
+	/*	*/
 	if (this->colorSpace == nullptr) {
 
 		// TODO: add try catch.
@@ -263,6 +267,10 @@ void GLSampleWindow::internalInit() {
 		SSSPostProcessing *sss = new SSSPostProcessing();
 		sss->initialize(getFileSystem());
 		this->postprocessingManager->addPostProcessing(*sss);
+
+		VolumetricScatteringPostProcessing *volumetric = new VolumetricScatteringPostProcessing();
+		volumetric->initialize(getFileSystem());
+		this->postprocessingManager->addPostProcessing(*volumetric);
 	}
 
 	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
@@ -277,8 +285,10 @@ void GLSampleWindow::internalInit() {
 		/*	*/
 		this->defaultFramebuffer = new glsample::FrameBuffer();
 		memset(defaultFramebuffer, 0, sizeof(*this->defaultFramebuffer));
-		Common::createFrameBuffer(defaultFramebuffer, 2);
+		Common::createFrameBuffer(defaultFramebuffer, 3);
 	}
+
+	/*	Update if not internal default framebuffer	*/
 	if (getDefaultFramebuffer() > 0) {
 		/*	*/
 		this->updateDefaultFramebuffer();
@@ -345,7 +355,8 @@ void GLSampleWindow::renderUI() {
 				this->defaultFramebuffer,
 				{std::make_tuple(GBuffer::Albedo, this->defaultFramebuffer->attachments[0]),
 				 std::make_tuple(GBuffer::Depth, this->defaultFramebuffer->depthbuffer),
-				 std::make_tuple(GBuffer::IntermediateTarget, this->defaultFramebuffer->attachments[1])});
+				 std::make_tuple(GBuffer::IntermediateTarget, this->defaultFramebuffer->attachments[1]),
+				 std::make_tuple(GBuffer::IntermediateTarget2, this->defaultFramebuffer->attachments[2])});
 		}
 
 		/*	Transfer last result to the default OpenGL Framebuffer.	*/
@@ -609,6 +620,13 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 	if (this->defaultFramebuffer != nullptr) {
 		Common::updateFrameBuffer(this->defaultFramebuffer,
 								  {{
+									   .width = this->width(),
+									   .height = this->height(),
+									   .depth = 1,
+									   .nrSamples = 0,
+
+								   },
+								   {
 									   .width = this->width(),
 									   .height = this->height(),
 									   .depth = 1,

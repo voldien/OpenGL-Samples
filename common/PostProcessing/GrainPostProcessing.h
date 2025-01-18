@@ -30,17 +30,16 @@ namespace glsample {
 		draw(glsample::FrameBuffer *framebuffer,
 			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
-	  public:
-		void convert(unsigned int texture);
+		void renderUI() override;
 
 	  private:
-		int grain_program = -1;
+		int grain_graphic_program = -1;
 		unsigned int vao = 0;
 
 		using GrainSettings = struct alignas(16) grain_settings_t {
-			float time;
-			float intensity;
-			float speed;
+			float time = 1;
+			float intensity = 0.015f;
+			float speed = 1;
 		};
 		GrainSettings grainSettings;
 	};

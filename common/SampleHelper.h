@@ -33,6 +33,8 @@ namespace glsample {
 		Depth = 6,			   /*	*/
 		Velocity = 7,		   /*	*/
 		Roughness = 8,		   /*	*/
+		AO,
+		Displacement,
 		Metallic,			   /*	*/
 		SubSurface,			   /*	*/
 		LightPass,			   /*	*/
@@ -64,7 +66,7 @@ namespace glsample {
 		float fogEnd = 1000;
 
 		/*	*/
-		float fogDensity = 0.1f;
+		float fogDensity = 0.5f;
 		FogType fogType = FogType::Exp;
 		float fogIntensity = 1.0f;
 		float fogHeight = 0;

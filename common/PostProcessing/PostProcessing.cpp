@@ -3,6 +3,7 @@
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include <IOUtil.h>
+#include <algorithm>
 
 using namespace glsample;
 
@@ -16,12 +17,14 @@ void PostProcessing::draw(
 	this->mapped_buffer.clear();
 	for (const auto *it = render_targets.begin(); it != render_targets.end(); it++) {
 
+		/*	*/
 		const GBuffer target = std::get<0>(*it);
 		const unsigned int &texture = std::get<1>(*it);
 
+		/*	*/
 		this->mapped_buffer[target] = &texture;
 
-		if (target == GBuffer::IntermediateTarget) {
+		if (!this->isBufferRequired(target)) {
 			continue;
 		}
 
@@ -39,6 +42,11 @@ void PostProcessing::draw(
 
 float PostProcessing::getIntensity() const noexcept { return this->intensity; }
 void PostProcessing::setItensity(const float intensity) { this->intensity = intensity; }
+
+bool PostProcessing::isBufferRequired(const GBuffer required_data_buffer) const noexcept {
+	return std::find(this->required_buffer.begin(), this->required_buffer.end(), required_data_buffer) !=
+		   this->required_buffer.end();
+}
 
 const unsigned int &PostProcessing::getMappedBuffer(const GBuffer buffer_target) const noexcept {
 	static unsigned int temp = 0;
@@ -60,7 +68,7 @@ int PostProcessing::createVAO() {
 
 int PostProcessing::createOverlayGraphicProgram(fragcore::IFileSystem *filesystem) {
 	/*	*/
-	const std::string vertexOverlayShaderPath = "Shaders/postprocessingeffects/overlay.vert.spv";
+	const std::string vertexOverlayShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 	const std::string fragmentOverlayTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
 
 	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;

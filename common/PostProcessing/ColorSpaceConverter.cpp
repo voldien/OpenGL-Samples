@@ -6,6 +6,11 @@
 
 using namespace glsample;
 
+ColorSpaceConverter::ColorSpaceConverter() {
+	this->setName("Color Space Converter");
+	this->addRequireBuffer(GBuffer::Color);
+}
+
 ColorSpaceConverter::~ColorSpaceConverter() {
 	if (this->aes_program > 0) {
 		glDeleteProgram(this->aes_program);
@@ -114,7 +119,9 @@ void ColorSpaceConverter::initialize(fragcore::IFileSystem *filesystem) {
 	}
 }
 
-void ColorSpaceConverter::draw(glsample::FrameBuffer* framebuffer, const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) {}
+void ColorSpaceConverter::draw(
+	glsample::FrameBuffer *framebuffer,
+	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {}
 
 void ColorSpaceConverter::convert(unsigned int texture) {
 

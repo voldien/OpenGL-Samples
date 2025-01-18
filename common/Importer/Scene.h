@@ -25,16 +25,18 @@
 namespace glsample {
 
 	enum TextureType : unsigned int {
-		Diffuse = 0,	  /*	*/
-		Normal = 1,		  /*	*/
-		AlphaMask = 2,	  /*	*/
-		Specular = 3,	  /*	*/
-		Emission = 4,	  /*	*/
-		Reflection = 5,	  /*	*/
-		Ambient = 6,	  /*	*/
-		Displacement = 7, /*	*/
-		Irradiance = 10,  /*	*/
-		DepthBuffer = 11, /*	*/
+		Diffuse = 0,		  /*	*/
+		Normal = 1,			  /*	*/
+		AlphaMask = 2,		  /*	*/
+		Specular = 3,		  /*	*/
+		Emission = 4,		  /*	*/
+		Reflection = 5,		  /*	*/
+		AmbientOcclusion = 6, /*	*/
+		Displacement = 7,	  /*	*/
+		Irradiance = 10,	  /*	*/
+		PreFilter = 11,		  /*	*/
+		BRDFLUT = 12,		  /*	*/
+		DepthBuffer = 13,	  /*	*/
 	};
 
 	enum class TexturePBRType : unsigned int {
@@ -102,12 +104,25 @@ namespace glsample {
 		using CommonConstantData = struct _common_constant_data_t {
 			CameraInstance camera;
 			FrustumInstance frustum;
+
+			/*	*/
+			glm::mat4 proj[3];
+			glm::mat4 view[3];
 		};
 		using NodeData = struct _node_data_t {
 			glm::mat4 model;
 		};
-		CommonConstantData *stageCommonBuffer;
-		NodeData *stageNodeData;
+		using LightData = struct _light_data_t {
+			DirectionalLight directional[8];
+			PointLightInstance pointLight[16];
+		};
+		using MaterialData = struct _material_data_t {
+
+		};
+
+		CommonConstantData *stageCommonBuffer = nullptr;
+		NodeData *stageNodeData = nullptr;
+		LightData *lightData = nullptr;
 
 		/*	TODO add queue structure.	*/
 		std::deque<const NodeObject *> renderQueue;

@@ -6,14 +6,14 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
-layout(location = 0) in vec2 TextureCoord;
+layout(location = 0) in vec2 UV;
 
 #include "scene.glsl"
 
 void main() {
 
-	const float alpha = texture(DiffuseTexture, TextureCoord).a * texture(AlphaMaskedTexture, TextureCoord).r;
-	if (alpha < 0.5) {
+	const float alpha = texture(DiffuseTexture, UV).a * texture(AlphaMaskedTexture, UV).r;
+	if (alpha < 0.95) {
 		discard;
 	} else {
 		gl_FragDepth = gl_FragCoord.z;

@@ -1,3 +1,4 @@
+#include "SampleHelper.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include <GL/glew.h>
@@ -23,12 +24,13 @@ namespace glsample {
 	  public:
 		PhysicalBasedRendering() : GLSampleWindow() {
 
+			/*	*/
 			this->physicalBasedRenderingSettingComponent =
 				std::make_shared<PhysicalBasedRenderingSettingComponent>(this->uniform_stage_buffer);
 			this->addUIComponent(physicalBasedRenderingSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(50.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -63,13 +65,7 @@ namespace glsample {
 
 		} uniform_stage_buffer;
 
-		typedef struct MaterialUniformBlock_t {
-
-		} MaterialUniformBlock;
-
-		/*	Skybox.	*/
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
+		using MaterialUniformBlock = struct MaterialUniformBlock_t {};
 
 		/*	Simple	*/
 		const std::string vertexPBRShaderPath = "Shaders/pbr/simplephysicalbasedrendering.vert.spv";
@@ -131,11 +127,6 @@ namespace glsample {
 				const std::vector<uint32_t> pbr_base_fragment_binary =
 					IOUtil::readFileData<uint32_t>(fragmentPBRShaderPath, this->getFileSystem());
 
-				const std::vector<uint32_t> vertex_skybox_binary =
-					IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_skybox_binary =
-					IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
-
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
@@ -148,19 +139,26 @@ namespace glsample {
 				this->simple_physical_based_rendering_program = ShaderLoader::loadGraphicProgram(
 					compilerOptions, &pbr_base_vertex_binary, &pbr_base_fragment_binary);
 
-				this->skybox_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
 			}
 
 			/*	Setup shader.	*/
 			glUseProgram(this->physical_based_rendering_program);
 			int uniform_buffer_index =
 				glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "Albedo"), 0);
-			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "Normal"), 1);
-			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "AmbientOcclusion"), 2);
-			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "HightMap"), 3);
-			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"), 4);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DiffuseTexture"),
+						   (int)TextureType::Diffuse);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "NormalTexture"),
+						   (int)TextureType::Normal);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "AOTexture"),
+						   (int)TextureType::AmbientOcclusion);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DisplacementTexture"),
+						   (int)TextureType::Displacement);
+			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"),
+						   (int)TextureType::Irradiance);
+			// glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"),
+			// 			   (int)TextureType::Irradiance);
+
 			glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
@@ -172,11 +170,16 @@ namespace glsample {
 			glUseProgram(this->simple_physical_based_rendering_program);
 			uniform_buffer_index =
 				glGetUniformBlockIndex(this->simple_physical_based_rendering_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "Albedo"), 0);
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "Normal"), 1);
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "AmbientOcclusion"), 2);
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "HightMap"), 3);
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "IrradianceTexture"), 4);
+			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "DiffuseTexture"),
+						   (int)TextureType::Diffuse);
+			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "NormalTexture"),
+						   (int)TextureType::Normal);
+			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "AOTexture"),
+						   (int)TextureType::AmbientOcclusion);
+			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "DisplacementTexture"),
+						   (int)TextureType::Displacement);
+			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "IrradianceTexture"),
+						   (int)TextureType::Irradiance);
 			glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			uniform_buffer_index =
@@ -184,6 +187,7 @@ namespace glsample {
 			glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
+			
 			/*	*/
 			glUseProgram(this->skybox_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
@@ -199,7 +203,8 @@ namespace glsample {
 			/*	*/
 			GLint minMapBufferSize;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize = fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize =
+				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_buffer);

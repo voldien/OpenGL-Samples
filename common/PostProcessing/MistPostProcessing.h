@@ -33,15 +33,20 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(glsample::FrameBuffer* framebuffer, const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) override {};
+		void
+		draw(glsample::FrameBuffer *framebuffer,
+			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
 		void render(unsigned int skybox, unsigned int frame_texture, unsigned int depth_texture);
+
+		void renderUI() override;
 
 		MistUniformBuffer mistsettings;
 
 	  private:
 		int mist_program = -1;
 		unsigned int vao = 0;
+
 		unsigned int uniform_buffer = 0;
 		unsigned int uniform_buffer_binding;
 		size_t uniformAlignSize = sizeof(MistUniformBuffer);

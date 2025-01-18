@@ -31,6 +31,8 @@ namespace glsample {
 		draw(glsample::FrameBuffer *framebuffer,
 			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
+		void renderUI() override;
+
 	  public:
 		void convert(unsigned int texture);
 
@@ -42,10 +44,12 @@ namespace glsample {
 
 		int uniform_ssao_buffer_binding = 0;
 
+		unsigned int world_position_sampler = 0;
+
+		bool downScale;
+		bool useDepthOnly;
+
 		/*	*/
-		float variance;
-		int samples;
-		float radius;
 		static const int maxKernels = 64;
 
 		struct UniformSSAOBufferBlock {
@@ -71,7 +75,5 @@ namespace glsample {
 		unsigned int random_texture = 0;
 		unsigned int white_texture = 0;
 		unsigned int vao = 0;
-
-		// int localWorkGroupSize[3];
 	};
 } // namespace glsample

@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "PostProcessing.h"
+#include <glm/fwd.hpp>
 
 namespace glsample {
 
@@ -26,10 +27,22 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(glsample::FrameBuffer* framebuffer, const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) override;
+		void
+		draw(glsample::FrameBuffer *framebuffer,
+			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
+
+		void renderUI() override;
 
 	  public:
-		void convert(glsample::FrameBuffer* framebuffer, unsigned int texture);
+		void convert(glsample::FrameBuffer *framebuffer, unsigned int texture);
+
+		using ChromaticAbberationSettings = struct chromatic_abberation_settings_t {
+			float redOffset = -0.01f;
+			float greenOffset = -0.02f;
+			float blueOffset = -0.03f;
+			glm::vec2 direction_center = glm::vec2(0.5f);
+		};
+		ChromaticAbberationSettings settings;
 
 	  private:
 		int chromatic_abberation_graphic_program = -1;

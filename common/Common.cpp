@@ -181,11 +181,12 @@ void Common::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachme
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
 void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_list<fragcore::TextureDesc> &desc,
 							   const fragcore::TextureDesc &depthstencil) {
 
 	unsigned int attachment_index = 0;
-	std::array<GLenum, 16> attachments_mapping;
+	std::array<GLenum, 32> attachments_mapping;
 	for (auto it = desc.begin(); it != desc.end(); it++) {
 		const fragcore::TextureDesc &target_desc = *(it);
 
@@ -206,8 +207,11 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer->framebuffer);
 
-		// TODO: verify if texture
 		glBindTexture(texture_type, framebuffer->attachments[attachment_index]);
+
+		std::string texture_attachment_name = fmt::format("attachment {}", attachment_index);
+		glObjectLabel(GL_TEXTURE, framebuffer->attachments[attachment_index], texture_attachment_name.size(),
+					  texture_attachment_name.data());
 
 		if (multisamples > 0) {
 			glTexImage2DMultisample(texture_type, multisamples, internal_format, width, height, GL_TRUE);

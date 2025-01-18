@@ -5,7 +5,7 @@
 
 layout(location = 0) out float fragColor;
 
-layout(location = 0) in vec2 uv;
+layout(location = 0) in vec2 screenUV;
 
 layout(binding = 1) uniform sampler2D WorldTexture;	   /*	*/
 layout(binding = 2) uniform sampler2D DepthTexture;	   /*	*/
@@ -31,9 +31,9 @@ void main() {
 	const vec2 noiseScale = ubo.screen / vec2(textureSize(NormalRandomize, 0).xy);
 
 	/*	*/
-	const vec3 srcPosition = texture(WorldTexture, uv).xyz;
-	const vec3 srcNormal = normalize(texture(NormalTexture, uv).rgb);
-	const vec3 randVec = texture(NormalRandomize, uv * noiseScale).xyz;
+	const vec3 srcPosition = texture(WorldTexture, screenUV).xyz;
+	const vec3 srcNormal = normalize(texture(NormalTexture, screenUV).xyz);
+	const vec3 randVec = texture(NormalRandomize, screenUV * noiseScale).xyz;
 
 	/*	Normal.	*/
 	const vec3 tangent = normalize(randVec - srcNormal * dot(randVec, srcNormal));
@@ -45,12 +45,13 @@ void main() {
 	const int samples = clamp(ubo.samples, 1, 64);
 
 	/*	*/
-	float occlusion = 0.0;
+	float occlusion_factor = 0.0;
 
 	for (uint i = 0; i < samples; i++) {
 
 		/*	from tangent to view-space */
 		const vec3 sampleWorldDir = TBN * ubo.kernel[i].xyz;
+		
 		/*	*/
 		const vec3 samplePos = srcPosition + (sampleWorldDir * kernelRadius);
 
@@ -65,10 +66,15 @@ void main() {
 		/*	*/
 		const float rangeCheck = smoothstep(0.0, 1.0, kernelRadius / abs(srcPosition.z - sampleDepth));
 
-		occlusion += ((sampleDepth >= srcPosition.z + ubo.bias ? 1.0 : 0.0) * rangeCheck);
+		occlusion_factor += ((sampleDepth >= srcPosition.z + ubo.bias ? 1.0 : 0.0) * rangeCheck);
 	}
 
-	/* Average and clamp ambient occlusion	*/
-	occlusion = 1.0 - (occlusion / float(samples)) * ubo.intensity;
-	fragColor = occlusion;
+	/* Average and clamp ambient occlusion_factor	*/
+	occlusion_factor = (occlusion_factor / float(samples));
+
+	occlusion_factor = 1.0 - occlusion_factor * ubo.intensity;
+
+	occlusion_factor = pow(occlusion_factor, 2.0);
+
+	fragColor = occlusion_factor;
 }

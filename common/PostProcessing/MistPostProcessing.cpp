@@ -1,15 +1,24 @@
 #include "MistPostProcessing.h"
+#include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
+#include "imgui.h"
 #include <IOUtil.h>
 
 using namespace glsample;
 
-MistPostProcessing::MistPostProcessing() { this->setName("MistFog"); }
+MistPostProcessing::MistPostProcessing() {
+	this->setName("MistFog");
+	this->addRequireBuffer(GBuffer::Color);
+	this->addRequireBuffer(GBuffer::Depth);
+}
 
 MistPostProcessing::~MistPostProcessing() {
 	if (this->mist_program >= 0) {
 		glDeleteProgram(this->mist_program);
+	}
+	if (glIsBuffer(this->uniform_buffer)) {
+		glDeleteBuffers(1, &this->uniform_buffer);
 	}
 }
 
@@ -56,11 +65,17 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glGenVertexArrays(1, &this->vao);
 }
 
+void MistPostProcessing::draw(
+	glsample::FrameBuffer *framebuffer,
+	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+	PostProcessing::draw(framebuffer, render_targets);
+
+	this->render(0, this->getMappedBuffer(GBuffer::Albedo), this->getMappedBuffer(GBuffer::Depth));
+}
+
 void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture, unsigned int depth_texture) {
 
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-	glBindVertexArray(this->vao);
 
 	/*	Update uniform values.	*/
 	glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -72,28 +87,42 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 	glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 					  (1 % 1) * this->uniformAlignSize, this->uniformAlignSize);
 
-	glUseProgram(this->mist_program);
-
 	/*	*/
-	glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Albedo);
-	glBindTexture(GL_TEXTURE_2D, frame_texture);
+	{
+		glUseProgram(this->mist_program);
 
-	/*	*/
-	glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Depth);
-	glBindTexture(GL_TEXTURE_2D, depth_texture);
+		/*	*/
+		glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Albedo);
+		glBindTexture(GL_TEXTURE_2D, frame_texture);
 
-	/*	*/
-	glActiveTexture(GL_TEXTURE0 + 2);
-	glBindTexture(GL_TEXTURE_2D, skybox);
+		/*	*/
+		glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Depth);
+		glBindTexture(GL_TEXTURE_2D, depth_texture);
 
-	/*	*/
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
+		/*	*/
+		glActiveTexture(GL_TEXTURE0 + 2);
+		glBindTexture(GL_TEXTURE_2D, skybox);
 
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		/*	*/
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_BLEND);
+		glDisable(GL_DEPTH_TEST);
 
-	glUseProgram(0);
+		glBindVertexArray(this->vao);
 
-	glBindVertexArray(0);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glBindVertexArray(0);
+
+		glUseProgram(0);
+	}
+}
+
+void MistPostProcessing::renderUI() {
+	ImGui::DragInt("Fog Type", (int *)&this->mistsettings.fogSettings.fogType);
+	ImGui::ColorEdit4("Fog Color", &this->mistsettings.fogSettings.fogColor[0],
+					  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+	ImGui::DragFloat("Fog Density", &this->mistsettings.fogSettings.fogDensity);
+	ImGui::DragFloat("Fog Intensity", &this->mistsettings.fogSettings.fogIntensity);
+	ImGui::DragFloat("Fog Start", &this->mistsettings.fogSettings.fogStart);
+	ImGui::DragFloat("Fog End", &this->mistsettings.fogSettings.fogEnd);
 }

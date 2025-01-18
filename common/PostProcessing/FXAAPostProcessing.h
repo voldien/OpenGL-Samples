@@ -18,11 +18,11 @@
 
 namespace glsample {
 
-	class FVDECLSPEC BlurPostProcessing : public PostProcessing {
+	class FVDECLSPEC FXAAPostProcessing : public PostProcessing {
 
 	  public:
-		BlurPostProcessing();
-		~BlurPostProcessing() override;
+		FXAAPostProcessing();
+		~FXAAPostProcessing() override;
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
