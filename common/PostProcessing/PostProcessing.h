@@ -40,6 +40,8 @@ namespace glsample {
 
 		bool isBufferRequired(const GBuffer required_data_buffer) const noexcept;
 
+		/*	Common data references.	*/
+
 	  protected:
 		void addRequireBuffer(const GBuffer required_data_buffer) noexcept;
 		void removeRequireBuffer(const GBuffer required_data_buffer) noexcept;

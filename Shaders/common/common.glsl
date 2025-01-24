@@ -28,6 +28,10 @@ struct Camera {
 	vec4 viewDir;		/*	*/
 	vec4 position_size; /*	*/
 	uvec4 screen_width_padding;
+	mat4 view;
+	mat4 viewProj;
+	mat4 proj;
+	mat4 inverseProj;
 };
 
 struct FogSettings {
@@ -38,6 +42,7 @@ struct FogSettings {
 	float CameraFar;
 	float fogStart;
 	float fogEnd;
+
 	/*	*/
 	float fogDensity;
 	uint fogType;

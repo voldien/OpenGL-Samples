@@ -7,7 +7,7 @@ layout(location = 0) out vec4 fragColor;
 
 layout(location = 1) in flat int InstanceID;
 
-#include "light.glsl"
+#include"deferred_base.glsl"
 
 layout(set = 0, binding = 1, std140) uniform UniformBufferLight { PointLight point_light[64]; }
 pointlightUBO;

@@ -14,13 +14,13 @@ namespace glsample {
 	/**
 	 * Simple Fog Sample.
 	 */
-	class Fog : public GLSampleWindow {
+	class SimpleFog : public GLSampleWindow {
 	  public:
-		Fog() : GLSampleWindow() {
-			this->setTitle("Fog");
+		SimpleFog() : GLSampleWindow() {
+			this->setTitle("Fog - Rasterize Fog");
 
 			/*	Setting Window.	*/
-			this->fogSettingComponent = std::make_shared<FogSettingComponent>(this->uniform_stage_buffer);
+			this->fogSettingComponent = std::make_shared<FogSettingComponent>(*this);
 			this->addUIComponent(this->fogSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -29,11 +29,11 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
@@ -55,31 +55,33 @@ namespace glsample {
 
 		Scene scene;
 
-		unsigned int graphic_fog_program;
+		unsigned int graphic_fog_program = 0;
 
 		/*	Uniform Buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
 		CameraController camera;
 
-		class FogSettingComponent : public nekomimi::UIComponent {
+		class FogSettingComponent : public GLUIComponent<SimpleFog> {
 		  public:
-			FogSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
-				this->setName("Fog Settings");
-			}
+			FogSettingComponent(SimpleFog &sample)
+				: GLUIComponent(sample, "Fog Settings"), uniform(this->getRefSample().uniform_stage_buffer) {}
 
 			void draw() override {
 				ImGui::TextUnformatted("Light Settings");
-				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Light", &this->uniform.lightColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
 				ImGui::TextUnformatted("Fog Settings");
 				ImGui::DragInt("Fog Type", (int *)&this->uniform.fogType);
-				ImGui::ColorEdit4("Fog Color", &this->uniform.fogColor[0], ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::ColorEdit4("Fog Color", &this->uniform.fogColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::DragFloat("Fog Density", &this->uniform.fogDensity);
 				ImGui::DragFloat("Fog Intensity", &this->uniform.fogIntensity);
 				ImGui::DragFloat("Fog Start", &this->uniform.fogStart);
@@ -87,6 +89,8 @@ namespace glsample {
 
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+
+				this->getRefSample().scene.renderUI();
 			}
 
 			bool showWireFrame = false;
@@ -133,7 +137,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
 				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
@@ -152,7 +156,6 @@ namespace glsample {
 		}
 
 		void onResize(int width, int height) override {
-
 			/*	*/
 			this->camera.setFar(2000.0f);
 			this->camera.setAspect((float)width / (float)height);
@@ -160,12 +163,8 @@ namespace glsample {
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
-
-			this->uniform_stage_buffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)width / (float)height,
-								 this->uniform_stage_buffer.cameraNear, this->uniform_stage_buffer.cameraFar);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -180,9 +179,9 @@ namespace glsample {
 			/*	*/
 			{
 
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-								  this->uniformAlignBufferSize);
+				// glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+				// 				  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+				// 				  this->uniformAlignBufferSize);
 
 				glUseProgram(this->graphic_fog_program);
 
@@ -190,13 +189,14 @@ namespace glsample {
 				glCullFace(GL_BACK);
 				glDisable(GL_CULL_FACE);
 
-				this->scene.render();
+				this->scene.render(&this->camera);
 			}
 		}
 
 		void update() override {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
+			this->scene.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniform_stage_buffer.model = glm::mat4(1.0f);
@@ -215,9 +215,9 @@ namespace glsample {
 		}
 	};
 
-	class FogGLSample : public GLSample<Fog> {
+	class FogGLSample : public GLSample<SimpleFog> {
 	  public:
-		FogGLSample() : GLSample<Fog>() {}
+		FogGLSample() : GLSample<SimpleFog>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
 		}

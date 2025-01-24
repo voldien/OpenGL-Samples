@@ -78,7 +78,7 @@ namespace glsample {
 
 		virtual void updateBuffers();
 
-		virtual void render(Camera<float> *camera);
+		virtual void render(Camera *camera);
 		virtual void render();
 
 		virtual void renderNode(const NodeObject *node);
@@ -101,9 +101,14 @@ namespace glsample {
 		int computeMaterialPriority(const MaterialObject &material) const noexcept;
 
 	  protected:
+		using GlobalRenderSettings = struct _global_rendering_settings_t {
+			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
+		};
 		using CommonConstantData = struct _common_constant_data_t {
 			CameraInstance camera;
 			FrustumInstance frustum;
+			FogSettings fogSettings;
+			GlobalRenderSettings renderSettings;
 
 			/*	*/
 			glm::mat4 proj[3];
@@ -117,11 +122,17 @@ namespace glsample {
 			PointLightInstance pointLight[16];
 		};
 		using MaterialData = struct _material_data_t {
-
+			glm::vec4 ambientColor;
+			glm::vec4 diffuseColor;
+			glm::vec4 transparency;
+			glm::vec4 specular_roughness;
+			glm::vec4 emission;
+			glm::vec4 clip_ = glm::vec4(0.8);
 		};
 
 		CommonConstantData *stageCommonBuffer = nullptr;
 		NodeData *stageNodeData = nullptr;
+		MaterialData *stageMaterialData = nullptr;
 		LightData *lightData = nullptr;
 
 		/*	TODO add queue structure.	*/
@@ -140,7 +151,33 @@ namespace glsample {
 
 		DebugMode debugMode;
 
-		unsigned int node_and_common_uniform_buffer;
+		using UniformDataStructure = struct uniform_data_structure {
+			/*	*/
+			static const size_t nrUniformBuffer = 3;
+			unsigned int node_and_common_uniform_buffer;
+
+			unsigned int node_offset = 0;
+			unsigned int node_size_align = 0;
+			unsigned int node_size_total_align = 0;
+
+			unsigned int material_offset = 0;
+			unsigned int material_align_size = 0;
+			unsigned int material_align_total_size = 0;
+
+			unsigned int common_offset = 0;
+			unsigned int common_size_align = 0;
+			unsigned int common_size_total_align = 0;
+
+			unsigned int common_buffer_binding = 1;
+			unsigned int node_buffer_binding = 2;
+			unsigned int bone_buffer_binding = 3;
+			unsigned int material_buffer_binding = 4;
+			unsigned int light_buffer_binding = 5;
+		};
+
+		UniformDataStructure UBOStructure;
+
+		int frameIndex = 0;
 
 	  public:
 		template <typename T = Scene> static T loadFrom(ModelImporter &importer) {

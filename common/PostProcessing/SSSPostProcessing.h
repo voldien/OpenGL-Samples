@@ -29,7 +29,7 @@ namespace glsample {
 		void draw(glsample::FrameBuffer* framebuffer, const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) override;
 
 	  public:
-		void convert(unsigned int texture);
+		void render(unsigned int texture);
 
 	  private:
 		int guassian_blur_compute_program = -1;

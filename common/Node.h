@@ -6,9 +6,9 @@
 
 namespace glsample {
 
-	class Node : public fragcore::Transform, fragcore::ITree<Node>, fragcore::Object {
+	class Node : public fragcore::Transform, public fragcore::ITree<Node>, public fragcore::Object {
 	  public:
-		 ~Node() override = default;
+		~Node() override = default;
 	};
 
 } // namespace glsample

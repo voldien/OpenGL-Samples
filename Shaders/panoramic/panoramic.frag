@@ -39,7 +39,7 @@ void main() {
 
 	const vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
 
-	vec4 lightColor = computePhongDirectional(ubo.directional, -normalize(normal), viewDir, ubo.shininess.r, ubo.specularColor.rgb);
+	vec4 lightColor = computePhongDirectional(ubo.directional, normalize(normal), viewDir, ubo.shininess.r, ubo.specularColor.rgb);
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
@@ -47,4 +47,8 @@ void main() {
 
 	/*	*/
 	fragColor = texture(DiffuseTexture, uv) * (ubo.ambientColor * irradiance_color + lightColor);
+	fragColor.a *= texture(AlphaMaskedTexture, uv).r;
+	if (fragColor.a < 0.8) {
+		discard;
+	}
 }

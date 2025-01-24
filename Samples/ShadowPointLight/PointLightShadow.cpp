@@ -227,7 +227,7 @@ namespace glsample {
 			glUseProgram(this->graphic_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-			const int shadows[4] = {2, 3, 4, 5};
+			const int shadows[4] = {16, 17, 18, 19};
 			glUniform1iv(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 4, shadows);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -235,7 +235,7 @@ namespace glsample {
 			/*	*/
 			glUseProgram(this->graphic_pfc_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), TextureType::Diffuse);
 			glUniform1iv(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), 4, shadows);
 			glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -357,8 +357,9 @@ namespace glsample {
 			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
+			/*	Draw each point light shadow.	*/
 			{
-				/*	Draw each point light shadow.	*/
+
 				for (size_t i = 0; i < this->nrPointLights; i++) {
 
 					/*	*/
@@ -392,6 +393,7 @@ namespace glsample {
 				}
 			}
 
+			/*	*/
 			{
 
 				/*	*/
@@ -420,11 +422,11 @@ namespace glsample {
 
 				/*	*/
 				for (size_t j = 0; j < this->nrPointLights; j++) {
-					glActiveTexture(GL_TEXTURE2 + j);
+					glActiveTexture(GL_TEXTURE16 + j);
 					glBindTexture(GL_TEXTURE_CUBE_MAP, this->pointShadowTextures[j]);
 				}
 
-				this->scene.render();
+				this->scene.render(&this->camera);
 			}
 		}
 

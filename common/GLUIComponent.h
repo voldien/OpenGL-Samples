@@ -34,7 +34,7 @@ namespace glsample {
 
 	  protected:
 		// TODO: move to cpp
-		void drawCamera(Camera<float> &camera) {
+		void drawCamera(Camera &camera) {
 
 			float fov = camera.getFOV();
 			if (ImGui::SliderFloat("Field of View", &fov, 0.01f, 360.0f)) {

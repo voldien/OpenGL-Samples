@@ -34,12 +34,15 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	DirectionalLight directional;
 	Camera camera;
 
+	/*	*/
 	vec4 ambientColor;
 	vec4 diffuseColor;
 	vec4 specularColor;
 
+	/*	*/
 	float bias;
 	float shadowStrength;
+	float radius;
 }
 ubo;
 
@@ -48,39 +51,40 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 	// perform perspective divide
 	vec4 projCoords = fragPosLightSpace.xyzw / fragPosLightSpace.w;
 
-	// transform to [0,1] range
+	if (fragPosLightSpace.w > 1.0) {
+		return 1;
+	}
+
+	// transform from NDC to Screen Space [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
 
-	const float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(ubo.directional.direction).xyz)), ubo.bias);
+	const float bias =
+		clamp(0.05 * (1.0 - dot(normalize(normal), normalize(ubo.directional.direction).xyz)), 0, ubo.bias);
 	projCoords.z *= (1 - bias);
 
-	float shadow = textureProj(ShadowTexture, projCoords, 0).r;
-
-	// if (projCoords.z > 1.0) {
-	// 	shadow = 0.0;
-	// }
-	// if (fragPosLightSpace.w > 1) {
-	// 	shadow = 0;
-	// }
+	const float shadow = textureProj(ShadowTexture, projCoords, 0).r;
 
 	return (1.0 - shadow);
 }
 
 void main() {
 
+	const material mat = MaterialUBO.materials[0];
+	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+
 	vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
 
 	const float shadow = max(ubo.shadowStrength - ShadowCalculation(lightSpace), 0);
 	/*	*/
 	vec4 lightColor =
-		computeBlinnDirectional(ubo.directional, normal, viewDir, ubo.specularColor.a, ubo.specularColor.rgb);
+		computeBlinnDirectional(ubo.directional, normal, viewDir, ubo.specularColor.a, mat.specular_roughness.rgb);
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
-	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
+	const vec4 irradiance_color = vec4(texture(IrradianceTexture, irradiance_uv).rgb, 1);
 
-	const vec4 color = texture(DiffuseTexture, UV) * ubo.diffuseColor;
-	const vec4 lighting = (ubo.ambientColor * irradiance_color + lightColor * shadow);
+	const vec4 color = texture(DiffuseTexture, UV) * mat.diffuseColor;
+	const vec4 lighting = (glob_settings.ambientColor * mat.ambientColor * irradiance_color + lightColor * shadow);
 
 	fragColor = vec4(lighting.rgb, 1) * color;
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;

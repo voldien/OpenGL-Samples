@@ -34,7 +34,7 @@ namespace glsample {
 		void renderUI() override;
 
 	  public:
-		void convert(unsigned int texture);
+		void render(unsigned int texture);
 
 	  private:
 		int ssao_depth_only_program = -1;

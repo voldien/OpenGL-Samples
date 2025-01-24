@@ -15,5 +15,5 @@ void main() {
 	gl_Position = vec4(0, 0, 0, 1);
 	/*	*/
 	normalDistance = ubo.normalDistance;
-	color = vec4(gl_VertexID, 1, 1, 1);
+	color = vec4(0.1, 0.1, 0.1, 1);
 }

@@ -2,6 +2,10 @@
 #define _COMMON_BLINN_PHONG_LIGHT_ 1
 #include "light.glsl"
 
+struct phongblinn_material {
+	vec4 specular_shinnines;
+};
+
 vec4 computeBlinnDirectional(const in DirectionalLight light, const in vec3 normal, const in vec3 viewDir,
 							 const in float shininess, const in vec3 specularColor) {
 
@@ -15,7 +19,7 @@ vec4 computeBlinnDirectional(const in DirectionalLight light, const in vec3 norm
 	vec4 pointLightSpecular;
 	pointLightSpecular.xyz = (specularColor * spec);
 	pointLightSpecular.a = 1;
-	return pointLightSpecular + contribution * light.lightColor;
+	return pointLightSpecular * contribution + (contribution * light.lightColor);
 }
 
 vec4 computePhongDirectional(const in DirectionalLight light, const in vec3 normal, const in vec3 viewDir,
@@ -31,7 +35,28 @@ vec4 computePhongDirectional(const in DirectionalLight light, const in vec3 norm
 	pointLightSpecular.xyz = (specularColor * spec);
 	pointLightSpecular.a = 1;
 
-	return pointLightSpecular + contribution * light.lightColor;
+	return pointLightSpecular * contribution + contribution * light.lightColor;
+}
+
+vec4 computePhongPoint(const in PointLight light, const in vec3 normal, const in vec3 vertex, const in vec3 viewDir,
+					   const in float shininess, const in vec3 specularColor) {
+
+	/*	*/
+	vec3 diffVertex = (light.position - vertex);
+
+	/*	*/
+	float dist = length(diffVertex);
+
+	/*	*/
+	float attenuation = 1.0 / (light.constant_attenuation + light.linear_attenuation * dist +
+							   light.qudratic_attenuation * (dist * dist));
+
+	float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
+
+	/*	*/
+	vec4 pointLightColors = (attenuation * light.color * contribution * light.range * light.intensity);
+
+	return vec4(pointLightColors.rgb, 1);
 }
 
 #endif

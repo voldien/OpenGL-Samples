@@ -8,12 +8,3 @@ ADD_DEPENDENCIES(GameOfLife glCommon gl-sample-common-asset-importer)
 TARGET_INCLUDE_DIRECTORIES(GameOfLife PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 INSTALL(TARGETS GameOfLife DESTINATION bin)
-
-
-ADD_EXECUTABLE(GameOfLifeBig GameOfLifeBig.cpp)
-TARGET_LINK_LIBRARIES(GameOfLifeBig glCommon gl-sample-common-asset-importer)
-ADD_DEPENDENCIES(GameOfLifeBig glCommon gl-sample-common-asset-importer)
-
-TARGET_INCLUDE_DIRECTORIES(GameOfLifeBig PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-
-INSTALL(TARGETS GameOfLifeBig DESTINATION bin)

@@ -1,8 +1,2 @@
-#include"common.glsl"
-
-
-struct directional_light {
-	vec3 directional;
-	float intensity;
-	vec4 color;
-};
+#include "common.glsl"
+#include "scene.glsl"

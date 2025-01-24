@@ -28,7 +28,7 @@ namespace glsample {
 	 * @brief Positive
 	 *
 	 */
-	class FVDECLSPEC Frustum : public Camera<float> {
+	class FVDECLSPEC Frustum : public Camera {
 	  public:
 		virtual ~Frustum() = default;
 		/**

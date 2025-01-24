@@ -129,7 +129,7 @@ namespace glsample {
 
 		void Initialize() override {
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
-			const std::string diffuseTexturePath = "asset/diffuse.png";
+			const std::string diffuseTexturePath = this->getResult()["texture"].as<std::string>();
 
 			{
 				/*	*/

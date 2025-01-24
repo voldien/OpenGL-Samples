@@ -42,15 +42,15 @@ SSAOPostProcessing::~SSAOPostProcessing() {
 
 void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	/*	*/
-	const std::string vertexSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert.spv";
-	const std::string fragmentSSAOShaderPath = "Shaders/ambientocclusion/ambientocclusion.frag.spv";
+	const std::string vertexSSAOShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
+	const std::string fragmentSSAOShaderPath = "Shaders/postprocessingeffects/ssao_world_space.frag.spv";
 
 	/*	*/
-	const std::string vertexSSAODepthOnlyShaderPath = "Shaders/ambientocclusion/ambientocclusion.vert.spv";
-	const std::string fragmentSSAODepthOnlyShaderPath = "Shaders/ambientocclusion/ambientocclusion_depthonly.frag.spv";
+	const std::string vertexSSAODepthOnlyShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
+	const std::string fragmentSSAODepthOnlyShaderPath = "Shaders/postprocessingeffects/ssao_depth_only.frag.spv";
 
 	/*	*/
-	const std::string vertexOverlayShaderPath = "Shaders/postprocessingeffects/overlay.vert.spv";
+	const std::string vertexOverlayShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 	const std::string fragmentOverlayTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
 
 	{
@@ -91,10 +91,11 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	/*	Setup graphic ambient occlusion pipeline.	*/
 	glUseProgram(this->ssao_depth_world_program);
 	int uniform_ssao_world_buffer_index = glGetUniformBlockIndex(this->ssao_depth_world_program, "UniformBufferBlock");
-	glUniform1iARB(glGetUniformLocation(this->ssao_depth_world_program, "WorldTexture"), 1);
-	glUniform1iARB(glGetUniformLocation(this->ssao_depth_world_program, "NormalTexture"), 3);
-	glUniform1iARB(glGetUniformLocation(this->ssao_depth_world_program, "DepthTexture"), 4);
-	glUniform1iARB(glGetUniformLocation(this->ssao_depth_world_program, "NormalRandomize"), 5);
+	glUniform1iARB(glGetUniformLocation(this->ssao_depth_world_program, "WorldTexture"), (int)GBuffer::WorldSpace);
+	glUniform1iARB(glGetUniformLocation(this->ssao_depth_world_program, "NormalTexture"), (int)GBuffer::Normal);
+	glUniform1iARB(glGetUniformLocation(this->ssao_depth_world_program, "DepthTexture"), (int)GBuffer::Depth);
+	glUniform1iARB(glGetUniformLocation(this->ssao_depth_world_program, "NormalRandomize"),
+				   (int)GBuffer::TextureCoordinate);
 	glUniformBlockBinding(this->ssao_depth_world_program, uniform_ssao_world_buffer_index,
 						  this->uniform_ssao_buffer_binding);
 	glUseProgram(0);
@@ -116,20 +117,14 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	this->uniformSSAOBufferAlignSize =
 		fragcore::Math::align<size_t>(this->uniformSSAOBufferAlignSize, (size_t)minMapBufferSize);
 
-	/*	*/
-	glGenBuffers(1, &this->uniform_ssao_buffer);
-	glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
-	glBufferData(GL_UNIFORM_BUFFER, this->uniformSSAOBufferAlignSize * 1, &this->uniformStageBlockSSAO,
-				 GL_DYNAMIC_DRAW);
-	glBindBufferARB(GL_UNIFORM_BUFFER, 0);
-
 	/*	FIXME: improve vectors.		*/
 	{
 		/*	Create random vector.	*/
 		std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
-		std::default_random_engine generator;
-		for (size_t i = 0; i < maxKernels; ++i) {
+		std::default_random_engine generator(time(nullptr));
+		for (size_t i = 0; i < SSAOPostProcessing::maxKernels; i++) {
 
+			/*	*/
 			glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0,
 							 randomFloats(generator));
 
@@ -142,6 +137,13 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 			sample *= scale;
 			this->uniformStageBlockSSAO.kernel[i] = glm::vec4(sample, 0);
 		}
+
+		/*	*/
+		glGenBuffers(1, &this->uniform_ssao_buffer);
+		glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
+		glBufferData(GL_UNIFORM_BUFFER, this->uniformSSAOBufferAlignSize * 1, &this->uniformStageBlockSSAO,
+					 GL_DYNAMIC_DRAW);
+		glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 		/*	Create white texture.	*/
 		this->white_texture = glsample::Common::createColorTexture(1, 1, Color::white());
@@ -161,7 +163,7 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		/*	Create random texture.	*/
 		glGenTextures(1, &this->random_texture);
 		glBindTexture(GL_TEXTURE_2D, this->random_texture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseW, noiseH, 0, GL_RGBA, GL_FLOAT, ssaoRandomNoise.data());
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, noiseW, noiseH, 0, GL_RGB, GL_FLOAT, ssaoRandomNoise.data());
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		/*	Border clamped to max value, it makes the outside area.	*/
@@ -176,7 +178,7 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
-	/*	Create sampler.	*/
+	/*	Create sampler for sampling GBuffer regardless of the texture internal sampler.	*/
 	glCreateSamplers(1, &this->world_position_sampler);
 	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -187,6 +189,7 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAX_LOD, 0);
 	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_LOD, 0);
 
+	/*	*/
 	this->overlay_program = this->createOverlayGraphicProgram(filesystem);
 	this->vao = createVAO();
 }
@@ -196,7 +199,22 @@ void SSAOPostProcessing::draw(
 	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
 
 	PostProcessing::draw(framebuffer, render_targets);
+	this->render(framebuffer, 0, 0, 0);
+}
 
+void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int depth_texture,
+								unsigned int world_texture, unsigned int normal_texture) {
+
+	glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
+	void *uniformPointer = glMapBufferRange(GL_UNIFORM_BUFFER, 0, this->uniformSSAOBufferAlignSize,
+											GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	memcpy(uniformPointer, &this->uniformStageBlockSSAO, sizeof(uniformStageBlockSSAO));
+	glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+	/*	*/
+	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
+	/*	Draw Ambient Occlusion.	*/
 	{
 		glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_binding, this->uniform_ssao_buffer, 0,
 						  this->uniformSSAOBufferAlignSize);
@@ -204,13 +222,16 @@ void SSAOPostProcessing::draw(
 		glActiveTexture(GL_TEXTURE0 + (int)GBuffer::TextureCoordinate);
 		glBindTexture(GL_TEXTURE_2D, this->random_texture);
 
-		/*	*/
-		glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
-
 		glBindVertexArray(this->vao);
 
-		glUseProgram(this->ssao_depth_only_program);
+		if (this->useDepthOnly) {
+			glBindSampler((int)GBuffer::Depth, this->world_position_sampler);
+			glUseProgram((int)this->ssao_depth_only_program);
 
+		} else {
+			glUseProgram(this->ssao_depth_world_program);
+			glBindSampler(0, this->world_position_sampler);
+		}
 		/*	*/
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_BLEND);
@@ -220,36 +241,32 @@ void SSAOPostProcessing::draw(
 
 		glUseProgram(0);
 
-		/*	Swap buffers.	(ping pong)	*/
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
-		/*	*/
-		std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
+		glBindSampler((int)GBuffer::Depth, 0);
 	}
 
+	/*	*/
+	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
+	/*	Overlay with the orignal color framebuffer.	*/
 	{
 		glBindVertexArray(this->vao);
 		glUseProgram(this->overlay_program);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[0]);
+		glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[1]);
 
 		/*	Draw overlay.	*/
 		glEnable(GL_BLEND);
 		glBlendEquation(GL_FUNC_ADD);
-		glBlendFunc(GL_ONE, GL_DST_COLOR);
+		glBlendFunc(GL_DST_COLOR, GL_ZERO);
+
+		glDisable(GL_CULL_FACE);
+		glCullFace(GL_FRONT_AND_BACK);
+		glDisable(GL_DEPTH_TEST);
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		glUseProgram(0);
-
-		glBindVertexArray(0);
-
-		/*	Swap buffers.	(ping pong)	*/
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
-		/*	*/
-		std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
 	}
 
 	glBindVertexArray(0);

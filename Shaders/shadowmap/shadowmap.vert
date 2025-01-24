@@ -31,6 +31,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 
 	float bias;
 	float shadowStrength;
+		float radius;
 }
 ubo;
 

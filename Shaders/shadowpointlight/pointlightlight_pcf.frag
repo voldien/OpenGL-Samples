@@ -3,6 +3,8 @@
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
 #extension GL_EXT_control_flow_attributes : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
 layout(location = 0) out vec4 fragColor;
 
@@ -11,8 +13,12 @@ layout(location = 1) in vec2 UV;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 
-layout(binding = 1) uniform sampler2D DiffuseTexture;
-layout(binding = 2) uniform samplerCube ShadowTexture[4];
+#include "common.glsl"
+#include "scene.glsl"
+
+#include "phongblinn.glsl"
+
+layout(binding = 16) uniform samplerCube ShadowTexture[4];
 
 struct point_light {
 	vec3 position;
@@ -67,7 +73,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 		return 1.0;
 	}
 
-	const float far_plane = 1000;
+	const float far_plane = 1000;  //FIXME: 
 	const float viewDistance = length(ubo.cameraPosition.xyz - fragPosLightSpace);
 	const float diskRadius = (1.0 + (viewDistance / far_plane)) / ubo.diskRadius;
 	const int samples = 20;
@@ -84,6 +90,10 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 }
 
 void main() {
+
+	const material mat = MaterialUBO.materials[0];
+	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+
 	vec4 pointLightColors = vec4(0);
 
 	[[unroll]] for (uint i = 0; i < 4; i++) {
@@ -109,4 +119,9 @@ void main() {
 	}
 
 	fragColor = texture(DiffuseTexture, UV) * (ubo.ambientColor + pointLightColors);
+
+	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
+	if (fragColor.a < 0.8) {
+		discard;
+	}
 }

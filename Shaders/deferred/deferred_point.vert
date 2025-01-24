@@ -30,6 +30,7 @@ void main() {
 	const float range = pointlightUBO.point_light[InstanceID].range;
 	const vec3 position = pointlightUBO.point_light[InstanceID].position;
 
+	/*	Construct model matrix from position and point light range.	*/
 	mat4 transform = mat4(1);
 	transform[3][0] = position.x;
 	transform[3][1] = position.y;

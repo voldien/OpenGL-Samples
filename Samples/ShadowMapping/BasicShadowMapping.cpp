@@ -9,6 +9,7 @@
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <cstddef>
+#include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace glsample {
@@ -22,8 +23,7 @@ namespace glsample {
 	  public:
 		BasicShadowMapping() : GLSampleWindow() {
 			this->setTitle("ShadowMapping");
-			this->shadowSettingComponent =
-				std::make_shared<BasicShadowMapSettingComponent>(this->uniformStageBuffer, this->shadowTexture);
+			this->shadowSettingComponent = std::make_shared<BasicShadowMapSettingComponent>(*this);
 			this->addUIComponent(this->shadowSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -50,6 +50,7 @@ namespace glsample {
 
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
+			float pcfRadius = 1.0f;
 		} uniformStageBuffer;
 
 		/*	*/
@@ -80,17 +81,17 @@ namespace glsample {
 
 		CameraController camera;
 
-		class BasicShadowMapSettingComponent : public nekomimi::UIComponent {
+		class BasicShadowMapSettingComponent : public GLUIComponent<BasicShadowMapping> {
 		  public:
-			BasicShadowMapSettingComponent(struct uniform_buffer_block &uniform, unsigned int &depth)
-				: depth(depth), uniform(uniform) {
-				this->setName("Basic Shadow Mapping Settings");
-			}
+			BasicShadowMapSettingComponent(BasicShadowMapping &sample)
+				: GLUIComponent(sample, "Basic Shadow Mapping Settings"), depth(this->getRefSample().shadowTexture),
+				  uniform(this->getRefSample().uniformStageBuffer) {}
 
 			void draw() override {
 
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
+				ImGui::DragFloat("PCF Radius", &this->uniform.pcfRadius, 1, 0.0f, 100.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
@@ -110,6 +111,8 @@ namespace glsample {
 				ImGui::Checkbox("Shadow Alpha Clipping", &this->useShadowClip);
 				ImGui::TextUnformatted("Depth Texture");
 				ImGui::Image(static_cast<ImTextureID>(this->depth), ImVec2(512, 512), ImVec2(1, 1), ImVec2(0, 0));
+
+				this->getRefSample().scene.renderUI();
 			}
 
 			float distance = 50.0;
@@ -195,8 +198,8 @@ namespace glsample {
 				glUseProgram(0);
 
 				glUseProgram(this->shadow_alpha_clip_program);
-				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "DiffuseTexture"), 0);
-				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "AlphaMaskedTexture"), 2);
+				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "DiffuseTexture"), TextureType::Diffuse);
+				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "AlphaMaskedTexture"), TextureType::AlphaMask);
 				uniform_buffer_shadow_index =
 					glGetUniformBlockIndex(this->shadow_alpha_clip_program, "UniformBufferBlock");
 				glUniformBlockBinding(this->shadow_alpha_clip_program, uniform_buffer_shadow_index,
@@ -206,8 +209,8 @@ namespace glsample {
 				/*	Setup graphic pipeline.	*/
 				glUseProgram(this->graphic_program);
 				int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
-				glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-				glUniform1i(glGetUniformLocation(this->graphic_program, "AlphaMaskedTexture"), 2);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), TextureType::Diffuse);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "AlphaMaskedTexture"), TextureType::AlphaMask);
 				glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), shadowBinding);
 				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureType::Irradiance);
 
@@ -218,8 +221,8 @@ namespace glsample {
 				/*	Setup graphic pipeline.	*/
 				glUseProgram(this->graphic_pfc_program);
 				uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
-				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), 0);
-				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "AlphaMaskedTexture"), 2);
+				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), TextureType::Diffuse);
+				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "AlphaMaskedTexture"), TextureType::AlphaMask);
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), shadowBinding);
 				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureType::Irradiance);
 				glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index,
@@ -265,6 +268,7 @@ namespace glsample {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 				float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 				glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
@@ -392,7 +396,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + 10);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
-				this->scene.render();
+				this->scene.render(&this->camera);
 				glUseProgram(0);
 			}
 

@@ -61,11 +61,10 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 		/*	Default common options between all samples.	*/
 		cxxopts::Options options("OpenGL Sample: " + fragcore::SystemInfo::getApplicationName(), helperInfo);
+		// TODO: default to debug during development and false during release
 		cxxopts::OptionAdder &addr =
 			options.add_options(fragcore::SystemInfo::getApplicationName())("h,help", "helper information.")(
-				"d,debug", "Enable Debug View.",
-				cxxopts::value<bool>()->default_value(
-					"true"))( // TODO: default to debug during development and false during release
+				"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value("true"))(
 				"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
 				"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
 				"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(

@@ -8,7 +8,7 @@ layout(location = 1) in vec2 TextureCoord;
 
 layout(location = 4) in int index;
 
-layout(location = 0) out flat int GIndex;
+layout(location = 0) out invariant flat int GIndex;
 layout(location = 1) out vec2 OutTextureCoord;
 
 struct point_light {

@@ -3,7 +3,8 @@
 
 /*	*/
 struct material {
-	vec4 colorTint;
+	vec4 ambientColor;
+	vec4 diffuseColor;
 	vec4 transparency;
 	vec4 specular_roughness;
 	vec4 emission;

@@ -95,7 +95,6 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	int blend_func_mode; /*	aiBlendMode*/
 	int wireframe_mode;
 	bool culling_both_side_mode;
-
 	/*	*/
 
 	unsigned int shade_model; /*	aiShadingMode	*/

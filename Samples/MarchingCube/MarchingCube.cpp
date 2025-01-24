@@ -32,10 +32,10 @@ namespace glsample {
 		}
 
 		/*	*/
-		typedef struct chunk_t {
+		using Chunk = struct chunk_t {
 			MeshObject *marchingCube = nullptr;
 			glm::vec3 position = glm::vec3(0);
-		} Chunk;
+		};
 
 		MeshObject marchingCube;
 		std::vector<Chunk> chunks;
@@ -47,28 +47,28 @@ namespace glsample {
 		unsigned int marching_cube_graphic_program{};
 		unsigned int marching_cube_generate_compute_program{};
 
-		typedef struct _marching_cube_cell_data_t {
+		using MarchingCubeCellData = struct _marching_cube_cell_data_t {
 			glm::vec3 pos;
 			float scale;
 			glm::vec3 normal;
 			float size;
-		} MarchingCubeCellData;
+		};
 
-		typedef struct marching_cube_settings_t {
+		using MarchingCubeSettings = struct marching_cube_settings_t {
 			float voxel_size = 1;
 			float threshold = 0.01f;
 			float mag = 0.13f;
 			float scale = 0.009f;
 			glm::vec4 position_offset = glm::vec4(0);
 			glm::vec4 random_offset = glm::vec4(0);
-		} MarchingCubeSettings;
+		};
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Fog settings.	*/
 			FogSettings fogSettings;

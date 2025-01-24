@@ -172,19 +172,19 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->mipmap_texture);
 				FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, this->mip_levels - 1));
 
-				for (size_t i = 0; i < this->mip_levels; i++) {
+				for (size_t mip_level = 0; mip_level < this->mip_levels; mip_level++) {
 
-					const size_t mip_level_width = noiseW >> i;
-					const size_t mip_level_height = noiseH >> i;
+					const size_t mip_level_width = noiseW >> mip_level;
+					const size_t mip_level_height = noiseH >> mip_level;
 
 					std::vector<glm::vec3> miplevelColorData(mip_level_width * mip_level_height);
 
 					for (size_t x = 0; x < miplevelColorData.size(); x++) {
-						miplevelColorData[x] = mip_colors[i];
+						miplevelColorData[x] = mip_colors[mip_level];
 					}
 
-					glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA8, mip_level_width, mip_level_height, 0, GL_RGB, GL_FLOAT,
-								 miplevelColorData.data());
+					glTexImage2D(GL_TEXTURE_2D, mip_level, GL_RGBA8, mip_level_width, mip_level_height, 0, GL_RGB,
+								 GL_FLOAT, miplevelColorData.data());
 				}
 
 				glBindTexture(GL_TEXTURE_2D, 0);
@@ -243,7 +243,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->mipmap_texture);
 				glBindSampler(0, this->mipmap_sampler);
 
-				this->scene.render();
+				this->scene.render(&this->camera);
 			}
 		}
 

@@ -71,8 +71,8 @@ namespace glsample {
 		/*	White texture for each object.	*/
 		unsigned int white_texture{};
 		/*	*/
-		unsigned int graphic_program{};
-		unsigned int hyperplane_program{};
+		unsigned int graphic_program = 0;
+		unsigned int hyperplane_program = 0;
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
@@ -236,8 +236,7 @@ namespace glsample {
 				glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &storageMaxSize);
 				GLint minStorageAlignSize = 0;
 				glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageAlignSize);
-				this->instanceBatch = this->rigidbodies_box.size() +
-									  this->rigidbodies_sphere.size(); // storageMaxSize / sizeof(glm::mat4);
+				this->instanceBatch = this->rigidbodies_box.size() + this->rigidbodies_sphere.size();
 
 				this->uniformInstanceSize =
 					fragcore::Math::align<size_t>(this->instanceBatch * sizeof(glm::mat4), (size_t)minStorageAlignSize);
@@ -348,6 +347,8 @@ namespace glsample {
 					this->physic_interface->addRigidBody(this->rigidbodies_sphere[i]);
 				}
 			}
+
+			this->physic_interface->sync();
 		}
 
 		void onResize(int width, int height) override {
@@ -432,7 +433,7 @@ namespace glsample {
 
 				glUniformMatrix4fv(glGetUniformLocation(this->hyperplane_program, "ubo.viewProj"), 1, GL_FALSE,
 								   &(this->uniformStageBuffer.proj * this->uniformStageBuffer.view)[0][0]);
-				glm::vec4 hyerplane = glm::vec4(0, 1, 0, 0);
+				const glm::vec4 hyerplane = glm::vec4(0, 1, 0, -15); // TODO: copy from the rigidbody plane.
 				glUniform4fv(glGetUniformLocation(this->hyperplane_program, "ubo.normalDistance"), 1, &hyerplane[0]);
 
 				glBindVertexArray(this->hyerplane.vao);
@@ -470,8 +471,7 @@ namespace glsample {
 				void *uniformMappedMemory = glMapBufferRange(
 					GL_UNIFORM_BUFFER,
 					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformAlignBufferSize,
-					this->uniformAlignBufferSize,
-					GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+					this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				memcpy(uniformMappedMemory, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}

@@ -10,18 +10,18 @@ layout(location = 1) in flat int InstanceID;
 layout(binding = 0) uniform sampler2D AlbedoTexture;
 layout(binding = 1) uniform sampler2D WorldTexture;
 layout(binding = 2) uniform sampler2D DepthTexture;
-layout(binding = 3) uniform sampler2D NormalTexture;
+//layout(binding = 3) uniform sampler2D NormalTexture;
 
-#include "light.glsl"
+#include"deferred_base.glsl"
 
 layout(set = 0, binding = 1, std140) uniform UniformBufferLight { PointLight point_light[64]; }
 pointlightUBO;
 
-vec2 CalcTexCoord() { return gl_FragCoord.xy / vec2(2560, 1440); }
+vec2 CalcTexCoord(const in vec2 screenSize) { return gl_FragCoord.xy / screenSize; }
 
 void main() {
 
-	const vec2 uv = CalcTexCoord();
+	const vec2 uv = CalcTexCoord(textureSize(AlbedoTexture, 0).xy);
 
 	const vec4 color = vec4(texture(AlbedoTexture, uv).rgb, 1);
 	const vec3 world = texture(WorldTexture, uv).xyz;

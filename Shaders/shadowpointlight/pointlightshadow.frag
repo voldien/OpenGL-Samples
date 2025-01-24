@@ -4,7 +4,6 @@
 #extension GL_ARB_uniform_buffer_object : enable
 
 layout(location = 0) in vec4 FragVertex;
-
 layout(location = 1) in flat int FIndex;
 
 struct point_light {

@@ -80,7 +80,7 @@ void SobelProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int so
 	}
 	glUseProgram(0);
 
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
 
 	/*	Swap buffers.	(ping pong)	*/
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[1], 0);

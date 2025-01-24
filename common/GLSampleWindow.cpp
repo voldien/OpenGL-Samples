@@ -13,6 +13,7 @@
 #include "PostProcessing/DepthOfFieldPostProcessing.h"
 #include "PostProcessing/GrainPostProcessing.h"
 #include "PostProcessing/MistPostProcessing.h"
+#include "PostProcessing/PixelatePostProcessing.h"
 #include "PostProcessing/PostProcessing.h"
 #include "PostProcessing/PostProcessingManager.h"
 #include "PostProcessing/SSAOPostProcessing.h"
@@ -220,57 +221,64 @@ GLSampleWindow::~GLSampleWindow() {
 void GLSampleWindow::internalInit() {
 
 	/*	*/
+	bool usePostProcessing = true;
 	if (this->colorSpace == nullptr) {
 
 		// TODO: add try catch.
 		this->colorSpace = new ColorSpaceConverter();
 		this->colorSpace->initialize(getFileSystem());
 
-		this->postprocessingManager = new PostProcessingManager();
+		if (usePostProcessing) {
+			this->postprocessingManager = new PostProcessingManager();
 
-		SobelProcessing *sobelPostProcessing = new SobelProcessing();
-		sobelPostProcessing->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*sobelPostProcessing);
+			SobelProcessing *sobelPostProcessing = new SobelProcessing();
+			sobelPostProcessing->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*sobelPostProcessing);
 
-		ColorGradePostProcessing *colorgrade = new ColorGradePostProcessing();
-		colorgrade->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*colorgrade);
+			ColorGradePostProcessing *colorgrade = new ColorGradePostProcessing();
+			colorgrade->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*colorgrade);
 
-		BlurPostProcessing *blur = new BlurPostProcessing();
-		blur->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*blur);
+			BlurPostProcessing *blur = new BlurPostProcessing();
+			blur->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*blur);
 
-		BloomPostProcessing *bloom = new BloomPostProcessing();
-		bloom->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*bloom);
+			PixelatePostProcessing *pixelate = new PixelatePostProcessing();
+			pixelate->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*pixelate);
 
-		ChromaticAbberationPostProcessing *chromatic = new ChromaticAbberationPostProcessing();
-		chromatic->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*chromatic);
+			GrainPostProcessing *grain = new GrainPostProcessing();
+			grain->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*grain);
 
-		GrainPostProcessing *grain = new GrainPostProcessing();
-		grain->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*grain);
+			SSAOPostProcessing *ssao = new SSAOPostProcessing();
+			ssao->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*ssao);
 
-		SSAOPostProcessing *ssao = new SSAOPostProcessing();
-		ssao->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*ssao);
+			DepthOfFieldProcessing *depthOfField = new DepthOfFieldProcessing();
+			depthOfField->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*depthOfField);
 
-		DepthOfFieldProcessing *depthOfField = new DepthOfFieldProcessing();
-		depthOfField->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*depthOfField);
+			MistPostProcessing *mistFog = new MistPostProcessing();
+			mistFog->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*mistFog);
 
-		MistPostProcessing *mistFog = new MistPostProcessing();
-		mistFog->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*mistFog);
+			SSSPostProcessing *sss = new SSSPostProcessing();
+			sss->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*sss);
 
-		SSSPostProcessing *sss = new SSSPostProcessing();
-		sss->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*sss);
+			VolumetricScatteringPostProcessing *volumetric = new VolumetricScatteringPostProcessing();
+			volumetric->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*volumetric);
 
-		VolumetricScatteringPostProcessing *volumetric = new VolumetricScatteringPostProcessing();
-		volumetric->initialize(getFileSystem());
-		this->postprocessingManager->addPostProcessing(*volumetric);
+			BloomPostProcessing *bloom = new BloomPostProcessing();
+			bloom->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*bloom);
+
+			ChromaticAbberationPostProcessing *chromatic = new ChromaticAbberationPostProcessing();
+			chromatic->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*chromatic);
+		}
 	}
 
 	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
@@ -327,13 +335,13 @@ void GLSampleWindow::renderUI() {
 	{
 
 		/*	*/
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getDefaultFramebuffer());
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 
-		/*	*/
+		/*	Main Draw Callback.	*/
 		this->draw();
 
 		/*	Transfer Multisampled texture to FBO.	*/
-		if (this->MMSAFrameBuffer && this->MMSAFrameBuffer->framebuffer == getDefaultFramebuffer()) {
+		if (this->MMSAFrameBuffer && this->MMSAFrameBuffer->framebuffer == this->getDefaultFramebuffer()) {
 			/*	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->MMSAFrameBuffer->framebuffer);
@@ -374,6 +382,8 @@ void GLSampleWindow::renderUI() {
 							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
+
+		this->postDraw();
 	}
 
 	/*	Extract debugging information.	*/

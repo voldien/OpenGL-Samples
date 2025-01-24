@@ -594,8 +594,9 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 	const bool isTextureEmpty = this->textures.size() == 0;
 
 	/*	*/
-	ref_material->Get(AI_MATKEY_NAME, name);
-	material->name = name.C_Str();
+	if (ref_material->Get(AI_MATKEY_NAME, name) == aiReturn_SUCCESS) {
+		material->name = name.C_Str();
+	}
 
 	/*	load all texture assoicated with material.	*/
 	for (size_t textureType = aiTextureType::aiTextureType_DIFFUSE; textureType < aiTextureType::aiTextureType_UNKNOWN;
@@ -702,21 +703,26 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 	{
 		if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
 			material->ambient = color;
+			material->ambient[3] = 1;
 		}
 		if (ref_material->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
 			material->diffuse = color;
+			material->diffuse[3] = 1;
 		}
 		if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
 			material->emission = color;
+			material->emission[3] = 1;
 		}
 		if (ref_material->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
 			material->specular = color;
+			material->specular[3] = 1;
 		}
 		if (ref_material->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
 			material->transparent = color;
 		}
 		if (ref_material->Get(AI_MATKEY_REFLECTIVITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
 			material->reflectivity = color;
+			material->reflectivity[3] = 1;
 		}
 		if (ref_material->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
 			material->shinininessStrength = shininessStrength;
@@ -729,14 +735,15 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 		if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
 			//	material->shinininessStrength = tmp;
 		}
-		if (ref_material->Get(AI_MATKEY_SHININESS, tmp) == aiReturn::aiReturn_SUCCESS) {
-			//	material->shinininessStrength = tmp;
-		}
-		if (ref_material->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
-			//	material->shinininessStrength = tmp;
+
+		
+		if (ref_material->Get(AI_MATKEY_TRANSPARENCYFACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			material->opacity = tmp;
+			material->transparent[3] = tmp;
 		}
 		if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
 			material->opacity = tmp;
+			//material->transparent[3] = tmp;
 		}
 
 		aiBlendMode blendfunc;
@@ -948,7 +955,16 @@ std::vector<MaterialObject *> ModelImporter::getMaterials(const size_t texture_i
 		if (getMaterials()[i].specularIndex == (int)texture_index) {
 			found = true;
 		}
-		//TODO: add more
+		if (getMaterials()[i].displacementIndex == (int)texture_index) {
+			found = true;
+		}
+		if (getMaterials()[i].maskTextureIndex == (int)texture_index) {
+			found = true;
+		}
+		if (getMaterials()[i].ambientOcclusionIndex == (int)texture_index) {
+			found = true;
+		}
+		// TODO: add more
 
 		/*	*/
 		if (found) {

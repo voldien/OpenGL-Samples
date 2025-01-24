@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Core/Object.h"
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
@@ -27,32 +28,32 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	template <typename T> class Camera {
-		static_assert(std::is_floating_point<T>::value, "Must be a decimal type(float/double/half).");
+	class Camera {
+		static_assert(std::is_floating_point<float>::value, "Must be a decimal type(float/double/half).");
 
 	  public:
 		Camera() noexcept { this->updateProjectionMatrix(); }
 
-		void setAspect(const T aspect) noexcept {
+		void setAspect(const float aspect) noexcept {
 			this->aspect = aspect;
 			this->updateProjectionMatrix();
 		}
-		T getAspect() const noexcept { return this->aspect; }
+		float getAspect() const noexcept { return this->aspect; }
 
-		void setNear(const T near) noexcept {
+		void setNear(const float near) noexcept {
 			this->near = near;
 			this->updateProjectionMatrix();
 		}
-		T getNear() const noexcept { return this->near; }
+		float getNear() const noexcept { return this->near; }
 
-		void setFar(const T far) noexcept {
+		void setFar(const float far) noexcept {
 			this->far = far;
 			this->updateProjectionMatrix();
 		}
-		T getFar() const noexcept { return this->far; }
+		float getFar() const noexcept { return this->far; }
 
-		T getFOV() const noexcept { return this->fov_degree; }
-		void setFOV(const T FOV_degree) noexcept {
+		float getFOV() const noexcept { return this->fov_degree; }
+		void setFOV(const float FOV_degree) noexcept {
 			this->fov_degree = FOV_degree;
 			this->updateProjectionMatrix();
 		}
@@ -61,15 +62,15 @@ namespace glsample {
 
 	  protected:
 		void updateProjectionMatrix() noexcept {
-			this->proj = glm::perspective(glm::radians(this->getFOV() * static_cast<T>(0.5)), this->aspect, this->near,
-										  this->far);
+			this->proj = glm::perspective(glm::radians(this->getFOV() * static_cast<float>(0.5)), this->aspect,
+										  this->near, this->far);
 		}
 
 	  protected:
-		T fov_degree = 80.0f;
-		T aspect = 16.0f / 9.0f;
-		T near = 0.45f;
-		T far = 1650.0f;
+		float fov_degree = 80.0f;
+		float aspect = 16.0f / 9.0f;
+		float near = 0.45f;
+		float far = 1650.0f;
 		glm::mat4 proj{};
 	};
 } // namespace glsample

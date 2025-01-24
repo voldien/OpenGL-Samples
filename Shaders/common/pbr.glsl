@@ -40,7 +40,7 @@ vec3 getNormalFromMap(const in sampler2D normalMap, const in vec2 TexCoords, con
 }
 
 // ----------------------------------------------------------------------------
-float DistributionGGX(vec3 N, vec3 H, float roughness) {
+float DistributionGGX(const in vec3 N, const in vec3 H, const in float roughness) {
 	float a = roughness * roughness;
 	float a2 = a * a;
 	float NdotH = max(dot(N, H), 0.0);
@@ -54,7 +54,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness) {
 }
 
 // ----------------------------------------------------------------------------
-float GeometrySchlickGGX(float NdotV, float roughness) {
+float GeometrySchlickGGX(const in float NdotV, const in float roughness) {
 	float r = (roughness + 1.0);
 	float k = (r * r) / 8.0;
 
@@ -65,7 +65,7 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
 }
 
 // ----------------------------------------------------------------------------
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+float GeometrySmith(const in vec3 N, const in vec3 V, const in vec3 L, const in float roughness) {
 	float NdotV = max(dot(N, V), 0.0);
 	float NdotL = max(dot(N, L), 0.0);
 	float ggx2 = GeometrySchlickGGX(NdotV, roughness);

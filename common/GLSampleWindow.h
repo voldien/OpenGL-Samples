@@ -54,6 +54,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	 *
 	 */
 	virtual void draw() = 0;
+	virtual void postDraw() {}
 
 	virtual void update() = 0;
 

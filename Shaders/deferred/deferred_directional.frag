@@ -1,5 +1,7 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
 layout(location = 0) out vec4 fragColor;
 
@@ -8,15 +10,12 @@ layout(location = 1) in flat int InstanceID;
 layout(binding = 0) uniform sampler2D AlbedoTexture;
 layout(binding = 1) uniform sampler2D WorldTexture;
 layout(binding = 2) uniform sampler2D DepthTexture;
-layout(binding = 3) uniform sampler2D NormalTexture;
+//layout(binding = 3) uniform sampler2D NormalTexture;
 
-struct directional_light {
-	vec3 directional;
-	float intensity;
-	vec4 color;
-};
+#include"deferred_base.glsl"
+
 //
-layout(set = 0, binding = 1, std140) uniform UniformBufferLight { directional_light light[64]; }
+layout(set = 0, binding = 1, std140) uniform UniformBufferLight { DirectionalLight light[64]; }
 directionalLightUBO;
 
 vec2 CalcTexCoord() { return gl_FragCoord.xy / vec2(2560, 1440); }

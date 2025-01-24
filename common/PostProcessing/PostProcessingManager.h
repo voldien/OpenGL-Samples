@@ -38,11 +38,15 @@ namespace glsample {
 		void enablePostProcessing(const size_t index, const bool enabled);
 
 		void render(glsample::FrameBuffer *framebuffer,
-					const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets);
+					const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets);
+
+		void populateCommonData() {}
 
 	  protected:
 		// TODO: shared_pointer
 		std::vector<PostProcessing *> postProcessings;
 		std::vector<bool> post_enabled;
+
+		unsigned int common_uniform_buffer = 0;
 	};
 } // namespace glsample

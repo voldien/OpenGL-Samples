@@ -35,11 +35,11 @@ namespace glsample {
 		Roughness = 8,		   /*	*/
 		AO,
 		Displacement,
-		Metallic,			   /*	*/
-		SubSurface,			   /*	*/
-		LightPass,			   /*	*/
-		IntermediateTarget,	   /*	*/
-		IntermediateTarget2	   /*	*/
+		Metallic,			/*	*/
+		SubSurface,			/*	*/
+		LightPass,			/*	*/
+		IntermediateTarget, /*	*/
+		IntermediateTarget2 /*	*/
 	};
 
 	enum class FogType : unsigned int {
@@ -106,16 +106,29 @@ namespace glsample {
 
 	using CameraInstance = struct alignas(16) camera_instance_t {
 		/*	*/
-		template <typename T> camera_instance_t &operator=(Camera<T> &camera) {
+		camera_instance_t &operator=(Camera &camera) {
 			this->near = camera.getNear();
 			this->far = camera.getFar();
+			this->proj = camera.getProjectionMatrix();
+			this->inverseProj = glm::inverse(camera.getProjectionMatrix());
+
 			return *this;
 		}
 		/*	*/
 		camera_instance_t &operator=(CameraController &camera) {
+			//*this = camera.as<Camera<float>>();
+			// TODO: reuse function above
+			this->near = camera.getNear();
+			this->far = camera.getFar();
+			this->proj = camera.getProjectionMatrix();
+			this->inverseProj = glm::inverse(camera.getProjectionMatrix());
+
 			this->near = camera.getNear();
 			this->far = camera.getFar();
 			this->position = glm::vec4(camera.getPosition(), 0);
+			this->viewDir = glm::vec4(camera.getLookDirection(), 0);
+			this->view = camera.getViewMatrix();
+			this->viewProj = this->proj * this->view;
 			return *this;
 		}
 
@@ -127,10 +140,20 @@ namespace glsample {
 		glm::vec4 viewDir = glm::vec4(0, 0, 1, 0);
 		glm::vec4 position_size = glm::vec4(0);
 		glm::uvec4 screen_width_padding = glm::ivec4(1);
+		glm::mat4 view = glm::mat4(1);
+		glm::mat4 viewProj = glm::mat4(1);
+		glm::mat4 proj = glm::mat4(1);
+		glm::mat4 inverseProj = glm::mat4(1);
 	};
 
 	using FrustumInstance = struct alignas(16) frustum_instance_t {
 		glm::vec4 planes[6];
+	};
+
+	using UBOObject = struct uniform_buffer_object_t {
+		unsigned int buffer;
+		unsigned int size;
+		unsigned int alignment;
 	};
 
 	using FrameBuffer = struct framebuffer_t {

@@ -25,9 +25,10 @@ Usage:
   -H, --height arg          Set Window Height (default: -1)
   -D, --display arg         Display (default: -1)
   -m, --multi-sample arg    Set MSAA (default: 0)
+  -p, --use-postprocessing  Use Post Processing (default: true)
 ```
 
-## Samples
+## Graphic Based Samples
 
 ### [**Triangle**](Samples/Triangle)
 
@@ -56,7 +57,7 @@ Usage:
 
 ![Fog](https://github.com/user-attachments/assets/28e60ff4-7579-430d-acee-89e19e1f527a)
 
-### **Simple Reflection**
+### [**Simple Reflection**](Samples/SimpleReflection/)
 
 ### [**Instance**](Samples/Instance)
 
@@ -76,7 +77,7 @@ Usage:
 ![PhongBlinn](https://github.com/voldien/OpenGL-Samples/assets/9608088/e14e4035-1639-4532-a316-65c8c879abf9)
 ![PhongBlinn](https://github.com/voldien/OpenGL-Samples/assets/9608088/02ae2bac-974e-4270-b80f-a59dba260160)
 
-- **Terrain**
+### [**Terrain**](Samples/Terrain/)
 
 ### [**Shadow Map**](Samples/ShadowMapping/)
 
@@ -95,7 +96,7 @@ Usage:
 
 ![ProjectedShadow](https://github.com/user-attachments/assets/d1a17f8e-21c5-42e3-8e4a-094bbe3d8a0b)
 
-### **Shadow Map Variance**
+### [**Shadow Map Variance**](Samples/ShadowVariance/)
 
 ### **Shadow Volume**
 
@@ -137,7 +138,9 @@ Usage:
 
 ### [**Video Playback**](Samples/VideoPlayback/)
 
-### **Ray Tracing**
+## Compute Shader Base Examples
+
+### [**Ray Tracing**](Samples/RayTracing/Ray/)
 
 ### [**Game Of Life**](Samples/GameOfLife)
 
@@ -167,6 +170,28 @@ Usage:
 
 ![RigidBody](https://github.com/user-attachments/assets/74e55eea-8f19-4a80-82b1-e88952334db0)
 
+## PostProcessing Effects
+
+- **Chromatic Aberration**
+
+- **Sobel Edge Detection**
+
+- **Screen Space Ambient Occlusion**
+
+- **Guassian Blur**
+
+- **FXAA**
+
+- **Mist Fog**
+
+- **Volumetric Scattering**
+
+- **ColorSpace**
+
+- **Pixelate**
+
+- **Grain**
+
 ## Build Instruction
 
 ```bash
@@ -180,3 +205,5 @@ make DownloadAsset
 ## License
 
 This project is licensed under the GPL+3 License - see the [LICENSE](LICENSE) file for details
+
+Models downloaded from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)

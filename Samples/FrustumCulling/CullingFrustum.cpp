@@ -29,7 +29,7 @@ namespace glsample {
 	  public:
 		SceneFrustum() = default;
 
-		void render() override { Scene::render(); }
+		void render(Camera *camera) override { Scene::render(camera); }
 
 		void render(std::queue<const NodeObject *> &queue) {
 			while (!queue.empty()) {
