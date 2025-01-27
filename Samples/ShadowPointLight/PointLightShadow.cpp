@@ -20,11 +20,11 @@ namespace glsample {
 	  public:
 		PointLightShadow() : GLSampleWindow() {
 			this->setTitle("PointLightShadow");
-			this->shadowSettingComponent = std::make_shared<PointLightShadowSettingComponent>(this->uniform);
+			this->shadowSettingComponent = std::make_shared<PointLightShadowSettingComponent>(*this);
 			this->addUIComponent(this->shadowSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(20.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -81,8 +81,9 @@ namespace glsample {
 		/*	*/
 		unsigned int graphic_program{};
 		unsigned int graphic_pfc_program{};
-		unsigned int shadow_program{};
+		unsigned int shadow_program = 0;
 		unsigned int shadow_alpha_clip_program{};
+		unsigned int skybox_program;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
@@ -92,15 +93,12 @@ namespace glsample {
 
 		CameraController camera;
 
-		class PointLightShadowSettingComponent : public nekomimi::UIComponent {
+		class PointLightShadowSettingComponent : public GLUIComponent<PointLightShadow> {
 		  public:
-			PointLightShadowSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
-				this->setName("Point Light Shadow Settings");
-			}
-			void draw() override {
+			PointLightShadowSettingComponent(PointLightShadow &sample)
+				: GLUIComponent(sample, "Point Light Shadow Settings"), uniform(sample.uniform) {}
 
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
-								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+			void draw() override {
 
 				ImGui::TextUnformatted("Shadow");
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
@@ -130,6 +128,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Animate Lights", &this->animate);
+				this->getRefSample().scene.renderUI();
 			}
 
 			bool showWireFrame = false;
@@ -170,7 +169,7 @@ namespace glsample {
 		void Initialize() override {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
-
+			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
 			{
 				/*	*/
 				const std::vector<uint32_t> vertex_binary =
@@ -205,6 +204,8 @@ namespace glsample {
 				this->shadow_alpha_clip_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary,
 													 &fragment_shadow_alpha_clip_binary, &geometry_shadow_binary);
+
+				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
 			}
 
 			/*	load Textures	*/
@@ -252,6 +253,10 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer * this->nrPointLights,
 						 nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+			/*	load Skybox Textures	*/
+			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
+			this->skybox.Init(skytexture, this->skybox_program);
 
 			{
 
@@ -428,6 +433,8 @@ namespace glsample {
 
 				this->scene.render(&this->camera);
 			}
+
+			skybox.Render(this->camera);
 		}
 
 		void update() override {
@@ -503,7 +510,9 @@ namespace glsample {
 	  public:
 		PointLightShadowGLSample() : GLSample<PointLightShadow>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
+				"S,skybox", "Skybox Texture File Path",
+				cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
 

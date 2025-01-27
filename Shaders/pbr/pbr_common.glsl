@@ -1,6 +1,6 @@
 #include "common.glsl"
 #include "light.glsl"
-#include "pbr.glsl"
+
 #include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {

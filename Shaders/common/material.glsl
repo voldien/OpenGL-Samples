@@ -1,5 +1,5 @@
-#ifndef _COMMON_SCENE_H_
-#define _COMMON_SCENE_H_ 1
+#ifndef _COMMON_MATERIALS_H_
+#define _COMMON_MATERIALS_H_ 1
 
 /*	*/
 struct material {

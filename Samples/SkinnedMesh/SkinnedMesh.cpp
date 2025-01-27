@@ -59,7 +59,7 @@ namespace glsample {
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_skeleton_buffer_binding = 1;
+		unsigned int uniform_skeleton_buffer_binding = 3;
 		unsigned int uniform_buffer{};
 		unsigned int uniform_skeleton_buffer{};
 		const size_t nrUniformBuffer = 3;
@@ -273,7 +273,7 @@ namespace glsample {
 
 				glUseProgram(this->skinned_graphic_program);
 
-				this->scene.render();
+				this->scene.render(&this->camera);
 
 				/*	*/
 				if (this->skinnedSettingComponent->showBone) {

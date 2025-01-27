@@ -75,29 +75,28 @@ using MaterialObject = struct material_object_t : public AssetObject {
 			int maskTextureIndex = -1;
 			int displacementIndex = -1;
 		};
-		int texture_index[10];
+		int texture_index[16];
 	};
-	MaterialTextureSampling texture_sampling[10];
+	MaterialTextureSampling texture_sampling[16];
 
 	/*	TODO its own struct.	*/
 	// Material properties.
-	glm::vec4 ambient;
-	glm::vec4 diffuse;
-	glm::vec4 emission;
-	glm::vec4 specular;
-	glm::vec4 transparent;
-	glm::vec4 reflectivity;
+	glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
+	glm::vec4 diffuse = glm::vec4(1);
+	glm::vec4 emission = glm::vec4(1);
+	glm::vec4 specular = glm::vec4(1);
+	glm::vec4 transparent = glm::vec4(1);
+	glm::vec4 reflectivity = glm::vec4(1);
 
 	/*	*/
-	float shinininess;
-	float shinininessStrength;
-	float opacity;
-	int blend_func_mode; /*	aiBlendMode*/
-	int wireframe_mode;
-	bool culling_both_side_mode;
+	float shinininess = 0;
+	float opacity = 1;
+	int blend_func_mode = 0; /*	aiBlendMode*/
+	int wireframe_mode = 0;
+	bool culling_both_side_mode = false;
 	/*	*/
 
-	unsigned int shade_model; /*	aiShadingMode	*/
+	unsigned int shade_model = 0; /*	aiShadingMode	*/
 };
 
 using NodeObject = struct node_object_t : public AssetObject {

@@ -73,7 +73,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 		return 1.0;
 	}
 
-	const float far_plane = 1000;  //FIXME: 
+	const float far_plane = 1000; // FIXME:
 	const float viewDistance = length(ubo.cameraPosition.xyz - fragPosLightSpace);
 	const float diskRadius = (1.0 + (viewDistance / far_plane)) / ubo.diskRadius;
 	const int samples = 20;
@@ -91,7 +91,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 
 void main() {
 
-	const material mat = MaterialUBO.materials[0];
+	const material mat = getMaterial();
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
 	vec4 pointLightColors = vec4(0);
@@ -117,10 +117,12 @@ void main() {
 							 ubo.point_light[i].intensity) *
 							shadow;
 	}
-
-	fragColor = texture(DiffuseTexture, UV) * (ubo.ambientColor + pointLightColors);
+	pointLightColors.a = 1;
+	fragColor = texture(DiffuseTexture, UV) * mat.diffuseColor * (glob_settings.ambientColor * mat.ambientColor + pointLightColors);
 
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
+	fragColor *= mat.transparency.rgba;
+	fragColor.rgb += mat.emission.rgb * texture(EmissionTexture, UV).rgb;
 	if (fragColor.a < 0.8) {
 		discard;
 	}

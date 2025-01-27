@@ -11,6 +11,7 @@ layout(location = 2) out vec4 TextureCoord;
 layout(location = 3) out vec4 Normal;
 layout(location = 4) out vec3 Specular;
 layout(location = 5) out vec3 Roughness_Metalic;
+layout(location = 6) out vec3 Emission;
 
 
 layout(location = 0) in vec4 vertex;
@@ -23,8 +24,11 @@ layout(location = 4) in vec3 bitangent;
 
 void main() {
 
+	const material mat = getMaterial();
+	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+
 	/*	*/
-	Diffuse = texture(DiffuseTexture, uv).rgba;
+	Diffuse = texture(DiffuseTexture, uv).rgba * mat.diffuseColor;
 	Diffuse.a *= texture(AlphaMaskedTexture, uv).r;
 
 	if(texture(AlphaMaskedTexture, uv).r * texture(DiffuseTexture, uv).a < 0.25){
@@ -35,6 +39,8 @@ void main() {
 	Roughness_Metalic.g = texture(MetalicTexture, uv).r;
 
 	Specular.r = texture(RoughnessTexture, uv).r;
+
+	Emission.rgb += mat.emission.rgb * texture(EmissionTexture, uv).rgb;
 
 	/*	*/
 	WorldSpace = vec4(vertex.xyz, 1);

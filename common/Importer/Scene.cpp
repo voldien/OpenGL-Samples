@@ -1,7 +1,7 @@
 #include "Scene.h"
-#include "GLHelper.h"
+#include "../Common.h"
+#include "Math3D/Color.h"
 #include "ModelImporter.h"
-#include "Node.h"
 #include "UIComponent.h"
 #include "Util/CameraController.h"
 #include "imgui.h"
@@ -33,21 +33,23 @@ namespace glsample {
 	void Scene::release() {
 
 		/*	*/
-		for (size_t i = 0; i < this->refGeometry.size(); i++) {
-			if (glIsVertexArray(this->refGeometry[i].vao)) {
-				glDeleteVertexArrays(1, &this->refGeometry[i].vao);
+		for (size_t geo_index = 0; geo_index < this->refGeometry.size(); geo_index++) {
+			if (glIsVertexArray(this->refGeometry[geo_index].vao)) {
+				glDeleteVertexArrays(1, &this->refGeometry[geo_index].vao);
 			}
-			if (glIsBuffer(this->refGeometry[i].ibo)) {
-				glDeleteBuffers(1, &this->refGeometry[i].ibo);
+			if (glIsBuffer(this->refGeometry[geo_index].ibo)) {
+				glDeleteBuffers(1, &this->refGeometry[geo_index].ibo);
 			}
-			if (glIsBuffer(this->refGeometry[i].vbo)) {
-				glDeleteBuffers(1, &this->refGeometry[i].vbo);
+			if (glIsBuffer(this->refGeometry[geo_index].vbo)) {
+				glDeleteBuffers(1, &this->refGeometry[geo_index].vbo);
 			}
 		}
 
 		/*	*/
-		for (size_t i = 0; i < this->refTexture.size(); i++) {
-			glDeleteTextures(1, &this->refTexture[i].texture);
+		for (size_t tex_index = 0; tex_index < this->refTexture.size(); tex_index++) {
+			if (glIsTexture(this->refTexture[tex_index].texture)) {
+				glDeleteTextures(1, &this->refTexture[tex_index].texture);
+			}
 		}
 	}
 
@@ -57,32 +59,19 @@ namespace glsample {
 		const unsigned char white[] = {255, 255, 255, 255};
 		const unsigned char black[] = {0, 0, 0, 255};
 
-		std::vector<const unsigned char *> arrs = {white, normalForward, white};
 		std::vector<int *> texRef = {&this->default_textures[TextureType::Diffuse],
 									 &this->default_textures[TextureType::Normal],
 									 &this->default_textures[TextureType::AlphaMask]};
 
-		for (size_t i = 0; i < arrs.size(); i++) {
-
-			// TODO: use common color.
-
-			FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)texRef[i]));
-			FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, *texRef[i]));
-			FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, arrs[i]));
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
-			/*	Border clamped to max value, it makes the outside area.	*/
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
-
-			/*	No Mipmap.	*/
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
-
-			FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
-
-			FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
+		this->default_textures[TextureType::Diffuse] = glsample::Common::createColorTexture(
+			1, 1, fragcore::Color(white[0] / 255.0f, white[1] / 255.0f, white[2] / 255.0f, white[3] / 255.0f));
+		this->default_textures[TextureType::AlphaMask] = this->default_textures[TextureType::Diffuse];
+		this->default_textures[TextureType::Emission] = this->default_textures[TextureType::Diffuse];
+		this->default_textures[TextureType::Irradiance] = this->default_textures[TextureType::Diffuse];
+		this->default_textures[TextureType::Normal] =
+			glsample::Common::createColorTexture(1, 1,
+												 fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f,
+																 normalForward[2] / 255.0f, normalForward[3] / 255.0f));
 
 		/*	*/
 		{
@@ -123,6 +112,8 @@ namespace glsample {
 																			 GL_MAP_FLUSH_EXPLICIT_BIT);
 
 				this->stageCommonBuffer = (CommonConstantData *)&pdata[0];
+				*this->stageCommonBuffer = CommonConstantData();
+
 				this->stageNodeData = (NodeData *)&pdata[this->UBOStructure.common_size_total_align];
 				this->stageMaterialData = (MaterialData *)&pdata[this->UBOStructure.common_size_total_align +
 																 this->UBOStructure.node_size_total_align];
@@ -186,13 +177,17 @@ namespace glsample {
 		/* Optioncally populate */
 		if (camera) {
 			this->stageCommonBuffer->camera = *camera;
-			CameraController *cameraCOntroller = (CameraController *)camera;
-			this->stageCommonBuffer->camera = *cameraCOntroller;
+			CameraController *cameraController = (CameraController *)camera;
+			this->stageCommonBuffer->camera = *cameraController;
 			// glsample::Node *node = dynamic_cast<glsample::Node *>(camera);
 
 			/*	*/
 			this->stageCommonBuffer->proj[0] = camera->getProjectionMatrix();
 		}
+
+		/*	Frustum Culling.	*/
+
+		/*	*/
 		this->render();
 	}
 
@@ -210,10 +205,8 @@ namespace glsample {
 						  this->UBOStructure.node_and_common_uniform_buffer, this->UBOStructure.common_offset,
 						  this->UBOStructure.common_size_align);
 
-		//	for (size_t x = 0; x < this->renderQueue.size(); x++) {
-		for (const NodeObject *node : this->renderQueue) {
-			/*	*/
-			// const NodeObject *node = this->renderQueue[x];
+		for (auto it = this->renderQueue.begin(); it != this->renderQueue.end(); it++) {
+			const NodeObject *node = (*it);
 			this->renderNode(node);
 		}
 
@@ -222,30 +215,45 @@ namespace glsample {
 			for (const NodeObject *node : this->renderQueue) {
 				/*	*/
 				// const NodeObject *node = this->renderQueue[x];
-				this->renderNode(node);
+				// this->renderNode(node);
 			}
 		}
+
+		/*	Reset some OpenGL States.	*/
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glEnable(GL_CULL_FACE);
+		glDepthFunc(GL_LEQUAL);
+		glCullFace(GL_BACK);
 	}
 
 	void Scene::bindTexture(const MaterialObject &material, const TextureType texture_type) {
 
 		/*	*/
+		unsigned int textureIndex = texture_type;
+		unsigned int texture_id = 0;
+
 		if (material.texture_index[texture_type] >= 0 && material.texture_index[texture_type] < refTexture.size()) {
 
 			const TextureAssetObject *tex = &this->refTexture[material.texture_index[texture_type]];
 
 			if (tex && tex->texture > 0) {
-				glActiveTexture(GL_TEXTURE0 + texture_type);
-				glBindTexture(GL_TEXTURE_2D, tex->texture);
+				texture_id = tex->texture;
 			} else {
-				glActiveTexture(GL_TEXTURE0 + texture_type);
-				glBindTexture(GL_TEXTURE_2D, this->default_textures[texture_type]);
+				texture_id = this->default_textures[texture_type];
 			}
+
 		} else {
-			glActiveTexture(GL_TEXTURE0 + texture_type);
-			glBindTexture(GL_TEXTURE_2D, this->default_textures[texture_type]);
+			texture_id = this->default_textures[texture_type];
 		}
 		/*	*/
+		if (glBindTextures) {
+			glBindTextures(textureIndex, 1, &texture_id);
+		} else {
+			glActiveTexture(GL_TEXTURE0 + textureIndex);
+			glBindTexture(GL_TEXTURE_2D, texture_id);
+		}
 	}
 
 	void Scene::renderNode(const NodeObject *node) {
@@ -270,26 +278,29 @@ namespace glsample {
 				this->bindTexture(material, TextureType::Diffuse);
 				this->bindTexture(material, TextureType::Normal);
 				this->bindTexture(material, TextureType::AlphaMask);
+				this->bindTexture(material, TextureType::Emission);
 
 				/*	*/
 				glPolygonMode(GL_FRONT_AND_BACK, material.wireframe_mode ? GL_LINE : GL_FILL);
 				/*	*/
-				const bool useBlending = false; // material.opacity < 1.0f; // material.maskTextureIndex >= 0;
+				const RenderQueue domain = getQueueDomain(material);
 				glDisable(GL_STENCIL_TEST);
-
 				glDepthFunc(GL_LESS);
 
 				/*	*/
-				if (useBlending) {
+				if (domain == RenderQueue::Transparent) {
 					/*	*/
 					glEnable(GL_BLEND);
 					glEnable(GL_DEPTH_TEST);
 					glDepthMask(GL_FALSE);
 
 					/*	*/
-					glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 					material.blend_func_mode;
-					glBlendEquation(GL_FUNC_ADD);
+					// glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+					glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 				} else {
 					/*	*/
@@ -342,14 +353,9 @@ namespace glsample {
 
 				int priority = computeMaterialPriority(*material);
 
-				const bool useBlending = false; // material->opacity < 1.0f;
-				//					(material->maskTextureIndex >= 0 && material->maskTextureIndex <
-				// refTexture.size());
-				////
-				//|| 					material->opacity < 1.0f; // || material->transparent.length() < 2;
-				// material->opacity < 1.0f ||
+				const RenderQueue domain = getQueueDomain(*material);
 
-				if (useBlending) {
+				if (domain >= RenderQueue::Transparent) {
 					this->renderQueue.push_back(node);
 				} else {
 					this->renderQueue.push_front(node);
@@ -368,6 +374,16 @@ namespace glsample {
 		const bool useBlending = material.opacity < 1.0f;
 
 		return useBlending * 1000 + use_clipping * 100;
+	}
+
+	RenderQueue Scene::getQueueDomain(const MaterialObject &material) const noexcept {
+		const bool useBlending = material.transparent[3] < 1.0f;
+
+		if (useBlending) {
+			return RenderQueue::Transparent;
+		}
+
+		return RenderQueue::Geometry;
 	}
 
 	void Scene::renderUI() {

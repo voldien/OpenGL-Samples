@@ -249,6 +249,7 @@ namespace glsample {
 				/*	Blending.	*/
 				glEnable(GL_BLEND);
 				glBlendEquation(GL_FUNC_ADD);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);

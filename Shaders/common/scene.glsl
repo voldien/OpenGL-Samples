@@ -1,3 +1,6 @@
+#ifndef _COMMON_SCENE_H_
+#define _COMMON_SCENE_H_ 1
+
 #include "common.glsl"
 #include "light.glsl"
 #include "material.glsl"
@@ -30,6 +33,7 @@ struct light_settings {
 	PointLight point[64];
 };
 
+
 /*	*/
 layout(set = 1, binding = 1, std140) uniform UniformCommonBufferBlock { common_data constant; }
 constantCommon;
@@ -40,7 +44,7 @@ NodeUBO;
 
 /*	*/
 layout(set = 1, binding = 3, std140) uniform UniformSkeletonBufferBlock { mat4 gBones[512]; }
-skeletonUBO2;
+skeletonUBO;
 
 /*	*/
 layout(set = 1, binding = 4, std140) uniform UniformMaterialBufferBlock { material materials[512]; }
@@ -66,3 +70,9 @@ layout(binding = 8) uniform sampler2D AOTexture;
 layout(binding = 10) uniform sampler2D IrradianceTexture;
 layout(binding = 11) uniform samplerCube prefilterMap;
 layout(binding = 12) uniform sampler2D brdfLUT;
+
+
+material getMaterial() { return MaterialUBO.materials[0]; }
+
+
+#endif

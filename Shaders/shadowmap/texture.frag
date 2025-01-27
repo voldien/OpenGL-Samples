@@ -19,8 +19,8 @@ layout(binding = 9) uniform sampler2DShadow ShadowTexture;
 
 #include "common.glsl"
 #include "scene.glsl"
-
 #include "phongblinn.glsl"
+#include"pbr.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -69,18 +69,20 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 
 void main() {
 
-	const material mat = MaterialUBO.materials[0];
+	const material mat = getMaterial();
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
-	vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
+	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal);
+
+	const vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
 
 	const float shadow = max(ubo.shadowStrength - ShadowCalculation(lightSpace), 0);
 	/*	*/
 	vec4 lightColor =
-		computeBlinnDirectional(ubo.directional, normal, viewDir, ubo.specularColor.a, mat.specular_roughness.rgb);
+		computeBlinnDirectional(ubo.directional, NewNormal, viewDir, ubo.specularColor.a, mat.specular_roughness.rgb);
 
 	/*	*/
-	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
+	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
 	const vec4 irradiance_color = vec4(texture(IrradianceTexture, irradiance_uv).rgb, 1);
 
 	const vec4 color = texture(DiffuseTexture, UV) * mat.diffuseColor;
@@ -88,6 +90,8 @@ void main() {
 
 	fragColor = vec4(lighting.rgb, 1) * color;
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
+	fragColor *= mat.transparency.rgba;
+	fragColor.rgb += mat.emission.rgb * texture(EmissionTexture, UV).rgb;
 	if (fragColor.a < 0.8) {
 		discard;
 	}

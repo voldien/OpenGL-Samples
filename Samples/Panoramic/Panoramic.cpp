@@ -28,7 +28,7 @@ namespace glsample {
 			this->setTitle("Panoramic View");
 
 			/*	*/
-			this->panoramicSettingComponent = std::make_shared<PanoramicSettingComponent>(this->uniformStageBuffer);
+			this->panoramicSettingComponent = std::make_shared<PanoramicSettingComponent>(*this);
 			this->addUIComponent(this->panoramicSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -84,10 +84,10 @@ namespace glsample {
 
 		CameraController camera;
 
-		class PanoramicSettingComponent : public nekomimi::UIComponent {
+		class PanoramicSettingComponent : public GLUIComponent<Panoramic> {
 		  public:
-			PanoramicSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
-				this->setName("Panoramic Settings");
+			PanoramicSettingComponent(Panoramic &sample)
+				: GLUIComponent(sample, "Panoramic Settings"), uniform(sample.uniformStageBuffer) {
 			}
 			void draw() override {
 
@@ -104,7 +104,8 @@ namespace glsample {
 
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
-				ImGui::TextUnformatted("Depth Texture");
+
+				this->getRefSample().scene.renderUI();
 			}
 
 			bool showWireFrame = false;
@@ -324,7 +325,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
-				this->scene.render();
+				this->scene.render(&this->camera);
 			}
 
 			{

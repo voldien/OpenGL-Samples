@@ -15,7 +15,7 @@
 
 /*	Constants.	*/
 #define PI 3.1415926535897932384626433832795
-#define PI_HALF 1.5707963267948966192313216916398
+#define PI_HALF (PI / 2.0)
 #define E_CONSTANT 2.7182818284590
 layout(constant_id = 0) const float EPSILON = 1.19209e-07;
 
@@ -112,7 +112,7 @@ vec3 equirectangular(const in vec2 xy) {
 
 vec2 inverse_equirectangular(const in vec3 direction) {
 	const vec2 invAtan = vec2(1.0 / (2 * PI), 1.0 / PI);
-	vec2 uv = vec2(atan(direction.z, direction.x), asin(direction.y));
+	vec2 uv = vec2(atan(direction.z, direction.x + EPSILON*10000), asin(direction.y));
 	uv *= invAtan;
 	uv += 0.5;
 	return uv;

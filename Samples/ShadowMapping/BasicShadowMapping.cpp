@@ -136,10 +136,6 @@ namespace glsample {
 		const std::string fragmentShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
 		const std::string fragmentClippingShadowShaderPath = "Shaders/shadowmap/shadowmap_alpha.frag.spv";
 
-		/*	*/
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
-
 		void Release() override {
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->graphic_pfc_program);
@@ -198,8 +194,10 @@ namespace glsample {
 				glUseProgram(0);
 
 				glUseProgram(this->shadow_alpha_clip_program);
-				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "DiffuseTexture"), TextureType::Diffuse);
-				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "AlphaMaskedTexture"), TextureType::AlphaMask);
+				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "DiffuseTexture"),
+							TextureType::Diffuse);
+				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "AlphaMaskedTexture"),
+							TextureType::AlphaMask);
 				uniform_buffer_shadow_index =
 					glGetUniformBlockIndex(this->shadow_alpha_clip_program, "UniformBufferBlock");
 				glUniformBlockBinding(this->shadow_alpha_clip_program, uniform_buffer_shadow_index,
@@ -222,7 +220,8 @@ namespace glsample {
 				glUseProgram(this->graphic_pfc_program);
 				uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), TextureType::Diffuse);
-				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "AlphaMaskedTexture"), TextureType::AlphaMask);
+				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "AlphaMaskedTexture"),
+							TextureType::AlphaMask);
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), shadowBinding);
 				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureType::Irradiance);
 				glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index,

@@ -144,7 +144,7 @@ void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segment
 void Common::mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes) {}
 
 int Common::createColorTexture(unsigned int width, unsigned int height, const fragcore::Color &color) {
-	GLuint texRef;
+	GLuint texRef = 0;
 
 	FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)&texRef));
 	FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, texRef));
@@ -186,8 +186,8 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 							   const fragcore::TextureDesc &depthstencil) {
 
 	unsigned int attachment_index = 0;
-	std::array<GLenum, 32> attachments_mapping;
-	for (auto it = desc.begin(); it != desc.end(); it++) {
+	std::array<GLenum, 32> attachments_mapping{};
+	for (const auto *it = desc.begin(); it != desc.end(); it++) {
 		const fragcore::TextureDesc &target_desc = *(it);
 
 		const unsigned int width = target_desc.width;

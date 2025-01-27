@@ -17,6 +17,7 @@ layout(location = 0) out vec4 FragIN_weight;
 /*	*/
 #include "skinnedmesh_common.glsl"
 
+
 void main() {
 
 	/*	*/

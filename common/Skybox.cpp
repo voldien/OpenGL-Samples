@@ -18,6 +18,7 @@ namespace glsample {
 	Skybox::~Skybox() {
 		glDeleteBuffers(1, &this->SkyboxCube.vbo);
 		glDeleteBuffers(1, &this->SkyboxCube.ibo);
+		glDeleteSamplers(1, &this->skybox_sampler);
 	}
 
 	void Skybox::Init(unsigned int texture, unsigned int program) {
@@ -32,6 +33,16 @@ namespace glsample {
 		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 		glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		glCreateSamplers(1, &this->skybox_sampler);
+		glSamplerParameteri(this->skybox_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glSamplerParameteri(this->skybox_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glSamplerParameteri(this->skybox_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glSamplerParameteri(this->skybox_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(this->skybox_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+		glSamplerParameterf(this->skybox_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
+		//	glSamplerParameteri(this->skybox_sampler, GL_TEXTURE_MAX_LOD, 0);
+		glSamplerParameteri(this->skybox_sampler, GL_TEXTURE_MIN_LOD, 0);
 
 		/*	Load geometry.	*/
 		Common::loadCube(this->SkyboxCube, 1, 1, 1);
@@ -77,7 +88,7 @@ namespace glsample {
 			glGetBooleanv(GL_MULTISAMPLE, &use_multisample);
 
 			/*	*/
-			glDisable(GL_MULTISAMPLE);
+			glDisable(GL_MULTISAMPLE);	/*	*/
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_FRONT);
 			glDisable(GL_BLEND);
@@ -95,6 +106,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
 			}
+			glBindSampler(0, this->skybox_sampler);
 
 			/*	Draw triangle.	*/
 			glBindVertexArray(this->SkyboxCube.vao);
@@ -102,6 +114,8 @@ namespace glsample {
 			glBindVertexArray(0);
 
 			glUseProgram(0);
+
+			glBindSampler(0, 0);
 
 			if (cullstate) {
 				glEnable(GL_CULL_FACE);

@@ -28,13 +28,13 @@ namespace glsample {
 
 		MeshObject SkyboxCube;
 
-		unsigned int skybox_program;
-		unsigned int skybox_cubemap;
+		unsigned int skybox_program{};
+		unsigned int skybox_cubemap{};
 
 		struct uniform_buffer_block {
-			glm::mat4 proj;
-			glm::mat4 modelViewProjection;
-			glm::vec4 tintColor;
+			glm::mat4 proj{};
+			glm::mat4 modelViewProjection{};
+			glm::vec4 tintColor{};
 			float exposure = 1.0f;
 			float gamma = 2.2f;
 		} uniform_stage_buffer;
@@ -43,7 +43,7 @@ namespace glsample {
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(uniform_buffer_block);
 

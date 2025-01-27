@@ -21,6 +21,7 @@ layout(binding = 9) uniform sampler2DShadow ShadowTexture;
 layout(constant_id = 16) const int PCF_SAMPLES = 7;
 
 #include "common.glsl"
+#include "pbr.glsl"
 #include "phongblinn.glsl"
 #include "scene.glsl"
 
@@ -86,19 +87,21 @@ float ShadowCalculationPCF(const in vec4 fragPosLightSpace) {
 
 void main() {
 
-	const material mat = MaterialUBO.materials[0];
+	const material mat = getMaterial();
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
 	vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
+
+	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal);
 
 	const float shadow = max(ubo.shadowStrength - ShadowCalculationPCF(lightSpace), 0);
 
 	/*	*/
 	const vec4 lightColor =
-		computeBlinnDirectional(ubo.directional, normal, viewDir, ubo.specularColor.a, mat.specular_roughness.rgb);
+		computeBlinnDirectional(ubo.directional, NewNormal, viewDir, ubo.specularColor.a, mat.specular_roughness.rgb);
 
 	/*	*/
-	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
+	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
 	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
 
 	const vec4 color = texture(DiffuseTexture, UV) * mat.diffuseColor;
@@ -106,6 +109,8 @@ void main() {
 
 	fragColor = vec4(lighting.rgb, 1) * color;
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
+	fragColor *= mat.transparency.rgba;
+	fragColor.rgb += mat.emission.rgb * texture(EmissionTexture, UV).rgb;
 	if (fragColor.a < 0.8) {
 		discard;
 	}

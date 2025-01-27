@@ -37,9 +37,9 @@ namespace glsample {
 		void convert(glsample::FrameBuffer *framebuffer, unsigned int texture);
 
 		using ChromaticAbberationSettings = struct chromatic_abberation_settings_t {
-			float redOffset = -0.01f;
-			float greenOffset = -0.02f;
-			float blueOffset = -0.03f;
+			float redOffset = -0.005f;
+			float greenOffset = -0.01f;
+			float blueOffset = -0.015f;
 			glm::vec2 direction_center = glm::vec2(0.5f);
 		};
 		ChromaticAbberationSettings settings;

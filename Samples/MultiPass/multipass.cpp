@@ -105,9 +105,9 @@ namespace glsample {
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->multipass_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), 1);
-			glUniform1i(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), 2);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), TextureType::Diffuse);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), TextureType::Normal);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), TextureType::AlphaMask);
 			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 
 			//TODO: add
@@ -232,7 +232,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-				this->scene.render();
+				this->scene.render(&this->camera);
 
 				this->skybox.Render(this->camera);
 
@@ -270,6 +270,7 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
+			this->scene.update(this->getTimer().deltaTime<float>());
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/

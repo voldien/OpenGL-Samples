@@ -1,5 +1,6 @@
 #ifndef _COMMON_PBR_H_
 #define _COMMON_PBR_H_ 1
+
 #include "common.glsl"
 #include "light.glsl"
 
@@ -16,27 +17,21 @@ vec3 FresnelSchlick(const in vec3 F0, const in vec3 V, const in vec3 N) {
 
 vec3 FresnelSteinberg(const in vec3 F0, const in vec3 V, const in vec3 N) { return vec3(0); }
 
-// ----------------------------------------------------------------------------
-// Easy trick to get tangent-normals to world-space to keep PBR code simplified.
-// Don't worry if you don't get what's going on; you generally want to do normal
-// mapping the usual way for performance anyways; I do plan make a note of this
-// technique somewhere later in the normal mapping tutorial.
 vec3 getNormalFromMap(const in sampler2D normalMap, const in vec2 TexCoords, const in vec3 WorldPos,
 					  const in vec3 Normal) {
-	vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
+	const vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
 
-	vec3 Q1 = vec3(0);	// dFdx(WorldPos);
-	vec3 Q2 = vec3(0);	// dFdy(WorldPos);
-	vec2 st1 = vec2(0); // dFdx(TexCoords);
-	vec2 st2 = vec2(0); // dFdy(TexCoords);
+	const vec3 Q1 = dFdx(WorldPos);
+	const vec3 Q2 = dFdy(WorldPos);
+	const vec2 st1 = dFdx(TexCoords);
+	const vec2 st2 = dFdy(TexCoords);
 
-	vec3 N = normalize(Normal);
-	vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
-	vec3 B = -normalize(cross(N, T));
-	mat3 TBN = mat3(T, B, N);
+	const vec3 N = normalize(Normal);
+	const vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
+	const vec3 B = -normalize(cross(N, T));
+	const mat3 TBN = mat3(T, B, N);
 
 	return normalize(TBN * tangentNormal);
-	return vec3(0);
 }
 
 // ----------------------------------------------------------------------------

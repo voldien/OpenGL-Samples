@@ -19,6 +19,7 @@ layout(location = 3) out vec3 FragIN_tangent;
 
 #include "skinnedmesh_common.glsl"
 
+
 void main() {
 
 	/*	*/

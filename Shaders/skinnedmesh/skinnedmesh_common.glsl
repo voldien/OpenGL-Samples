@@ -1,5 +1,6 @@
 #include "common.glsl"
 #include "light.glsl"
+#include "scene.glsl"
 
 /*	*/
 layout(constant_id = 16) const int MAX_BONES = 512;
@@ -22,6 +23,3 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 tintColor;
 }
 ubo;
-
-layout(binding = 1, std140) uniform UniformSkeletonBufferBlock { mat4 gBones[MAX_BONES]; }
-skeletonUBO;

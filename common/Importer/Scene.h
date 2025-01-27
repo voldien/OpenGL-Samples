@@ -58,6 +58,7 @@ namespace glsample {
 	};
 
 	enum DebugMode : unsigned int {
+		None = 0,
 		Wireframe = 0x1,
 	};
 
@@ -99,16 +100,18 @@ namespace glsample {
 	  protected:
 		void bindTexture(const MaterialObject &material, const TextureType texture_type);
 		int computeMaterialPriority(const MaterialObject &material) const noexcept;
+		RenderQueue getQueueDomain(const MaterialObject &material) const noexcept;
 
 	  protected:
 		using GlobalRenderSettings = struct _global_rendering_settings_t {
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
+			unsigned int IrradianceTexture = 0;
 		};
-		using CommonConstantData = struct _common_constant_data_t {
+		using CommonConstantData = struct common_constant_data_t {
 			CameraInstance camera;
 			FrustumInstance frustum;
 			FogSettings fogSettings;
-			GlobalRenderSettings renderSettings;
+			GlobalRenderSettings renderSettings = GlobalRenderSettings();
 
 			/*	*/
 			glm::mat4 proj[3];
@@ -136,6 +139,7 @@ namespace glsample {
 		LightData *lightData = nullptr;
 
 		/*	TODO add queue structure.	*/
+		std::map<RenderQueue, std::deque<const NodeObject *>> renderBucket;
 		std::deque<const NodeObject *> renderQueue;
 
 		std::vector<NodeObject *> nodes;
@@ -149,7 +153,7 @@ namespace glsample {
 	  protected: /*	Default texture if texture from material is missing.*/
 		std::array<int, 10> default_textures;
 
-		DebugMode debugMode;
+		DebugMode debugMode = DebugMode::None;
 
 		using UniformDataStructure = struct uniform_data_structure {
 			/*	*/

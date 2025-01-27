@@ -10,6 +10,7 @@ layout(location = 1) in vec2 TexCoords;
 layout(location = 2) in vec3 Normal;
 
 #include "pbr_common.glsl"
+#include "pbr.glsl"
 
 // ----------------------------------------------------------------------------
 void main() {

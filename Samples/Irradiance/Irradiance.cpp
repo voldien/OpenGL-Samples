@@ -1,3 +1,5 @@
+#include "GLUIComponent.h"
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -14,20 +16,20 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class SkyBoxPanoramic : public GLSampleWindow {
+	class Irradiance : public GLSampleWindow {
 
 	  public:
-		SkyBoxPanoramic() : GLSampleWindow() {
-			this->setTitle("SkyBoxPanoramic");
+		Irradiance() : GLSampleWindow() {
+			this->setTitle("Irradiance");
 
 			this->skyboxSettingComponent =
-				std::make_shared<SkyboxPanoramicSettingComponent>(this->uniform_stage_buffer);
+				std::make_shared<IrradianceSettingComponent>(*this);
 			this->addUIComponent(this->skyboxSettingComponent);
 
-			this->camera.setPosition(glm::vec3(0.0f));
-			this->camera.lookAt(glm::vec3(1.f));
+			this->camera.setPosition(glm::vec3(25.0f));
+			this->camera.lookAt(glm::vec3(0.f));
 
-			this->camera.enableNavigation(false);
+			this->camera.enableNavigation(true);
 		}
 
 		struct uniform_buffer_block {
@@ -38,10 +40,13 @@ namespace glsample {
 			float gamma = 2.2;
 		} uniform_stage_buffer;
 
-		MeshObject SkyboxCube;
-		unsigned int skybox_program{};
+		Skybox skybox;
+		MeshObject sphere;
 
-		int skybox_texture_panoramic{};
+		unsigned int display_graphic_program{};
+
+		unsigned int irradiance_texture = 0;
+		unsigned int skybox_texture_panoramic = 0;
 
 		CameraController camera;
 
@@ -51,23 +56,22 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(uniform_buffer_block);
 
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/irradiance/irradiance.vert.spv";
 		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
 
 	  public:
-		class SkyboxPanoramicSettingComponent : public nekomimi::UIComponent {
+		class IrradianceSettingComponent : public GLUIComponent<Irradiance> {
 
 		  public:
-			SkyboxPanoramicSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
-				this->setName("SkyBox Settings");
-			}
+			IrradianceSettingComponent(Irradiance &sample)
+				: GLUIComponent<Irradiance>(sample, "Irradiance Settings"), uniform(sample.uniform_stage_buffer) {}
 			void draw() override {
 				ImGui::ColorEdit4("Tint", &this->uniform.tintColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat("Exposure", &this->uniform.exposure);
-				ImGui::DragFloat("Gamma", &this->uniform.gamma);
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().irradiance_texture), ImVec2(512, 256),
+							 ImVec2(1, 1), ImVec2(0, 0));
 			}
 
 			bool showWireFrame = false;
@@ -75,14 +79,12 @@ namespace glsample {
 		  private:
 			struct uniform_buffer_block &uniform;
 		};
-		std::shared_ptr<SkyboxPanoramicSettingComponent> skyboxSettingComponent;
+		std::shared_ptr<IrradianceSettingComponent> skyboxSettingComponent;
 
 		void Release() override {
-			glDeleteProgram(this->skybox_program);
-			glDeleteVertexArrays(1, &this->SkyboxCube.vao);
-			glDeleteBuffers(1, &this->SkyboxCube.vbo);
-			glDeleteBuffers(1, &this->SkyboxCube.ibo);
+			glDeleteProgram(this->display_graphic_program);
 			glDeleteTextures(1, (const GLuint *)&this->skybox_texture_panoramic);
+			glDeleteTextures(1, (const GLuint *)&this->irradiance_texture);
 		}
 
 		void Initialize() override {
@@ -102,20 +104,26 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Create skybox graphic pipeline program.	*/
-				this->skybox_program =
+				this->display_graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
 			}
 
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->skybox_program);
-			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "PanoramaTexture"), 0);
+			glUseProgram(this->display_graphic_program);
+			unsigned int uniform_buffer_index =
+				glGetUniformBlockIndex(this->display_graphic_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->display_graphic_program, uniform_buffer_index, 0);
+			glUniform1i(glGetUniformLocation(this->display_graphic_program, "PanoramaTexture"), 0);
 			glUseProgram(0);
 
 			/*	Load panoramic texture.	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_texture_panoramic = textureImporter.loadImage2D(panoramicPath, ColorSpace::SRGB);
+
+			ProcessData util(this->getFileSystem());
+			util.computeIrradiance(this->skybox_texture_panoramic, this->irradiance_texture, 256, 128);
+
+			skybox.Init(this->skybox_texture_panoramic, Skybox::loadDefaultProgram(this->getFileSystem()));
 
 			/*	*/
 			GLint minMapBufferSize = 0;
@@ -128,32 +136,7 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateCube(1.0f, vertices, indices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->SkyboxCube.vao);
-			glBindVertexArray(this->SkyboxCube.vao);
-
-			/*	*/
-			glGenBuffers(1, &this->SkyboxCube.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SkyboxCube.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->SkyboxCube.nrIndicesElements = indices.size();
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->SkyboxCube.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, SkyboxCube.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
-
-			glBindVertexArray(0);
+			Common::loadSphere(this->sphere, 3, 16, 16);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -179,21 +162,22 @@ namespace glsample {
 								  this->uniformSize);
 
 				/*	*/
-				glUseProgram(this->skybox_program);
+				glUseProgram(this->display_graphic_program);
 
 				glDisable(GL_CULL_FACE);
-				glDepthFunc(GL_LEQUAL);
 				glEnable(GL_DEPTH_TEST);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
+				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				/*	Draw triangle.	*/
-				glBindVertexArray(this->SkyboxCube.vao);
-				glDrawElements(GL_TRIANGLES, this->SkyboxCube.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(this->sphere.vao);
+				glDrawElements(GL_TRIANGLES, this->sphere.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 			}
+
+			this->skybox.Render(this->camera);
 		}
 
 		void update() override {
@@ -215,9 +199,9 @@ namespace glsample {
 		}
 	};
 
-	class SkyBoxPanoramicGLSample : public GLSample<SkyBoxPanoramic> {
+	class IrradianceGLSample : public GLSample<Irradiance> {
 	  public:
-		SkyBoxPanoramicGLSample() : GLSample<SkyBoxPanoramic>() {}
+		IrradianceGLSample() : GLSample<Irradiance>() {}
 
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path",
@@ -228,7 +212,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 	try {
-		glsample::SkyBoxPanoramicGLSample sample;
+		glsample::IrradianceGLSample sample;
 		sample.run(argc, argv);
 
 	} catch (const std::exception &ex) {

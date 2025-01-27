@@ -582,7 +582,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 	aiTextureOp op;
 	aiTextureMapMode mapmode = aiTextureMapMode::aiTextureMapMode_Wrap;
 
-	glm::vec4 color;
+	glm::vec4 color = glm::vec4(0);
 	float shininessStrength = NAN;
 
 	MaterialObject *material = &this->materials[index];
@@ -701,49 +701,68 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 
 	/*	Assign shader attributes.	*/
 	{
-		if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
-			material->ambient = color;
-			material->ambient[3] = 1;
-		}
-		if (ref_material->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
-			material->diffuse = color;
-			material->diffuse[3] = 1;
-		}
-		if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
-			material->emission = color;
-			material->emission[3] = 1;
-		}
-		if (ref_material->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
-			material->specular = color;
-			material->specular[3] = 1;
-		}
-		if (ref_material->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
-			material->transparent = color;
-		}
-		if (ref_material->Get(AI_MATKEY_REFLECTIVITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
-			material->reflectivity = color;
-			material->reflectivity[3] = 1;
-		}
-		if (ref_material->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
-			material->shinininessStrength = shininessStrength;
+		aiShadingMode model = aiShadingMode_Flat;
+		if (ref_material->Get(AI_MATKEY_SHADING_MODEL, model) == aiReturn::aiReturn_SUCCESS) {
+			material->shade_model = model;
 		}
 
-		float tmp = NAN;
-		if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
-			//	material->shinininessStrength = tmp;
-		}
-		if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
-			//	material->shinininessStrength = tmp;
-		}
+		if (model < aiShadingMode_PBR_BRDF) {
 
-		
-		if (ref_material->Get(AI_MATKEY_TRANSPARENCYFACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			material->opacity = tmp;
-			material->transparent[3] = tmp;
-		}
-		if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
-			material->opacity = tmp;
-			//material->transparent[3] = tmp;
+			if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+				if (glm::vec3(color).length() > 0.05) {
+					material->ambient = color;
+					material->ambient[3] = 1;
+				}
+			}
+			if (ref_material->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+				material->diffuse = color;
+				material->diffuse[3] = 1;
+			}
+			if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+				material->emission = color;
+				material->emission[3] = 1;
+			}
+			if (ref_material->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
+				material->specular = color;
+				material->specular[3] = 0;
+			}
+			if (ref_material->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+				material->transparent = color;
+			}
+			if (ref_material->Get(AI_MATKEY_COLOR_REFLECTIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+				material->reflectivity = color;
+				material->reflectivity[3] = 1;
+			}
+			if (ref_material->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
+				material->shinininess = shininessStrength;
+				material->specular[3] = shininessStrength;
+			}
+
+			float tmp = NAN;
+			if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
+				material->specular *= tmp;
+			}
+			if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+
+			if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+				material->opacity = tmp;
+				material->transparent[3] = tmp;
+			} else {
+				material->transparent[3] = 1;
+			}
+			if (ref_material->Get(AI_MATKEY_TRANSPARENCYFACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+				material->transparent *= tmp;
+			}
+
+			if (ref_material->Get(AI_MATKEY_REFRACTI, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+		} else {
+			if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
+				material->transparent = color;
+			}
 		}
 
 		aiBlendMode blendfunc;
@@ -756,10 +775,6 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 			material->culling_both_side_mode = twosided;
 		}
 
-		aiShadingMode model;
-		if (ref_material->Get(AI_MATKEY_SHADING_MODEL, model) == aiReturn::aiReturn_SUCCESS) {
-			material->shade_model = model;
-		}
 		//_AI_MATKEY_TEXFLAGS_BASE
 
 		int use_wireframe = 0;

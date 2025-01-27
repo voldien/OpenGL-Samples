@@ -14,16 +14,18 @@ layout(location = 3) in vec3 FragIN_tangent;
 
 #include "skinnedmesh_common.glsl"
 
-layout(binding = 0) uniform sampler2D DiffuseTexture;
-layout(binding = 1) uniform sampler2D NormalTexture;
 
 void main() {
+
+	const material mat = getMaterial();
+	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
 	/*	Compute normal.	*/
 
 	/*	Compute directional light	*/
-	const vec4 lightColor = computeLightContributionFactor(ubo.directional.direction.xyz, FragIN_normal) * ubo.directional.lightColor;
+	const vec4 lightColor =
+		computeLightContributionFactor(ubo.directional.direction.xyz, FragIN_normal) * ubo.directional.lightColor;
 
 	/*	*/
-	fragColor = texture(DiffuseTexture, FragIN_uv) * ubo.tintColor * (ubo.ambientColor + lightColor);
+	fragColor = (texture(DiffuseTexture, FragIN_uv) * mat.diffuseColor) * (glob_settings.ambientColor * mat.ambientColor + lightColor);
 }
