@@ -7,12 +7,13 @@
 
 struct global_rendering_settings {
 	vec4 ambientColor;
+	FogSettings fogSettings;
 };
 
 struct common_data {
 	Camera camera;
 	Frustum frustum;
-	FogSettings fogSettings;
+
 	global_rendering_settings globalSettings;
 
 	mat4 view[3];
@@ -32,7 +33,6 @@ struct light_settings {
 	DirectionalLight directional[16];
 	PointLight point[64];
 };
-
 
 /*	*/
 layout(set = 1, binding = 1, std140) uniform UniformCommonBufferBlock { common_data constant; }
@@ -71,8 +71,6 @@ layout(binding = 10) uniform sampler2D IrradianceTexture;
 layout(binding = 11) uniform samplerCube prefilterMap;
 layout(binding = 12) uniform sampler2D brdfLUT;
 
-
 material getMaterial() { return MaterialUBO.materials[0]; }
-
 
 #endif

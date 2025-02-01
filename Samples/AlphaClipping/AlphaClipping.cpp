@@ -24,7 +24,7 @@ namespace glsample {
 			this->addUIComponent(this->alphaClippingSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(10.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -160,7 +160,7 @@ namespace glsample {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			/*	Optional - to display wireframe.	*/
-			glPolygonMode(GL_FRONT_AND_BACK, alphaClippingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+			glPolygonMode(GL_FRONT_AND_BACK, this->alphaClippingSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 			{
 				/*	Bind subset of the uniform buffer, that the graphic pipeline will use.	*/

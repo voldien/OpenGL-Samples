@@ -24,23 +24,23 @@ namespace glsample {
 			this->addUIComponent(this->vectorFieldSettingComponent);
 		}
 
-		typedef struct circle_t {
+		using Circle = struct circle_t {
 			glm::vec3 position;
 			float radius;
-		} Circle;
+		};
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 			glm::vec4 color = glm::vec4(1);
 
 			/*	*/
 
 			/*	*/
-			float delta;
+			float delta{};
 			float speed = 1;
 
 		} uniformStageBuffer;
@@ -52,12 +52,12 @@ namespace glsample {
 
 		/*	*/
 		MeshObject circles_points;
-		unsigned int particle_texture;
+		unsigned int particle_texture{};
 
 		/*	*/
-		unsigned int particle_graphic_program;
-		unsigned int circle_packing_program;
-		int localWorkGroupSize[3];
+		unsigned int particle_graphic_program{};
+		unsigned int circle_packing_program{};
+		int localWorkGroupSize[3]{};
 
 		unsigned int nthTexture = 0;
 		CameraController camera;
@@ -68,7 +68,7 @@ namespace glsample {
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 
@@ -180,7 +180,7 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	*/
-			GLint minMapBufferSize;
+			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize = Math::align<size_t>(this->uniformAlignBufferSize, minMapBufferSize);
 
@@ -191,7 +191,7 @@ namespace glsample {
 			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniformStageBuffer), &uniformStageBuffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			GLint minStorageMapBufferSize;
+			GLint minStorageMapBufferSize = 0;
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageMapBufferSize);
 
 			/*	Compute number of particles and memory size required, aligned to hardware min alignment.	*/
@@ -242,7 +242,7 @@ namespace glsample {
 			size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrParticleBuffers;
 			size_t write_buffer_index = (this->getFrameCount() + 0) % this->nrParticleBuffers;
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());

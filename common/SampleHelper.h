@@ -153,6 +153,7 @@ namespace glsample {
 	using UBOObject = struct uniform_buffer_object_t {
 		unsigned int buffer;
 		unsigned int size;
+		unsigned int totalSize;
 		unsigned int alignment;
 	};
 

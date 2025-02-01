@@ -31,11 +31,11 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			CameraInstance camera;
 
@@ -57,25 +57,25 @@ namespace glsample {
 		Skybox skybox;	   /*	*/
 
 		/*	*/
-		unsigned int deferred_framebuffer;
-		unsigned int deferred_texture_width;
-		unsigned int deferred_texture_height;
+		unsigned int deferred_framebuffer{};
+		unsigned int deferred_texture_width{};
+		unsigned int deferred_texture_height{};
 		std::vector<unsigned int> deferred_textures; /*	Albedo, WorldSpace, Normal, */
-		unsigned int depthstencil_texture;
+		unsigned int depthstencil_texture{};
 
 		/*	*/
-		unsigned int deferred_pointlight_program;
-		unsigned int deferred_pointlight_debug_program;
-		unsigned int deferred_directional_program;
-		unsigned int multipass_program;
-		unsigned int instance_program;
-		unsigned int skybox_program;
+		unsigned int deferred_pointlight_program{};
+		unsigned int deferred_pointlight_debug_program{};
+		unsigned int deferred_directional_program{};
+		unsigned int multipass_program{};
+		unsigned int instance_program{};
+		unsigned int skybox_program{};
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_pointlight_buffer_binding = 1;
-		unsigned int uniform_buffer;
-		unsigned int uniform_light_buffer;
+		unsigned int uniform_buffer{};
+		unsigned int uniform_light_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformLightBufferSize = 0;

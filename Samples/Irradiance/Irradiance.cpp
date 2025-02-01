@@ -22,8 +22,7 @@ namespace glsample {
 		Irradiance() : GLSampleWindow() {
 			this->setTitle("Irradiance");
 
-			this->skyboxSettingComponent =
-				std::make_shared<IrradianceSettingComponent>(*this);
+			this->skyboxSettingComponent = std::make_shared<IrradianceSettingComponent>(*this);
 			this->addUIComponent(this->skyboxSettingComponent);
 
 			this->camera.setPosition(glm::vec3(25.0f));

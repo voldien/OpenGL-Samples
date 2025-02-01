@@ -17,7 +17,7 @@ namespace glsample {
 	  public:
 		Normal() : GLSampleWindow() {
 			this->setTitle("Normal");
-			
+
 			/*	*/
 			this->normalSettingComponent = std::make_shared<NormalSettingComponent>(this->uniformStageBuffer);
 			this->addUIComponent(this->normalSettingComponent);

@@ -10,9 +10,9 @@ layout(location = 1) in flat int InstanceID;
 layout(binding = 0) uniform sampler2D AlbedoTexture;
 layout(binding = 1) uniform sampler2D WorldTexture;
 layout(binding = 2) uniform sampler2D DepthTexture;
-//layout(binding = 3) uniform sampler2D NormalTexture;
+// layout(binding = 3) uniform sampler2D NormalTexture;
 
-#include"deferred_base.glsl"
+#include "deferred_base.glsl"
 
 //
 layout(set = 0, binding = 1, std140) uniform UniformBufferLight { DirectionalLight light[64]; }

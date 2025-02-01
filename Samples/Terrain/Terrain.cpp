@@ -53,16 +53,14 @@ namespace glsample {
 			TerrainSettings terrainSettings;
 
 			/*	Material	*/
-			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
+			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1);
+
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 shinines = glm::vec4(8, 1, 1, 1);
 
 			/*	light source.	*/
 			DirectionalLight directional;
-
-			/*	Fog settings.	*/
-			FogSettings fogSettings;
 
 			/*	Tessellation Settings.	*/
 			glm::vec4 gEyeWorldPos{};
@@ -169,15 +167,6 @@ namespace glsample {
 				ImGui::ColorEdit4("Specular Color", &this->stage_uniform.terrain.specularColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat("Shin", &this->stage_uniform.terrain.shinines[0]);
-
-				ImGui::TextUnformatted("Fog Setting");
-				ImGui::DragInt("Fog Type", (int *)&this->stage_uniform.terrain.fogSettings.fogType);
-				ImGui::ColorEdit4("Fog Color", &this->stage_uniform.terrain.fogSettings.fogColor[0],
-								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::DragFloat("Fog Density", &this->stage_uniform.terrain.fogSettings.fogDensity);
-				ImGui::DragFloat("Fog Intensity", &this->stage_uniform.terrain.fogSettings.fogIntensity);
-				ImGui::DragFloat("Fog Start", &this->stage_uniform.terrain.fogSettings.fogStart);
-				ImGui::DragFloat("Fog End", &this->stage_uniform.terrain.fogSettings.fogEnd);
 
 				ImGui::TextUnformatted("Tessellation");
 				ImGui::DragFloat("Displacement", &this->stage_uniform.terrain.gDisplace, 1, -100.0f, 100.0f);

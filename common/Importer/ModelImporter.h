@@ -53,13 +53,13 @@ using VertexBoneBuffer = struct vertex_bone_buffer_t {
 };
 
 using MaterialTextureSampling = struct material_texture_sampling_t {
-	unsigned int wrapping;
-	unsigned int filtering;
-	unsigned int mapping;
+	unsigned int wrapping = 0;
+	unsigned int filtering = 0;
+	unsigned int uv_mapping = 0;
 };
 
 using MaterialObject = struct material_object_t : public AssetObject {
-	unsigned int program; // TODO: relocate.
+	unsigned int program = 0; // TODO: relocate.
 
 	/*	Texture index.	*/
 	union {

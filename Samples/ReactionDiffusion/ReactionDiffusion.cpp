@@ -35,28 +35,28 @@ namespace glsample {
 			float diffuseRateB = .5f;
 			float delta = 0.1f;
 			float speed = 1.0f;
-			float padding0;
-			float padding1;
+			float padding0{};
+			float padding1{};
 
 		} uniformBuffer;
 
 		std::vector<unsigned int> reactiondiffusion_buffer;
 
 		/*	Framebuffers.	*/
-		unsigned int reactiondiffusion_framebuffer;
-		unsigned int reactiondiffusion_render_texture;
-		size_t reactiondiffusion_texture_width;
-		size_t reactiondiffusion_texture_height;
+		unsigned int reactiondiffusion_framebuffer{};
+		unsigned int reactiondiffusion_render_texture{};
+		size_t reactiondiffusion_texture_width{};
+		size_t reactiondiffusion_texture_height{};
 
-		int localWorkGroupSize[3];
-		unsigned int reactiondiffusion_program;
+		int localWorkGroupSize[3]{};
+		unsigned int reactiondiffusion_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 3;
 		unsigned int current_cells_buffer_binding = 0;
 		unsigned int previous_cells_buffer_binding = 1;
 		unsigned int image_output_binding = 2;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniformBuffer);
 

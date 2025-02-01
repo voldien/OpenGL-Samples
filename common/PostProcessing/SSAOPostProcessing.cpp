@@ -224,13 +224,15 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 		glBindVertexArray(this->vao);
 
+		glBindSampler((int)GBuffer::Depth, this->world_position_sampler);
+		glBindSampler((int)GBuffer::TextureCoordinate, this->world_position_sampler);
+
 		if (this->useDepthOnly) {
-			glBindSampler((int)GBuffer::Depth, this->world_position_sampler);
+
 			glUseProgram((int)this->ssao_depth_only_program);
 
 		} else {
 			glUseProgram(this->ssao_depth_world_program);
-			glBindSampler(0, this->world_position_sampler);
 		}
 		/*	*/
 		glDisable(GL_CULL_FACE);

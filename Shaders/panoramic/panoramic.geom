@@ -24,9 +24,8 @@ layout(constant_id = 8) const uint NrLayers = 6;
 layout(constant_id = 9) const uint NrFaces = 3;
 
 #include "common.glsl"
-#include "scene.glsl"
 #include "phongblinn.glsl"
-
+#include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -55,7 +54,7 @@ const vec3 view_directions[6] = {vec3(1, 0, 0),	 vec3(-1, 0, 0), vec3(0, 1, 0),
 void main() {
 
 	[[unroll]] for (uint face = 0; face < NrLayers; ++face) {
-		gl_Layer = int(face);							 // built-in variable that specifies to which face we render.
+		gl_Layer = int(face);						  // built-in variable that specifies to which face we render.
 		[[unroll]] for (uint i = 0; i < NrFaces; ++i) // for each triangle vertex
 		{
 			OutVertex = gl_in[i].gl_Position.xyz;

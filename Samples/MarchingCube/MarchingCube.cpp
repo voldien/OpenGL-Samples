@@ -38,13 +38,15 @@ namespace glsample {
 		};
 
 		MeshObject marchingCube;
+		MeshObject marchingCubeSortedMesh;
 		std::vector<Chunk> chunks;
 		fragcore::QuadTree<float> quadTree;
 
 		int localWorkGroupSize[3]{};
 
 		/*	Shader pipeline programs.	*/
-		unsigned int marching_cube_graphic_program{};
+		unsigned int marching_cube_transform_program = 0;
+		unsigned int marching_cube_graphic_program = 0;
 		unsigned int marching_cube_generate_compute_program{};
 
 		using MarchingCubeCellData = struct _marching_cube_cell_data_t {
@@ -83,6 +85,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int vertex_dat_buffer_binding = 1;
 
+		unsigned int query;
 		unsigned int irradiance_texture{};
 
 		/*	*/
@@ -149,9 +152,12 @@ namespace glsample {
 		std::shared_ptr<MarchingCubeSettingComponent> marchingCubeSettingComponent;
 
 		/*	Texture shaders paths.	*/
-		const std::string vertexShaderPath = "Shaders/marchingcube/geometry.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/marchingcube/geometry.frag.spv";
-		const std::string geometryShaderPath = "Shaders/marchingcube/geometry.geom.spv";
+		const std::string vertexMarchingCubeShaderPath = "Shaders/marchingcube/geometry.vert.spv";
+		const std::string fragmentMarchingCubeShaderPath = "Shaders/marchingcube/geometry.frag.spv";
+		const std::string geometryMarchingCubeShaderPath = "Shaders/marchingcube/geometry.geom.spv";
+
+		/*	Texture shaders paths.	*/
+		const std::string vertexMarchingCubeGraphicShaderPath = "Shaders/marchingcube/marchingcube_graphic.vert.spv";
 
 		/*	Particle Simulation in Vector Field.	*/
 		const std::string groupVisualComputeShaderPath = "Shaders/marchingcube/marchingcube.comp.spv";
@@ -159,7 +165,7 @@ namespace glsample {
 		void Release() override {
 
 			/*	*/
-			glDeleteProgram(this->marching_cube_graphic_program);
+			glDeleteProgram(this->marching_cube_transform_program);
 			glDeleteProgram(this->marching_cube_generate_compute_program);
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -177,15 +183,22 @@ namespace glsample {
 
 				/*	*/
 				const std::vector<uint32_t> vertex_binary =
-					glsample::IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_binary =
-					glsample::IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> geometry_binary =
-					glsample::IOUtil::readFileData<uint32_t>(this->geometryShaderPath, this->getFileSystem());
+					glsample::IOUtil::readFileData<uint32_t>(this->vertexMarchingCubeShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_binary = glsample::IOUtil::readFileData<uint32_t>(
+					this->fragmentMarchingCubeShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> geometry_binary = glsample::IOUtil::readFileData<uint32_t>(
+					this->geometryMarchingCubeShaderPath, this->getFileSystem());
+
+				const std::vector<uint32_t> marchingCubeVertexBinary = glsample::IOUtil::readFileData<uint32_t>(
+					this->vertexMarchingCubeGraphicShaderPath, this->getFileSystem());
 
 				/*	Load Graphic Program.	*/
-				this->marching_cube_graphic_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary, nullptr);
+				this->marching_cube_transform_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, nullptr, &geometry_binary);
+
+				/*	Load Graphic Program.	*/
+				this->marching_cube_graphic_program = ShaderLoader::loadGraphicProgram(
+					compilerOptions, &marchingCubeVertexBinary, &fragment_binary, nullptr);
 				/*	*/
 				const std::vector<uint32_t> compute_marching_cube_generator_binary =
 					IOUtil::readFileData<uint32_t>(this->groupVisualComputeShaderPath, this->getFileSystem());
@@ -202,17 +215,33 @@ namespace glsample {
 				glGetUniformBlockIndex(this->marching_cube_graphic_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->marching_cube_graphic_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
+
+			glUseProgram(0);
+
+			/*	Setup instance graphic pipeline.	*/
+			glUseProgram(this->marching_cube_transform_program);
+
+			/*	*/
+			uniform_buffer_index = glGetUniformBlockIndex(this->marching_cube_transform_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->marching_cube_transform_program, uniform_buffer_index,
+								  this->uniform_buffer_binding);
 			/*	*/
 			int marching_data_write_index =
-				glGetProgramResourceIndex(this->marching_cube_graphic_program, GL_SHADER_STORAGE_BLOCK, "GeomBuffer");
+				glGetProgramResourceIndex(this->marching_cube_transform_program, GL_SHADER_STORAGE_BLOCK, "GeomBuffer");
 
-			glShaderStorageBlockBinding(this->marching_cube_graphic_program, marching_data_write_index,
+			glShaderStorageBlockBinding(this->marching_cube_transform_program, marching_data_write_index,
 										this->vertex_dat_buffer_binding);
+
+			std::array<const char *, 4> feedbackVaryings = {"out_vertex_worldspace", "out_coord", "out_color",
+															"out_normal_worldspace"};
+			glTransformFeedbackVaryings(marching_cube_transform_program, feedbackVaryings.size(),
+										feedbackVaryings.data(), GL_INTERLEAVED_ATTRIBS);
 
 			glUseProgram(0);
 
 			/*	*/
 			{
+
 				glUseProgram(this->marching_cube_generate_compute_program);
 				const int uniform_compute_index =
 					glGetUniformBlockIndex(this->marching_cube_generate_compute_program, "UniformBufferBlock");
@@ -230,6 +259,8 @@ namespace glsample {
 							   this->localWorkGroupSize);
 				glUseProgram(0);
 			}
+
+			glCreateQueries(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, 1, &this->query);
 
 			/*	*/
 			GLint minMapBufferSize = 0;
@@ -285,6 +316,27 @@ namespace glsample {
 
 				this->marchingCube.nrVertices = marching_cube_chunk_num_vertices;
 			}
+
+			glGenVertexArrays(1, &marchingCubeSortedMesh.vao);
+			glBindVertexArray(marchingCubeSortedMesh.vao);
+			glGenBuffers(1, &this->marchingCubeSortedMesh.vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, this->marchingCubeSortedMesh.vbo);
+			glBufferData(GL_ARRAY_BUFFER, this->marchingTotalCubeSize, nullptr, GL_DYNAMIC_DRAW);
+			/*	Vertex.	*/
+			glEnableVertexAttribArrayARB(0);
+			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, 0);
+			/*	Vertex.	*/
+			glEnableVertexAttribArrayARB(1);
+			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)12);
+			/*	Vertex.	*/
+			glEnableVertexAttribArrayARB(2);
+			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)(12 + 8));
+			/*	Vertex.	*/
+			glEnableVertexAttribArrayARB(3);
+			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)(12 + 8 + 12));
+
+			glBindVertexArray(0);
+
 			fragcore::resetErrorFlag();
 
 			/*	load Skybox Textures	*/
@@ -345,7 +397,37 @@ namespace glsample {
 
 				// TODO:
 				/*	Draw and save geometry, transform feeedback.	*/
+				glEnable(GL_RASTERIZER_DISCARD);
+
+				glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, marchingCubeSortedMesh.vbo);
+
+				glUseProgram(this->marching_cube_transform_program);
+
+				/*	Draw Items.	*/
+				glBindVertexArray(this->marchingCube.vao);
+
+				/*	TODO: draw only visable sections.	*/
+				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, this->vertex_dat_buffer_binding, this->marchingCube.vbo);
+
+				const Chunk &chunk = this->chunks[0];
+
+				glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query);
+				glBeginTransformFeedback(GL_TRIANGLES);
+
+				glDrawArrays(GL_TRIANGLES, 0, chunk.marchingCube->nrVertices);
+				glEndTransformFeedback();
+				glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+				glBindVertexArray(0);
+
+				GLuint primitives;
+				glGetQueryObjectuiv(query, GL_QUERY_RESULT, &primitives);
+				marchingCubeSortedMesh.nrVertices = primitives * 3;
+
+				glDisable(GL_RASTERIZER_DISCARD);
+
+				glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 			}
+			this->getLogger().info(marchingCubeSortedMesh.nrVertices);
 
 			/*	*/
 			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
@@ -376,13 +458,11 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				/*	Draw Items.	*/
-				glBindVertexArray(this->marchingCube.vao);
+				glBindVertexArray(this->marchingCubeSortedMesh.vao);
 
 				/*	TODO: draw only visable sections.	*/
-				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, this->vertex_dat_buffer_binding, this->marchingCube.vbo);
-				glDrawArrays(GL_TRIANGLES, 0, this->marchingCube.nrVertices * this->chunks.size());
+				glDrawArrays(GL_TRIANGLES, 0, this->marchingCubeSortedMesh.nrVertices);
 
-				// glMultiDrawArraysIndirect
 				glBindVertexArray(0);
 
 				glUseProgram(0);

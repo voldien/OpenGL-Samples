@@ -29,8 +29,8 @@ layout(set = 0, binding = 3, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-float computeDiffuseRateA(const float A, const float B, const float diverage, const float killRate,
-						  const float feedRate, const float diffuseRate, const float delta) {
+float computeDiffuseRateA(const in float A, const in float B, const in float diverage, const in float killRate,
+						  const in float feedRate, const in float diffuseRate, const in float delta) {
 	return A + (diffuseRate * diverage - A * pow(B, 2) + feedRate * (1 - A)) * delta;
 }
 

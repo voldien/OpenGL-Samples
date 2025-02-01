@@ -106,11 +106,12 @@ namespace glsample {
 		using GlobalRenderSettings = struct _global_rendering_settings_t {
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
 			unsigned int IrradianceTexture = 0;
+			FogSettings fogSettings;
 		};
 		using CommonConstantData = struct common_constant_data_t {
 			CameraInstance camera;
 			FrustumInstance frustum;
-			FogSettings fogSettings;
+
 			GlobalRenderSettings renderSettings = GlobalRenderSettings();
 
 			/*	*/
@@ -133,6 +134,7 @@ namespace glsample {
 			glm::vec4 clip_ = glm::vec4(0.8);
 		};
 
+		/*	*/
 		CommonConstantData *stageCommonBuffer = nullptr;
 		NodeData *stageNodeData = nullptr;
 		MaterialData *stageMaterialData = nullptr;
@@ -152,6 +154,7 @@ namespace glsample {
 
 	  protected: /*	Default texture if texture from material is missing.*/
 		std::array<int, 10> default_textures;
+		std::array<unsigned int, 16> samplers;
 
 		DebugMode debugMode = DebugMode::None;
 
@@ -168,10 +171,15 @@ namespace glsample {
 			unsigned int material_align_size = 0;
 			unsigned int material_align_total_size = 0;
 
+			unsigned int light_offset = 0;
+			unsigned int light_align_size = 0;
+			unsigned int light_align_total_size = 0;
+
 			unsigned int common_offset = 0;
 			unsigned int common_size_align = 0;
 			unsigned int common_size_total_align = 0;
 
+			/*	*/
 			unsigned int common_buffer_binding = 1;
 			unsigned int node_buffer_binding = 2;
 			unsigned int bone_buffer_binding = 3;
@@ -182,6 +190,7 @@ namespace glsample {
 		UniformDataStructure UBOStructure;
 
 		int frameIndex = 0;
+		static const unsigned int frameChainCount = 3;
 
 	  public:
 		template <typename T = Scene> static T loadFrom(ModelImporter &importer) {

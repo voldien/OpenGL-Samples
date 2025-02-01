@@ -638,9 +638,28 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 
 				/*	*/
 				if (texIndex >= 0) {
+					switch (mapmode) {
+
+					case aiTextureMapMode_Wrap:
+					case aiTextureMapMode_Clamp:
+					case aiTextureMapMode_Decal:
+					case aiTextureMapMode_Mirror:
+					case _aiTextureMapMode_Force32Bit:
+						break;
+					}
+					switch (mapping) {
+					case aiTextureMapping_UV:
+					case aiTextureMapping_SPHERE:
+					case aiTextureMapping_CYLINDER:
+					case aiTextureMapping_BOX:
+					case aiTextureMapping_PLANE:
+					case aiTextureMapping_OTHER:
+					case _aiTextureMapping_Force32Bit:
+						break;
+					}
 					material->texture_sampling[texIndex].filtering = 0;
 					material->texture_sampling[texIndex].wrapping = mapmode;
-					material->texture_sampling[texIndex].mapping = mapping;
+					material->texture_sampling[texIndex].uv_mapping = mapping;
 				}
 
 				switch (textureType) {
@@ -789,8 +808,8 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 void ModelImporter::loadTexturesFromMaterials(aiMaterial *pmaterial) {
 
 	/*	load all texture assoicated with material.	*/
-	for (size_t textureType = aiTextureType::aiTextureType_DIFFUSE; textureType < aiTextureType::aiTextureType_UNKNOWN;
-		 textureType++) {
+	for (size_t textureType = aiTextureType::aiTextureType_DIFFUSE;
+		 textureType < aiTextureType::aiTextureType_TRANSMISSION; textureType++) {
 
 		/*	*/
 		for (size_t textureIndex = 0; textureIndex < pmaterial->GetTextureCount((aiTextureType)textureType);

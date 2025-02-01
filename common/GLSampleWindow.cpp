@@ -349,8 +349,12 @@ void GLSampleWindow::renderUI() {
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glViewport(0, 0, this->width(), this->height());
 
+			/*	*/
 			glBlitFramebuffer(0, 0, this->width(), this->height(), 0, 0, this->width(), this->height(),
 							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			/*	*/
+			glBlitFramebuffer(0, 0, this->width(), this->height(), 0, 0, this->width(), this->height(),
+							  GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 

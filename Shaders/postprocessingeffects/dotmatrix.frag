@@ -2,7 +2,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
-#extension GL_EXT_shader_realtime_clock : enable
+
+precision highp float;
+precision mediump int;
+
 
 /*  */
 layout(location = 0) out vec4 fragColor;

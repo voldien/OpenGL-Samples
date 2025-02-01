@@ -73,6 +73,18 @@ namespace glsample {
 												 fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f,
 																 normalForward[2] / 255.0f, normalForward[3] / 255.0f));
 
+		/*	Default.	*/
+		glCreateSamplers(samplers.size(), samplers.data());
+		for (size_t sampler_index = 0; sampler_index < samplers.size(); sampler_index++) {
+			glSamplerParameteri(this->samplers[sampler_index], GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glSamplerParameteri(this->samplers[sampler_index], GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glSamplerParameteri(this->samplers[sampler_index], GL_TEXTURE_WRAP_R, GL_REPEAT);
+			glSamplerParameteri(this->samplers[sampler_index], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glSamplerParameteri(this->samplers[sampler_index], GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glSamplerParameterf(this->samplers[sampler_index], GL_TEXTURE_LOD_BIAS, 0.0f);
+			glSamplerParameterf(this->samplers[sampler_index], GL_TEXTURE_MAX_ANISOTROPY_EXT, 16);
+		}
+
 		/*	*/
 		{
 			/*	Align the uniform buffer size to hardware specific.	*/
@@ -89,18 +101,24 @@ namespace glsample {
 			this->UBOStructure.node_size_total_align =
 				this->UBOStructure.node_size_align * UniformDataStructure::nrUniformBuffer;
 
-			this->UBOStructure.material_align_size = Math::align<size_t>(1024 * sizeof(MaterialData), minMapBufferSize);
+			this->UBOStructure.material_align_size = Math::align<size_t>(4096 * sizeof(MaterialData), minMapBufferSize);
 			this->UBOStructure.material_align_total_size =
 				this->UBOStructure.material_align_size * UniformDataStructure::nrUniformBuffer;
 
-			const size_t material_ubo_size = Math::align<size_t>(sizeof(MaterialData) * 3, minMapBufferSize);
+			this->UBOStructure.light_align_size = Math::align<size_t>(sizeof(LightData), minMapBufferSize);
+			this->UBOStructure.light_align_total_size =
+				this->UBOStructure.light_align_size * UniformDataStructure::nrUniformBuffer;
+
 			const size_t total_ubo_size = this->UBOStructure.node_size_total_align +
 										  this->UBOStructure.common_size_total_align +
-										  this->UBOStructure.material_align_size;
+										  this->UBOStructure.material_align_total_size;
 
 			this->UBOStructure.node_offset = this->UBOStructure.common_size_total_align;
 			this->UBOStructure.material_offset =
 				this->UBOStructure.common_size_total_align + this->UBOStructure.node_size_total_align;
+			this->UBOStructure.light_offset = this->UBOStructure.common_size_total_align +
+											  this->UBOStructure.node_size_total_align +
+											  this->UBOStructure.material_align_total_size;
 
 			/*	*/
 			glGenBuffers(1, &this->UBOStructure.node_and_common_uniform_buffer);
@@ -166,7 +184,7 @@ namespace glsample {
 			this->stageMaterialData[material_index].emission = this->materials[material_index].emission;
 			this->stageMaterialData[material_index].transparency = this->materials[material_index].transparent;
 		}
-		/*	Update Node Data.	*/
+		/*	Update Material.	*/
 		glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_offset,
 								 material_index * sizeof(MaterialData));
 
@@ -231,29 +249,33 @@ namespace glsample {
 	void Scene::bindTexture(const MaterialObject &material, const TextureType texture_type) {
 
 		/*	*/
-		unsigned int textureIndex = texture_type;
+		unsigned int textureMapIndex = texture_type;
 		unsigned int texture_id = 0;
 
-		if (material.texture_index[texture_type] >= 0 && material.texture_index[texture_type] < refTexture.size()) {
+		unsigned int materialTextureIndex = material.texture_index[texture_type];
+		if (materialTextureIndex >= 0 && materialTextureIndex < refTexture.size()) {
 
-			const TextureAssetObject *tex = &this->refTexture[material.texture_index[texture_type]];
+			const TextureAssetObject *tex = &this->refTexture[materialTextureIndex];
 
 			if (tex && tex->texture > 0) {
 				texture_id = tex->texture;
 			} else {
 				texture_id = this->default_textures[texture_type];
 			}
+			const MaterialTextureSampling &sampling = material.texture_sampling[materialTextureIndex];
 
 		} else {
 			texture_id = this->default_textures[texture_type];
 		}
 		/*	*/
 		if (glBindTextures) {
-			glBindTextures(textureIndex, 1, &texture_id);
+			glBindTextures(textureMapIndex, 1, &texture_id);
 		} else {
-			glActiveTexture(GL_TEXTURE0 + textureIndex);
+			glActiveTexture(GL_TEXTURE0 + textureMapIndex);
 			glBindTexture(GL_TEXTURE_2D, texture_id);
 		}
+
+		glBindSampler(textureMapIndex, this->samplers[textureMapIndex]);
 	}
 
 	void Scene::renderNode(const NodeObject *node) {
@@ -389,11 +411,22 @@ namespace glsample {
 	void Scene::renderUI() {
 
 		if (ImGui::CollapsingHeader("Scene Settings")) {
-			ImGui::TextUnformatted("Global Rendering Settings");
-			ImGui::ColorEdit4("Global Ambient Color", &this->stageCommonBuffer->renderSettings.ambientColor[0],
-							  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
-			/*	*/ // TODO: add
+			if (ImGui::CollapsingHeader("Global Rendering Settings")) {
+				ImGui::ColorEdit4("Global Ambient Color", &this->stageCommonBuffer->renderSettings.ambientColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::TextUnformatted("Global Fog");
+				ImGui::DragInt("Fog Type", (int *)&this->stageCommonBuffer->renderSettings.fogSettings.fogType);
+				ImGui::ColorEdit4("Fog Color", &this->stageCommonBuffer->renderSettings.fogSettings.fogColor[0],
+								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+				ImGui::DragFloat("Fog Density", &this->stageCommonBuffer->renderSettings.fogSettings.fogDensity);
+				ImGui::DragFloat("Fog Intensity", &this->stageCommonBuffer->renderSettings.fogSettings.fogIntensity);
+				ImGui::DragFloat("Fog Start", &this->stageCommonBuffer->renderSettings.fogSettings.fogStart);
+				ImGui::DragFloat("Fog End", &this->stageCommonBuffer->renderSettings.fogSettings.fogEnd);
+			}
+
+			/*	*/
+			// TODO: add tree structure
 			if (ImGui::TreeNode("Nodes")) {
 
 				for (size_t node_index = 0; node_index < nodes.size(); node_index++) {

@@ -15,6 +15,12 @@ layout(location = 0) in vec2 TextureCoord;
 
 void main() {
 
-	DepthResult.x = gl_FragCoord.z;
-	DepthResult.y = gl_FragCoord.z * gl_FragCoord.z;
+	const float Depth = gl_FragCoord.z;
+
+	DepthResult.x = Depth;
+
+	const float dx = dFdx(Depth);
+	const float dy = dFdy(Depth);
+
+	DepthResult.y = Depth * Depth + 0.25 * (dx * dx + dy * dy);
 }

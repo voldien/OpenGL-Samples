@@ -10,41 +10,42 @@ layout(location = 1) in vec2 TextureCoord;
 layout(location = 2) in vec3 Normal;
 layout(location = 3) in vec3 Tangent;
 
-layout(location = 0) out vec4 vertex;
-layout(location = 1) out vec2 uv;
+layout(location = 0) out vec3 vertex;
+layout(location = 1) out vec2 UV;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
-layout(location = 4) out vec3 bitangent;
+layout(location = 4) out vec4 lightSpace;
 
-layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
+#include "common.glsl"
+#include "phongblinn.glsl"
+
+layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
 	mat4 modelView;
 	mat4 modelViewProjection;
+	mat4 lightSpaceMatrix;
 
-	/*	*/
+	/*	Light source.	*/
+	DirectionalLight directional;
+	Camera camera;
+
+	vec4 ambientColor;
+	vec4 diffuseColor;
+	vec4 specularColor;
+
+	float bias;
+	float shadowStrength;
+	float radius;
 }
 ubo;
 
-#include "scene.glsl"
-
 void main() {
-
-	/*	*/
 	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
-
-	/*	*/
-	vertex = (ubo.modelView * vec4(Vertex, 1.0));
-
-	/*	*/
-	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
-	tangent = normalize((ubo.model * vec4(Tangent, 0.0)).xyz);
-
-	/*	*/
-	const vec3 Ttangent = normalize(tangent - dot(tangent, normal) * normal);
-	bitangent = cross(Ttangent, normal);
-
-	/*	*/
-	uv = TextureCoord;
+	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
+	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
+	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
+	lightSpace = ubo.lightSpaceMatrix * (ubo.model * vec4(Vertex, 1.0));
+	UV = TextureCoord;
 }

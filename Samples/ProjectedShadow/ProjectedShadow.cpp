@@ -33,18 +33,18 @@ namespace glsample {
 		}
 
 		using UniformBufferBlock = struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Light source.	*/
 			glm::vec4 direction = glm::vec4(0.7, 0.7, 1, 1);
 			glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1);
-			glm::vec4 viewDir;
+			glm::vec4 viewDir{};
 
 			float shininess = 8;
 		};
@@ -52,9 +52,9 @@ namespace glsample {
 		std::array<UniformBufferBlock, 2> uniformStageBuffer;
 
 		struct UniformProjectShadow {
-			glm::mat4 model;
-			glm::mat4 viewProjection;
-			glm::mat4 shadowProjectMatrix;
+			glm::mat4 model{};
+			glm::mat4 viewProjection{};
+			glm::mat4 shadowProjectMatrix{};
 			glm::vec4 color = glm::vec4(0.1, 0.1, 0.1, 0.85);
 
 			glm::vec3 planeNormal = glm::vec3(0, 1, 0);

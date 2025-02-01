@@ -33,11 +33,11 @@ namespace glsample {
 		/*	*/
 		MeshObject sphereMesh;
 
-		int localWorkGroupSize[3];
+		int localWorkGroupSize[3]{};
 
 		/*	Shader pipeline programs.	*/
-		unsigned int compute_visual_instance_graphic_program;
-		unsigned int compute_group_visual_compute_program;
+		unsigned int compute_visual_instance_graphic_program{};
+		unsigned int compute_group_visual_compute_program{};
 
 		using InstanceData = struct _instance_data_t {
 			glm::mat4 model;
@@ -45,11 +45,11 @@ namespace glsample {
 		};
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
@@ -57,9 +57,9 @@ namespace glsample {
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
 
 			/*	*/
-			unsigned int nrFaces;
-			unsigned int nrElements;
-			float delta;
+			unsigned int nrFaces{};
+			unsigned int nrElements{};
+			float delta{};
 			float scale = 0.3f;
 
 		} uniformStageBuffer;
@@ -71,9 +71,9 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_instance_buffer_binding = 1;
 		/*	*/
-		unsigned int uniform_buffer;
-		unsigned int uniform_instance_buffer;
-		unsigned int indirect_buffer;
+		unsigned int uniform_buffer{};
+		unsigned int uniform_instance_buffer{};
+		unsigned int indirect_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceMemorySize = 0;

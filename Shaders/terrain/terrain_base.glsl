@@ -17,19 +17,16 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 
 	Camera camera;
-
 	Terrain terrain;
 
 	/*	Material	*/
-	vec4 diffuseColor;
 	vec4 ambientColor;
+	vec4 diffuseColor;
 	vec4 specularColor;
 	vec4 shininess;
 
 	/*	Light source.	*/
 	DirectionalLight directional;
-
-	FogSettings fogSettings;
 
 	/*	Tessellation Settings.	*/
 	vec4 gEyeWorldPos;

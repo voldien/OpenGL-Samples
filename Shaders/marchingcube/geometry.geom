@@ -7,29 +7,32 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-layout(location = 0) in vec2 in_coord[];
-layout(location = 1) in vec3 in_color[];
-layout(location = 2) in vec3 in_normal_worldspace[];
-layout(location = 3) in float in_scale[];
+layout(location = 0) in vec3 v_out_vertex_worldspace[];
+layout(location = 1) in vec2 v_out_coord[];
+layout(location = 2) in vec3 v_out_color[];
+layout(location = 3) in vec3 v_out_normal_worldspace[];
+layout(location = 4) in float v_out_scale[];
 
-layout(location = 0) out vec2 out_coord;
-layout(location = 1) out vec3 out_color;
-layout(location = 2) out vec3 out_normal_worldspace;
+layout(location = 0, xfb_buffer = 0, xfb_offset = 0) out vec3 out_vertex_worldspace;
+layout(location = 1, xfb_buffer = 0, xfb_offset = 12) out vec2 out_coord;
+layout(location = 2, xfb_buffer = 0, xfb_offset = 20) out vec3 out_color;
+layout(location = 3, xfb_buffer = 0, xfb_offset = 32) out vec3 out_normal_worldspace;
 
 void main() {
 
 	/*  Determine if any visable geometry.  */
-	if (in_scale[0] == 0 && in_scale[1] == 0 && in_scale[2] == 0) {
+	if (v_out_scale[0] < 0.001 && v_out_scale[1] < 0.001 && v_out_scale[2] < 0.001) {
 		return;
 	}
 
 	[[unroll]] for (uint i = 0; i < 3; i++) {
-		gl_Position = gl_in[i].gl_Position;
-		out_coord = in_coord[i];
-		out_color = in_color[i];
-		out_normal_worldspace = in_normal_worldspace[i];
+		//gl_Position = vec4(v_out_vertex_worldspace[i].xyz, 1);
+		out_vertex_worldspace = v_out_vertex_worldspace[i].xyz;
+		out_coord = v_out_coord[i];
+		out_color = v_out_color[i];
+		out_normal_worldspace = v_out_normal_worldspace[i];
 		EmitVertex();
 	}
-
+	
 	EndPrimitive();
 }

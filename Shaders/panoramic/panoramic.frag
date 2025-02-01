@@ -37,7 +37,7 @@ ubo;
 
 void main() {
 
-	const material mat = MaterialUBO.materials[0];
+	const material mat = getMaterial();
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
 	const vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
@@ -53,7 +53,7 @@ void main() {
 	fragColor = (texture(DiffuseTexture, UV) * mat.diffuseColor) *
 				(glob_settings.ambientColor * mat.ambientColor * irradiance_color + lightColor);
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
-	fragColor *= vec4(mat.transparency.rgb, 1);
+	fragColor *= mat.transparency.rgba;
 	fragColor.rgb += mat.emission.rgb * texture(EmissionTexture, UV).rgb;
 	if (fragColor.a < 0.8) {
 		discard;

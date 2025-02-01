@@ -21,10 +21,11 @@ layout(binding = 2) uniform sampler2D IrradianceTexture;
 void main() {
 
 	const vec3 alteredNormal = normal;
+	const vec3 viewDir = normalize(ubo.camera.position.xyz - in_WorldPosition);
 
 	/*	*/
 	vec4 lightColor =
-		computeBlinnDirectional(ubo.directional, alteredNormal, ubo.camera.viewDir.xyz, ubo.shininess.r, vec3(1));
+		computeBlinnDirectional(ubo.directional, alteredNormal, viewDir, ubo.shininess.r, ubo.specularColor.rgb);
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
@@ -32,7 +33,6 @@ void main() {
 
 	//
 	fragColor = (lightColor + ubo.ambientColor * irradiance_color) * ubo.diffuseColor;
-	fragColor = blendFog(fragColor, ubo.fogSettings);
 	fragColor.a = 1;
 	// fragColor = vec4(normal, 1);
 }

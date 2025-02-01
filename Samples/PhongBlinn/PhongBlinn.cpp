@@ -248,7 +248,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->phongblinnSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				this->scene.render();
+				this->scene.render(&this->camera);
 			}
 		}
 

@@ -29,7 +29,6 @@ void EmitQuad(const vec3 StartVertex, const vec3 EndVertex) {
 
 	const vec3 gLightPos = -ubo.direction.xyz * 100.0;
 
-
 	const mat4 gWVP = ubo.modelViewProjection;
 	// Vertex #1: the starting vertex (just a tiny bit below the original edge)
 	vec3 LightDir = normalize(StartVertex - gLightPos);

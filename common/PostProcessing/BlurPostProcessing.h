@@ -19,6 +19,7 @@
 namespace glsample {
 
 	class FVDECLSPEC BlurPostProcessing : public PostProcessing {
+		enum Blur { BoxBlur, GuassianBlur };
 
 	  public:
 		BlurPostProcessing();
@@ -33,10 +34,13 @@ namespace glsample {
 		void renderUI() override;
 
 	  public:
-		void convert(unsigned int texture);
+		void render(unsigned int read_write_texture);
 
 	  private:
-		int guassian_blur_compute_program = -1;
+		int guassian_blur_compute_program = 0;
+		int box_blur_compute_program = 0;
+
+		Blur blurType = GuassianBlur;
 
 		/*	Settings.	*/
 		int nrIterations = 1;
