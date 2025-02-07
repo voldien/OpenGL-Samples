@@ -5,6 +5,7 @@
 #include "ShaderLoader.h"
 #include "imgui.h"
 #include <IOUtil.h>
+#include <GL/glew.h>
 
 using namespace glsample;
 
@@ -21,15 +22,15 @@ PixelatePostProcessing::~PixelatePostProcessing() {
 }
 
 void PixelatePostProcessing::initialize(fragcore::IFileSystem *filesystem) {
-	const char *chromatic_abberation_frag_path = "Shaders/postprocessingeffects/pixelate.frag.spv";
-	const char *vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
+	const char *pixelate_frag_path = "Shaders/postprocessingeffects/pixelate.frag.spv";
+	const char *post_vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 
 	if (this->pixelate_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(vertex_path, filesystem);
+		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
 		/*	*/
 		const std::vector<uint32_t> chromatic_abberation_fragment_binary =
-			IOUtil::readFileData<uint32_t>(chromatic_abberation_frag_path, filesystem);
+			IOUtil::readFileData<uint32_t>(pixelate_frag_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -55,10 +56,10 @@ void PixelatePostProcessing::draw(
 	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
-	this->convert(framebuffer, this->getMappedBuffer(GBuffer::Color));
+	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color));
 }
 
-void PixelatePostProcessing::convert(glsample::FrameBuffer *framebuffer, unsigned int texture) {
+void PixelatePostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int texture) {
 
 	unsigned int source_texture = texture;
 	unsigned int target_texture = this->getMappedBuffer(GBuffer::IntermediateTarget);

@@ -1,0 +1,35 @@
+#version 460 core
+#extension GL_ARB_derivative_control : enable
+#extension GL_ARB_enhanced_layouts : enable
+#extension GL_ARB_shader_image_load_store : enable
+#extension GL_ARB_explicit_attrib_location : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+precision mediump float;
+precision mediump int;
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout(set = 0, binding = 1, rgba16f) uniform image2D ColorTexture;
+
+layout(push_constant) uniform Settings {
+	layout(offset = 0) float exposure;
+	layout(offset = 4) float gamma;
+}
+settings;
+
+#include "common.glsl"
+
+void main() {
+
+	/*	*/
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(ColorTexture)))) {
+		return;
+	}
+
+	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 fragColor = imageLoad(ColorTexture, TexCoord);
+	imageStore(ColorTexture, TexCoord, vec4(fragColor.rgb, 1.0));
+}

@@ -12,19 +12,23 @@ precision mediump int;
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
+layout(set = 0, binding = 0) uniform sampler2D ColorTexture0;
 layout(set = 0, binding = 1, rgba16f) uniform coherent image2D ColorTexture;
 layout(set = 0, binding = 2, rgba16f) uniform coherent image2D TargetTexture;
 
+layout(constant_id = 16) const int MAX_SAMPLES = 9 * 9 + 1;
+
 layout(push_constant) uniform Settings {
-	layout(offset = 0) float variance;
-	layout(offset = 4) float mean;
-	layout(offset = 8) float radius;
-	layout(offset = 12) int samples;
+	layout(offset = 0) float blend;
+	layout(offset = 4) float variance;
+	layout(offset = 8) float mean;
+	layout(offset = 12) float radius;
+	layout(offset = 16) int samples;
+	layout(offset = 20) float kernel[MAX_SAMPLES];
 }
 settings;
 
 #include "postprocessing_base.glsl"
-layout(constant_id = 16) const int MAX_SAMPLES = 15;
 
 const uint work_group_nr_samples = (16 + (MAX_SAMPLES - 1) / 2) * (16 + (MAX_SAMPLES - 1) / 2);
 shared vec4 localResult[work_group_nr_samples];
@@ -46,14 +50,13 @@ vec4 blurHorizontal(const in float radius, const in float variance, const in int
 	for (y = start; y <= end; y++) {
 
 		const ivec2 uv = TexCoord + ivec2(vec2(0, y) * radius);
-
-		const float guas = getGuas2D(0, y, variance);
+		const uint guassIndex = (y + -start);
+		const float guas = settings.kernel[guassIndex]; // getGuas2D(0, y, variance);
 
 		color1 += imageLoad(ColorTexture, uv).rgba * vec4(guas.xxx, 1.0);
-		total += guas;
 	}
 
-	return color1 / total;
+	return color1;
 }
 
 vec4 blurVertical(const in float radius, const in float variance, const in int samples) {
@@ -71,14 +74,14 @@ vec4 blurVertical(const in float radius, const in float variance, const in int s
 
 	for (x = start; x <= end; x++) {
 		const ivec2 uv = TexCoord + ivec2(vec2(x, 0) * radius);
-		const float guas = getGuas2D(x, 0, variance);
+		const uint guassIndex = (x + -start);
+		const float guas = settings.kernel[guassIndex];
 
 		color1 += imageLoad(ColorTexture, uv).rgba * vec4(vec3(guas), 1.0);
-		total += guas;
 	}
 
 	// Normalize color.
-	return color1 / total;
+	return color1;
 }
 
 void main() {
@@ -88,16 +91,7 @@ void main() {
 		return;
 	}
 
-	/*	Cache data to shared.	.	*/
-	{
-		const int samples = settings.samples;
-		const int start = clamp(-((samples - 1) / 2), -MAX_SAMPLES, -1);
-		const int end = clamp(((samples - 1) / 2), 1, MAX_SAMPLES);
-		for (int x = start; x <= end; x++) {
-		}
-	}
-	memoryBarrierShared();
-
+	const uint samples = min(settings.samples, MAX_SAMPLES / 2);
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
 	/*	Vertical Blur.	*/
@@ -106,10 +100,6 @@ void main() {
 		const vec4 verticalBlur = blurVertical(settings.radius, settings.variance, settings.samples);
 
 		memoryBarrierImage();
-
-		/*	Save result to the local shared.	*/
-		localResult2[gl_LocalInvocationIndex] = verticalBlur;
-		memoryBarrierShared();
 
 		imageStore(ColorTexture, TexCoord, vec4(verticalBlur.rgb, 1.0));
 

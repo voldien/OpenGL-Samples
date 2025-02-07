@@ -124,6 +124,8 @@ namespace glsample {
 		using LightData = struct _light_data_t {
 			DirectionalLight directional[8];
 			PointLightInstance pointLight[16];
+			unsigned int directionalCount;
+			unsigned int pointCount;
 		};
 		using MaterialData = struct _material_data_t {
 			glm::vec4 ambientColor;

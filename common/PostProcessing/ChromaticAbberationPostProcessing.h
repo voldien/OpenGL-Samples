@@ -31,10 +31,12 @@ namespace glsample {
 		draw(glsample::FrameBuffer *framebuffer,
 			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
+		void setItensity(const float intensity) override;
+
 		void renderUI() override;
 
 	  public:
-		void convert(glsample::FrameBuffer *framebuffer, unsigned int texture);
+		void render(glsample::FrameBuffer *framebuffer, unsigned int texture);
 
 		using ChromaticAbberationSettings = struct chromatic_abberation_settings_t {
 			float redOffset = -0.005f;

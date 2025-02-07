@@ -5,6 +5,7 @@
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include "imgui.h"
+#include <GL/glew.h>
 #include <IOUtil.h>
 #include <random>
 
@@ -192,6 +193,7 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	/*	*/
 	this->overlay_program = this->createOverlayGraphicProgram(filesystem);
 	this->vao = createVAO();
+	setItensity(1);
 }
 
 void SSAOPostProcessing::draw(

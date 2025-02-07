@@ -32,7 +32,7 @@ namespace glsample {
 			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
 	  public:
-		void convert(unsigned int texture);
+		void render(unsigned int texture);
 
 		void setColorSpace(const glsample::ColorSpace srgb) noexcept;
 		glsample::ColorSpace getColorSpace() const noexcept;

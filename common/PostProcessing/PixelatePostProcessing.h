@@ -34,7 +34,7 @@ namespace glsample {
 		void renderUI() override;
 
 	  public:
-		void convert(glsample::FrameBuffer *framebuffer, unsigned int texture);
+		void render(glsample::FrameBuffer *framebuffer, unsigned int texture);
 
 		using PixelateSettings = struct pixelate_settings_t {
 			float redOffset = -0.01f;
@@ -47,6 +47,6 @@ namespace glsample {
 	  private:
 		int pixelate_graphic_program = -1;
 
-		int vao;
+		int vao = 0;
 	};
 } // namespace glsample

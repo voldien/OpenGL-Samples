@@ -3,6 +3,7 @@
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include "imgui.h"
+#include <GL/glew.h>
 #include <IOUtil.h>
 
 using namespace glsample;
@@ -14,8 +15,8 @@ MistPostProcessing::MistPostProcessing() {
 }
 
 MistPostProcessing::~MistPostProcessing() {
-	if (this->mist_program >= 0) {
-		glDeleteProgram(this->mist_program);
+	if (this->mist_fog_program >= 0) {
+		glDeleteProgram(this->mist_fog_program);
 	}
 	if (glIsBuffer(this->uniform_buffer)) {
 		glDeleteBuffers(1, &this->uniform_buffer);
@@ -24,9 +25,10 @@ MistPostProcessing::~MistPostProcessing() {
 
 void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	const char *mist_fog_frag_path = "Shaders/postprocessingeffects/mistfog.frag.spv";
+	const char *simple_fog_frag_path = "Shaders/postprocessingeffects/simplefog.frag.spv";
 	const char *post_vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 
-	if (this->mist_program == -1) {
+	if (this->mist_fog_program == -1) {
 		/*	*/
 		const std::vector<uint32_t> vertex_mistfog_post_processing_binary =
 			IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
@@ -34,21 +36,30 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		const std::vector<uint32_t> fragment_mistfog_post_processing_binary =
 			IOUtil::readFileData<uint32_t>(mist_fog_frag_path, filesystem);
 
+		const std::vector<uint32_t> fragment_simple_post_processing_binary =
+			IOUtil::readFileData<uint32_t>(simple_fog_frag_path, filesystem);
+
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 		compilerOptions.glslVersion = 330;
 
 		/*  */
-		this->mist_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_mistfog_post_processing_binary,
-															  &fragment_mistfog_post_processing_binary);
+		this->mist_fog_program = ShaderLoader::loadGraphicProgram(
+			compilerOptions, &vertex_mistfog_post_processing_binary, &fragment_mistfog_post_processing_binary);
+
+		this->simple_fog_program = ShaderLoader::loadGraphicProgram(
+			compilerOptions, &vertex_mistfog_post_processing_binary, &fragment_simple_post_processing_binary);
 	}
 
-	glUseProgram(this->mist_program);
+	glUseProgram(this->mist_fog_program);
+	glUniform1i(glGetUniformLocation(this->mist_fog_program, "ColorTexture"), (int)GBuffer::Albedo);
+	glUniform1i(glGetUniformLocation(this->mist_fog_program, "DepthTexture"), (int)GBuffer::Depth);
+	glUniform1i(glGetUniformLocation(this->mist_fog_program, "IrradianceTexture"), 2);
+	glUseProgram(0);
 
-	glUniform1i(glGetUniformLocation(this->mist_program, "ColorTexture"), (int)GBuffer::Albedo);
-	glUniform1i(glGetUniformLocation(this->mist_program, "DepthTexture"), (int)GBuffer::Depth);
-	glUniform1i(glGetUniformLocation(this->mist_program, "IrradianceTexture"), 2);
-
+	glUseProgram(this->simple_fog_program);
+	glUniform1i(glGetUniformLocation(this->simple_fog_program, "ColorTexture"), (int)GBuffer::Albedo);
+	glUniform1i(glGetUniformLocation(this->simple_fog_program, "DepthTexture"), (int)GBuffer::Depth);
 	glUseProgram(0);
 
 	/*	*/
@@ -89,7 +100,11 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 
 	/*	*/
 	{
-		glUseProgram(this->mist_program);
+		if (useSimple) {
+			glUseProgram(this->simple_fog_program);
+		} else {
+			glUseProgram(this->mist_fog_program);
+		}
 
 		/*	*/
 		glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Albedo);
@@ -100,8 +115,10 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 		glBindTexture(GL_TEXTURE_2D, depth_texture);
 
 		/*	*/
-		glActiveTexture(GL_TEXTURE0 + 2);
-		glBindTexture(GL_TEXTURE_2D, skybox);
+		if (skybox > 0) {
+			glActiveTexture(GL_TEXTURE0 + 2);
+			glBindTexture(GL_TEXTURE_2D, skybox);
+		}
 
 		/*	*/
 		glDisable(GL_CULL_FACE);
@@ -118,6 +135,7 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 }
 
 void MistPostProcessing::renderUI() {
+	ImGui::Checkbox("Simple", &useSimple);
 	ImGui::DragInt("Fog Type", (int *)&this->mistsettings.fogSettings.fogType);
 	ImGui::ColorEdit4("Fog Color", &this->mistsettings.fogSettings.fogColor[0],
 					  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);

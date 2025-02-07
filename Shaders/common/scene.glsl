@@ -32,6 +32,8 @@ struct tessellation_settings {
 struct light_settings {
 	DirectionalLight directional[16];
 	PointLight point[64];
+	uint directionalCount;
+	uint pointCount;
 };
 
 /*	*/
@@ -39,11 +41,11 @@ layout(set = 1, binding = 1, std140) uniform UniformCommonBufferBlock { common_d
 constantCommon;
 
 /*	*/
-layout(set = 1, binding = 2, std140) uniform UniformNodeBufferBlock { Node node[512]; }
+layout(set = 1, binding = 2, std140) uniform UniformNodeBufferBlock { Node node[1024]; }
 NodeUBO;
 
 /*	*/
-layout(set = 1, binding = 3, std140) uniform UniformSkeletonBufferBlock { mat4 gBones[512]; }
+layout(set = 1, binding = 3, std140) uniform UniformSkeletonBufferBlock { mat4 gBones[1024]; }
 skeletonUBO;
 
 /*	*/
@@ -72,5 +74,6 @@ layout(binding = 11) uniform samplerCube prefilterMap;
 layout(binding = 12) uniform sampler2D brdfLUT;
 
 material getMaterial() { return MaterialUBO.materials[0]; }
+mat4 getModel() { return NodeUBO.node[0].model; }
 
 #endif

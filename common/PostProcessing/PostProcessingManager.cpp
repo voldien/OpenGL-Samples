@@ -1,5 +1,6 @@
 #include "PostProcessing/PostProcessingManager.h"
 #include "PostProcessing/PostProcessing.h"
+#include <GL/glew.h>
 
 using namespace glsample;
 
@@ -27,9 +28,9 @@ void PostProcessingManager::render(
 
 	/*	*/
 	for (size_t i = 0; i < this->getNrPostProcessing(); i++) {
-		if (this->isEnabled(i)) {
-			/*	*/
-			PostProcessing &postprocessing = getPostProcessing(i);
+		/*	*/
+		PostProcessing &postprocessing = getPostProcessing(i);
+		if (this->isEnabled(i) && postprocessing.isActive()) {
 
 			postprocessing.bind();
 

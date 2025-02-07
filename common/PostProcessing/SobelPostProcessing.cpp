@@ -2,6 +2,7 @@
 #include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
+#include <GL/glew.h>
 #include <IOUtil.h>
 
 using namespace glsample;
@@ -13,7 +14,7 @@ SobelProcessing::SobelProcessing() {
 }
 
 SobelProcessing::~SobelProcessing() {
-	if (this->sobel_program >= 0) {
+	if (glIsProgram(this->sobel_program)) {
 		glDeleteProgram(this->sobel_program);
 	}
 }

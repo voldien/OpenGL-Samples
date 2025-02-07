@@ -33,10 +33,10 @@ namespace glsample {
 		void renderUI() override;
 
 	  public:
-		void convert(unsigned int texture);
+		void render(unsigned int texture);
 
 	  private:
-		int guassian_blur_compute_program = -1;
+		int fxaa_compute_program = -1;
 
 		/*	Settings.	*/
 		int nrIterations = 1;

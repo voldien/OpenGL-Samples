@@ -28,14 +28,19 @@ namespace glsample {
 
 		void
 		draw(glsample::FrameBuffer *framebuffer,
-			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override {}
+			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
+		void renderUI() override;
 
 	  public:
-		void convert(unsigned int texture);
+		void render(unsigned int texture);
 
 	  private:
 		int hue_color_grade_program = -1;
 		int grayscale_color_grade_program = -1;
+		int color_balance_program = -1;
+		int gamma_program = -1;
+		int exposure_program = -1;
+		int sepia_program = -1;
 
 		int localWorkGroupSize[3];
 	};

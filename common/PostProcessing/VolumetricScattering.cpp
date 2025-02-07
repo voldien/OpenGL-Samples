@@ -5,6 +5,7 @@
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include "imgui.h"
+#include <GL/glew.h>
 #include <IOUtil.h>
 #include <random>
 

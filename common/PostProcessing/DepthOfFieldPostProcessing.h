@@ -25,19 +25,26 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void draw(glsample::FrameBuffer* framebuffer, const std::initializer_list<std::tuple<const GBuffer, const unsigned int&>> &render_targets) override;
+		void
+		draw(glsample::FrameBuffer *framebuffer,
+			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
 	  public:
-		void convert(unsigned int texture);
+		void render(unsigned int texture);
 
 	  private:
 		int guassian_blur_compute_program = -1;
+		int indirect_compute_program = -1;
 
+		using DepthOfFieldSettings = struct depth_of_field_settings_t {
+			float aperature;
+			float Foc;
+		};
 		/*	*/
 		float variance;
 		int samples;
 		float radius;
 
-		// int localWorkGroupSize[3];
+		int localWorkGroupSize[3];
 	};
 } // namespace glsample

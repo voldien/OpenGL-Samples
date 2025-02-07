@@ -32,7 +32,7 @@ namespace glsample {
 		void render(unsigned int texture);
 
 	  private:
-		int guassian_blur_compute_program = -1;
+		int screen_space_shadow_compute_program = -1;
 
 		/*	*/
 		float variance;

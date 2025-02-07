@@ -15,18 +15,18 @@ ChromaticAbberationPostProcessing::ChromaticAbberationPostProcessing() {
 }
 
 ChromaticAbberationPostProcessing::~ChromaticAbberationPostProcessing() {
-	if (this->chromatic_abberation_graphic_program >= 0) {
+	if (glIsProgram(this->chromatic_abberation_graphic_program)) {
 		glDeleteProgram(this->chromatic_abberation_graphic_program);
 	}
 }
 
 void ChromaticAbberationPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	const char *chromatic_abberation_frag_path = "Shaders/postprocessingeffects/chromaticabbrevation.frag.spv";
-	const char *vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
+	const char *post_vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 
 	if (this->chromatic_abberation_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(vertex_path, filesystem);
+		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
 		/*	*/
 		const std::vector<uint32_t> chromatic_abberation_fragment_binary =
 			IOUtil::readFileData<uint32_t>(chromatic_abberation_frag_path, filesystem);
@@ -44,8 +44,9 @@ void ChromaticAbberationPostProcessing::initialize(fragcore::IFileSystem *filesy
 
 	glUniform1i(glGetUniformLocation(this->chromatic_abberation_graphic_program, "ColorTexture"), 0);
 	glBindFragDataLocation(this->chromatic_abberation_graphic_program, 1, "fragColor");
-
 	glUseProgram(0);
+
+	setItensity(1);
 
 	this->vao = createVAO();
 }
@@ -55,12 +56,19 @@ void ChromaticAbberationPostProcessing::draw(
 	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
-	this->convert(framebuffer, this->getMappedBuffer(GBuffer::Color));
+	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color));
 }
 
-void ChromaticAbberationPostProcessing::convert(glsample::FrameBuffer *framebuffer, unsigned int texture) {
+void ChromaticAbberationPostProcessing::setItensity(const float intensity) {
+	glUseProgram(this->chromatic_abberation_graphic_program);
+	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.blend"),
+				this->getIntensity());
+	glUseProgram(0);
+}
 
-	unsigned int source_texture = texture;
+void ChromaticAbberationPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int source_color_texture) {
+
+	unsigned int source_texture = source_color_texture;
 	unsigned int target_texture = this->getMappedBuffer(GBuffer::IntermediateTarget);
 
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
@@ -94,6 +102,8 @@ void ChromaticAbberationPostProcessing::convert(glsample::FrameBuffer *framebuff
 	std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
+
+	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 }
 
 void ChromaticAbberationPostProcessing::renderUI() {

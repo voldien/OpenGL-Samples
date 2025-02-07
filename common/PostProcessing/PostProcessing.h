@@ -14,9 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "GLSampleSession.h"
 #include "IO/IFileSystem.h"
-#include "Math3D/Color.h"
 #include "SampleHelper.h"
 
 namespace glsample {
@@ -35,8 +33,12 @@ namespace glsample {
 
 		virtual void renderUI() {};
 
-		float getIntensity() const noexcept;
-		void setItensity(const float intensity);
+		virtual bool isSupported() const noexcept { return true; }
+
+		virtual bool isActive() const noexcept { return getIntensity() > 0 && isSupported(); }
+
+		virtual float getIntensity() const noexcept;
+		virtual void setItensity(const float intensity);
 
 		bool isBufferRequired(const GBuffer required_data_buffer) const noexcept;
 

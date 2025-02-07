@@ -19,7 +19,7 @@
 namespace glsample {
 
 	class FVDECLSPEC BlurPostProcessing : public PostProcessing {
-		enum Blur { BoxBlur, GuassianBlur };
+		enum Blur { BoxBlur, GuassianBlur, MaxBlur };
 
 	  public:
 		BlurPostProcessing();
@@ -34,9 +34,11 @@ namespace glsample {
 		void renderUI() override;
 
 	  public:
-		void render(unsigned int read_write_texture);
+		void render(glsample::FrameBuffer *framebuffer, unsigned int read_write_texture);
 
 	  private:
+		void updateGuassianKernel();
+
 		int guassian_blur_compute_program = 0;
 		int box_blur_compute_program = 0;
 
@@ -48,6 +50,8 @@ namespace glsample {
 		int samples = 11;
 		float radius = 2;
 		float mean = 0;
+		static const int maxSamples = 9 + 9 + 1;
+		std::array<float, maxSamples> guassian;
 
 		int localWorkGroupSize[3];
 	};

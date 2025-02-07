@@ -1,4 +1,5 @@
 #include "PostProcessing/SSSPostProcessing.h"
+#include <GL/glew.h>
 
 using namespace glsample;
 

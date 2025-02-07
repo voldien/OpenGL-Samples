@@ -13,21 +13,19 @@ precision mediump int;
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
-layout(set = 0, binding = 1, rgba16f) uniform coherent image2D TargetTexture;
+layout(set = 0, binding = 1, rgba16f) uniform restrict image2D TargetTexture;
 
 layout(push_constant) uniform Settings {
-	layout(offset = 0) float variance;
-	layout(offset = 4) float mean;
-	layout(offset = 8) float radius;
-	layout(offset = 12) int samples;
+	layout(offset = 0) float blend;
+	layout(offset = 4) float variance;
+	layout(offset = 8) float mean;
+	layout(offset = 12) float radius;
+	layout(offset = 16) int samples;
 }
 settings;
 
 #include "postprocessing_base.glsl"
 layout(constant_id = 16) const int MAX_SAMPLES = 7 + 7 + 1;
-
-const uint work_group_nr_samples = (16 + (MAX_SAMPLES - 1) / 2) * (16 + (MAX_SAMPLES - 1) / 2);
-shared vec4 localResult[work_group_nr_samples];
 
 void main() {
 
@@ -39,40 +37,25 @@ void main() {
 	/*  */
 	const vec2 resolution = textureSize(ColorTexture, 0);
 	const vec2 TexelInvOffset = 1.0 / resolution;
+	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
+	const vec2 NormalizeCoordinate = TexCoord / resolution;
 
 	/*  */
-	const int samples = settings.samples;
+	const int samples = clamp(settings.samples, 1, MAX_SAMPLES / 2);
 	const float radius = settings.radius;
-	const float totalInverse = 1.0f / samples;
+	const float totalInverse = 1.0f / (samples * samples);
 
-	/*	Cache data to shared.	.	*/
-	{
-
-		const int start = clamp(-((samples - 1) / 2), -MAX_SAMPLES, -1);
-		const int end = clamp(((samples - 1) / 2), 1, MAX_SAMPLES);
-		for (int x = start; x <= end; x++) {
-			for (int y = start; y <= end; y++) {
-				const vec2 coordinate = vec2(x, y);
-			}
+	vec4 color = vec4(0);
+	for (uint x = 0; x < samples; x++) {
+		for (uint y = 0; y < samples; y++) {
+			/*	*/
+			const vec2 uvP =
+				NormalizeCoordinate + TexelInvOffset * vec2(x + -samples * 0.5, y + -samples * 0.5) * radius;
+			color += texture(ColorTexture, uvP);
 		}
 	}
-	memoryBarrierShared();
 
-	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
-
-	const int start = clamp(-((samples - 1) / 2), -MAX_SAMPLES, -1);
-	const int end = clamp(((samples - 1) / 2), 1, MAX_SAMPLES);
-
-	vec4 color1 = vec4(0.0);
-	float total = EPSILON;
-
-	for (int x = start; x <= end; x++) {
-		const ivec2 uv = TexCoord + ivec2(vec2(x, 0) * radius);
-
-		//		color1 += imageLoad(ColorTexture, uv).rgba, 1.0);
-	}
-
-	// Normalize color.
-	const vec4 finalColor = color1 * totalInverse;
+	/* Normalize color. */
+	const vec4 finalColor = color * totalInverse;
 	imageStore(TargetTexture, TexCoord, finalColor);
 }

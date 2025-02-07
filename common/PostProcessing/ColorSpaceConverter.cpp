@@ -123,7 +123,7 @@ void ColorSpaceConverter::draw(
 	glsample::FrameBuffer *framebuffer,
 	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {}
 
-void ColorSpaceConverter::convert(unsigned int texture) {
+void ColorSpaceConverter::render(unsigned int texture) {
 
 	GLint width = 0;
 	GLint height = 0;
@@ -150,8 +150,6 @@ void ColorSpaceConverter::convert(unsigned int texture) {
 
 	switch (this->getColorSpace()) {
 	case ColorSpace::ACES: {
-
-		GLint localWorkGroupSize[3];
 
 		glUseProgram(this->aes_program);
 

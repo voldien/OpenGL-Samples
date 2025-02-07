@@ -12,9 +12,10 @@ layout(location = 0) in vec2 screenUV;
 layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
 
 layout(push_constant) uniform Settings {
-	layout(offset = 0) float time;
-	layout(offset = 4) float intensity;
-	layout(offset = 8) float speed;
+	layout(offset = 0) float blend;
+	layout(offset = 4) float time;
+	layout(offset = 8) float intensity;
+	layout(offset = 12) float speed;
 }
 settings;
 

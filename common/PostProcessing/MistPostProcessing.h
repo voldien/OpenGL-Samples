@@ -44,11 +44,14 @@ namespace glsample {
 		MistUniformBuffer mistsettings;
 
 	  private:
-		int mist_program = -1;
+		int mist_fog_program = -1;
+		int simple_fog_program = 0;
 		unsigned int vao = 0;
 
+		bool useSimple = false;
+
 		unsigned int uniform_buffer = 0;
-		unsigned int uniform_buffer_binding;
+		unsigned int uniform_buffer_binding = 1;
 		size_t uniformAlignSize = sizeof(MistUniformBuffer);
 	};
 } // namespace glsample

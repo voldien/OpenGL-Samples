@@ -30,8 +30,12 @@ namespace glsample {
 		draw(glsample::FrameBuffer *framebuffer,
 			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
 
+		void renderUI() override;
+
+		bool isSupported() const noexcept override { return computeShaderSupported; }
+
 	  public:
-		void convert(FrameBuffer *framebuffer, unsigned int texture);
+		void render(FrameBuffer *framebuffer, unsigned int texture);
 
 	  private:
 		int bloom_blur_graphic_program = -1;
@@ -41,10 +45,9 @@ namespace glsample {
 
 		unsigned int texture_sampler = 0;
 
+		int nr_down_samples = 4;
 		/*	*/
-		float variance;
-		int samples;
-		float radius;
+		float radius = 1;
 		float mean = 0;
 		int localWorkGroupSize[3];
 		float threadshold = 1;

@@ -3,6 +3,7 @@
 #include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
+#include "imgui.h"
 #include <IOUtil.h>
 
 using namespace glsample;
@@ -33,7 +34,8 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	if (this->bloom_blur_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
+		const std::vector<uint32_t> post_vertex_binary =
+			IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
 		const std::vector<uint32_t> guassian_blur_compute_binary =
 			IOUtil::readFileData<uint32_t>(bloom_frag_path, filesystem);
 
@@ -66,10 +68,14 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	glUseProgram(this->downsample_compute_program);
 	glGetProgramiv(this->downsample_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
+	glUniform1i(glGetUniformLocation(this->downsample_compute_program, "SourceTexture"), 0);
+	glUniform1i(glGetUniformLocation(this->downsample_compute_program, "TargetTexture"), 1);
 	glUseProgram(0);
 
 	glUseProgram(this->upsample_compute_program);
 	glGetProgramiv(this->upsample_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
+	glUniform1i(glGetUniformLocation(this->upsample_compute_program, "SourceTexture"), 0);
+	glUniform1i(glGetUniformLocation(this->upsample_compute_program, "TargetTexture"), 1);
 	glUseProgram(0);
 
 	/*	Create sampler.	*/
@@ -85,6 +91,8 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	this->overlay_program = this->createOverlayGraphicProgram(filesystem);
 
 	this->vao = this->createVAO();
+
+	setItensity(1);
 }
 
 void BloomPostProcessing::draw(
@@ -92,10 +100,13 @@ void BloomPostProcessing::draw(
 	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
-	this->convert(framebuffer, this->getMappedBuffer(GBuffer::Color));
+	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color));
 }
 
-void BloomPostProcessing::convert(FrameBuffer *framebuffer, unsigned int color_texture) {
+void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_texture) {
+	if (this->nr_down_samples == 0) {
+		return;
+	}
 
 	unsigned int intermediate0 = this->getMappedBuffer(GBuffer::IntermediateTarget);
 	unsigned int intermediate1 = this->getMappedBuffer(GBuffer::IntermediateTarget2);
@@ -111,62 +122,59 @@ void BloomPostProcessing::convert(FrameBuffer *framebuffer, unsigned int color_t
 		GLint width = 0;
 		GLint height = 0;
 
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[0]);
 		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
-		size_t nr_down_samples = 6;
-
 		glUseProgram(this->downsample_compute_program);
+		glUniform1i(glGetUniformLocation(this->downsample_compute_program, "settings.filterRadius"), 1);
 
 		for (size_t i = 0; i < nr_down_samples; i++) {
-
-			glUniform1i(glGetUniformLocation(this->downsample_compute_program, "settings.filterRadius"), 1);
 
 			/*	*/
 			if (i == 1) {
 				readTexture = intermediate0;
 				targetTexture = intermediate1;
 			}
-			/*	The image where the graphic version will be stored as.	*/
-			// TODO: add support for sampler instead of image
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, readTexture);
-			glBindImageTexture(0, readTexture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-			glBindImageTexture(1, targetTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-
 			const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]) / (1 << (i + 1));
 			const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]) / (1 << (i + 1));
 
-			if (WorkGroupX > 0 && WorkGroupY > 0) {
-				glDispatchCompute(WorkGroupX, WorkGroupY, 1);
-			}
+			if (WorkGroupX >= 2 && WorkGroupY >= 2) {
 
-			std::swap(readTexture, targetTexture);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, readTexture);
+				glBindImageTexture(1, targetTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+				glDispatchCompute(WorkGroupX, WorkGroupY, 1);
+
+				std::swap(readTexture, targetTexture);
+			}
 		}
+
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		/*	*/
 		glUseProgram(this->upsample_compute_program);
+		glUniform1i(glGetUniformLocation(this->upsample_compute_program, "settings.filterRadius"), 1);
+
 		for (size_t i = 0; i < nr_down_samples; i++) {
-
-			glUniform1i(glGetUniformLocation(this->upsample_compute_program, "settings.filterRadius"), 1);
-
-			/*	The image where the graphic version will be stored as.	*/
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, readTexture);
-			glBindImageTexture(1, targetTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 			const unsigned int WorkGroupX =
 				std::ceil(width / (float)localWorkGroupSize[0]) / (1 << (nr_down_samples - i - 1));
 			const unsigned int WorkGroupY =
 				std::ceil(height / (float)localWorkGroupSize[1]) / (1 << (nr_down_samples - i - 1));
 
-			if (WorkGroupX > 0 && WorkGroupY > 0) {
+			if (WorkGroupX >= 2 && WorkGroupY >= 2) {
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, readTexture);
+
+				glBindImageTexture(1, targetTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 				glDispatchCompute(WorkGroupX, WorkGroupY, 1);
+				std::swap(readTexture, targetTexture);
 			}
-
-			std::swap(readTexture, targetTexture);
 		}
 
 		glBindSampler(0, 0);
@@ -198,3 +206,5 @@ void BloomPostProcessing::convert(FrameBuffer *framebuffer, unsigned int color_t
 		glUseProgram(0);
 	}
 }
+
+void BloomPostProcessing::renderUI() { ImGui::DragInt("Image Size", (int *)&this->nr_down_samples); }

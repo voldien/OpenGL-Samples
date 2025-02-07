@@ -14,9 +14,10 @@ layout(location = 0) in vec2 screenUV;
 layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
 
 layout(push_constant) uniform Settings {
-	layout(offset = 0) float redOffset;
-	layout(offset = 4) float greenOffset;
-	layout(offset = 8) float blueOffset;
+	layout(offset = 0) float blend;
+	layout(offset = 4) float redOffset;
+	layout(offset = 8) float greenOffset;
+	layout(offset = 12) float blueOffset;
 	layout(offset = 16) vec2 direction_center;
 }
 settings;

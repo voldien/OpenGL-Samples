@@ -117,11 +117,13 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 
 			ImGui::BeginGroup();
 			PostProcessingManager *manager = this->getRefSample().getPostProcessingManager();
+
 			/*	*/
 			for (size_t post_index = 0; post_index < manager->getNrPostProcessing(); post_index++) {
 				PostProcessing &postEffect = manager->getPostProcessing(post_index);
 
 				ImGui::PushID(post_index);
+				ImGui::BeginDisabled(!postEffect.isSupported());
 
 				/*	*/
 				ImGui::TextUnformatted(postEffect.getName().c_str());
@@ -137,6 +139,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 
 				postEffect.renderUI();
 
+				ImGui::EndDisabled();
 				ImGui::PopID();
 			}
 
@@ -231,6 +234,14 @@ void GLSampleWindow::internalInit() {
 		if (usePostProcessing) {
 			this->postprocessingManager = new PostProcessingManager();
 
+			SSAOPostProcessing *ssao = new SSAOPostProcessing();
+			ssao->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*ssao);
+
+			SSSPostProcessing *sss = new SSSPostProcessing();
+			sss->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*sss);
+
 			SobelProcessing *sobelPostProcessing = new SobelProcessing();
 			sobelPostProcessing->initialize(getFileSystem());
 			this->postprocessingManager->addPostProcessing(*sobelPostProcessing);
@@ -238,10 +249,6 @@ void GLSampleWindow::internalInit() {
 			ColorGradePostProcessing *colorgrade = new ColorGradePostProcessing();
 			colorgrade->initialize(getFileSystem());
 			this->postprocessingManager->addPostProcessing(*colorgrade);
-
-			BlurPostProcessing *blur = new BlurPostProcessing();
-			blur->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*blur);
 
 			PixelatePostProcessing *pixelate = new PixelatePostProcessing();
 			pixelate->initialize(getFileSystem());
@@ -251,10 +258,6 @@ void GLSampleWindow::internalInit() {
 			grain->initialize(getFileSystem());
 			this->postprocessingManager->addPostProcessing(*grain);
 
-			SSAOPostProcessing *ssao = new SSAOPostProcessing();
-			ssao->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*ssao);
-
 			DepthOfFieldProcessing *depthOfField = new DepthOfFieldProcessing();
 			depthOfField->initialize(getFileSystem());
 			this->postprocessingManager->addPostProcessing(*depthOfField);
@@ -263,13 +266,13 @@ void GLSampleWindow::internalInit() {
 			mistFog->initialize(getFileSystem());
 			this->postprocessingManager->addPostProcessing(*mistFog);
 
-			SSSPostProcessing *sss = new SSSPostProcessing();
-			sss->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*sss);
-
 			VolumetricScatteringPostProcessing *volumetric = new VolumetricScatteringPostProcessing();
 			volumetric->initialize(getFileSystem());
 			this->postprocessingManager->addPostProcessing(*volumetric);
+
+			BlurPostProcessing *blur = new BlurPostProcessing();
+			blur->initialize(getFileSystem());
+			this->postprocessingManager->addPostProcessing(*blur);
 
 			BloomPostProcessing *bloom = new BloomPostProcessing();
 			bloom->initialize(getFileSystem());
@@ -374,7 +377,7 @@ void GLSampleWindow::renderUI() {
 		/*	Transfer last result to the default OpenGL Framebuffer.	*/
 		if (this->defaultFramebuffer) {
 			if (this->colorSpace) {
-				this->colorSpace->convert(this->defaultFramebuffer->attachments[0]);
+				this->colorSpace->render(this->defaultFramebuffer->attachments[0]);
 			}
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
