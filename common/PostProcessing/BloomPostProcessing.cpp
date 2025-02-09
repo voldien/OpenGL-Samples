@@ -111,7 +111,7 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 	unsigned int intermediate0 = this->getMappedBuffer(GBuffer::IntermediateTarget);
 	unsigned int intermediate1 = this->getMappedBuffer(GBuffer::IntermediateTarget2);
 
-	unsigned int readTexture = color_texture;
+	unsigned int readTexture = color_texture; /*	*/
 	unsigned int targetTexture = intermediate0;
 
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -132,11 +132,12 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 
 		for (size_t i = 0; i < nr_down_samples; i++) {
 
-			/*	*/
+			/*	Swap away from original texture color and use intermediate texture only.	*/
 			if (i == 1) {
 				readTexture = intermediate0;
 				targetTexture = intermediate1;
 			}
+
 			const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]) / (1 << (i + 1));
 			const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]) / (1 << (i + 1));
 
@@ -205,6 +206,8 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 
 		glUseProgram(0);
 	}
+
+	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 }
 
 void BloomPostProcessing::renderUI() { ImGui::DragInt("Image Size", (int *)&this->nr_down_samples); }

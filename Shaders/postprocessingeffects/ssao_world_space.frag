@@ -9,7 +9,6 @@ precision highp float;
 precision mediump int;
 
 layout(location = 1) out float fragColor;
-
 layout(location = 0) in vec2 screenUV;
 
 layout(binding = 1) uniform sampler2D WorldTexture;	   /*	*/

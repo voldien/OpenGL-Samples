@@ -16,6 +16,7 @@
 #pragma once
 #include "PostProcessing.h"
 #include "SampleHelper.h"
+#include <glm/fwd.hpp>
 
 namespace glsample {
 
@@ -33,47 +34,24 @@ namespace glsample {
 
 		void renderUI() override;
 
-	  public:
-		void render(unsigned int texture);
-
 	  private:
-		int ssao_depth_only_program = -1;
-		int ssao_depth_world_program = -1;
-		int overlay_program = -1;
+		int volumetric_scattering_legacy_program = -1;
 		int downsample_compute_program = -1;
-
-		int uniform_ssao_buffer_binding = 0;
 
 		unsigned int world_position_sampler = 0;
 
-		bool downScale;
-		bool useDepthOnly;
+		using VolumetricScatteringSettings = struct volumetric_scattering_settings_t {
+			int numSamples = 64;
+			float _Density = 0.345;
+			float _Decay = 0.88;
+			float _Weight = 2.8;
+			float _Exposure = 4.2;
+			glm::vec2 lightPosition = glm::vec2(0.5f, 0.8);
+		};
 
-		/*	*/
-		static const int maxKernels = 64;
+		VolumetricScatteringSettings volumetricScatteringSettings;
 
-		struct UniformSSAOBufferBlock {
-			glm::mat4 proj{};
-
-			/*	*/
-			int samples = 64;
-			float radius = 2.5f;
-			float intensity = 0.8f;
-			float bias = 0.025;
-
-			glm::vec4 kernel[maxKernels]{};
-
-			glm::vec4 color{};
-			glm::vec2 screen{};
-			CameraInstance camera;
-
-		} uniformStageBlockSSAO;
-
-		size_t uniformSSAOBufferAlignSize = sizeof(UniformSSAOBufferBlock);
-		unsigned int uniform_ssao_buffer = 0;
 		/*	Random direction texture.	*/
-		unsigned int random_texture = 0;
-		unsigned int white_texture = 0;
 		unsigned int vao = 0;
 	};
 } // namespace glsample

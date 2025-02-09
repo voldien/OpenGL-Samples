@@ -35,7 +35,7 @@ namespace glsample {
 		bool isSupported() const noexcept override { return computeShaderSupported; }
 
 	  public:
-		void render(FrameBuffer *framebuffer, unsigned int texture);
+		void render(FrameBuffer *framebuffer, unsigned int color_texture);
 
 	  private:
 		int bloom_blur_graphic_program = -1;

@@ -50,10 +50,6 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	const std::string vertexSSAODepthOnlyShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 	const std::string fragmentSSAODepthOnlyShaderPath = "Shaders/postprocessingeffects/ssao_depth_only.frag.spv";
 
-	/*	*/
-	const std::string vertexOverlayShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
-	const std::string fragmentOverlayTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
-
 	{
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -71,12 +67,6 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		const std::vector<uint32_t> fragment_ssao_depth_onlysource =
 			IOUtil::readFileData<uint32_t>(fragmentSSAODepthOnlyShaderPath, filesystem);
 
-		/*	*/
-		const std::vector<uint32_t> texture_vertex_binary =
-			IOUtil::readFileData<uint32_t>(vertexOverlayShaderPath, filesystem);
-		const std::vector<uint32_t> texture_fragment_binary =
-			IOUtil::readFileData<uint32_t>(fragmentOverlayTextureShaderPath, filesystem);
-
 		/*	Load shader	*/
 		this->ssao_depth_world_program =
 			ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_ssao_binary, &fragment_ssao_binary);
@@ -84,9 +74,6 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		/*	Load shader	*/
 		this->ssao_depth_only_program = ShaderLoader::loadGraphicProgram(
 			compilerOptions, &vertex_ssao_depth_only_binary, &fragment_ssao_depth_onlysource);
-		/*	Load shader	*/
-		this->overlay_program =
-			ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
 	}
 
 	/*	Setup graphic ambient occlusion pipeline.	*/
@@ -246,6 +233,9 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 		glUseProgram(0);
 
 		glBindSampler((int)GBuffer::Depth, 0);
+
+		glActiveTexture(GL_TEXTURE0 + (int)GBuffer::TextureCoordinate);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	/*	*/

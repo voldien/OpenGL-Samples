@@ -87,8 +87,10 @@ namespace glsample {
 			glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_write);
 			glGetBooleanv(GL_MULTISAMPLE, &use_multisample);
 
+			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("Skybox"), "Skybox");
+
 			/*	*/
-			glDisable(GL_MULTISAMPLE);	/*	*/
+			glDisable(GL_MULTISAMPLE); /*	*/
 			glEnable(GL_CULL_FACE);
 			glCullFace(GL_FRONT);
 			glDisable(GL_BLEND);
@@ -116,6 +118,8 @@ namespace glsample {
 			glUseProgram(0);
 
 			glBindSampler(0, 0);
+
+			glPopDebugGroup();
 
 			if (cullstate) {
 				glEnable(GL_CULL_FACE);

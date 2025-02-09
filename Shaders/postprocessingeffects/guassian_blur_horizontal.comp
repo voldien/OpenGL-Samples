@@ -23,7 +23,7 @@ layout(push_constant) uniform Settings {
 	layout(offset = 4) float variance;
 	layout(offset = 8) float mean;
 	layout(offset = 12) float radius;
-	layout(offset = 16) int half_samples;
+	layout(offset = 16) int samples;
 	layout(offset = 20) float kernel[MAX_SAMPLES];
 }
 settings;
@@ -34,15 +34,15 @@ const uint work_group_nr_samples = (16 + (MAX_SAMPLES - 1) / 2) * (16 + (MAX_SAM
 shared vec4 localResult[work_group_nr_samples];
 shared vec4 localResult2[work_group_nr_samples];
 
-vec4 blurHorizontal(const in float radius, const in float variance, const in int half_samples) {
+vec4 blurHorizontal(const in float radius, const in float variance, const in int samples) {
 	int y;
 
 	const ivec2 resolution = imageSize(ColorTexture);
 
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
-	const int start = clamp(-((half_samples - 1) / 2), -MAX_SAMPLES, -1);
-	const int end = clamp(((half_samples - 1) / 2), 1, MAX_SAMPLES);
+	const int start = clamp(-((samples - 1) / 2), -MAX_SAMPLES, -1);
+	const int end = clamp(((samples - 1) / 2), 1, MAX_SAMPLES);
 
 	vec4 color1 = vec4(0.0);
 	float total = EPSILON;
@@ -59,15 +59,15 @@ vec4 blurHorizontal(const in float radius, const in float variance, const in int
 	return color1;
 }
 
-vec4 blurVertical(const in float radius, const in float variance, const in int half_samples) {
+vec4 blurVertical(const in float radius, const in float variance, const in int samples) {
 	int x;
 
 	const ivec2 resolution = imageSize(ColorTexture);
 
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
-	const int start = clamp(-((half_samples - 1) / 2), -MAX_SAMPLES, -1);
-	const int end = clamp(((half_samples - 1) / 2), 1, MAX_SAMPLES);
+	const int start = clamp(-((samples - 1) / 2), -MAX_SAMPLES, -1);
+	const int end = clamp(((samples - 1) / 2), 1, MAX_SAMPLES);
 
 	vec4 color1 = vec4(0.0);
 	float total = EPSILON;
@@ -91,12 +91,12 @@ void main() {
 		return;
 	}
 
-	const uint half_samples = min(settings.half_samples, MAX_SAMPLES / 2);
+	const uint samples = min(settings.samples, MAX_SAMPLES / 2);
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
 	/*	Vertical Blur.	*/
 	{
-		const vec4 verticalBlur = blurVertical(settings.radius, settings.variance, settings.half_samples);
+		const vec4 verticalBlur = blurVertical(settings.radius, settings.variance, settings.samples);
 		memoryBarrierImage();
 		imageStore(ColorTexture, TexCoord, vec4(verticalBlur.rgb, 1.0));
 	}
@@ -105,7 +105,7 @@ void main() {
 
 	/*	Horizontal Blur.	*/
 	{
-		const vec4 blurHorizontalBlur = blurHorizontal(settings.radius, settings.variance, settings.half_samples);
+		const vec4 blurHorizontalBlur = blurHorizontal(settings.radius, settings.variance, settings.samples);
 		memoryBarrierImage();
 		imageStore(ColorTexture, TexCoord, vec4(blurHorizontalBlur.rgb, 1.0));
 	}

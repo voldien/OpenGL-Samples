@@ -32,6 +32,7 @@ vec3 calcViewPosition(const in vec2 coords) {
 }
 
 void main() {
+	const mat4 g_projection = constantCommon.constant.camera.proj;
 	const vec3 viewPos = calcViewPosition(screenUV);
 
 	/*	*/
@@ -66,7 +67,7 @@ void main() {
 
 		/*	From view to clip-space.	*/
 		vec4 offset = vec4(samplePos, 1.0);
-		offset = constantCommon.constant.camera.proj * offset;
+		offset = g_projection * offset;
 		offset.xyz /= offset.w;				 // perspective divide
 		offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
 

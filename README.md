@@ -3,7 +3,7 @@
 
 # OpenGL Sample Repository - Work In Progress
 
-A collection of OpenGL Samples, work in progress
+A collection of OpenGL Samples, work in progress, for personal educational purposes.
 
 ## CLI - Command Line Options
 
@@ -207,3 +207,13 @@ make DownloadAsset
 This project is licensed under the GPL+3 License - see the [LICENSE](LICENSE) file for details
 
 Models downloaded from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)
+
+## Misc Notes
+
+### Force NVIDIA Usage
+
+Force the system to try to use the NVIDIA GPU. This is very useful when using a system with multiple GPUs.
+
+```bash
+__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia program arguments
+```

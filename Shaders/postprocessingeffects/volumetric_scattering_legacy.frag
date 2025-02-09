@@ -7,65 +7,66 @@ precision mediump float;
 precision mediump int;
 
 /*  */
-layout(location = 0) out vec4 fragColor;
-/*  */
-layout(location = 0) in vec2 uv;
+layout(location = 1) out vec4 fragColor;
+layout(location = 0) in vec2 screenUV;
 
 /*  */
-layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
-layout(set = 0, binding = 1) uniform sampler2D depthTexture;
+layout(binding = 0) uniform sampler2D ColorTexture;
+layout(binding = 2) uniform sampler2D DepthTexture;
 
 #include "postprocessing_base.glsl"
 
-layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
-	uint numSamples;
-	float _Density;
-	float _Decay;
-	float _Weight;
-	float _Exposure;
+layout(push_constant) uniform UniformBufferBlock {
+	layout(offset = 0) int numSamples;
+	layout(offset = 4) float _Density;
+	layout(offset = 8) float _Decay;
+	layout(offset = 12) float _Weight;
+	layout(offset = 16) float _Exposure;
+	layout(offset = 32) vec2 lightPosition;
+	layout(offset = 48) vec4 Color;
 }
-ubo;
+settings;
 
 void main() {
 
 	/*	*/
-	const vec2 _LightScreenPos = vec2(0);
-	vec2 deltauvrd = (uv - _LightScreenPos);
+	const vec2 _LightScreenPos = settings.lightPosition;
+	const vec2 deltascreenUVrd = (screenUV - _LightScreenPos);
 
 	/*	*/
-	float inverseDensity = ((1.0 / float(ubo.numSamples)) * ubo._Density * ubo._Decay);
+	const float inverseDensity = ((1.0 / float(settings.numSamples)) * settings._Density);
 
-	vec2 TexDiff = deltauvrd * inverseDensity;
+	const vec2 TexDiff = deltascreenUVrd * inverseDensity;
 
-	vec4 color = texture(ColorTexture, uv);
+	const vec4 color = texture(ColorTexture, screenUV);
+
 	vec4 colorResult = vec4(0);
-
 	float illuminationDecay = 1.0;
 
-	for (int j = 0; j < ubo.numSamples; j++) {
+	for (uint j = 0; j < settings.numSamples; j++) {
+
+		const vec2 OffsetUV = screenUV - TexDiff * j;
 
 		/*	Determine if occluded by geometry.	*/
-		float cameraDepth = texture(depthTexture, uv).r;
+		float cameraDepth = texture(DepthTexture, OffsetUV).r;
 		float mask = (cameraDepth < 1 ? 0.0 : 1.0);
 
-		vec4 sampleColor = texture(ColorTexture, uv - TexDiff * j) * mask;
-
+		vec4 sampleColor = texture(ColorTexture, OffsetUV) * mask;
 		/*	*/
-		sampleColor *= illuminationDecay * ubo._Weight;
+		sampleColor *= illuminationDecay * settings._Weight;
 		/*	*/
 		colorResult += sampleColor;
 		/*	*/
-		illuminationDecay *= ubo._Decay;
+		illuminationDecay *= settings._Decay;
 	}
 
 	/*	*/
-	colorResult /= float(ubo.numSamples);
+	colorResult /= float(settings.numSamples);
 
-	colorResult *= ubo._Exposure;
+	colorResult *= settings._Exposure;
 
 	/*	*/
 	vec4 result = color + vec4(colorResult.rgb, 0.0);
 
-	const float _Blend = 1;
-	fragColor = mix(color, result, _Blend);
+	fragColor = result;
 }

@@ -341,10 +341,13 @@ void GLSampleWindow::renderUI() {
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 		/*	Main Draw Callback.	*/
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("Draw"), "Draw");
 		this->draw();
+		glPopDebugGroup();
 
 		/*	Transfer Multisampled texture to FBO.	*/
 		if (this->MMSAFrameBuffer && this->MMSAFrameBuffer->framebuffer == this->getDefaultFramebuffer()) {
+			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("MultiSampling to FBO"), "MultiSampling to FBO");
 			/*	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->MMSAFrameBuffer->framebuffer);
@@ -359,6 +362,7 @@ void GLSampleWindow::renderUI() {
 			glBlitFramebuffer(0, 0, this->width(), this->height(), 0, 0, this->width(), this->height(),
 							  GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			glPopDebugGroup();
 		}
 
 		/*	*/
@@ -377,7 +381,11 @@ void GLSampleWindow::renderUI() {
 		/*	Transfer last result to the default OpenGL Framebuffer.	*/
 		if (this->defaultFramebuffer) {
 			if (this->colorSpace) {
+				const std::string ColorSpaceConverterStage = "Color Space Conversion";
+				glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, ColorSpaceConverterStage.length(),
+								 ColorSpaceConverterStage.c_str());
 				this->colorSpace->render(this->defaultFramebuffer->attachments[0]);
+				glPopDebugGroup();
 			}
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -389,8 +397,9 @@ void GLSampleWindow::renderUI() {
 							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
-
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("Post Draw"), "Post Draw");
 		this->postDraw();
+		glPopDebugGroup();
 	}
 
 	/*	Extract debugging information.	*/

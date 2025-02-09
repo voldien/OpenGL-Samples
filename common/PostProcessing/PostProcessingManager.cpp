@@ -32,10 +32,15 @@ void PostProcessingManager::render(
 		PostProcessing &postprocessing = getPostProcessing(i);
 		if (this->isEnabled(i) && postprocessing.isActive()) {
 
+			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, postprocessing.getName().length(),
+							 postprocessing.getName().c_str());
+
 			postprocessing.bind();
 
 			/*	Render.	*/
 			postprocessing.draw(framebuffer, render_targets);
+
+			glPopDebugGroup();
 		}
 	}
 }

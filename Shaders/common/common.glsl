@@ -97,6 +97,25 @@ float getExpToLinear(const in float start, const in float end, const in float ex
 	return ((2.0f * start) / (end + start - expValue * (end - start)));
 }
 
+vec3 calcViewPosition(const in vec2 coords, const in mat4 inverseProj, const in float fragmentDepth) {
+	/*	Convert from screenspace to Normalize Device Coordinate.	*/
+	const vec4 ndc = vec4(coords.x * 2.0 - 1.0, coords.y * 2.0 - 1.0, fragmentDepth * 2.0 - 1.0, 1.0);
+
+	/*	Transform to view space using inverse camera projection matrix.	*/
+	vec4 vs_pos = inverseProj * ndc;
+
+	/*	*/
+	vs_pos.xyz = vs_pos.xyz / vs_pos.w;
+
+	return vs_pos.xyz;
+}
+
+float get_depth_linear(const in sampler2D inDepthTexture, const in vec2 coords, const in float start,
+					   const in float end) {
+	const float depth = texture(inDepthTexture, coords).x;
+	return getExpToLinear(start, end, depth);
+}
+
 float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
 
@@ -112,7 +131,7 @@ vec3 equirectangular(const in vec2 xy) {
 
 vec2 inverse_equirectangular(const in vec3 direction) {
 	const vec2 invAtan = vec2(1.0 / (2 * PI), 1.0 / PI);
-	vec2 uv = vec2(atan(direction.z, direction.x + EPSILON*10000), asin(direction.y));
+	vec2 uv = vec2(atan(direction.z, direction.x + EPSILON * 10000), asin(direction.y));
 	uv *= invAtan;
 	uv += 0.5;
 	return uv;
@@ -237,19 +256,6 @@ float getGuas2D(const in float x, const in float y, const in float variance) {
 	const float inverse_2pi = (1.0 / sqrt(2.0 * PI));
 
 	return inverse_2pi * (1.0 / (variance)) * exp(-0.5 * (((x * x) + (y * y)) / (variance * variance)));
-}
-
-vec3 calcViewPosition(const in vec2 coords, const in mat4 inverseProj, const in float fragmentDepth) {
-	/*	Convert from screenspace to Normalize Device Coordinate.	*/
-	const vec4 ndc = vec4(coords.x * 2.0 - 1.0, coords.y * 2.0 - 1.0, fragmentDepth * 2.0 - 1.0, 1.0);
-
-	/*	Transform to view space using inverse camera projection matrix.	*/
-	vec4 vs_pos = inverseProj * ndc;
-
-	/*	*/
-	vs_pos.xyz = vs_pos.xyz / vs_pos.w;
-
-	return vs_pos.xyz;
 }
 
 vec2 pixelate_screenUV(const in vec2 screenUV, const in float pixel_size, const in vec2 aspect_ratio) {
