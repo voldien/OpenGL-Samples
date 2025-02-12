@@ -33,7 +33,6 @@ namespace glsample {
 		void draw() override = 0;
 
 	  protected:
-		// TODO: move to cpp
 		void drawCamera(Camera &camera) {
 
 			float fov = camera.getFOV();

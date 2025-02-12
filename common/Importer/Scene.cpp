@@ -57,7 +57,6 @@ namespace glsample {
 
 		const unsigned char normalForward[] = {127, 127, 255, 255};
 		const unsigned char white[] = {255, 255, 255, 255};
-		const unsigned char black[] = {0, 0, 0, 255};
 
 		std::vector<int *> texRef = {&this->default_textures[TextureType::Diffuse],
 									 &this->default_textures[TextureType::Normal],
@@ -68,6 +67,10 @@ namespace glsample {
 		this->default_textures[TextureType::AlphaMask] = this->default_textures[TextureType::Diffuse];
 		this->default_textures[TextureType::Emission] = this->default_textures[TextureType::Diffuse];
 		this->default_textures[TextureType::Irradiance] = this->default_textures[TextureType::Diffuse];
+		this->default_textures[TextureType::AmbientOcclusion] = this->default_textures[TextureType::Diffuse];
+		this->default_textures[TextureType::DepthBuffer] = this->default_textures[TextureType::Diffuse];
+		this->default_textures[TextureType::Specular] = this->default_textures[TextureType::Diffuse];
+		this->default_textures[TextureType::Displacement] = this->default_textures[TextureType::Diffuse];
 		this->default_textures[TextureType::Normal] =
 			glsample::Common::createColorTexture(1, 1,
 												 fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f,
@@ -89,7 +92,9 @@ namespace glsample {
 		{
 			/*	Align the uniform buffer size to hardware specific.	*/
 			GLint minMapBufferSize = 0;
+			GLint maxUniformBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBufferSize);
 
 			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(CommonConstantData), minMapBufferSize);
 			this->UBOStructure.common_size_total_align =
@@ -149,6 +154,7 @@ namespace glsample {
 		/*	Update animations.	*/
 		for (size_t anim_index = 0; anim_index < this->animations.size(); anim_index++) {
 			/*	*/
+			AnimationObject &animationClip = this->animations[anim_index];
 			// this->animations[x].curves;
 		}
 
@@ -189,6 +195,8 @@ namespace glsample {
 								 material_index * sizeof(MaterialData));
 
 		/*	Update Lights.	*/
+		// glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_offset,
+		//						 this->UBOStructure.light_align_size);
 	}
 
 	void Scene::render(Camera *camera) {
@@ -197,13 +205,46 @@ namespace glsample {
 			this->stageCommonBuffer->camera = *camera;
 			CameraController *cameraController = (CameraController *)camera;
 			this->stageCommonBuffer->camera = *cameraController;
-			// glsample::Node *node = dynamic_cast<glsample::Node *>(camera);
-
 			/*	*/
 			this->stageCommonBuffer->proj[0] = camera->getProjectionMatrix();
 		}
 
+		std::vector<NodeObject *> mainCameraNodeQueue;
 		/*	Frustum Culling.	*/
+		if (true) {
+			for (size_t x = 0; x < this->getNodes().size(); x++) {
+
+				NodeObject *node = this->getNodes()[x];
+
+				for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
+
+					/*	Compute world space AABB.	*/
+					const AABB aabb = GeometryUtility::computeBoundingBox(
+						fragcore::AABB::createMinMax(
+							Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
+							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
+						GLM2E<float, 4, 4>(node->modelGlobalTransform));
+
+					if (true) {
+						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), aabb.getSize().norm());
+
+						if (camera->intersectionSphere(sphere) == Frustum::In) {
+							/*	*/
+							mainCameraNodeQueue.push_back(node);
+						}
+
+					} else {
+
+						if (camera->intersectionAABB(aabb) == Frustum::In) {
+							/*	*/
+							mainCameraNodeQueue.push_back(node);
+						}
+					}
+				}
+			}
+		} else {
+			mainCameraNodeQueue = this->getNodes();
+		}
 
 		/*	*/
 		this->render();
@@ -301,13 +342,20 @@ namespace glsample {
 				this->bindTexture(material, TextureType::Normal);
 				this->bindTexture(material, TextureType::AlphaMask);
 				this->bindTexture(material, TextureType::Emission);
+				this->bindTexture(material, TextureType::AmbientOcclusion);
+				this->bindTexture(material, TextureType::Displacement);
+				this->bindTexture(material, TextureType::Specular);
+				//	this->bindTexture(material, TextureType::Irradiance);
+				this->bindTexture(material, TextureType::DepthBuffer);
+
+				/*	*/
+				const RenderQueue domain = getQueueDomain(material);
+
+				glDisable(GL_STENCIL_TEST);
+				glDepthFunc(GL_LESS);
 
 				/*	*/
 				glPolygonMode(GL_FRONT_AND_BACK, material.wireframe_mode ? GL_LINE : GL_FILL);
-				/*	*/
-				const RenderQueue domain = getQueueDomain(material);
-				glDisable(GL_STENCIL_TEST);
-				glDepthFunc(GL_LESS);
 
 				/*	*/
 				if (domain == RenderQueue::Transparent) {
@@ -355,6 +403,7 @@ namespace glsample {
 	void Scene::sortRenderQueue() {
 
 		this->renderQueue.clear();
+		this->renderBucketQueue.clear();
 
 		/*	*/
 		for (size_t x = 0; x < this->nodes.size(); x++) {
@@ -377,6 +426,8 @@ namespace glsample {
 
 				const RenderQueue domain = getQueueDomain(*material);
 
+				renderBucketQueue[domain].push_back(node);
+
 				if (domain >= RenderQueue::Transparent) {
 					this->renderQueue.push_back(node);
 				} else {
@@ -389,6 +440,11 @@ namespace glsample {
 				// this->renderQueue.push_front(node);
 			}
 		}
+
+		/*	Sort Transparent Objects.	*/
+		renderBucketQueue[RenderQueue::Transparent];
+
+		/*	Sort based on Shared mesh objects.	*/
 	}
 
 	int Scene::computeMaterialPriority(const MaterialObject &material) const noexcept {
@@ -400,9 +456,18 @@ namespace glsample {
 
 	RenderQueue Scene::getQueueDomain(const MaterialObject &material) const noexcept {
 		const bool useBlending = material.transparent[3] < 1.0f;
+		const bool useGeometryAlpha = material.clipping < 1;
+		const bool useWireframe = material.wireframe_mode;
+
+		if (useWireframe) {
+			return RenderQueue::Overlay;
+		}
 
 		if (useBlending) {
 			return RenderQueue::Transparent;
+		}
+		if (useGeometryAlpha) {
+			return RenderQueue::AlphaTest;
 		}
 
 		return RenderQueue::Geometry;
@@ -412,6 +477,7 @@ namespace glsample {
 
 		if (ImGui::CollapsingHeader("Scene Settings")) {
 
+			/*	*/
 			if (ImGui::CollapsingHeader("Global Rendering Settings")) {
 				ImGui::ColorEdit4("Global Ambient Color", &this->stageCommonBuffer->renderSettings.ambientColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);

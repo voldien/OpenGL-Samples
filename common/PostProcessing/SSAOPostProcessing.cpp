@@ -12,7 +12,7 @@
 using namespace glsample;
 
 SSAOPostProcessing::SSAOPostProcessing() {
-	this->setName("Space Space Ambient Occlusion");
+	this->setName("Screen Space Ambient Occlusion");
 	this->addRequireBuffer(GBuffer::Color);
 	this->addRequireBuffer(GBuffer::Depth);
 	this->addRequireBuffer(GBuffer::Normal);
@@ -167,15 +167,15 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	}
 
 	/*	Create sampler for sampling GBuffer regardless of the texture internal sampler.	*/
-	glCreateSamplers(1, &this->world_position_sampler);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glSamplerParameterf(this->world_position_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAX_LOD, 0);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_LOD, 0);
+	glCreateSamplers(1, &this->texture_sampler);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glSamplerParameterf(this->texture_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAX_LOD, 0);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_LOD, 0);
 
 	/*	*/
 	this->overlay_program = this->createOverlayGraphicProgram(filesystem);
@@ -213,8 +213,8 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 		glBindVertexArray(this->vao);
 
-		glBindSampler((int)GBuffer::Depth, this->world_position_sampler);
-		glBindSampler((int)GBuffer::TextureCoordinate, this->world_position_sampler);
+		glBindSampler((int)GBuffer::Depth, this->texture_sampler);
+		glBindSampler((int)GBuffer::TextureCoordinate, this->texture_sampler);
 
 		if (this->useDepthOnly) {
 
@@ -254,6 +254,7 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 		glBlendEquation(GL_FUNC_ADD);
 		glBlendFunc(GL_DST_COLOR, GL_ZERO);
 
+		/*	*/
 		glDisable(GL_CULL_FACE);
 		glCullFace(GL_FRONT_AND_BACK);
 		glDisable(GL_DEPTH_TEST);

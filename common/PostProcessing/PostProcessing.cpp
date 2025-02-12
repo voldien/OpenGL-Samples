@@ -14,7 +14,7 @@ void PostProcessing::draw(
 	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
 
 	/*	*/
-	this->mapped_buffer.clear();
+	//this->mapped_buffer.clear();
 	for (const auto *it = render_targets.begin(); it != render_targets.end(); it++) {
 
 		/*	*/

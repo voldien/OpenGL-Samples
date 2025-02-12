@@ -66,14 +66,14 @@ using MaterialObject = struct material_object_t : public AssetObject {
 		struct {
 			int diffuseIndex = -1;
 			int normalIndex = -1;
-			int emissionIndex = -1;
-			int heightbumpIndex = -1;
+			int maskTextureIndex = -1;
 			int specularIndex = -1;
+			int emissionIndex = -1;
 			int reflectionIndex = -1;
 			int ambientOcclusionIndex = -1;
-			int metalIndex = -1;
-			int maskTextureIndex = -1;
 			int displacementIndex = -1;
+			int metalIndex = -1;
+			int heightbumpIndex = -1;
 		};
 		int texture_index[16];
 	};
@@ -89,11 +89,12 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	glm::vec4 reflectivity = glm::vec4(1);
 
 	/*	*/
-	float shinininess = 0;
+	float shinininess = 1;
 	float opacity = 1;
 	int blend_func_mode = 0; /*	aiBlendMode*/
 	int wireframe_mode = 0;
 	bool culling_both_side_mode = false;
+	float clipping = 1;
 	/*	*/
 
 	unsigned int shade_model = 0; /*	aiShadingMode	*/

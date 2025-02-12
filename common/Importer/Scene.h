@@ -19,7 +19,6 @@
 #include "ImportHelper.h"
 #include "ModelImporter.h"
 #include "SampleHelper.h"
-#include "Skybox.h"
 #include <deque>
 
 namespace glsample {
@@ -61,6 +60,14 @@ namespace glsample {
 		None = 0,
 		Wireframe = 0x1,
 	};
+	class AnimationPlayer {
+	  public:
+		AnimationPlayer(AnimationObject &animation) {}
+
+		float time{};
+		unsigned int mode{};
+		AnimationObject *animation;
+	};
 
 	/**
 	 * @brief
@@ -90,7 +97,6 @@ namespace glsample {
 
 	  public: /*	*/
 			  //	void enableDebug();
-
 	  public:
 		const std::vector<NodeObject *> &getNodes() const noexcept { return this->nodes; }
 
@@ -107,16 +113,17 @@ namespace glsample {
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
 			unsigned int IrradianceTexture = 0;
 			FogSettings fogSettings;
+			unsigned int FrustumCullingMode = 0;
 		};
 		using CommonConstantData = struct common_constant_data_t {
 			CameraInstance camera;
-			FrustumInstance frustum;
+			FrustumInstance frustum{};
 
 			GlobalRenderSettings renderSettings = GlobalRenderSettings();
 
 			/*	*/
-			glm::mat4 proj[3];
-			glm::mat4 view[3];
+			glm::mat4 proj[3]{};
+			glm::mat4 view[3]{};
 		};
 		using NodeData = struct _node_data_t {
 			glm::mat4 model;
@@ -124,8 +131,8 @@ namespace glsample {
 		using LightData = struct _light_data_t {
 			DirectionalLight directional[8];
 			PointLightInstance pointLight[16];
-			unsigned int directionalCount;
-			unsigned int pointCount;
+			unsigned int directionalCount = 0;
+			unsigned int pointCount = 0;
 		};
 		using MaterialData = struct _material_data_t {
 			glm::vec4 ambientColor;
@@ -143,16 +150,14 @@ namespace glsample {
 		LightData *lightData = nullptr;
 
 		/*	TODO add queue structure.	*/
-		std::map<RenderQueue, std::deque<const NodeObject *>> renderBucket;
+		std::map<RenderQueue, std::deque<const NodeObject *>> renderBucketQueue;
 		std::deque<const NodeObject *> renderQueue;
 
 		std::vector<NodeObject *> nodes;
 		std::vector<MeshObject> refGeometry;
 		std::vector<TextureAssetObject> refTexture;
 		std::vector<MaterialObject> materials;
-		std::vector<animation_object_t> animations;
-
-		// Skybox skybox;
+		std::vector<AnimationObject> animations;
 
 	  protected: /*	Default texture if texture from material is missing.*/
 		std::array<int, 10> default_textures;

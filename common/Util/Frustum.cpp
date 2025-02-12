@@ -2,28 +2,10 @@
 
 namespace glsample {
 
-	Frustum::Frustum(const Frustum &other) : Camera(other) {}
+	Frustum::Frustum(const Frustum &other) {}
 
 	void Frustum::calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
-									const Vector3 &right) {
-
-		/*	*/
-		const float halfVSide = this->getFar() * ::tanf(Math::degToRad(this->getFOV()) * 0.5f);
-		const float halfHSide = halfVSide * this->getAspect();
-
-		/*	*/
-		const Vector3 farDistance = this->getFar() * look_forward;
-
-		/*	*/
-		this->planes[NEAR_PLANE] = {position + this->getNear() * look_forward, look_forward};
-		this->planes[FAR_PLANE] = {position + farDistance, -look_forward};
-
-		this->planes[RIGHT_PLANE] = {position, (farDistance - right * halfHSide).cross(up)};
-		this->planes[LEFT_PLANE] = {position, up.cross(farDistance + right * halfHSide)};
-
-		this->planes[TOP_PLANE] = {position, right.cross(farDistance - up * halfVSide)};
-		this->planes[BOTTOM_PLANE] = {position, (farDistance + up * halfVSide).cross(right)};
-	}
+									const Vector3 &right) {}
 
 	Frustum::Intersection Frustum::checkPoint(const Vector3 &pos) const noexcept {
 

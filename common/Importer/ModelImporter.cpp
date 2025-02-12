@@ -728,7 +728,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 		if (model < aiShadingMode_PBR_BRDF) {
 
 			if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				if (glm::vec3(color).length() > 0.05) {
+				if (color[0] > 0.5f) {
 					material->ambient = color;
 					material->ambient[3] = 1;
 				}
@@ -779,8 +779,9 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 			if (ref_material->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
 			}
 		} else {
+			/*	*/
 			if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				material->transparent = color;
+				material->transparent *= color;
 			}
 		}
 

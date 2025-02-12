@@ -143,7 +143,7 @@ void ColorSpaceConverter::render(unsigned int texture) {
 	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]);
 	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]);
 
-	if (this->getColorSpace() != ColorSpace::RawLinear) {
+	if (this->getColorSpace() > ColorSpace::SRGB) {
 		/*	Wait in till image has been written.	*/
 		glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
@@ -208,16 +208,13 @@ void ColorSpaceConverter::render(unsigned int texture) {
 		return;
 	}
 
-	if (this->getColorSpace() != ColorSpace::RawLinear) {
+	if (this->getColorSpace() > ColorSpace::SRGB) {
 		/*	Wait in till image has been written.	*/
 		glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 
 	/*	*/
 	if (this->getColorSpace() != ColorSpace::RawLinear) {
-
-		/*	Wait in till image has been written.	*/
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		const int *localWorkGroupSize =
 			&this->compute_programs_local_workgroup_sizes[(unsigned int)ColorSpace::SRGB * 3];

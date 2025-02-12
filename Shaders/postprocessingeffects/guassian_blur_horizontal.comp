@@ -12,9 +12,8 @@ precision mediump int;
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(set = 0, binding = 0) uniform sampler2D ColorTexture0;
-layout(set = 0, binding = 1, rgba16f) uniform coherent image2D ColorTexture;
-layout(set = 0, binding = 2, rgba16f) uniform coherent image2D TargetTexture;
+layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
+layout(set = 0, binding = 1, rgba16f) uniform coherent image2D TargetTexture;
 
 layout(constant_id = 16) const int MAX_SAMPLES = 9 * 9 + 1;
 
@@ -30,83 +29,43 @@ settings;
 
 #include "postprocessing_base.glsl"
 
-const uint work_group_nr_samples = (16 + (MAX_SAMPLES - 1) / 2) * (16 + (MAX_SAMPLES - 1) / 2);
-shared vec4 localResult[work_group_nr_samples];
-shared vec4 localResult2[work_group_nr_samples];
-
-vec4 blurHorizontal(const in float radius, const in float variance, const in int samples) {
-	int y;
-
-	const ivec2 resolution = imageSize(ColorTexture);
-
-	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
-
-	const int start = clamp(-((samples - 1) / 2), -MAX_SAMPLES, -1);
-	const int end = clamp(((samples - 1) / 2), 1, MAX_SAMPLES);
-
-	vec4 color1 = vec4(0.0);
-	float total = EPSILON;
-
-	for (y = start; y <= end; y++) {
-
-		const ivec2 uv = TexCoord + ivec2(vec2(0, y) * radius);
-		const uint guassIndex = (y + -start);
-		const float guas = settings.kernel[guassIndex]; // getGuas2D(0, y, variance);
-
-		color1 += imageLoad(ColorTexture, uv).rgba * vec4(guas.xxx, 1.0);
-	}
-
-	return color1;
-}
-
 vec4 blurVertical(const in float radius, const in float variance, const in int samples) {
-	int x;
 
-	const ivec2 resolution = imageSize(ColorTexture);
+	const vec2 resolution = textureSize(ColorTexture, 0);
 
-	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
-
-	const int start = clamp(-((samples - 1) / 2), -MAX_SAMPLES, -1);
-	const int end = clamp(((samples - 1) / 2), 1, MAX_SAMPLES);
+	const vec2 texelSize = 1.0 / resolution;
+	const vec2 TexCoord = vec2(gl_GlobalInvocationID.xy) * texelSize;
 
 	vec4 color1 = vec4(0.0);
-	float total = EPSILON;
 
-	for (x = start; x <= end; x++) {
-		const ivec2 uv = TexCoord + ivec2(vec2(x, 0) * radius);
-		const uint guassIndex = (x + -start);
-		const float guas = settings.kernel[guassIndex];
+	for (uint x = 0; x < samples; x++) {
+		const vec2 uvP = TexCoord + vec2(0, texelSize.y * x) * radius;
+		const vec2 uvN = TexCoord + vec2(0, -texelSize.y * x) * radius;
 
-		color1 += imageLoad(ColorTexture, uv).rgba * vec4(vec3(guas), 1.0);
+		const uint guassPIndex = clamp(samples + x, 0, MAX_SAMPLES - 1);
+		const uint guassNIndex = clamp(samples - x, 0, MAX_SAMPLES - 1);
+
+		const float guasP = settings.kernel[guassPIndex];
+		const float guasN = settings.kernel[guassNIndex];
+
+		color1 += texture(ColorTexture, uvP).rgba * vec4(guasP.xxx, 1.0);
+		color1 += texture(ColorTexture, uvN).rgba * vec4(guasN.xxx, 1.0);
 	}
 
-	// Normalize color.
 	return color1;
 }
 
 void main() {
 
 	/*	*/
-	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(ColorTexture)))) {
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(TargetTexture)))) {
 		return;
 	}
 
-	const uint samples = min(settings.samples, MAX_SAMPLES / 2);
+	const uint samples = min(settings.samples, MAX_SAMPLES);
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
 	/*	Vertical Blur.	*/
-	{
-		const vec4 verticalBlur = blurVertical(settings.radius, settings.variance, settings.samples);
-		memoryBarrierImage();
-		imageStore(ColorTexture, TexCoord, vec4(verticalBlur.rgb, 1.0));
-	}
-
-	//barrier();
-
-	/*	Horizontal Blur.	*/
-	{
-		const vec4 blurHorizontalBlur = blurHorizontal(settings.radius, settings.variance, settings.samples);
-		memoryBarrierImage();
-		imageStore(ColorTexture, TexCoord, vec4(blurHorizontalBlur.rgb, 1.0));
-	}
+	const vec4 verticalBlur = blurVertical(settings.radius, settings.variance, settings.samples / 2);
+	imageStore(TargetTexture, TexCoord, vec4(verticalBlur.rgb, 1.0));
 }

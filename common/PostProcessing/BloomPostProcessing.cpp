@@ -34,8 +34,7 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	if (this->bloom_blur_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary =
-			IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
+		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
 		const std::vector<uint32_t> guassian_blur_compute_binary =
 			IOUtil::readFileData<uint32_t>(bloom_frag_path, filesystem);
 
@@ -190,7 +189,6 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 		/*	*/
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, readTexture);
-
 		/*	*/
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_DEPTH_TEST);

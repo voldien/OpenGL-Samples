@@ -5,6 +5,11 @@
 #include "light.glsl"
 #include "material.glsl"
 
+struct tessellation_settings {
+	float tessLevel;
+	float gDispFactor;
+};
+
 struct global_rendering_settings {
 	vec4 ambientColor;
 	FogSettings fogSettings;
@@ -22,11 +27,6 @@ struct common_data {
 
 struct Node {
 	mat4 model;
-};
-
-struct tessellation_settings {
-	float tessLevel;
-	float gDispFactor;
 };
 
 struct light_settings {
@@ -75,5 +75,13 @@ layout(binding = 12) uniform sampler2D brdfLUT;
 
 material getMaterial() { return MaterialUBO.materials[0]; }
 mat4 getModel() { return NodeUBO.node[0].model; }
+
+uint getDirectionalLightCount() { return LightUBO.light.directionalCount; }
+uint getPointLightCount() { return LightUBO.light.pointCount; }
+
+DirectionalLight getDirectional(const in int index) { return LightUBO.light.directional[index]; }
+PointLight getPointLight(const in int index) { return LightUBO.light.point[index]; }
+
+Camera getCamera() {return constantCommon.constant.camera;}
 
 #endif

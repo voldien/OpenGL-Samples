@@ -14,7 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Camera.h"
+#include "Node.h"
 #include <FragCore.h>
 #include <GeometryUtil.h>
 #include <Math3D/BoundingSphere.h>
@@ -28,9 +28,9 @@ namespace glsample {
 	 * @brief Positive
 	 *
 	 */
-	class FVDECLSPEC Frustum : public Camera {
+	class FVDECLSPEC Frustum : public Node {
 	  public:
-		virtual ~Frustum() = default;
+		~Frustum() override = default;
 		/**
 		 *	Intersection.
 		 */
@@ -66,7 +66,7 @@ namespace glsample {
 		 *	Comput the frustum planes,
 		 *	planes normal pointing positive towards the frustum volume.
 		 */
-		virtual void calcFrustumPlanes(const Vector3 &position, const Vector3 &look, const Vector3 &up,
+		virtual void calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
 									   const Vector3 &right);
 
 		/**
@@ -111,7 +111,7 @@ namespace glsample {
 		Frustum() = default;
 		Frustum(const Frustum &other);
 
-	  private:					/*	Attributes.	*/
+	  protected:				/*	Attributes.	*/
 		Plane<float> planes[6]; /*	*/
 	};
 

@@ -178,9 +178,7 @@ Usage:
 
 - **Screen Space Ambient Occlusion**
 
-- **Guassian Blur**
-
-- **FXAA**
+- **Gaussian/Box Blur**
 
 - **Mist Fog**
 
@@ -191,6 +189,8 @@ Usage:
 - **Pixelate**
 
 - **Grain**
+
+- **Bloom**
 
 ## Build Instruction
 

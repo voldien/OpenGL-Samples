@@ -68,8 +68,8 @@ void ChromaticAbberationPostProcessing::setItensity(const float intensity) {
 
 void ChromaticAbberationPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int source_color_texture) {
 
-	unsigned int source_texture = source_color_texture;
-	unsigned int target_texture = this->getMappedBuffer(GBuffer::IntermediateTarget);
+	const unsigned int source_texture = source_color_texture;
+	const unsigned int target_texture = this->getMappedBuffer(GBuffer::IntermediateTarget);
 
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 
@@ -95,15 +95,15 @@ void ChromaticAbberationPostProcessing::render(glsample::FrameBuffer *framebuffe
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	glUseProgram(0);
-
 	glBindVertexArray(0);
 
+	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
 	/*	Swap buffers.	(ping pong)	*/
-	std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
+	framebuffer->attachments[0] = target_texture;
+	framebuffer->attachments[1] = source_texture;
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
-
-	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 }
 
 void ChromaticAbberationPostProcessing::renderUI() {

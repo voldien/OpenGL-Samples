@@ -105,7 +105,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 		return &this->getRenderInterface()->as<fragcore::GLRendererInterface>();
 	}
 
-	void setColorSpace(glsample::ColorSpace srgb);
+	void setColorSpace(const glsample::ColorSpace srgb);
 	glsample::ColorSpace getColorSpace() const noexcept;
 
 	glsample::ColorSpaceConverter *getColorSpaceConverter() const noexcept { return this->colorSpace; }

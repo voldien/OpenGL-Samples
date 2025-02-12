@@ -32,11 +32,10 @@ float getFogFactor(const in FogSettings fog_settings, const float depth) {
 	}
 }
 
-float getFogFactor(const in FogSettings fog_settings) { return getFogFactor(fog_settings, gl_FragCoord.z); }
+float getFogFactor(const in FogSettings fog_settings) { return getFogFactor(fog_settings, gl_FragCoord.z) * fog_settings.fogItensity; }
 
 vec4 blendFog(const in vec4 color, const in FogSettings fogSettings) {
-	const float fog_factor = getFogFactor(fogSettings) * fogSettings.fogItensity;
-
+	const float fog_factor = getFogFactor(fogSettings);
 	return mix(color, fogSettings.fogColor, fog_factor);
 }
 

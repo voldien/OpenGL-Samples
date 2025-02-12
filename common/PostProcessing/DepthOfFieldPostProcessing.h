@@ -40,6 +40,7 @@ namespace glsample {
 			float aperature;
 			float Foc;
 		};
+		
 		/*	*/
 		float variance;
 		int samples;

@@ -49,7 +49,7 @@ namespace glsample {
 
 		int uniform_ssao_buffer_binding = 0;
 
-		unsigned int world_position_sampler = 0;
+		unsigned int texture_sampler = 0;
 
 		/*	*/
 		static const int maxKernels = 128;

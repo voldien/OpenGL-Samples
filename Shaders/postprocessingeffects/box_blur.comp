@@ -25,7 +25,7 @@ layout(push_constant) uniform Settings {
 settings;
 
 #include "postprocessing_base.glsl"
-layout(constant_id = 16) const int MAX_SAMPLES = 7 + 7 + 1;
+layout(constant_id = 16) const int MAX_SAMPLES = 9 * 9 + 1;
 
 void main() {
 

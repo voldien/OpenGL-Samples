@@ -82,6 +82,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			}
 		}
 
+		/*	*/
+		ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0);
 		ImGui::SeparatorText("Color Space Settings");
 		if (this->getRefSample().getColorSpaceConverter()) {
 			const int item_selected_idx =
@@ -111,6 +113,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			ImGui::DragFloat("Gamma", &this->getRefSample().getColorSpaceConverter()->getGammeSettings().gamma);
 			ImGui::EndGroup();
 		}
+		ImGui::EndDisabled();
 
 		/*	List all builtin post processing.	*/
 		if (this->getRefSample().getPostProcessingManager() && ImGui::CollapsingHeader("Post Processing")) {
@@ -153,7 +156,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 				ImGui::Image(static_cast<ImTextureID>(framebuffer->attachments[attach_index]), ImVec2(256, 256),
 							 ImVec2(1, 1), ImVec2(0, 0));
 			}
-			ImGui::Image(framebuffer->depthbuffer, ImVec2(256, 256), ImVec2(1, 1), ImVec2(0, 0));
+			ImGui::Image(static_cast<ImTextureID>(framebuffer->depthbuffer), ImVec2(256, 256), ImVec2(1, 1),
+						 ImVec2(0, 0));
 		}
 	}
 
@@ -206,9 +210,9 @@ GLSampleWindow::GLSampleWindow()
 	/*	*/
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-	/*	*/
+	/*	Set Compile threads.	*/
 	if (glMaxShaderCompilerThreadsKHR) {
-		glMaxShaderCompilerThreadsKHR(fragcore::SystemInfo::getCPUCoreCount() / 2);
+		glMaxShaderCompilerThreadsKHR(Math::max<size_t>(1, fragcore::SystemInfo::getCPUCoreCount() / 2));
 	}
 
 	std::shared_ptr<SampleSettingComponent> settingComponent = std::make_shared<SampleSettingComponent>(*this);
@@ -224,7 +228,7 @@ GLSampleWindow::~GLSampleWindow() {
 void GLSampleWindow::internalInit() {
 
 	/*	*/
-	bool usePostProcessing = true;
+	const bool usePostProcessing = true;
 	if (this->colorSpace == nullptr) {
 
 		// TODO: add try catch.
@@ -284,6 +288,7 @@ void GLSampleWindow::internalInit() {
 		}
 	}
 
+	/*	*/
 	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
 	const bool useFBO = true;
 	if (this->MMSAFrameBuffer == nullptr && multi_sample_count > 0) {
@@ -292,8 +297,9 @@ void GLSampleWindow::internalInit() {
 		memset(MMSAFrameBuffer, 0, sizeof(*this->MMSAFrameBuffer));
 		Common::createFrameBuffer(MMSAFrameBuffer, 1);
 	}
+
+	/*	*/
 	if (this->defaultFramebuffer == nullptr && useFBO) {
-		/*	*/
 		this->defaultFramebuffer = new glsample::FrameBuffer();
 		memset(defaultFramebuffer, 0, sizeof(*this->defaultFramebuffer));
 		Common::createFrameBuffer(defaultFramebuffer, 3);
@@ -301,7 +307,6 @@ void GLSampleWindow::internalInit() {
 
 	/*	Update if not internal default framebuffer	*/
 	if (getDefaultFramebuffer() > 0) {
-		/*	*/
 		this->updateDefaultFramebuffer();
 	}
 }
@@ -340,6 +345,10 @@ void GLSampleWindow::renderUI() {
 		/*	*/
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 
+		/*	Default state before any draw call.	*/
+		glDisable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+
 		/*	Main Draw Callback.	*/
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("Draw"), "Draw");
 		this->draw();
@@ -372,10 +381,15 @@ void GLSampleWindow::renderUI() {
 
 			this->postprocessingManager->render(
 				this->defaultFramebuffer,
-				{std::make_tuple(GBuffer::Albedo, this->defaultFramebuffer->attachments[0]),
-				 std::make_tuple(GBuffer::Depth, this->defaultFramebuffer->depthbuffer),
-				 std::make_tuple(GBuffer::IntermediateTarget, this->defaultFramebuffer->attachments[1]),
-				 std::make_tuple(GBuffer::IntermediateTarget2, this->defaultFramebuffer->attachments[2])});
+				/*	Setup References.	*/
+				{std::make_tuple<const GBuffer, const unsigned int &>(GBuffer::Albedo,
+																	  this->defaultFramebuffer->attachments[0]),
+				 std::make_tuple<const GBuffer, const unsigned int &>(GBuffer::Depth,
+																	  this->defaultFramebuffer->depthbuffer),
+				 std::make_tuple<const GBuffer, const unsigned int &>(GBuffer::IntermediateTarget,
+																	  this->defaultFramebuffer->attachments[1]),
+				 std::make_tuple<const GBuffer, const unsigned int &>(GBuffer::IntermediateTarget2,
+																	  this->defaultFramebuffer->attachments[2])});
 		}
 
 		/*	Transfer last result to the default OpenGL Framebuffer.	*/
@@ -564,7 +578,7 @@ void GLSampleWindow::captureScreenShot() {
 	}
 }
 
-void GLSampleWindow::setColorSpace(glsample::ColorSpace srgb) {
+void GLSampleWindow::setColorSpace(const glsample::ColorSpace srgb) {
 	if (this->colorSpace != nullptr) {
 		this->colorSpace->setColorSpace(srgb);
 	}
@@ -589,9 +603,7 @@ bool GLSampleWindow::isRenderDocEnabled() {
 	}
 	RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
 
-	rdoc_api_inter->IsTargetControlConnected;
-
-	return true;
+	return rdoc_api_inter->IsTargetControlConnected();
 }
 
 void GLSampleWindow::captureDebugFrame() noexcept {
@@ -683,8 +695,9 @@ int GLSampleWindow::getDefaultFramebuffer() const noexcept {
 			return this->MMSAFrameBuffer->framebuffer;
 		}
 	}
+
 	if (this->defaultFramebuffer) {
 		return this->defaultFramebuffer->framebuffer;
 	}
-	return 0;
+	return 0; /*	OpenGL Default FrameBuffer.	*/
 }

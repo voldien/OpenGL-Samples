@@ -34,19 +34,14 @@ namespace glsample {
 		void renderUI() override;
 
 	  public:
-		void render(glsample::FrameBuffer *framebuffer, unsigned int texture);
 
 		using PixelateSettings = struct pixelate_settings_t {
-			float redOffset = -0.01f;
-			float greenOffset = -0.02f;
-			float blueOffset = -0.03f;
-			glm::vec2 direction_center = glm::vec2(0.5f);
+			float pixelSize = 128.f;
 		};
 		PixelateSettings settings;
 
 	  private:
 		int pixelate_graphic_program = -1;
-
 		int vao = 0;
 	};
 } // namespace glsample

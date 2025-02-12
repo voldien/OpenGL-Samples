@@ -77,7 +77,5 @@ void main() {
 
 	const vec4 pixel = computeMandel(uv);
 
-	/*	Apply gamma correction.	*/
-	const float gamma = 2.2;
-	imageStore(img_output, pixel_coords, pow(pixel, vec4(1.0 / gamma)));
+	imageStore(img_output, pixel_coords, pixel);
 }

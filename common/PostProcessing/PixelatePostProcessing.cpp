@@ -4,15 +4,14 @@
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include "imgui.h"
-#include <IOUtil.h>
 #include <GL/glew.h>
+#include <IOUtil.h>
 
 using namespace glsample;
 
 PixelatePostProcessing::PixelatePostProcessing() {
 	this->setName("Pixelate");
 	this->addRequireBuffer(GBuffer::Color);
-	this->addRequireBuffer(GBuffer::IntermediateTarget);
 }
 
 PixelatePostProcessing::~PixelatePostProcessing() {
@@ -37,13 +36,13 @@ void PixelatePostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		compilerOptions.glslVersion = 330;
 
 		/*  */
-		this->pixelate_graphic_program = ShaderLoader::loadGraphicProgram(
-			compilerOptions, &post_vertex_binary, &chromatic_abberation_fragment_binary);
+		this->pixelate_graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &post_vertex_binary,
+																		  &chromatic_abberation_fragment_binary);
 	}
 
 	glUseProgram(this->pixelate_graphic_program);
 
-	glUniform1i(glGetUniformLocation(this->pixelate_graphic_program, "ColorTexture"), 0);
+	glUniform1i(glGetUniformLocation(this->pixelate_graphic_program, "ColorTexture"), (int)GBuffer::Albedo);
 	glBindFragDataLocation(this->pixelate_graphic_program, 1, "fragColor");
 
 	glUseProgram(0);
@@ -56,29 +55,14 @@ void PixelatePostProcessing::draw(
 	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
-	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color));
-}
-
-void PixelatePostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int texture) {
-
-	unsigned int source_texture = texture;
-	unsigned int target_texture = this->getMappedBuffer(GBuffer::IntermediateTarget);
-
-	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+	const unsigned int source_texture = getMappedBuffer(GBuffer::Color);
+	const unsigned int target_texture = getMappedBuffer(GBuffer::IntermediateTarget);
 
 	glUseProgram(this->pixelate_graphic_program);
 
 	glBindVertexArray(this->vao);
-
 	/*	*/
-	glUniform1f(glGetUniformLocation(this->pixelate_graphic_program, "settings.redOffset"),
-				this->settings.redOffset);
-	glUniform1f(glGetUniformLocation(this->pixelate_graphic_program, "settings.greenOffset"),
-				this->settings.greenOffset);
-	glUniform1f(glGetUniformLocation(this->pixelate_graphic_program, "settings.blueOffset"),
-				this->settings.blueOffset);
-	glUniform2f(glGetUniformLocation(this->pixelate_graphic_program, "settings.direction_center"),
-				this->settings.direction_center[0], this->settings.direction_center[1]);
+	glUniform1f(glGetUniformLocation(this->pixelate_graphic_program, "settings.size"), this->settings.pixelSize);
 
 	/*	*/
 	glDisable(GL_CULL_FACE);
@@ -91,15 +75,11 @@ void PixelatePostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned
 
 	glBindVertexArray(0);
 
-	/*	Swap buffers.	(ping pong)	*/
-	std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
+	/*	Swap buffers.	*/
+	framebuffer->attachments[0] = target_texture;
+	framebuffer->attachments[1] = source_texture;
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
 }
 
-void PixelatePostProcessing::renderUI() {
-	ImGui::DragFloat("Red Offset", &this->settings.redOffset);
-	ImGui::DragFloat("Green Offset", &this->settings.greenOffset);
-	ImGui::DragFloat("Blue Offset", &this->settings.blueOffset);
-	ImGui::DragFloat2("Center Offset", &this->settings.direction_center[0]);
-}
+void PixelatePostProcessing::renderUI() { ImGui::DragFloat("Pixel Size", &this->settings.pixelSize); }

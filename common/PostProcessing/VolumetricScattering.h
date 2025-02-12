@@ -38,7 +38,7 @@ namespace glsample {
 		int volumetric_scattering_legacy_program = -1;
 		int downsample_compute_program = -1;
 
-		unsigned int world_position_sampler = 0;
+		unsigned int texture_sampler = 0;
 
 		using VolumetricScatteringSettings = struct volumetric_scattering_settings_t {
 			int numSamples = 64;

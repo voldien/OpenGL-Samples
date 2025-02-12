@@ -6,6 +6,9 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
+precision mediump float;
+precision mediump int;
+
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 

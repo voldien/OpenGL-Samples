@@ -58,15 +58,15 @@ void VolumetricScatteringPostProcessing::initialize(fragcore::IFileSystem *files
 	glUseProgram(0);
 
 	/*	Create sampler.	*/
-	glCreateSamplers(1, &this->world_position_sampler);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glSamplerParameterf(this->world_position_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAX_LOD, 0);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_LOD, 0);
+	glCreateSamplers(1, &this->texture_sampler);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glSamplerParameterf(this->texture_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAX_LOD, 0);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_LOD, 0);
 
 	this->vao = createVAO();
 }
@@ -77,10 +77,14 @@ void VolumetricScatteringPostProcessing::draw(
 
 	PostProcessing::draw(framebuffer, render_targets);
 
+	const unsigned int source_texture = this->getMappedBuffer(GBuffer::Color);
+	const unsigned int target_texture = this->getMappedBuffer(GBuffer::IntermediateTarget);
+
+	glBindSampler((int)GBuffer::Albedo, texture_sampler);
+	glBindSampler((int)GBuffer::Depth, texture_sampler);
+
 	{
-
 		glBindVertexArray(this->vao);
-
 		glUseProgram(this->volumetric_scattering_legacy_program);
 
 		/*	*/
@@ -108,13 +112,14 @@ void VolumetricScatteringPostProcessing::draw(
 
 		glBindVertexArray(0);
 
-		/*	Swap buffers.	(ping pong)	*/
-		std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
-	}
+		glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 
-	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+		/*	Swap buffers.	*/
+		framebuffer->attachments[0] = target_texture;
+		framebuffer->attachments[1] = source_texture;
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
+	}
 }
 
 void VolumetricScatteringPostProcessing::renderUI() {

@@ -23,8 +23,6 @@ layout(set = 0, binding = 1, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-
-
 /*	*/
 vec2 squareImaginary(in const vec2 number) {
 	return vec2((number.x * number.x) - (number.y * number.y), 2 * number.x * number.y);
@@ -83,7 +81,5 @@ void main() {
 
 	const vec4 pixel = computeMandel(uv);
 
-	/*	Apply gamma correction.	*/
-	const float gamma = 2.2;
-	imageStore(img_output, pixel_coords, pow(pixel, vec4(1.0 / gamma)));
+	imageStore(img_output, pixel_coords, pixel);
 }

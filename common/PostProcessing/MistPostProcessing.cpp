@@ -73,7 +73,18 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignSize * 1, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-	glGenVertexArrays(1, &this->vao);
+	/*	Create sampler for sampling GBuffer regardless of the texture internal sampler.	*/
+	glCreateSamplers(1, &this->texture_sampler);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glSamplerParameterf(this->texture_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAX_LOD, 0);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_LOD, 0);
+
+	this->vao = createVAO();
 }
 
 void MistPostProcessing::draw(
@@ -100,6 +111,9 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 
 	/*	*/
 	{
+		glBindSampler((int)GBuffer::Depth, this->texture_sampler);
+		glBindSampler((int)GBuffer::TextureCoordinate, this->texture_sampler);
+
 		if (useSimple) {
 			glUseProgram(this->simple_fog_program);
 		} else {

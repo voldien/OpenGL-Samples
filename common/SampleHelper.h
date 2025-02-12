@@ -94,14 +94,14 @@ namespace glsample {
 	};
 
 	using PointLightInstance = struct alignas(16) point_light_instance_t {
-		glm::vec3 position;
-		float range;
-		glm::vec4 color;
+		glm::vec3 position = glm::vec3(0);
+		float range = 5;
+		glm::vec4 color = glm::vec4(1);
 		/*	*/
-		float intensity;
-		float constant_attenuation;
-		float linear_attenuation;
-		float quadratic_attenuation;
+		float intensity = 1;
+		float constant_attenuation = 1;
+		float linear_attenuation = 0.1f;
+		float quadratic_attenuation = 0.025f;
 	};
 
 	using CameraInstance = struct alignas(16) camera_instance_t {
@@ -111,7 +111,7 @@ namespace glsample {
 			this->far = camera.getFar();
 			this->proj = camera.getProjectionMatrix();
 			this->inverseProj = glm::inverse(camera.getProjectionMatrix());
-
+			
 			return *this;
 		}
 		/*	*/
@@ -122,10 +122,11 @@ namespace glsample {
 			this->far = camera.getFar();
 			this->proj = camera.getProjectionMatrix();
 			this->inverseProj = glm::inverse(camera.getProjectionMatrix());
+			this->position = glm::vec4(camera.getPosition(), 0);
+
 
 			this->near = camera.getNear();
 			this->far = camera.getFar();
-			this->position = glm::vec4(camera.getPosition(), 0);
 			this->viewDir = glm::vec4(camera.getLookDirection(), 0);
 			this->view = camera.getViewMatrix();
 			this->viewProj = this->proj * this->view;

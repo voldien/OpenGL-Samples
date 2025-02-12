@@ -25,7 +25,7 @@ void PostProcessingManager::render(
 	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) { /*	*/
 
 	/*	Bind Common Data.	*/
-
+	
 	/*	*/
 	for (size_t i = 0; i < this->getNrPostProcessing(); i++) {
 		/*	*/

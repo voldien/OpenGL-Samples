@@ -48,6 +48,8 @@ namespace glsample {
 		int simple_fog_program = 0;
 		unsigned int vao = 0;
 
+		unsigned int texture_sampler = 0;
+
 		bool useSimple = false;
 
 		unsigned int uniform_buffer = 0;

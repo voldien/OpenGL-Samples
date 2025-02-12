@@ -90,15 +90,15 @@ void main() {
 	const material mat = getMaterial();
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
-	vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
+	vec3 viewDir = normalize(getCamera().position.xyz - vertex);
 
 	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal);
 
 	const float shadow = max(ubo.shadowStrength - ShadowCalculationPCF(lightSpace), 0);
 
 	/*	*/
-	const vec4 lightColor =
-		computeBlinnDirectional(ubo.directional, NewNormal, viewDir, ubo.specularColor.a, mat.specular_roughness.rgb);
+	const vec4 lightColor = computeBlinnDirectional(ubo.directional, NewNormal, viewDir, mat.specular_roughness.a,
+													mat.specular_roughness.rgb);
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
