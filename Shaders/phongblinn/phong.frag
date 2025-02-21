@@ -2,6 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_control_flow_attributes : enable
 
+layout(early_fragment_tests) in;
 layout(location = 0) out vec4 fragColor;
 
 layout(location = 0) in vec3 vertex;
@@ -18,7 +19,7 @@ struct point_light {
 	float qudratic_attenuation;
 };
 
-#define NR_LIGHTS 4
+layout(constant_id = 16) const int NR_LIGHTS = 4;
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;

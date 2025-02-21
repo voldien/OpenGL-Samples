@@ -55,6 +55,7 @@ ubo;
 
 layout(set = 0, binding = 0) uniform sampler2D ReflectionTexture;
 
+
 layout(set = 0, binding = 10) uniform sampler2D IrradianceTexture;
 layout(set = 0, binding = 6) uniform sampler2D DepthTexture;
 

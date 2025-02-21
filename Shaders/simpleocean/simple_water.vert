@@ -12,11 +12,10 @@ layout(location = 0) out vec3 vertex;
 layout(location = 1) out vec2 UV;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
-
+layout(location = 4) out vec3 bitangent;
 
 #include "common.glsl"
 #include "phongblinn.glsl"
-
 
 struct Terrain {
 	ivec2 size;
@@ -34,19 +33,16 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelViewProjection;
 
 	Camera camera;
-
 	Terrain terrain;
 
 	/*	Material	*/
-	vec4 diffuseColor;
 	vec4 ambientColor;
+	vec4 diffuseColor;
 	vec4 specularColor;
 	vec4 shininess;
 
 	/*	Light source.	*/
 	DirectionalLight directional;
-
-	FogSettings fogSettings;
 
 	/*	Tessellation Settings.	*/
 	vec4 gEyeWorldPos;
@@ -65,5 +61,6 @@ void main() {
 	vertex = (ubo.model * vec4(Vertex, 0.0)).xyz;
 	normal = normalize((ubo.model * vec4(Normal, 0.0)).xyz);
 	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
-	UV = TextureCoord;
+	bitangent = cross(tangent, normal);
+	UV = TextureCoord * 1500;
 }

@@ -20,10 +20,12 @@ void main() {
 	const float x = float(gl_VertexID % ubo.terrain.size.x);
 	const float y = float(gl_VertexID / ubo.terrain.size.y);
 
-	const vec2 tile_uv = vec2(10);
-	WorldPos_in = (ubo.model * vec4(Vertex, 1.0)).xyz;
+	/*	*/
+	const vec2 tile_uv = ubo.terrain.tileOffset;
+	
+	WorldPos_in = (ubo.model * vec4(Vertex - vec3(0,0,0.8), 1.0)).xyz;
+	FragIN_uv = ((Vertex.xy + ubo.terrain.size) / vec2(ubo.terrain.size)) * 0.5;
 
-	FragIN_uv = vec2(x, y) / vec2(ubo.terrain.size) * tile_uv;
 	FragIN_normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	FragIN_tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
 }

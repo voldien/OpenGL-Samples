@@ -6,7 +6,11 @@
 
 namespace glsample {
 
-	class Node : public fragcore::Transform, public fragcore::ITree<Node>, public fragcore::Object {
+	/**
+	 * @brief 
+	 * 
+	 */
+	class FVDECLSPEC Node : public fragcore::Transform, public fragcore::ITree<Node>, public fragcore::Object {
 	  public:
 		~Node() override = default;
 	};

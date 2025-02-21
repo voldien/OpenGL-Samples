@@ -24,12 +24,11 @@
 namespace glsample {
 
 	enum class TextureCompression {
-		None,	/*	*/
+		None,	 /*	*/
 		Default, /*	*/
-		BPTC,
-		ACST
+		BPTC,	 /*	*/
+		ASTC	 /*	*/
 	};
-
 
 	/**
 	 * @brief
@@ -50,7 +49,8 @@ namespace glsample {
 						   const TextureCompression compression = TextureCompression::None);
 
 		int loadCubeMap(const std::string &px, const std::string &nx, const std::string &py, const std::string &ny,
-						const std::string &pz, const std::string &nz, const ColorSpace colorSpace = ColorSpace::RawLinear,
+						const std::string &pz, const std::string &nz,
+						const ColorSpace colorSpace = ColorSpace::RawLinear,
 						const TextureCompression compression = TextureCompression::None);
 		int loadCubeMap(const std::vector<std::string> &paths, const ColorSpace colorSpace = ColorSpace::RawLinear,
 						const TextureCompression compression = TextureCompression::None);

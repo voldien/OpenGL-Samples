@@ -16,8 +16,8 @@ jobs:
     - name: Configure dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install pkg-config libsdl2-dev libfreeimage-dev libfmt-dev libglm-dev libglew-dev libgtest-dev googletest mesa-common-dev mesa-utils libopenal-dev libalut-dev
-        sudo apt-get install glslang-tools libassimp-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev libglfw3-dev binutils-dev libeigen3-dev libglu1-mesa-dev libbz2-dev \
+        sudo apt-get install pkg-config libsdl2-dev libfreeimage-dev libfmt-dev libglm-dev libgtest-dev googletest mesa-common-dev mesa-utils libopenal-dev libalut-dev
+        sudo apt-get install glslang-tools libassimp-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev binutils-dev libeigen3-dev libglu1-mesa-dev libbz2-dev \
         libzip-dev libogg-dev libopus-dev libvorbis-dev
 
     - name: Prepare Vulkan SDK

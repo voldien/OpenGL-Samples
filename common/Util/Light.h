@@ -28,7 +28,7 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class Light : public Frustum {
+	class FVDECLSPEC Light : public Frustum {
 		static_assert(std::is_floating_point<float>::value, "Must be a decimal type(float/double/half).");
 
 	  public:

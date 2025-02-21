@@ -184,7 +184,7 @@ namespace glsample {
 		/*	*/
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-		compilerOptions.glslVersion = 330;
+		compilerOptions.glslVersion = 150;
 
 		/*	Create skybox graphic pipeline program.	*/
 		const int skybox_program =

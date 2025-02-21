@@ -89,14 +89,14 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	bool supportSPIRV() const;
 
 	/*	*/
-	const cxxopts::ParseResult &getResult() noexcept { return this->parseResult; }
-	void setCommandResult(cxxopts::ParseResult &result) noexcept {
+	const cxxopts::ParseResult &getResult() const noexcept { return this->parseResult; }
+	void setCommandResult(const cxxopts::ParseResult &result) {
 		this->parseResult = result;
 		this->internalInit();
 	}
 
-	fragcore::SDLInput &getInput() noexcept { return this->input; }
-	const fragcore::SDLInput &getInput() const noexcept { return this->input; }
+	fragcore::Input &getInput() noexcept { return this->input; }
+	const fragcore::Input &getInput() const noexcept { return this->input; }
 
 	const fragcore::GLRendererInterface *getGLRenderInterface() const noexcept {
 		return &this->getRenderInterface()->as<const fragcore::GLRendererInterface>();
@@ -110,9 +110,9 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	glsample::ColorSpaceConverter *getColorSpaceConverter() const noexcept { return this->colorSpace; }
 
-	void vsync(bool enable_vsync);
+	void vsync(const bool enable_vsync);
 
-	void enableRenderDoc(bool status);
+	void enableRenderDoc(const bool status);
 	bool isRenderDocEnabled();
 	void captureDebugFrame() noexcept;
 
@@ -125,8 +125,11 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	glsample::FrameBuffer *getFrameBuffer() { return this->defaultFramebuffer; }
 	glsample::PostProcessingManager *getPostProcessingManager() const noexcept { return this->postprocessingManager; }
 
-	size_t prev_frame_sample_count = 0;
-	size_t prev_frame_primitive_count = 0;
+	/*	*/
+	size_t debug_prev_frame_sample_count = 0;
+	size_t debug_prev_frame_primitive_count = 0;
+	int debug_prev_frame_cs_invocation_count = 0;
+	int debug_prev_frame_frag_invocation_count = 0;
 
   protected:
 	void displayMenuBar() override;
@@ -148,7 +151,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	size_t frameCount = 0;
 	size_t frameBufferIndex = 0;
 	size_t frameBufferCount = 0;
-	unsigned int queries[10];
+	std::array<unsigned int, 10> queries;
 	fragcore::IFileSystem *filesystem; /*	*/
 
 	int preWidth = -1;
@@ -158,6 +161,6 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	glsample::FrameBuffer *MMSAFrameBuffer = nullptr;
 
   protected:
-	spdlog::logger *logger;
+	spdlog::logger *logger = nullptr;
 	void *rdoc_api = nullptr;
 };

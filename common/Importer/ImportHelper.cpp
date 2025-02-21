@@ -2,6 +2,7 @@
 #include "IO/FileIO.h"
 #include "ImageImport.h"
 #include "ModelImporter.h"
+#include "Util/ProcessDataUtil.h"
 #include <GL/glew.h>
 #include <ImageUtil.h>
 #include <ProceduralGeometry.h>
@@ -26,6 +27,7 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 	std::map<int, std::vector<ModelTemp>> map;
 	std::map<int, int> strideVBOMap;
 	std::map<int, int> strideVBAMap;
+	/*	*/
 	size_t indices_offset = 0;
 	size_t indicesDataSize = 0;
 
@@ -65,7 +67,6 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 	}
 
 	/*	Create array buffer, for rendering static geometry.	*/
-
 	size_t nrVertices = 0;
 	size_t nrIndices = 0;
 	size_t boneDataSize = 0;
@@ -146,7 +147,7 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 			/*	BoneID.	*/
 			glEnableVertexAttribArrayARB(4);
 			glVertexAttribIPointer(4, 4, GL_UNSIGNED_INT, vertexStride,
-									 reinterpret_cast<void *>(refModel_base.boneIndexOffset));
+								   reinterpret_cast<void *>(refModel_base.boneIndexOffset));
 
 			/*	Weight.	*/
 			glEnableVertexAttribArrayARB(5);
@@ -163,15 +164,19 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 
 		strideVBAMap[vertexStride] = tmp_vao;
 
+		/*	*/
 		size_t vertices_offset = 0;
 		for (size_t i = 0; i < ref.size(); i++) {
 
+			/*	*/
 			const size_t pindex = ref[i].index;
 			const ModelSystemObject &refModel = *ref[i].model;
 
+			/*	*/
 			const size_t vertexStride = refModel.vertexStride;
 			const size_t IndicesStride = refModel.indicesStride;
 
+			/*	*/
 			const size_t vertexSize = refModel.nrVertices;
 			const size_t indicesSize = refModel.nrIndices;
 
@@ -215,6 +220,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 	textures.resize(Reftextures.size());
 
 	glsample::TextureImporter textureImporter(modelLoader.getFileSystem());
+	ProcessData process(modelLoader.getFileSystem());
 
 	for (size_t texture_index = 0; texture_index < Reftextures.size(); texture_index++) {
 
@@ -253,6 +259,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				if (tex.texture >= 0) {
 					glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
 				}
+				// TODO: use gpu to convert image.
 
 			} catch (const std::exception &ex) {
 				std::cerr << "Failed to load: " << tex.filepath << " " << ex.what() << std::endl;

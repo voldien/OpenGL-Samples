@@ -39,11 +39,11 @@ namespace glsample {
 
 		using ScreenSpaceSettings = struct screen_space_settings_t {
 			float blend = 1;
-			uint g_sss_max_steps = 16;			  // Max ray steps, affects quality and performance.
-			float g_sss_ray_max_distance = 0.05f; // Max shadow length, longer shadows are less accurate.
-			float g_sss_thickness = 0.02f;		  // Depth testing thickness.
-			float g_sss_step_length = g_sss_ray_max_distance / float(g_sss_max_steps);
-			glm::vec2 g_taa_jitter_offset = glm::vec2(0);
+			uint max_steps = 16;			// Max ray steps, affects quality and performance.
+			float ray_max_distance = 0.05f; // Max shadow length, longer shadows are less accurate.
+			float thickness = 0.02f;		// Depth testing thickness.
+			float step_length = ray_max_distance / float(max_steps);
+			glm::vec2 taa_jitter_offset = glm::vec2(0);
 			glm::vec3 light_direction = glm::vec3(-1, -1, 0);
 		};
 		ScreenSpaceSettings SSSSettings;

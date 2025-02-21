@@ -18,6 +18,7 @@ ChromaticAbberationPostProcessing::~ChromaticAbberationPostProcessing() {
 	if (glIsProgram(this->chromatic_abberation_graphic_program)) {
 		glDeleteProgram(this->chromatic_abberation_graphic_program);
 	}
+	glDeleteVertexArrays(1, &this->vao);
 }
 
 void ChromaticAbberationPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
@@ -48,7 +49,7 @@ void ChromaticAbberationPostProcessing::initialize(fragcore::IFileSystem *filesy
 
 	setItensity(1);
 
-	this->vao = createVAO();
+	this->vao = this->createVAO();
 }
 
 void ChromaticAbberationPostProcessing::draw(

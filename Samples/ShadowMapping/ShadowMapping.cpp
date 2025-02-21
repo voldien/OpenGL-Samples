@@ -18,10 +18,9 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	// TODO: rename
-	class BasicShadowMapping : public GLSampleWindow {
+	class ShadowMapping : public GLSampleWindow {
 	  public:
-		BasicShadowMapping() : GLSampleWindow() {
+		ShadowMapping() : GLSampleWindow() {
 			this->setTitle("ShadowMapping");
 			this->shadowSettingComponent = std::make_shared<BasicShadowMapSettingComponent>(*this);
 			this->addUIComponent(this->shadowSettingComponent);
@@ -31,7 +30,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct uniform_buffer_block {
+		struct alignas(16) uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -81,9 +80,9 @@ namespace glsample {
 
 		CameraController camera;
 
-		class BasicShadowMapSettingComponent : public GLUIComponent<BasicShadowMapping> {
+		class BasicShadowMapSettingComponent : public GLUIComponent<ShadowMapping> {
 		  public:
-			BasicShadowMapSettingComponent(BasicShadowMapping &sample)
+			BasicShadowMapSettingComponent(ShadowMapping &sample)
 				: GLUIComponent(sample, "Basic Shadow Mapping Settings"), depth(this->getRefSample().shadowTexture),
 				  uniform(this->getRefSample().uniformStageBuffer) {}
 
@@ -426,9 +425,9 @@ namespace glsample {
 		}
 	};
 
-	class ShadowMappingGLSample : public GLSample<BasicShadowMapping> {
+	class ShadowMappingGLSample : public GLSample<ShadowMapping> {
 	  public:
-		ShadowMappingGLSample() : GLSample<BasicShadowMapping>() {}
+		ShadowMappingGLSample() : GLSample<ShadowMapping>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
 				"S,skybox", "Skybox Texture File Path",

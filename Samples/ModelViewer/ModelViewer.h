@@ -22,6 +22,7 @@ namespace glsample {
 			/*	*/
 			PointLightInstance pointLights[4];
 		};
+
 		struct camera_settings {
 			glm::vec4 gEyeWorldPos;
 		};
@@ -42,7 +43,7 @@ namespace glsample {
 			struct light_settings lightsettings;
 			struct tessellation_settings tessellation;
 			/*	Camera settings.	*/
-			struct camera_settings camera{};
+			struct camera_settings camera {};
 
 		} uniformStageBuffer;
 

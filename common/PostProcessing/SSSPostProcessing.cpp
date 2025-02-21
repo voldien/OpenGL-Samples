@@ -1,5 +1,4 @@
 #include "PostProcessing/SSSPostProcessing.h"
-#include "Common.h"
 #include "GLSampleSession.h"
 #include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
@@ -7,7 +6,6 @@
 #include "imgui.h"
 #include <GL/glew.h>
 #include <IOUtil.h>
-#include <random>
 
 using namespace glsample;
 
@@ -16,7 +14,7 @@ SSSPostProcessing::SSSPostProcessing() {
 	this->addRequireBuffer(GBuffer::Color);
 	this->addRequireBuffer(GBuffer::Depth);
 }
-SSSPostProcessing::~SSSPostProcessing() {}
+SSSPostProcessing::~SSSPostProcessing() = default;
 
 void SSSPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
@@ -63,7 +61,7 @@ void SSSPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	this->overlay_program = this->createOverlayGraphicProgram(filesystem);
 	this->vao = createVAO();
 
-	setItensity(1);
+	this->setItensity(1);
 }
 
 void SSSPostProcessing::draw(
@@ -89,15 +87,15 @@ void SSSPostProcessing::draw(
 		glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.blend"),
 					this->SSSSettings.blend);
 		glUniform1i(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_sss_max_steps"),
-					this->SSSSettings.g_sss_max_steps);
+					this->SSSSettings.max_steps);
 		glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_sss_ray_max_distance"),
-					this->SSSSettings.g_sss_ray_max_distance);
+					this->SSSSettings.ray_max_distance);
 		glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_sss_thickness"),
-					this->SSSSettings.g_sss_thickness);
+					this->SSSSettings.thickness);
 		glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_sss_step_length"),
-					this->SSSSettings.g_sss_step_length);
+					this->SSSSettings.step_length);
 		glUniform2fv(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_taa_jitter_offset"), 1,
-					 &this->SSSSettings.g_taa_jitter_offset[0]);
+					 &this->SSSSettings.taa_jitter_offset[0]);
 		glUniform3fv(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.light_direction"), 1,
 					 &this->SSSSettings.light_direction[0]);
 
@@ -141,10 +139,10 @@ void SSSPostProcessing::draw(
 }
 
 void SSSPostProcessing::renderUI() {
-	ImGui::DragInt("Max Steps", (int *)&SSSSettings.g_sss_max_steps, 1, 0, 128);
-	ImGui::DragFloat("Ray Max Distance", &SSSSettings.g_sss_ray_max_distance, 0.1f, 0.0f);
-	ImGui::DragFloat("Tichkness", &SSSSettings.g_sss_thickness, 0.1f, 0.0f);
-	ImGui::DragFloat("Step Length", &SSSSettings.g_sss_step_length, 0.1f, 0.0f);
-	ImGui::DragFloat2("Jitter Offset", &SSSSettings.g_taa_jitter_offset[0], 0.1f, 0.0f);
+	ImGui::DragInt("Max Steps", (int *)&SSSSettings.max_steps, 1, 0, 128);
+	ImGui::DragFloat("Ray Max Distance", &SSSSettings.ray_max_distance, 0.1f, 0.0f);
+	ImGui::DragFloat("Tichkness", &SSSSettings.thickness, 0.1f, 0.0f);
+	ImGui::DragFloat("Step Length", &SSSSettings.step_length, 0.1f, 0.0f);
+	ImGui::DragFloat2("Jitter Offset", &SSSSettings.taa_jitter_offset[0], 0.1f, 0.0f);
 	ImGui::DragFloat3("Light Position", &SSSSettings.light_direction[0], 0.1f, 0.0f);
 }

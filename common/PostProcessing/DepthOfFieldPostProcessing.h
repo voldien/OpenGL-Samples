@@ -18,6 +18,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class FVDECLSPEC DepthOfFieldProcessing : public PostProcessing {
 	  public:
 		DepthOfFieldProcessing();
@@ -33,14 +37,14 @@ namespace glsample {
 		void render(unsigned int texture);
 
 	  private:
-		int guassian_blur_compute_program = -1;
-		int indirect_compute_program = -1;
+		unsigned int guassian_blur_compute_program = 0;
+		unsigned int indirect_compute_program = 0;
 
 		using DepthOfFieldSettings = struct depth_of_field_settings_t {
 			float aperature;
 			float Foc;
 		};
-		
+
 		/*	*/
 		float variance;
 		int samples;

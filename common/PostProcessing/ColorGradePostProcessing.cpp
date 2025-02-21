@@ -19,6 +19,9 @@ ColorGradePostProcessing::~ColorGradePostProcessing() {
 	if (this->grayscale_color_grade_program >= 0) {
 		glDeleteProgram(this->grayscale_color_grade_program);
 	}
+		if (this->sepia_program >= 0) {
+		glDeleteProgram(this->sepia_program);
+	}
 }
 
 void ColorGradePostProcessing::initialize(fragcore::IFileSystem *filesystem) {

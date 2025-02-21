@@ -9,6 +9,7 @@ layout(location = 0) out vec3 WorldPos_FS_in;
 layout(location = 1) out vec2 TexCoord_FS_in;
 layout(location = 2) out vec3 Normal_FS_in;
 layout(location = 3) out vec3 Tangent_FS_in;
+layout(location = 4) out vec3 BiTangent_FS_in;
 
 #include "noise.glsl"
 #include "terrain_base.glsl"
@@ -42,10 +43,12 @@ void main() {
 	/*	Tangent.	*/
 	Tangent_FS_in = normalize(interpolate3D(oPatch.Tangent[0], oPatch.Tangent[1], oPatch.Tangent[2]));
 
+	BiTangent_FS_in = cross(Tangent_FS_in, Normal_FS_in);
+
 	const float u = gl_TessCoord.x;
 	const float v = gl_TessCoord.y;
 	const float w = gl_TessCoord.z;
-
+	// tile_uv
 	const float uPow3 = pow(u, 3);
 	const float vPow3 = pow(v, 3);
 	const float wPow3 = pow(w, 3);
@@ -53,6 +56,7 @@ void main() {
 	const float vPow2 = pow(v, 2);
 	const float wPow2 = pow(w, 2);
 
+	/*	*/
 	const vec3 VertexPosition = oPatch.WorldPos_B300 * wPow3 + oPatch.WorldPos_B030 * uPow3 +
 								oPatch.WorldPos_B003 * vPow3 + oPatch.WorldPos_B210 * 3.0 * wPow2 * u +
 								oPatch.WorldPos_B120 * 3.0 * w * uPow2 + oPatch.WorldPos_B201 * 3.0 * wPow2 * v +
@@ -60,29 +64,19 @@ void main() {
 								oPatch.WorldPos_B012 * 3.0 * u * vPow2 + oPatch.WorldPos_B111 * 6.0 * w * u * v;
 
 	/*	Displace the vertex along the normal	*/
-	const int ocatve = 16;
-	float heightMapDisp =
-		calculateHeightDisplacement(VertexPosition, ubo.terrain.tile_noise_size, ubo.terrain.tile_noise_offset, ocatve);
+	float heightMapDisp = texture(DisplacementTexture, TexCoord_FS_in).r;
 
 	WorldPos_FS_in = VertexPosition + Normal_FS_in * heightMapDisp * ubo.gDispFactor;
 
 	/*	Recompute normal.	*/
-	// TODO: improve
 	{
 		const vec3 vertexPos0 = WorldPos_FS_in;
 
-		const vec3 vertexPos1 =
-			VertexPosition + cross(Tangent_FS_in, Normal_FS_in) * 0.1 +
-			Normal_FS_in *
-				calculateHeightDisplacement(VertexPosition + cross(Tangent_FS_in, Normal_FS_in) * 0.1,
-											ubo.terrain.tile_noise_size, ubo.terrain.tile_noise_offset, ocatve) *
-				ubo.gDispFactor;
-		const vec3 vertexPos2 =
-			VertexPosition + Tangent_FS_in * 0.1 +
-			Normal_FS_in *
-				calculateHeightDisplacement(VertexPosition + Tangent_FS_in * 0.1, ubo.terrain.tile_noise_size,
-											ubo.terrain.tile_noise_offset, ocatve) *
-				ubo.gDispFactor;
+		const vec3 vertexPos1 = VertexPosition + BiTangent_FS_in * 0.1 +
+								Normal_FS_in * texture(DisplacementTexture, TexCoord_FS_in * 1.001).r * ubo.gDispFactor;
+
+		const vec3 vertexPos2 = VertexPosition + Tangent_FS_in * 0.1 +
+								Normal_FS_in * texture(DisplacementTexture, TexCoord_FS_in * 0.999).r * ubo.gDispFactor;
 
 		const vec3 d1 = vertexPos1 - vertexPos0;
 		const vec3 d2 = vertexPos2 - vertexPos0;
@@ -91,4 +85,5 @@ void main() {
 	}
 
 	gl_Position = (ubo.proj * ubo.view) * vec4(WorldPos_FS_in, 1.0);
+	TexCoord_FS_in *= ubo.terrain.tileOffset;
 }

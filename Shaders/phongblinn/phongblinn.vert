@@ -19,7 +19,7 @@ struct point_light {
 	float qudratic_attenuation;
 };
 
-#define NR_LIGHTS 4
+layout(constant_id = 16) const int NR_LIGHTS = 4;
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;

@@ -18,6 +18,7 @@ PixelatePostProcessing::~PixelatePostProcessing() {
 	if (this->pixelate_graphic_program >= 0) {
 		glDeleteProgram(this->pixelate_graphic_program);
 	}
+	glDeleteVertexArrays(1, &this->vao);
 }
 
 void PixelatePostProcessing::initialize(fragcore::IFileSystem *filesystem) {

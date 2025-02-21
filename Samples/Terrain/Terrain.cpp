@@ -33,14 +33,16 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct TerrainSettings {
-			glm::ivec2 size = glm::ivec2(8, 8);
+		struct alignas(16) TerrainSettings {
+			glm::ivec2 size = glm::ivec2(1, 1);
 			glm::vec2 tile_offset = glm::vec2(10, 10);
-			glm::vec2 tile_noise_size = glm::vec2(0.01, 0.01);
+
+			glm::vec2 tile_noise_size = glm::vec2(10.000, 10.000);
 			glm::vec2 tile_noise_offset = glm::vec2(0, 0);
 		};
+		struct alignas(16) WaterSettings {};
 
-		struct UniformTerrainBufferBlock {
+		struct alignas(16) UniformTerrainBufferBlock {
 			glm::mat4 model{};
 			glm::mat4 view{};
 			glm::mat4 proj{};
@@ -55,7 +57,6 @@ namespace glsample {
 			/*	Material	*/
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
 			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1);
-
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 shinines = glm::vec4(8, 1, 1, 1);
 
@@ -114,6 +115,7 @@ namespace glsample {
 		unsigned int terrain_heightMap = 0;
 		unsigned int irradiance_texture = 0;
 		unsigned int color_texture = 0;
+		unsigned int ocean_normal = 0;
 
 		glm::mat4 cameraProj{};
 		CameraController camera;
@@ -169,20 +171,27 @@ namespace glsample {
 				ImGui::DragFloat("Shin", &this->stage_uniform.terrain.shinines[0]);
 
 				ImGui::TextUnformatted("Tessellation");
-				ImGui::DragFloat("Displacement", &this->stage_uniform.terrain.gDisplace, 1, -100.0f, 100.0f);
-				ImGui::DragFloat("Levels", &this->stage_uniform.terrain.tessLevel, 1, 0.0f, 10.0f);
+				ImGui::DragFloat("Displacement", &this->stage_uniform.terrain.gDisplace, 1, -1000.0f, 1000.0f);
+				ImGui::DragFloat("Levels", &this->stage_uniform.terrain.tessLevel, 1, 0.0f, 32.0f);
 				ImGui::DragFloat("Min Tessellation", &this->stage_uniform.terrain.minTessellation, 1, 0.0f, 100.0f);
 				ImGui::DragFloat("Max Tessellation", &this->stage_uniform.terrain.maxTessellation, 1, 0.0f, 100.0f);
-				ImGui::DragFloat("Distance Tessellation", &this->stage_uniform.terrain.maxTessellation, 1, 0.0f,
-								 100.0f);
+				// ImGui::DragFloat("Distance Tessellation", &this->stage_uniform.terrain.maxTessellation, 1, 0.0f,
+				// 				 100.0f);
 
 				ImGui::TextUnformatted("Terrain Settings");
 				ImGui::Checkbox("Show Terrain", &this->showTerrain);
 
-				ImGui::DragFloat2("Tile Scale", &this->stage_uniform.terrain.terrainSettings.tile_offset[0]);
-				ImGui::DragFloat2("Tile Noise Scale", &this->stage_uniform.terrain.terrainSettings.tile_noise_size[0]);
-				ImGui::DragFloat2("Tile Noise Offset",
-								  &this->stage_uniform.terrain.terrainSettings.tile_noise_offset[0]);
+				if (ImGui::DragFloat2("Tile Scale", &this->stage_uniform.terrain.terrainSettings.tile_offset[0])) {
+					updateTerrain = true;
+				}
+				if (ImGui::DragFloat2("Tile Noise Scale",
+									  &this->stage_uniform.terrain.terrainSettings.tile_noise_size[0])) {
+					updateTerrain = true;
+				}
+				if (ImGui::DragFloat2("Tile Noise Offset",
+									  &this->stage_uniform.terrain.terrainSettings.tile_noise_offset[0])) {
+					updateTerrain = true;
+				}
 				ImGui::DragInt2("Size ", &this->stage_uniform.terrain.terrainSettings.size[0]);
 
 				ImGui::TextUnformatted("Ocean Settings");
@@ -199,6 +208,7 @@ namespace glsample {
 			bool showOcean = true;
 			bool showTerrain = true;
 			bool useMistFogPost = false;
+			bool updateTerrain = false;
 
 		  private:
 			struct uniform_buffer_block &stage_uniform;
@@ -244,7 +254,7 @@ namespace glsample {
 			int uniform_buffer_index = glGetUniformBlockIndex(this->terrain_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->terrain_program, "DiffuseTexture"), TextureType::Diffuse);
 			glUniform1i(glGetUniformLocation(this->terrain_program, "NormalTexture"), TextureType::Normal);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "Displacement"), TextureType::Displacement);
+			glUniform1i(glGetUniformLocation(this->terrain_program, "DisplacementTexture"), TextureType::Displacement);
 			glUniform1i(glGetUniformLocation(this->terrain_program, "IrradianceTexture"), TextureType::Irradiance);
 			glUniformBlockBinding(this->terrain_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -262,9 +272,9 @@ namespace glsample {
 
 			TextureImporter textureImporter(this->getFileSystem());
 
-			int skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
+			const int skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
 			/*	load Textures	*/
-			unsigned int skytexture = textureImporter.loadImage2D(panoramicPath);
+			const unsigned int skytexture = textureImporter.loadImage2D(panoramicPath);
 			skybox.Init(skytexture, skybox_program);
 
 			/*	Create terrain texture.	*/
@@ -283,45 +293,27 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
+			ProcessData util = ProcessData(this->getFileSystem());
+
 			/*	Generate HeightMap.	*/
 			{
 				const size_t noiseW = 2048;
 				const size_t noiseH = 2048;
 
-				std::vector<float> heightMap(noiseW * noiseH);
-				float noiseScale = 10.0f;
-				for (size_t x = 0; x < noiseW; x++) {
-					for (size_t y = 0; y < noiseH; y++) {
-
-						float height = Math::PerlinNoise(x * noiseScale, y * noiseScale);
-						heightMap[x * noiseW + y] = height;
-					}
-				}
-
 				/*	Create random texture.	*/
-				glGenTextures(1, &this->terrain_heightMap);
-				glBindTexture(GL_TEXTURE_2D, this->terrain_heightMap);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, noiseW, noiseH, 0, GL_RED, GL_FLOAT, heightMap.data());
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 5);
-				glGenerateMipmap(GL_TEXTURE_2D);
-
-				glBindTexture(GL_TEXTURE_2D, 0);
+				util.computePerlinNoise(&this->terrain_heightMap, noiseW, noiseH);
 			}
 
 			/*	*/
-			ProcessData util(this->getFileSystem());
+			util.computeBump2Normal(this->terrain_heightMap, this->ocean_normal, 2048, 2048);
+
+			/*	*/
 			util.computeIrradiance(this->skybox.getTexture(), this->irradiance_texture, 256, 128);
 
 			this->mistprocessing.initialize(this->getFileSystem());
 
 			/*	Load geometry.	*/
-			Common::loadPlan(this->terrain, 1, 10, 10);
+			Common::loadPlan(this->terrain, 1, 32, 32);
 			Common::loadPlan(this->ocean_water, 20, 1, 1);
 		}
 
@@ -334,11 +326,20 @@ namespace glsample {
 
 			/*	*/
 			glViewport(0, 0, width, height);
-			glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 			glDepthMask(GL_TRUE); //? Why needed?
 
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+			if (this->terrainSettingComponent->updateTerrain) {
+				this->terrainSettingComponent->updateTerrain = false;
+				static ProcessData util = ProcessData(this->getFileSystem());
+				util.computePerlinNoise(this->terrain_heightMap,
+										this->uniform_stage_buffer.terrain.terrainSettings.tile_noise_size,
+										this->uniform_stage_buffer.terrain.terrainSettings.tile_noise_offset);
+				util.computeBump2Normal(this->terrain_heightMap, this->ocean_normal);
+			}
 
 			/*	Terrain.	*/
 			if (this->terrainSettingComponent->showTerrain) {
@@ -363,6 +364,10 @@ namespace glsample {
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Diffuse);
 				glBindTexture(GL_TEXTURE_2D, this->terrain_diffuse_texture);
+
+				/*	*/
+				glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
+				glBindTexture(GL_TEXTURE_2D, this->ocean_normal);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Displacement);
@@ -432,12 +437,24 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->depthbuffer);
 
 				/*	*/
+				glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
+				glBindTexture(GL_TEXTURE_2D, this->ocean_normal);
+
+				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Reflection);
 				glBindTexture(GL_TEXTURE_2D, this->skybox.getTexture());
 
 				glUseProgram(this->simple_ocean_program);
 				glBindVertexArray(this->ocean_water.vao);
 				glDrawElements(GL_TRIANGLES, this->ocean_water.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+
+				/*	Draw depth only to depth buffer.	*/
+				glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+				glDisable(GL_BLEND);
+				glDepthMask(GL_TRUE);
+				glDrawElements(GL_TRIANGLES, this->ocean_water.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
 				glBindVertexArray(0);
 
 				glUseProgram(0);

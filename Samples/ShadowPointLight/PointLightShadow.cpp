@@ -28,7 +28,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		using PointLight = struct point_light_t {
+		using PointLight = struct alignas(16) point_light_t {
 			glm::vec3 position{};
 			float range{};
 			glm::vec4 color{};
@@ -43,8 +43,8 @@ namespace glsample {
 			float padding1{};
 		};
 
-		static const size_t nrPointLights = 4;
-		struct uniform_buffer_block {
+		static constexpr size_t nrPointLights = 4;
+		struct alignas(16) uniform_buffer_block {
 			glm::mat4 model{};
 			glm::mat4 view{};
 			glm::mat4 proj{};
@@ -79,11 +79,11 @@ namespace glsample {
 		Skybox skybox;
 
 		/*	*/
-		unsigned int graphic_program{};
-		unsigned int graphic_pfc_program{};
+		unsigned int graphic_program = 0;
+		unsigned int graphic_pfc_program = 0;
 		unsigned int shadow_program = 0;
-		unsigned int shadow_alpha_clip_program{};
-		unsigned int skybox_program;
+		unsigned int shadow_alpha_clip_program = 0;
+		unsigned int skybox_program = 0;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
@@ -156,8 +156,10 @@ namespace glsample {
 			"Shaders/shadowpointlight/pointlightshadow_alphaclip.frag.spv";
 
 		void Release() override {
+
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->shadow_program);
+			glDeleteProgram(this->shadow_alpha_clip_program);
 			glDeleteProgram(this->graphic_pfc_program);
 
 			glDeleteFramebuffers(this->pointShadowFrameBuffers.size(), this->pointShadowFrameBuffers.data());
@@ -227,9 +229,9 @@ namespace glsample {
 			/*	*/
 			glUseProgram(this->graphic_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), 0);
-			const int shadows[4] = {16, 17, 18, 19};
-			glUniform1iv(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 4, shadows);
+			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), TextureType::Diffuse);
+			const int shadowUnits[4] = {16, 17, 18, 19};
+			glUniform1iv(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 4, shadowUnits);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -237,7 +239,7 @@ namespace glsample {
 			glUseProgram(this->graphic_pfc_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), TextureType::Diffuse);
-			glUniform1iv(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), 4, shadows);
+			glUniform1iv(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), 4, shadowUnits);
 			glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -259,12 +261,11 @@ namespace glsample {
 			this->skybox.Init(skytexture, this->skybox_program);
 
 			{
-
-				// /*	Clamp texture size to valid size.	*/
-				// int max_texture_size = 0;
-				// glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-				// this->shadowWidth = fragcore::Math::min<int>(this->shadowWidth, max_texture_size);
-				// this->shadowHeight = fragcore::Math::min<int>(this->shadowHeight, max_texture_size);
+				/*	Clamp texture size to valid size.	*/
+				int max_texture_size = 0;
+				glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+				this->shadowWidth = fragcore::Math::min<int>(this->shadowWidth, max_texture_size);
+				this->shadowHeight = fragcore::Math::min<int>(this->shadowHeight, max_texture_size);
 
 				/*	Create shadow map.	*/
 				this->pointShadowFrameBuffers.resize(this->nrPointLights);
@@ -273,7 +274,7 @@ namespace glsample {
 				this->pointShadowTextures.resize(this->nrPointLights);
 				glGenTextures(this->pointShadowTextures.size(), this->pointShadowTextures.data());
 
-				for (size_t x = 0; x < pointShadowFrameBuffers.size(); x++) {
+				for (size_t x = 0; x < this->pointShadowFrameBuffers.size(); x++) {
 					glBindFramebuffer(GL_FRAMEBUFFER, this->pointShadowFrameBuffers[x]);
 
 					/*	*/
@@ -296,7 +297,7 @@ namespace glsample {
 					glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
 
 					/*	*/
-					float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+					const float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 					glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, borderColor);
 
 					/*	*/
@@ -352,7 +353,7 @@ namespace glsample {
 				glm::vec4(1, 1, 0, 0),	glm::vec4(1, -1, 0, 0),	 glm::vec4(-1, -1, 0, 0),  glm::vec4(-1, 1, 0, 0),
 				glm::vec4(1, 0, 1, 0),	glm::vec4(-1, 0, 1, 0),	 glm::vec4(1, 0, -1, 0),   glm::vec4(-1, 0, -1, 0),
 				glm::vec4(0, 1, 1, 0),	glm::vec4(0, -1, 1, 0),	 glm::vec4(0, -1, -1, 0),  glm::vec4(0, 1, -1, 0)};
-			memcpy(&this->uniform.pcfFilters[0][0], &samples[0][0], sizeof(samples));
+			std::memcpy(&this->uniform.pcfFilters[0][0], &samples[0][0], sizeof(samples));
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -364,7 +365,6 @@ namespace glsample {
 
 			/*	Draw each point light shadow.	*/
 			{
-
 				for (size_t i = 0; i < this->nrPointLights; i++) {
 
 					/*	*/
@@ -393,13 +393,12 @@ namespace glsample {
 					glEnableVertexAttribArrayARB(4);
 					glVertexAttribI1i(4, i);
 					this->scene.render();
-
-					glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 				}
 			}
 
-			/*	*/
+			/*	Render scene.	*/
 			{
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -454,9 +453,6 @@ namespace glsample {
 			}
 
 			/*	*/
-			this->uniform.proj = this->camera.getProjectionMatrix();
-
-			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			uint8_t *uniformPointer = (uint8_t *)glMapBufferRange(
 				GL_UNIFORM_BUFFER,
@@ -488,18 +484,17 @@ namespace glsample {
 									 this->uniform.pointLights[i].range);
 
 				for (size_t j = 0; j < 6; j++) {
-
 					this->uniform.ViewProjection[j] = pointPer * PointView[j];
 				}
 
 				/*	*/
 				this->uniform.model = glm::mat4(1.0f);
-
+				this->uniform.proj = this->camera.getProjectionMatrix();
 				this->uniform.view = this->camera.getViewMatrix();
 				this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
 				this->uniform.lightPosition = glm::vec4(this->camera.getPosition(), 0.0f);
 
-				memcpy(&uniformPointer[i * this->uniformAlignBufferSize], &this->uniform, sizeof(this->uniform));
+				std::memcpy(&uniformPointer[i * this->uniformAlignBufferSize], &this->uniform, sizeof(this->uniform));
 			}
 
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
@@ -515,7 +510,6 @@ namespace glsample {
 				cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
 		}
 	};
-
 } // namespace glsample
 
 int main(int argc, const char **argv) {

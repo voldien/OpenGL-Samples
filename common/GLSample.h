@@ -55,10 +55,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 	void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) override {
 
 		/*	Parse argument.	*/
-		const std::string helperInfo = "OpenGL Sample: " + fragcore::SystemInfo::getApplicationName() +
-									   "\n"
-									   ""
-									   "";
+		const std::string helperInfo = "OpenGL Sample: " + fragcore::SystemInfo::getApplicationName() + "\n";
 
 		/*	Default common options between all samples.	*/
 		cxxopts::Options options("OpenGL Sample: " + fragcore::SystemInfo::getApplicationName(), helperInfo);
@@ -77,14 +74,15 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 				"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"))(
 				"D,display", "Display", cxxopts::value<int>()->default_value("-1"))(
 				"m,multi-sample", "Set MSAA", cxxopts::value<int>()->default_value("0"))(
-				"p,use-postprocessing", "Use Post Processing", cxxopts::value<bool>()->default_value("true"));
+				"p,use-postprocessing", "Use Post Processing", cxxopts::value<bool>()->default_value("true"))(
+				"s,glsl-version", "Override glsl version from system (110,120,130,140,150,330...)", cxxopts::value<int>()->default_value("-1"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);
 
 		/*	Parse the command line input.	*/
 		options.allow_unrecognised_options();
-		auto result = options.parse(argc, (char **&)argv);
+		const auto result = options.parse(argc, (char **&)argv);
 
 		/*	If mention help, Display help and exit!	*/
 		if (result.count("help") > 0) {

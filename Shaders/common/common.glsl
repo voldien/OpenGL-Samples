@@ -1,5 +1,8 @@
 #ifndef _COMMON_HEADER_
 #define _COMMON_HEADER_ 1
+
+#extension GL_EXT_control_flow_attributes2 : enable
+
 #include "colorspace.glsl"
 #include "noise.glsl"
 
@@ -56,16 +59,19 @@ struct Frustum {
 
 vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist) {
 
+	/*	*/
 	const vec2 size = vec2(2.0, 0.0);
 	const vec2 offset = 1.0 / textureSize(BumpTexture, 0);
 
+	/*	*/
 	const vec2 offxy = vec2(offset.x, offset.y);
 	const vec2 offzy = vec2(-offset.x, offset.y);
 	const vec2 offyx = vec2(offset.x, -offset.y);
 	const vec2 offyz = vec2(-offset.x, -offset.y);
 
-	const float bump_strength = 2.0;
+	const float bump_strength = dist;
 
+	/*	*/
 	const float s11 = texture(BumpTexture, uv).x;
 	const float s01 = texture(BumpTexture, uv + offxy).x;
 	const float s21 = texture(BumpTexture, uv + offzy).x;
@@ -109,6 +115,9 @@ vec3 calcViewPosition(const in vec2 coords, const in mat4 inverseProj, const in 
 
 	return vs_pos.xyz;
 }
+
+#ifdef GL_FRAGMENT_SHADER
+#endif
 
 float get_depth_linear(const in sampler2D inDepthTexture, const in vec2 coords, const in float start,
 					   const in float end) {
@@ -169,7 +178,7 @@ vec3 CatmulRom(in float T, vec3 D, vec3 C, vec3 B, vec3 A) {
 }
 
 vec3 ColorRampConstant(in float T, const in vec4[4] A, const in int num) {
-	//[[unroll]]
+	[[unroll]]
 	for (uint i = 0; i < num; i++) {
 		if (T < A[i].w) {
 			return A[i].rgb;

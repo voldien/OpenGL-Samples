@@ -96,10 +96,6 @@ namespace glsample {
 				/*	Load shader	*/
 				this->multipass_program = ShaderLoader::loadGraphicProgram(compilerOptions, &multipass_vertex_binary,
 																		   &multipass_fragment_binary);
-
-				/*	*/
-				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-				compilerOptions.glslVersion = this->getShaderVersion();
 			}
 
 			/*	Setup graphic pipeline.	*/
@@ -108,10 +104,10 @@ namespace glsample {
 			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), TextureType::Diffuse);
 			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), TextureType::Normal);
 			glUniform1i(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), TextureType::AlphaMask);
-			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 
-			//TODO: add
-			//glBindFragDataLocation(this->multipass_program, 0,"");
+			glBindFragDataLocation(this->multipass_program, (int)GBuffer::Albedo, "Diffuse");
+			glBindFragDataLocation(this->multipass_program, (int)GBuffer::WorldSpace, "WorldSpace");
+			glUniformBlockBinding(this->multipass_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	load Textures	*/

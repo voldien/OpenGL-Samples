@@ -26,7 +26,7 @@ BloomPostProcessing::~BloomPostProcessing() {
 
 void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
-	const char *bloom_frag_path = "Shaders/postprocessingeffects/bloom.frag.spv";
+	const char *glow_frag_path = "Shaders/postprocessingeffects/glow.frag.spv";
 	const char *vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 
 	const char *downscale_compute_path = "Shaders/compute/downsample2x2.comp.spv";
@@ -34,9 +34,9 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	if (this->bloom_blur_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
-		const std::vector<uint32_t> guassian_blur_compute_binary =
-			IOUtil::readFileData<uint32_t>(bloom_frag_path, filesystem);
+		const std::vector<uint32_t> post_vertex_binary =
+			IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
+		const std::vector<uint32_t> glow_fragment_binary = IOUtil::readFileData<uint32_t>(glow_frag_path, filesystem);
 
 		const std::vector<uint32_t> downsample2x2_compute_binary =
 			IOUtil::readFileData<uint32_t>(downscale_compute_path, filesystem);
@@ -50,7 +50,7 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 		/*  */
 		this->bloom_blur_graphic_program =
-			ShaderLoader::loadGraphicProgram(compilerOptions, &post_vertex_binary, &guassian_blur_compute_binary);
+			ShaderLoader::loadGraphicProgram(compilerOptions, &post_vertex_binary, &glow_fragment_binary);
 
 		/*  */
 		this->downsample_compute_program =

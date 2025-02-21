@@ -23,6 +23,8 @@ struct common_data {
 
 	mat4 view[3];
 	mat4 proj[3];
+
+	vec4 time;
 };
 
 struct Node {

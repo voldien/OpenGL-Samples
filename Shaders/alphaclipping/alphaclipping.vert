@@ -3,7 +3,7 @@
 
 /*	*/
 layout(location = 0) in vec3 Vertex;
-layout(location = 1) in vec3 TextureCoordinate;
+layout(location = 1) in vec2 TextureCoordinate;
 
 /*	*/
 layout(location = 0) out vec2 uv;

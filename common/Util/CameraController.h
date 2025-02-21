@@ -27,7 +27,7 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class CameraController : public Camera {
+	class FVDECLSPEC CameraController : public Camera {
 	  public:
 		~CameraController() override = default;
 

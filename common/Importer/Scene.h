@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2024 Valdemar Lindberg
+ * Copyright (c) 2025 Valdemar Lindberg
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -124,6 +124,8 @@ namespace glsample {
 			/*	*/
 			glm::mat4 proj[3]{};
 			glm::mat4 view[3]{};
+
+			glm::vec4 time;
 		};
 		using NodeData = struct _node_data_t {
 			glm::mat4 model;

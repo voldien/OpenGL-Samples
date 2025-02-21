@@ -124,6 +124,12 @@ int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std:
 		fragcore::checkError();
 	}
 
+	/*	Default vertex attribute for now.TODO: determine it can be pass on elsewhere	*/
+	glBindAttribLocation(program, 0, "Vertex");
+	glBindAttribLocation(program, 1, "TextureCoord");
+	glBindAttribLocation(program, 2, "Normal");
+	glBindAttribLocation(program, 3, "Tangent");
+
 	glLinkProgram(program);
 	fragcore::checkError();
 

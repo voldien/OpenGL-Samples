@@ -49,6 +49,6 @@ namespace glsample {
 	  private:
 		int chromatic_abberation_graphic_program = -1;
 
-		int vao;
+		unsigned int vao;
 	};
 } // namespace glsample

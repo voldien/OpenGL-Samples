@@ -29,7 +29,7 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class Camera : public Frustum {
+	class FVDECLSPEC Camera : public Frustum {
 		static_assert(std::is_floating_point<float>::value, "Must be a decimal type(float/double/half).");
 
 	  public:

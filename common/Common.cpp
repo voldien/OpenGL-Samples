@@ -186,7 +186,8 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 							   const fragcore::TextureDesc &depthstencil) {
 
 	unsigned int attachment_index = 0;
-	std::array<GLenum, 32> attachments_mapping{};
+	std::array<GLenum, 32> attachments_mapping = {0};
+
 	for (const auto *it = desc.begin(); it != desc.end(); it++) {
 		const fragcore::TextureDesc &target_desc = *(it);
 
@@ -235,9 +236,7 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 			glTexParameteri(texture_type, GL_TEXTURE_WRAP_R, GL_MIRROR_CLAMP_TO_EDGE);
 
 			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0));
-
 			FVALIDATE_GL_CALL(glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f));
-
 			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_BASE_LEVEL, 0));
 		}
 
@@ -248,7 +247,6 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 			glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, texture_type, framebuffer->attachments[attachment_index],
 								   0);
 		} else {
-			// TODO: add a
 			glFramebufferTextureLayer(GL_FRAMEBUFFER, attachment, framebuffer->attachments[attachment_index], 0, 0);
 		}
 
@@ -280,12 +278,14 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 			glTexImage2D(texture_type, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
 						 nullptr);
 		}
+
 		if (multisamples == 0) {
 
 			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 			glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+			glTexParameteri(texture_type, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
 
 			glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0);
 			glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f);

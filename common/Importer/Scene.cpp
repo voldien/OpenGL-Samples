@@ -308,6 +308,7 @@ namespace glsample {
 		} else {
 			texture_id = this->default_textures[texture_type];
 		}
+		
 		/*	*/
 		if (glBindTextures) {
 			glBindTextures(textureMapIndex, 1, &texture_id);

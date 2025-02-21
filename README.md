@@ -26,6 +26,7 @@ Usage:
   -D, --display arg         Display (default: -1)
   -m, --multi-sample arg    Set MSAA (default: 0)
   -p, --use-postprocessing  Use Post Processing (default: true)
+  -s, --glsl-version arg    Override glsl version from system 
 ```
 
 ## Graphic Based Samples
@@ -59,6 +60,8 @@ Usage:
 
 ### [**Simple Reflection**](Samples/SimpleReflection/)
 
+### [**Irradiance**](Samples/Irradiance/)
+
 ### [**Instance**](Samples/Instance)
 
 ![Instance](https://github.com/voldien/OpenGL-Samples/assets/9608088/8fb4adca-cd99-45c9-9811-38e727b6685b)
@@ -88,7 +91,7 @@ Usage:
 ![BasicShadowMap PCF](https://github.com/user-attachments/assets/1097b804-c8d5-46df-b032-b4e29df7ae58)
 ![BasicShadowMap PCF](https://github.com/user-attachments/assets/cae348e3-9c2a-4443-8119-02f018fc0109)
 
-### **Point Shadow Light**
+### [**Point Shadow Light**](Samples/ShadowPointLight/)
 
 ![PointLightShadow](https://github.com/user-attachments/assets/daaf91b3-b0ee-4b55-a182-ad326b0e2634)
 
@@ -99,10 +102,6 @@ Usage:
 ### [**Shadow Map Variance**](Samples/ShadowVariance/)
 
 ### **Shadow Volume**
-
-### **Cascading Shadow**
-
-### **Contact Shadow**
 
 ### [**Tessellation Basic**](Samples/Tessellation/)
 
@@ -134,8 +133,6 @@ Usage:
 
 ### [**Simple Ocean**](Samples/SimpleOcean/)
 
-### **Ocean**
-
 ### [**Video Playback**](Samples/VideoPlayback/)
 
 ## Compute Shader Base Examples
@@ -156,17 +153,15 @@ Usage:
 
 ![VectorField2D](https://github.com/user-attachments/assets/43b3da51-83d6-4b51-ae06-792b01493c2a)
 
-### **Support Vector Machine**
-
-### **Compute Group Visual**
+### [**Compute Group Visual**](Samples/ComputeGroupVisual/)
 
 ![ComputeGroup](https://github.com/user-attachments/assets/a06d9256-05fa-4e16-9621-e2f7b473c9c5)
 
-### **Marching Cube**
+### [**Marching Cube**](Samples/MarchingCube/)
 
 ![MarchingCube](https://github.com/user-attachments/assets/f748e312-737c-4106-877b-93b59a9778d5)
 
-### **Rigidbody**
+### [**Rigidbody**](Samples/Rigidbody/)
 
 ![RigidBody](https://github.com/user-attachments/assets/74e55eea-8f19-4a80-82b1-e88952334db0)
 
@@ -191,6 +186,16 @@ Usage:
 - **Grain**
 
 - **Bloom**
+
+- **Contact Shadow**
+
+## Required Packages
+
+```bash
+apt-get install pkg-config libsdl2-dev libfreeimage-dev libfmt-dev libglm-dev libgtest-dev googletest mesa-common-dev mesa-utils libopenal-dev libalut-dev
+apt-get install glslang-tools libassimp-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev binutils-dev libeigen3-dev libglu1-mesa-dev libbz2-dev \
+libzip-dev libogg-dev libopus-dev libvorbis-dev
+```
 
 ## Build Instruction
 

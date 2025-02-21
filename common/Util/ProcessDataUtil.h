@@ -18,6 +18,8 @@
 #include <GeometryUtil.h>
 #include <Math3D/BoundingSphere.h>
 #include <Math3D/Plane.h>
+#include <glm/fwd.hpp>
+#include <glm/glm.hpp>
 
 namespace glsample {
 
@@ -33,9 +35,11 @@ namespace glsample {
 		void computeIrradiance(unsigned int env_source, unsigned int irradiance_target);
 
 		/*	*/
-		void computePerlinNoise(unsigned int target, const unsigned int width, const unsigned int height);
-		void computePerlinNoise(unsigned int *target, const unsigned int width, const unsigned int height);
-
+		void computePerlinNoise(unsigned int *target, const unsigned int width, const unsigned int height,
+								const glm::vec2 &size = glm::vec2(10, 10),
+								const glm::vec2 &tile_offset = glm::vec2(10, 10), const int octaves = 16);
+		void computePerlinNoise(unsigned int target, const glm::vec2 &size = glm::vec2(10, 10),
+								const glm::vec2 &tile_offset = glm::vec2(10, 10), const int octaves = 16);
 		/**/
 		void computeBump2Normal(unsigned int bump_source, unsigned int &normal_target, const unsigned int width,
 								const unsigned int height);
@@ -46,5 +50,6 @@ namespace glsample {
 		int irradiance_program = -1;
 		int bump2normal_program = -1;
 		int perlin_noise2D_program = -1;
+		//			std::array<int, (size_t)ColorSpace::MaxColorSpaces * 3> compute_programs_local_workgroup_sizes{};
 	};
 } // namespace glsample

@@ -12,6 +12,7 @@ layout(location = 1) in vec3 FragIN_normal;
 layout(location = 2) in vec3 FragIN_tangent;
 layout(location = 3) in vec3 FragIN_bitangent;
 
+
 #include "common.glsl"
 #include "pbr.glsl"
 #include "phongblinn.glsl"

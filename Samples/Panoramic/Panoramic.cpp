@@ -87,8 +87,7 @@ namespace glsample {
 		class PanoramicSettingComponent : public GLUIComponent<Panoramic> {
 		  public:
 			PanoramicSettingComponent(Panoramic &sample)
-				: GLUIComponent(sample, "Panoramic Settings"), uniform(sample.uniformStageBuffer) {
-			}
+				: GLUIComponent(sample, "Panoramic Settings"), uniform(sample.uniformStageBuffer) {}
 			void draw() override {
 
 				ImGui::TextUnformatted("Lightning");
@@ -316,9 +315,7 @@ namespace glsample {
 								  this->uniformAlignBufferSize);
 				/*	*/
 				glViewport(0, 0, panoramicWidth, panoramicHeight);
-
-				/*	*/
-				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+				glClear(GL_DEPTH_BUFFER_BIT);
 
 				glUseProgram(this->panoramic_program);
 
@@ -331,7 +328,7 @@ namespace glsample {
 			{
 				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 
-				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+				glClear(GL_DEPTH_BUFFER_BIT);
 				glViewport(0, 0, width, height);
 
 				glCullFace(GL_BACK);

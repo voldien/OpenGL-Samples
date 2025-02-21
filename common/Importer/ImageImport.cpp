@@ -32,7 +32,6 @@ int TextureImporter::loadImage2D(const std::string &path, const ColorSpace color
 
 int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace,
 									const TextureCompression compression) {
-	// TODO add PBO support.
 
 	GLenum target = GL_TEXTURE_2D;
 	GLuint texture = 0;
@@ -127,7 +126,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		}
 	}
 
-	/*	*/
+	/*	Find best match compressed type.	*/
 	if (compression != TextureCompression::None) {
 		if (compression == TextureCompression::Default) {
 			switch (internalformat) {
@@ -151,6 +150,33 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 			case GL_RGBA16F:
 			case GL_RGBA32F:
 				internalformat = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
+				break;
+			default:
+				throw RuntimeException("None Supported Format: {} ({})", magic_enum::enum_name(image.getFormat()),
+									   internalformat);
+			}
+		} else if (compression == TextureCompression::ASTC) {
+			switch (internalformat) {
+			case GL_R8:
+				internalformat = GL_COMPRESSED_RGBA_ASTC_4x4_KHR;
+				break;
+			case GL_RGBA8:
+				internalformat = GL_COMPRESSED_RGBA_ASTC_4x4_KHR;
+				break;
+			case GL_RGB8:
+				internalformat = GL_COMPRESSED_RGBA_ASTC_4x4_KHR;
+				break;
+			case GL_SRGB8_ALPHA8:
+				internalformat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR;
+				break;
+			case GL_SRGB8:
+				internalformat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR;
+				break;
+			case GL_RGB16F:
+			case GL_RGB32F:
+			case GL_RGBA16F:
+			case GL_RGBA32F:
+				internalformat = GL_COMPRESSED_RGBA_ASTC_12x12_KHR;
 				break;
 			default:
 				throw RuntimeException("None Supported Format: {} ({})", magic_enum::enum_name(image.getFormat()),

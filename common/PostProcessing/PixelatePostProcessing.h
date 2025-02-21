@@ -42,6 +42,6 @@ namespace glsample {
 
 	  private:
 		int pixelate_graphic_program = -1;
-		int vao = 0;
+		unsigned int vao = 0;
 	};
 } // namespace glsample
