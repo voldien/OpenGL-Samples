@@ -46,7 +46,7 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-		compilerOptions.glslVersion = 420;
+		compilerOptions.glslVersion = 420; /*	*/
 
 		/*  */
 		this->bloom_blur_graphic_program =
@@ -129,7 +129,7 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 		glUseProgram(this->downsample_compute_program);
 		glUniform1i(glGetUniformLocation(this->downsample_compute_program, "settings.filterRadius"), 1);
 
-		for (size_t i = 0; i < nr_down_samples; i++) {
+		for (int i = 0; i < nr_down_samples; i++) {
 
 			/*	Swap away from original texture color and use intermediate texture only.	*/
 			if (i == 1) {
@@ -158,7 +158,7 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 		glUseProgram(this->upsample_compute_program);
 		glUniform1i(glGetUniformLocation(this->upsample_compute_program, "settings.filterRadius"), 1);
 
-		for (size_t i = 0; i < nr_down_samples; i++) {
+		for (int i = 0; i < nr_down_samples; i++) {
 
 			const unsigned int WorkGroupX =
 				std::ceil(width / (float)localWorkGroupSize[0]) / (1 << (nr_down_samples - i - 1));

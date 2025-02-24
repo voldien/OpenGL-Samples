@@ -58,7 +58,7 @@ namespace glsample {
 	};
 
 	using FogSettings = struct alignas(16) fog_settings_t {
-		glm::vec4 fogColor = glm::vec4(0.3, 0.3, 0.45, 1);
+		glm::vec4 fogColor = glm::vec4(0.45, 0.45, 0.45, 1);
 		/*	*/
 		float cameraNear = 0.15f;
 		float cameraFar = 1000.0f;

@@ -23,7 +23,7 @@ layout(push_constant) uniform UniformBufferBlock {
 	layout(offset = 12) float _Weight;
 	layout(offset = 16) float _Exposure;
 	layout(offset = 32) vec2 lightPosition;
-	layout(offset = 48) vec4 Color;
+	layout(offset = 48) vec4 color;
 }
 settings;
 
@@ -66,7 +66,7 @@ void main() {
 	colorResult *= settings._Exposure;
 
 	/*	*/
-	vec4 result = color + vec4(colorResult.rgb, 0.0);
+	vec4 result = color + vec4(colorResult.rgb, 0.0) * settings.color;
 
 	fragColor = result;
 }

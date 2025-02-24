@@ -26,7 +26,7 @@ void main() {
 
 	const float depth = texture(DepthTexture, screenUV).r;
 
-	const float fogFactor = getFogFactor(ubo.fogSettings, depth);
+	const float fogFactor = min(getFogFactor(ubo.fogSettings, depth), 1);
 
 	fragColor.rgb = mix(texture(ColorTexture, screenUV).rgb, ubo.fogSettings.fogColor.rgb, fogFactor);
 	fragColor.a = 1;

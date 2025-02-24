@@ -24,6 +24,7 @@ MistPostProcessing::~MistPostProcessing() {
 }
 
 void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
+	/*	*/
 	const char *mist_fog_frag_path = "Shaders/postprocessingeffects/mistfog.frag.spv";
 	const char *simple_fog_frag_path = "Shaders/postprocessingeffects/simplefog.frag.spv";
 	const char *post_vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
@@ -51,12 +52,14 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 			compilerOptions, &vertex_mistfog_post_processing_binary, &fragment_simple_post_processing_binary);
 	}
 
+	/*	*/
 	glUseProgram(this->mist_fog_program);
 	glUniform1i(glGetUniformLocation(this->mist_fog_program, "ColorTexture"), (int)GBuffer::Albedo);
 	glUniform1i(glGetUniformLocation(this->mist_fog_program, "DepthTexture"), (int)GBuffer::Depth);
 	glUniform1i(glGetUniformLocation(this->mist_fog_program, "IrradianceTexture"), 2);
 	glUseProgram(0);
 
+	/*	*/
 	glUseProgram(this->simple_fog_program);
 	glUniform1i(glGetUniformLocation(this->simple_fog_program, "ColorTexture"), (int)GBuffer::Albedo);
 	glUniform1i(glGetUniformLocation(this->simple_fog_program, "DepthTexture"), (int)GBuffer::Depth);

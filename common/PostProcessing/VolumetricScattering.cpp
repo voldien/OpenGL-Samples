@@ -100,6 +100,8 @@ void VolumetricScatteringPostProcessing::draw(
 					this->volumetricScatteringSettings._Exposure);
 		glUniform2fv(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.lightPosition"), 1,
 					 &this->volumetricScatteringSettings.lightPosition[0]);
+		glUniform4fv(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.color"), 1,
+					 &this->volumetricScatteringSettings.color[0]);
 
 		/*	*/
 		glDisable(GL_CULL_FACE);
@@ -129,4 +131,6 @@ void VolumetricScatteringPostProcessing::renderUI() {
 	ImGui::DragFloat("Exposure", &volumetricScatteringSettings._Exposure, 0.1f, 0.0f);
 	ImGui::DragFloat("Weight", &volumetricScatteringSettings._Weight, 0.1f, 0.0f);
 	ImGui::DragFloat2("Light Position", &volumetricScatteringSettings.lightPosition[0], 0.1f, 0.0f);
+	ImGui::ColorEdit4("Color", &this->volumetricScatteringSettings.color[0],
+					  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 }

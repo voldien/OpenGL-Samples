@@ -13,13 +13,17 @@ float getFogFactor(const in FogSettings fog_settings, const float depth) {
 
 	const float z = getExpToLinear(near, far, depth);
 
+	float fogFactor = 0;
 	switch (fog_settings.fogType) {
 	case 1:
-		return 1.0 - clamp((endFog - z) / (endFog - startFog), 0.0, 1.0);
+		fogFactor = 1.0 - clamp((endFog - z) / (endFog - startFog), 0.0, 1.0);
+		break;
 	case 2:
-		return 1.0 - clamp(exp(-(densityFog * z)), 0.0, 1.0);
+		fogFactor = 1.0 - clamp(exp(-(densityFog * z)), 0.0, 1.0);
+		break;
 	case 3:
-		return 1.0 - clamp(exp(-(densityFog * z * densityFog * z)), 0.0, 1.0);
+		fogFactor = 1.0 - clamp(exp(-(densityFog * z * densityFog * z)), 0.0, 1.0);
+		break;
 	// case 4:
 	//	float dist = z * (far - near);
 	//	float b = 0.5;
@@ -28,11 +32,13 @@ float getFogFactor(const in FogSettings fog_settings, const float depth) {
 	//					 getCameraDirection().y,
 	//				 0.0, 1.0);
 	default:
-		return 0.0;
+		break;
 	}
+
+	return fogFactor * fog_settings.fogItensity;
 }
 
-float getFogFactor(const in FogSettings fog_settings) { return getFogFactor(fog_settings, gl_FragCoord.z) * fog_settings.fogItensity; }
+float getFogFactor(const in FogSettings fog_settings) { return getFogFactor(fog_settings, gl_FragCoord.z); }
 
 vec4 blendFog(const in vec4 color, const in FogSettings fogSettings) {
 	const float fog_factor = getFogFactor(fogSettings);

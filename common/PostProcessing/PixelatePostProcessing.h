@@ -19,6 +19,10 @@
 
 namespace glsample {
 
+	/**
+	 * @brief
+	 *
+	 */
 	class FVDECLSPEC PixelatePostProcessing : public PostProcessing {
 
 	  public:
@@ -30,11 +34,9 @@ namespace glsample {
 		void
 		draw(glsample::FrameBuffer *framebuffer,
 			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
-
 		void renderUI() override;
 
 	  public:
-
 		using PixelateSettings = struct pixelate_settings_t {
 			float pixelSize = 128.f;
 		};

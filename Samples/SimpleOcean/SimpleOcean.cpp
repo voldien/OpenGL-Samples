@@ -412,7 +412,7 @@ namespace glsample {
 			this->mistprocessing.mistsettings.proj = this->camera.getProjectionMatrix();
 			this->mistprocessing.mistsettings.fogSettings.cameraNear = this->camera.getNear();
 			this->mistprocessing.mistsettings.fogSettings.cameraFar = this->camera.getFar();
-			this->mistprocessing.mistsettings.viewRotation = camera.getRotationMatrix();
+			this->mistprocessing.mistsettings.viewRotation = glm::inverse(camera.getRotationMatrix());
 
 			/*  */
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

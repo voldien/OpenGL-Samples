@@ -26,8 +26,13 @@
 #include <glm/glm.hpp>
 
 namespace glsample {
+
 	using namespace fragcore;
 
+	/**
+	 * @brief
+	 *
+	 */
 	class FVDECLSPEC Skybox : public UIDObject {
 	  public:
 		struct uniform_buffer_block {

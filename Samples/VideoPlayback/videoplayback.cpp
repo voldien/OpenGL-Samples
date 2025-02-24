@@ -44,19 +44,13 @@ namespace glsample {
 	class VideoPlayback : public GLSampleWindow {
 	  public:
 		VideoPlayback() : GLSampleWindow() {
-
 			this->videoplaybackSettingComponent = std::make_shared<VideoPlaybackSettingComponent>();
 			this->addUIComponent(this->videoplaybackSettingComponent);
 		}
 
-		using Vertex = struct _vertex_t {
-			float pos[3];
-			float uv[2];
-		};
-
 		static const size_t nrVideoFrames = 2;
 		int nthVideoFrame = 0;
-		int frameSize{};
+		int frameSize = 0;
 
 		/*  */
 		struct AVFormatContext *pformatCtx = nullptr;
@@ -132,13 +126,8 @@ namespace glsample {
 		std::shared_ptr<VideoPlaybackSettingComponent> videoplaybackSettingComponent;
 
 		/*	*/
-		const std::string vertexShaderPath = "Shaders/videoplayback/videoplayback.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/videoplayback/videoplayback.frag.spv";
-
-		const std::vector<Vertex> vertices = {{{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}},
-											  {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
-											  {{1.0f, -1.0f, 0.0f}, {1.0f, 1.0f}},
-											  {{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f}}};
+		const std::string vertexShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
 
 		std::string error_message(const int result) {
 			char buf[AV_ERROR_MAX_STRING_SIZE];
@@ -381,20 +370,6 @@ namespace glsample {
 			// Common::loadPlan(this->plan,1);
 			glGenVertexArrays(1, &this->vao);
 			glBindVertexArray(this->vao);
-
-			/*	*/
-			glGenBuffers(1, &this->vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
-
-			/*	*/
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<const void *>(12));
-
 			glBindVertexArray(0);
 
 			/*	Allocate buffers.	*/
@@ -469,7 +444,7 @@ namespace glsample {
 
 				/*	Draw triangle*/
 				glBindVertexArray(this->vao);
-				glDrawArrays(GL_TRIANGLE_STRIP, 0, this->vertices.size());
+				glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 				glBindVertexArray(0);
 
 			} else {

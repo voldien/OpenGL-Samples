@@ -26,22 +26,24 @@ ubo;
 
 void main() {
 
+	/*	*/
 	const vec3 direction = normalize(mat3(ubo.viewRotation) * vec3(2 * screenUV - 1, 1)); //(ubo.proj * ).xyz;
 
 	vec3 cr = normalize(cross(direction, vec3(0, -1, 0)));
 
+	//TODO: add contribution based on atomosphere
 	const float aat = 1; // clamp(pow(abs(1 - dot(direction, vec3(0, 1, 0))), 1.05), 0, 1);
 
 	/*	*/
-	const vec2 irradiance_uv = inverse_equirectangular(direction);
+	const vec2 irradiance_uv = inverse_equirectangular(-direction);
 	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
 
 	const float depth = texture(DepthTexture, screenUV).r;
 
-	const float fogFactor = getFogFactor(ubo.fogSettings, depth);
+	const float fogFactor = min(getFogFactor(ubo.fogSettings, depth), 1);
 
-	fragColor.rgb = mix(texture(ColorTexture, screenUV).rgb, irradiance_color.rgb * ubo.fogSettings.fogColor.rgb,
-						clamp(fogFactor * aat, 0, 1));
-	// fragColor.rgb = vec3(aat); // direction;
+	const float mistFactor = clamp(fogFactor * aat, 0, 1);
+	fragColor.rgb =
+		mix(texture(ColorTexture, screenUV).rgb, irradiance_color.rgb * ubo.fogSettings.fogColor.rgb, mistFactor);
 	fragColor.a = 1;
 }

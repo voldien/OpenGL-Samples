@@ -19,6 +19,7 @@ vec3 FresnelSteinberg(const in vec3 F0, const in vec3 V, const in vec3 N) { retu
 
 vec3 getNormalFromMap(const in sampler2D normalMap, const in vec2 TexCoords, const in vec3 WorldPos,
 					  const in vec3 Normal) {
+
 	const vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
 
 	const vec3 Q1 = dFdx(WorldPos);

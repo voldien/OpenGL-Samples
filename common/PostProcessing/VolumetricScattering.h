@@ -47,6 +47,7 @@ namespace glsample {
 			float _Weight = 2.8;
 			float _Exposure = 4.2;
 			glm::vec2 lightPosition = glm::vec2(0.5f, 0.8);
+			glm::vec4 color = glm::vec4(1, 1, 1, 1);
 		};
 
 		VolumetricScatteringSettings volumetricScatteringSettings;
