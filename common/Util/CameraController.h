@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Input.h"
 #include "Util/Camera.h"
 #include <SDL2/SDL_keyboard.h>
 #include <SDLInput.h>
@@ -29,6 +30,7 @@ namespace glsample {
 	 */
 	class FVDECLSPEC CameraController : public Camera {
 	  public:
+		CameraController();
 		~CameraController() override = default;
 
 		void update(const float deltaTime) noexcept;
@@ -77,6 +79,7 @@ namespace glsample {
 		glm::vec3 pos = {0.0f, 1.0f, 0.0f};
 		glm::vec3 look = {0.0f, 0.0f, 1.0f};
 		glm::vec3 up = {0.0f, 1.0f, 0.0f};
+		Input *input;
 	};
 
 } // namespace glsample

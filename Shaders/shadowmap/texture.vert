@@ -18,6 +18,7 @@ layout(location = 4) out vec4 lightSpace;
 
 #include "common.glsl"
 #include "phongblinn.glsl"
+#include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -42,7 +43,10 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 void main() {
-	gl_Position = ubo.modelViewProjection * vec4(Vertex, 1.0);
+	const mat4 model = getModel();
+	const mat4 viewProj = getCamera().viewProj;
+
+	gl_Position = (viewProj * model) * vec4(Vertex, 1.0);
 	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
 	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
 	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;

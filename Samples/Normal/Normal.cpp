@@ -27,13 +27,13 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProj;
-			glm::mat4 modelViewProjection;
+		struct alignas(16) uniform_buffer_block {
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProj{};
+			glm::mat4 modelViewProjection{};
 
 			/*	*/
 			float normalLength = 1.0f;
@@ -44,16 +44,16 @@ namespace glsample {
 		std::vector<MeshObject> refObj;
 
 		/*	Textures.	*/
-		unsigned int diffuse_texture;
+		unsigned int diffuse_texture{};
 
 		/*	*/
-		unsigned int graphic_program;
-		unsigned int normal_vertex_program;
-		unsigned int normal_triangle_program;
+		unsigned int graphic_program{};
+		unsigned int normal_vertex_program{};
+		unsigned int normal_triangle_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 

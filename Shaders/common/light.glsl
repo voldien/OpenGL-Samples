@@ -21,9 +21,8 @@ float computeLightContributionFactor(const in vec3 direction, const in vec3 norm
 	return max(0.0, dot(-direction, normalInput));
 }
 
-
 vec4 computePoint(const in PointLight light, const in vec3 normal, const in vec3 vertex, const in float shininess,
-					   const in vec3 specularColor) {
+				  const in vec3 specularColor) {
 
 	/*	*/
 	vec3 diffVertex = (light.position - vertex);
@@ -42,7 +41,6 @@ vec4 computePoint(const in PointLight light, const in vec3 normal, const in vec3
 
 	return vec4(pointLightColors.rgb, 1);
 }
-
 
 // Shadow.
 

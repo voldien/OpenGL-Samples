@@ -10,10 +10,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 viewProjection;
 	mat4 modelViewProjection;
 
-	//	light_settings lightsettings;
 	tessellation_settings tessellation;
-	/*	Camera settings.	*/
-	Camera camera;
 }
 ubo;
 

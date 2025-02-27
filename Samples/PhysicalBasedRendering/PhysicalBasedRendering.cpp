@@ -156,9 +156,6 @@ namespace glsample {
 						   (int)TextureType::Displacement);
 			glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"),
 						   (int)TextureType::Irradiance);
-			// glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"),
-			// 			   (int)TextureType::Irradiance);
-
 			glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
@@ -187,7 +184,7 @@ namespace glsample {
 			glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
-			
+
 			/*	*/
 			glUseProgram(this->skybox_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");

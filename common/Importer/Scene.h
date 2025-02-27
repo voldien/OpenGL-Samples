@@ -38,15 +38,6 @@ namespace glsample {
 		DepthBuffer = 13,	  /*	*/
 	};
 
-	enum class TexturePBRType : unsigned int {
-		Albedo = 0,		  /*	*/
-		Normal,			  /*	*/
-		Metal,			  /*	*/
-		Roughness,		  /*	*/
-		AmbientOcclusion, /*	*/
-		Displacement,	  /*	*/
-	};
-
 	enum RenderQueue {
 		Background = 500,	 /*  */
 		Geometry = 1000,	 /*  */
@@ -109,13 +100,14 @@ namespace glsample {
 		RenderQueue getQueueDomain(const MaterialObject &material) const noexcept;
 
 	  protected:
-		using GlobalRenderSettings = struct _global_rendering_settings_t {
+		using GlobalRenderSettings = struct alignas(16) _global_rendering_settings_t {
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
 			unsigned int IrradianceTexture = 0;
 			FogSettings fogSettings;
 			unsigned int FrustumCullingMode = 0;
 		};
-		using CommonConstantData = struct common_constant_data_t {
+		using CommonConstantData = struct alignas(16) common_constant_data_t {
+			// TODO: keep multi frame camera frustum.
 			CameraInstance camera;
 			FrustumInstance frustum{};
 
@@ -127,16 +119,16 @@ namespace glsample {
 
 			glm::vec4 time;
 		};
-		using NodeData = struct _node_data_t {
+		using NodeData = struct alignas(16) _node_data_t {
 			glm::mat4 model;
 		};
-		using LightData = struct _light_data_t {
+		using LightData = struct alignas(16) _light_data_t {
 			DirectionalLight directional[8];
 			PointLightInstance pointLight[16];
 			unsigned int directionalCount = 0;
 			unsigned int pointCount = 0;
 		};
-		using MaterialData = struct _material_data_t {
+		using MaterialData = struct alignas(16) _material_data_t {
 			glm::vec4 ambientColor;
 			glm::vec4 diffuseColor;
 			glm::vec4 transparency;

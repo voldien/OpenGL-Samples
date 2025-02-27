@@ -4,7 +4,10 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
-layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+precision mediump float;
+precision mediump int;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(rgba8, binding = 0) uniform writeonly image2D img_output;
 
@@ -53,11 +56,10 @@ vec4 computeMandel(in vec2 uv) {
 		}
 	}
 
-	if (i >= samples - 1) {
-		i = 0;
-	}
+	const float no_sample = step(i, samples - 1);
+	const float interpolate = (float(i) / float(samples)) * no_sample;
 
-	const float t = float(i) / float(samples);
+	const float t = interpolate;
 	const vec3 d = vec3(0.3, 0.3, 0.5);
 	const vec3 e = vec3(-0.2, -0.3, -0.5);
 	const vec3 f = vec3(2.1, 2.0, 3.0);

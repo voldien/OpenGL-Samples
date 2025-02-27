@@ -1,6 +1,7 @@
 #include "ModelViewer.h"
 #include "ImageImport.h"
 #include "ModelImporter.h"
+#include "Scene.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -15,12 +16,12 @@ namespace glsample {
 	ModelViewer::ModelViewer() {
 		this->setTitle("Model Viewer");
 
-		this->modelviewerSettingComponent = std::make_shared<ModelViewerSettingComponent>(this->uniformStageBuffer);
+		this->modelviewerSettingComponent = std::make_shared<ModelViewerSettingComponent>(*this);
 		this->addUIComponent(this->modelviewerSettingComponent);
 
 		/*	Default camera position and orientation.	*/
-		this->camera.setPosition(glm::vec3(-2.5f));
-		this->camera.lookAt(glm::vec3(0.f));
+		this->cameraController.setPosition(glm::vec3(20.5f));
+		this->cameraController.lookAt(glm::vec3(0.f));
 	}
 
 	void ModelViewer::Release() {}
@@ -47,9 +48,8 @@ namespace glsample {
 			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shader	*/
-			this->physical_based_rendering_program =
-				ShaderLoader::loadGraphicProgram(compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary, nullptr,
-												 &pbr_control_binary, &pbr_evolution_binary);
+			this->physical_based_rendering_program = ShaderLoader::loadGraphicProgram(
+				compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary, nullptr, nullptr, nullptr);
 
 			/*	Create skybox graphic pipeline program.	*/
 			this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
@@ -59,8 +59,20 @@ namespace glsample {
 		glUseProgram(this->physical_based_rendering_program);
 		int uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
 
-		glUniform1i(glGetUniformLocation(this->physical_based_rendering_program, "albedoMap"), 0);
-		glUniform1i(glGetUniformLocation(this->physical_based_rendering_program, "normalMap"), 1);
+		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DiffuseTexture"),
+					   (int)TextureType::Diffuse);
+		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "NormalTexture"),
+					   (int)TextureType::Normal);
+		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "AOTexture"),
+					   (int)TextureType::AmbientOcclusion);
+		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "RoughnessTexture"),
+					   (int)TextureType::Specular);
+		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DisplacementTexture"),
+					   (int)TextureType::Displacement);
+		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "EmissionTexture"),
+					   (int)TextureType::Emission);
+		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"),
+					   (int)TextureType::Irradiance);
 		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index, 0);
 
 		glUseProgram(0);
@@ -69,6 +81,9 @@ namespace glsample {
 		TextureImporter textureImporter(this->getFileSystem());
 		unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
 		this->skybox.Init(skytexture, this->skybox_program);
+
+		ProcessData util(this->getFileSystem());
+		util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
 
 		/*	*/
 		ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
@@ -98,43 +113,42 @@ namespace glsample {
 						  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
 						  this->uniformAlignBufferSize);
 
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
 		/*	Set render viewport size in pixels.	*/
 		glViewport(0, 0, width, height);
 		/*	Clear default framebuffer color attachment.	*/
-		glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_DEPTH_BUFFER_BIT);
 
 		{
+			glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+			glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+
+			glCullFace(GL_BACK);
 
 			/*	Bind shader pipeline.	*/
 			glUseProgram(this->physical_based_rendering_program);
-			this->scene.render();
+			this->scene.render(&this->cameraController);
 			glUseProgram(0);
 		}
 
-		this->skybox.Render(this->camera);
+		this->skybox.Render(this->cameraController);
 	}
 
 	void ModelViewer::update() {
 		/*	Update Camera.	*/
-		const float elapsedTime = this->getTimer().getElapsed<float>();
-		this->camera.update(this->getTimer().deltaTime<float>());
+		this->cameraController.update(this->getTimer().deltaTime<float>());
+		this->scene.update(this->getTimer().deltaTime<float>());
 
 		/*	*/
 		{
 			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model = glm::rotate(
-				this->uniformStageBuffer.model, glm::radians(elapsedTime * 12.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(2.95f));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.0f));
 
-			this->uniformStageBuffer.view = this->camera.getViewMatrix();
-			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
+			this->uniformStageBuffer.view = this->cameraController.getViewMatrix();
+			this->uniformStageBuffer.proj = this->cameraController.getProjectionMatrix();
 			this->uniformStageBuffer.viewProjection = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
 			this->uniformStageBuffer.modelViewProjection =
 				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
-
-			this->uniformStageBuffer.camera.gEyeWorldPos = glm::vec4(this->camera.getPosition(), 0);
 		}
 
 		/*	*/

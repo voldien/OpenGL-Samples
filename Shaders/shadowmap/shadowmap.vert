@@ -12,6 +12,7 @@ layout(location = 0) out vec2 UV;
 
 #include "common.glsl"
 #include "phongblinn.glsl"
+#include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -31,11 +32,13 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 
 	float bias;
 	float shadowStrength;
-		float radius;
+	float radius;
 }
 ubo;
 
 void main() {
-	gl_Position = ubo.lightSpaceMatrix * ubo.model * vec4(Vertex, 1.0);
+	const mat4 model = getModel();
+
+	gl_Position = ubo.lightSpaceMatrix * model * vec4(Vertex, 1.0);
 	UV = TextureCoord;
 }

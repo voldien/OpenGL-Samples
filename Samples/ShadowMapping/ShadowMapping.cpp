@@ -373,7 +373,7 @@ namespace glsample {
 				glViewport(0, 0, width, height);
 
 				/*	*/
-				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+				glClear(GL_DEPTH_BUFFER_BIT);
 
 				/*	*/
 				if (this->shadowSettingComponent->use_pcf) {
@@ -383,9 +383,6 @@ namespace glsample {
 				}
 
 				glCullFace(GL_BACK);
-				// glDisable(GL_CULL_FACE);
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + shadowBinding);

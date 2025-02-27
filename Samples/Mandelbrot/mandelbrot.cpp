@@ -92,6 +92,9 @@ namespace glsample {
 				const std::vector<uint32_t> mandelbrot_binary =
 					IOUtil::readFileData<uint32_t>(this->computeMandelbrotShaderPath, this->getFileSystem());
 
+				const std::vector<uint32_t> julia_binary =
+					IOUtil::readFileData<uint32_t>(this->computeJuliaShaderPath, this->getFileSystem());
+
 				/*	*/
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -99,9 +102,6 @@ namespace glsample {
 
 				/*	Load shader	*/
 				this->mandelbrot_program = ShaderLoader::loadComputeProgram(compilerOptions, &mandelbrot_binary);
-
-				const std::vector<uint32_t> julia_binary =
-					IOUtil::readFileData<uint32_t>(this->computeJuliaShaderPath, this->getFileSystem());
 
 				/*	Load shader	*/
 				this->julia_program = ShaderLoader::loadComputeProgram(compilerOptions, &julia_binary);
@@ -196,8 +196,12 @@ namespace glsample {
 
 				glBindImageTexture(0, this->mandelbrot_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
-				glDispatchCompute(std::ceil(this->mandelbrot_texture_width / (float)localWorkGroupSize[0]),
-								  std::ceil(this->mandelbrot_texture_height / (float)localWorkGroupSize[1]), 1);
+				const unsigned int WorkGroupX =
+					std::ceil(this->mandelbrot_texture_width / (float)localWorkGroupSize[0]);
+				const unsigned int WorkGroupY =
+					std::ceil(this->mandelbrot_texture_height / (float)localWorkGroupSize[1]);
+
+				glDispatchCompute(WorkGroupX, WorkGroupY, 1);
 
 				glUseProgram(0);
 				/*	Wait in till image has been written.	*/

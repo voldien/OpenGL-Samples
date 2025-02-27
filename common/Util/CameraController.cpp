@@ -1,4 +1,5 @@
 #include "CameraController.h"
+#include "SDLWindowManager.h"
 #include "flythrough_camera.h"
 #include <Input.h>
 #include <SDL2/SDL_events.h>
@@ -14,6 +15,8 @@
 #include <glm/gtx/rotate_vector.hpp>
 
 using namespace glsample;
+
+CameraController::CameraController() { this->input = new SDLInput(); }
 
 void CameraController::update(const float deltaTime) noexcept {
 

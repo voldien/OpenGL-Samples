@@ -111,7 +111,7 @@ namespace glsample {
 			this->far = camera.getFar();
 			this->proj = camera.getProjectionMatrix();
 			this->inverseProj = glm::inverse(camera.getProjectionMatrix());
-			
+
 			return *this;
 		}
 		/*	*/
@@ -123,7 +123,6 @@ namespace glsample {
 			this->proj = camera.getProjectionMatrix();
 			this->inverseProj = glm::inverse(camera.getProjectionMatrix());
 			this->position = glm::vec4(camera.getPosition(), 0);
-
 
 			this->near = camera.getNear();
 			this->far = camera.getFar();
@@ -163,6 +162,7 @@ namespace glsample {
 		std::array<unsigned int, 16> attachments;
 		unsigned int nrAttachments = 0;
 		unsigned int depthbuffer = 0;
+		std::array<unsigned int, 16> internalformats;
 	};
 
 	template <typename T, int m, int n>

@@ -16,6 +16,7 @@ settings;
 #include "common.glsl"
 #include "noise.glsl"
 
+// TODO: move to common
 float calculateHeightDisplacement(const vec3 position, const vec2 tile_noise, const int octave) {
 	const float lacunarity = 2.0f;
 	const float persistence = 0.5f;

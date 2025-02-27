@@ -75,15 +75,23 @@ layout(binding = 10) uniform sampler2D IrradianceTexture;
 layout(binding = 11) uniform samplerCube prefilterMap;
 layout(binding = 12) uniform sampler2D brdfLUT;
 
-material getMaterial() { return MaterialUBO.materials[0]; }
+
 mat4 getModel() { return NodeUBO.node[0].model; }
 
+/*	*/
+material getMaterial() { return MaterialUBO.materials[0]; }
+
+
+/*	*/
 uint getDirectionalLightCount() { return LightUBO.light.directionalCount; }
 uint getPointLightCount() { return LightUBO.light.pointCount; }
 
+/*	*/
 DirectionalLight getDirectional(const in int index) { return LightUBO.light.directional[index]; }
 PointLight getPointLight(const in int index) { return LightUBO.light.point[index]; }
 
+/*	*/
 Camera getCamera() {return constantCommon.constant.camera;}
+
 
 #endif

@@ -62,7 +62,6 @@ void main() {
 
 	/*	*/
 	colorResult /= float(settings.numSamples);
-
 	colorResult *= settings._Exposure;
 
 	/*	*/

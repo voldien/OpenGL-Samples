@@ -1,0 +1,26 @@
+#version 460 core
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D SourceTexture;
+layout(set = 0, binding = 1, rgba16f) uniform writeonly imageCube TargetTexture;
+
+#include "common.glsl"
+
+void main() {
+
+	/*  */
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(TargetTexture).xy))) {
+		return;
+	}
+
+	/*	Get pixel coordinate.	*/
+	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+	const vec2 normalized_uv_coords = vec2(pixel_coords) / imageSize(TargetTexture).xy;
+
+	const vec4 normal = bump(SourceTexture, normalized_uv_coords, 1);
+
+//	imageStore(TargetTexture, pixel_coords, normal);
+}

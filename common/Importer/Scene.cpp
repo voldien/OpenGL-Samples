@@ -99,7 +99,6 @@ namespace glsample {
 			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(CommonConstantData), minMapBufferSize);
 			this->UBOStructure.common_size_total_align =
 				this->UBOStructure.common_size_align * UniformDataStructure::nrUniformBuffer;
-
 			this->UBOStructure.common_offset = 0;
 
 			this->UBOStructure.node_size_align = Math::align<size_t>(1 << 16, minMapBufferSize);
@@ -140,6 +139,10 @@ namespace glsample {
 				this->stageNodeData = (NodeData *)&pdata[this->UBOStructure.common_size_total_align];
 				this->stageMaterialData = (MaterialData *)&pdata[this->UBOStructure.common_size_total_align +
 																 this->UBOStructure.node_size_total_align];
+
+				this->lightData = (LightData *)&pdata[this->UBOStructure.common_size_total_align +
+													  this->UBOStructure.node_size_total_align +
+													  this->UBOStructure.material_align_total_size];
 
 			} else {
 				glBufferData(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_DYNAMIC_DRAW);
@@ -308,7 +311,7 @@ namespace glsample {
 		} else {
 			texture_id = this->default_textures[texture_type];
 		}
-		
+
 		/*	*/
 		if (glBindTextures) {
 			glBindTextures(textureMapIndex, 1, &texture_id);
@@ -336,7 +339,8 @@ namespace glsample {
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_buffer_binding,
 								  this->UBOStructure.node_and_common_uniform_buffer,
 								  this->UBOStructure.material_offset +
-									  node->materialIndex[geo_index] * sizeof(MaterialData),
+									  node->materialIndex[geo_index] *
+										  sizeof(MaterialData), // TODO: fix uniform alignment.
 								  this->UBOStructure.material_align_size);
 
 				this->bindTexture(material, TextureType::Diffuse);
@@ -524,6 +528,23 @@ namespace glsample {
 				/*	*/
 				ImGui::TreePop();
 			}
+			if (ImGui::BeginChild("Light Settings")) {
+				size_t material_index = 0;
+
+				ImGui::TextUnformatted("PointLight");
+				for (; material_index < this->lightData->pointCount; material_index++) {
+					ImGui::PushID(material_index);
+					ImGui::PopID();
+				}
+
+				ImGui::TextUnformatted("DirectionalLight");
+				for (; material_index < this->lightData->directionalCount; material_index++) {
+					ImGui::PushID(material_index);
+					ImGui::PopID();
+				}
+			}
+			ImGui::EndChild();
+
 			if (ImGui::BeginChild("Materials")) {
 				size_t material_index = 0;
 				for (; material_index < this->materials.size(); material_index++) {

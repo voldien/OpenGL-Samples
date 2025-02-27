@@ -73,9 +73,12 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 				"W,width", "Set Window Width", cxxopts::value<int>()->default_value("-1"))(
 				"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"))(
 				"D,display", "Display", cxxopts::value<int>()->default_value("-1"))(
-				"m,multi-sample", "Set MSAA", cxxopts::value<int>()->default_value("0"))(
+				"R,dynamic-range", "Set Dynamic Range ldr,hdr16,hdr32",
+				cxxopts::value<std::string>()->default_value("hdr16"))("m,multi-sample", "Set MSAA",
+																	   cxxopts::value<int>()->default_value("0"))(
 				"p,use-postprocessing", "Use Post Processing", cxxopts::value<bool>()->default_value("true"))(
-				"s,glsl-version", "Override glsl version from system (110,120,130,140,150,330...)", cxxopts::value<int>()->default_value("-1"));
+				"s,glsl-version", "Override glsl version from system (110,120,130,140,150,330...)",
+				cxxopts::value<int>()->default_value("-1"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);

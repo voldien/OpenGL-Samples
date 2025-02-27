@@ -1,25 +1,29 @@
 #version 460
 #extension GL_ARB_derivative_control : enable
-//#extension GL_ARB_compute_variable_group_size : disable
+#extension GL_EXT_fragment_shading_rate : enable
 #extension GL_ARB_enhanced_layouts : enable
 #extension GL_ARB_shader_image_load_store : enable
 #extension GL_ARB_explicit_attrib_location : enable
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(binding = 1, rgba16) uniform readonly image2D ColorTexture;
-
-layout(binding = 0, r8ui) uniform coherent writeonly uimage2D variableRateLUT;
+layout(binding = 0, rgba16) uniform readonly image2D ColorTexture;
+layout(binding = 1, r8ui) uniform writeonly uimage2D VariableRateLUT;
 
 void main() {
+
+	/*	*/
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(VariableRateLUT)))) {
+		return;
+	}
 
 	// Get output fragcolor texture coordinate.
 	ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
-	ivec2 fragSize = imageSize(variableRateLUT);
+	ivec2 fragSize = imageSize(VariableRateLUT);
 	ivec2 TexSize = imageSize(ColorTexture);
 
 	float distance = imageLoad(ColorTexture, TexCoord).r;
 
-	imageStore(variableRateLUT, TexCoord, uvec4(1.0));
+	imageStore(VariableRateLUT, TexCoord, uvec4(3));
 }

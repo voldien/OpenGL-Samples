@@ -236,14 +236,18 @@ GLSampleWindow::~GLSampleWindow() {
 void GLSampleWindow::internalInit() {
 
 	/*	*/
-	const bool usePostProcessing = true;
+	const size_t use_post_process = this->getResult()["use-postprocessing"].as<bool>();
+	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
+	const std::string dynamicRange = this->getResult()["dynamic-range"].as<std::string>();
+	const bool useFBO = multi_sample_count > 0 || use_post_process || true; // TODO: fix conditions.
+
 	if (this->colorSpace == nullptr) {
 
 		// TODO: add try catch.
 		this->colorSpace = new ColorSpaceConverter();
 		this->colorSpace->initialize(getFileSystem());
 
-		if (usePostProcessing) {
+		if (use_post_process) {
 			this->postprocessingManager = new PostProcessingManager();
 
 			SSAOPostProcessing *ssao = new SSAOPostProcessing();
@@ -296,9 +300,7 @@ void GLSampleWindow::internalInit() {
 		}
 	}
 
-	/*	*/
-	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
-	const bool useFBO = true;
+	/*	Multi sampling.	*/
 	if (this->MMSAFrameBuffer == nullptr && multi_sample_count > 0) {
 
 		this->MMSAFrameBuffer = new glsample::FrameBuffer();
@@ -306,7 +308,7 @@ void GLSampleWindow::internalInit() {
 		Common::createFrameBuffer(MMSAFrameBuffer, 1);
 	}
 
-	/*	*/
+	/*	Framebuffer.	*/
 	if (this->defaultFramebuffer == nullptr && useFBO) {
 		this->defaultFramebuffer = new glsample::FrameBuffer();
 		memset(defaultFramebuffer, 0, sizeof(*this->defaultFramebuffer));
@@ -429,7 +431,7 @@ void GLSampleWindow::renderUI() {
 	/*	Extract debugging information.	*/
 	if (this->debugGL) {
 
-		//glGetQueryObjectiv(queries[N-1], GL_QUERY_RESULT_AVAILABLE, &available);
+		// glGetQueryObjectiv(queries[N-1], GL_QUERY_RESULT_AVAILABLE, &available);
 		glEndQuery(GL_TIME_ELAPSED);
 		glEndQuery(GL_SAMPLES_PASSED);
 		glEndQuery(GL_PRIMITIVES_GENERATED);
@@ -437,7 +439,7 @@ void GLSampleWindow::renderUI() {
 		glEndQuery(GL_FRAGMENT_SHADER_INVOCATIONS_ARB);
 
 		int nrPrimitives = 0, nrSamples = 0, time_elasped = 0;
-	//	glGetQueryObjectui64v
+		//	glGetQueryObjectui64v
 		glGetQueryObjectiv(this->queries[0], GL_QUERY_RESULT, &time_elasped);
 		glGetQueryObjectiv(this->queries[1], GL_QUERY_RESULT, &nrSamples);
 		glGetQueryObjectiv(this->queries[2], GL_QUERY_RESULT, &nrPrimitives);
@@ -656,6 +658,8 @@ void GLSampleWindow::createDefaultFrameBuffer() {
 void GLSampleWindow::updateDefaultFramebuffer() {
 
 	const unsigned int multi_sample_count = this->getResult()["multi-sample"].as<int>();
+	const std::string dynamicRange = this->getResult()["dynamic-range"].as<std::string>();
+
 	if (this->MMSAFrameBuffer) {
 		Common::updateFrameBuffer(this->MMSAFrameBuffer,
 								  {{

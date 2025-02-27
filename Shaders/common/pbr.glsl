@@ -70,4 +70,49 @@ float GeometrySmith(const in vec3 N, const in vec3 V, const in vec3 L, const in 
 	return ggx1 * ggx2;
 }
 
+vec4 computePBRPoint(const in PointLight light, const in vec3 normal, const in vec3 vertex, const in float shininess,
+					 const in vec3 specularColor) {
+	// reflectance equation
+	// // reflectance equation
+	// vec3 Lo = vec3(0.0);
+	// for (uint i = 0; i <= 0; ++i) {
+
+	// 	// calculate per-light radiance
+	// 	vec3 L = vec3(0); // normalize(ubo.lightsettings.point_light[i].position - WorldPos);
+	// 	vec3 H = normalize(V + L);
+	// 	float distance = 1; // length(ubo.lightsettings.point_light[i].position - WorldPos);
+	// 	float attenuation = 1.0 / (distance * distance);
+	// 	vec3 radiance = vec3(0); // ubo.lightsettings.point_light[i].color.rgb * attenuation;
+
+	// 	// Cook-Torrance BRDF
+	// 	float NDF = DistributionGGX(N, H, roughness);
+	// 	float G = GeometrySmith(N, V, L, roughness);
+	// 	const vec3 F = vec3(0); // fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+	// 	const vec3 numerator = NDF * G * F;
+	// 	const float denominator =
+	// 		4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
+	// 	vec3 specular = numerator / denominator;
+
+	// 	// kS is equal to Fresnel
+	// 	vec3 kS = F;
+	// 	// for energy conservation, the diffuse and specular light can't
+	// 	// be above 1.0 (unless the surface emits light); to preserve this
+	// 	// relationship the diffuse component (kD) should equal 1.0 - kS.
+	// 	vec3 kD = vec3(1.0) - kS;
+	// 	// multiply kD by the inverse metalness such that only non-metals
+	// 	// have diffuse lighting, or a linear blend if partly metal (pure metals
+	// 	// have no diffuse light).
+	// 	kD *= 1.0 - metallic;
+
+	// 	// scale light by NdotL
+	// 	float NdotL = max(dot(N, L), 0.0);
+
+	// 	// add to outgoing radiance Lo
+	// 	Lo += (kD * albedo / PI + specular) * radiance * NdotL; // note that we already multiplied the BRDF by the
+	// 															// Fresnel (kS) so we won't multiply by kS again
+	// }
+	return vec4(0);
+}
+
 #endif
