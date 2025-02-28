@@ -9,13 +9,14 @@ layout(location = 0) in vec3 WorldPos;
 layout(location = 1) in vec2 TexCoords;
 layout(location = 2) in vec3 Normal;
 layout(location = 3) in vec3 Tangent;
+layout(location = 8) flat in ivec2 fAssigns;
 
 #include "pbr.glsl"
 #include "pbr_common.glsl"
 
 void main() {
 
-	const material mat = getMaterial();
+	const material mat = getMaterial(fAssigns.x);
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
 	/*	material properties	*/

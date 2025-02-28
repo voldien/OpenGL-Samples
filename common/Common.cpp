@@ -3,6 +3,7 @@
 #include "GLSampleSession.h"
 #include "RenderDesc.h"
 #include <ProceduralGeometry.h>
+#include <internal_object_type.h>
 
 using namespace glsample;
 using namespace fragcore;
@@ -195,7 +196,7 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 		const unsigned int height = target_desc.height;
 		const unsigned int depth = target_desc.depth;
 		const unsigned int multisamples = target_desc.nrSamples;
-		const GLenum internal_format = GL_RGBA16F;
+		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(target_desc.graphicFormat); // GL_RGBA16F;
 
 		GLenum texture_type = GL_TEXTURE_2D;
 		if (depth > 1) {
@@ -264,6 +265,7 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 		const unsigned int width = depthstencil.width;
 		const unsigned int height = depthstencil.height;
 		const unsigned int depth = depthstencil.depth;
+		const unsigned int depth_internal = GL_DEPTH_COMPONENT32;
 
 		GLenum texture_type = GL_TEXTURE_2D;
 		if (multisamples > 0) {
@@ -273,10 +275,9 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 		/*	*/
 		glBindTexture(texture_type, framebuffer->depthbuffer);
 		if (multisamples > 0) {
-			glTexImage2DMultisample(texture_type, multisamples, GL_DEPTH_COMPONENT32, width, height, GL_TRUE);
+			glTexImage2DMultisample(texture_type, multisamples, depth_internal, width, height, GL_TRUE);
 		} else {
-			glTexImage2D(texture_type, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
-						 nullptr);
+			glTexImage2D(texture_type, 0, depth_internal, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 		}
 
 		if (multisamples == 0) {

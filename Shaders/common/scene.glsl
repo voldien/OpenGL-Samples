@@ -75,12 +75,11 @@ layout(binding = 10) uniform sampler2D IrradianceTexture;
 layout(binding = 11) uniform samplerCube prefilterMap;
 layout(binding = 12) uniform sampler2D brdfLUT;
 
-
 mat4 getModel() { return NodeUBO.node[0].model; }
 
 /*	*/
-material getMaterial() { return MaterialUBO.materials[0]; }
-
+material getMaterial(const int index) { return MaterialUBO.materials[index]; }
+material getMaterial() { return getMaterial(0); }
 
 /*	*/
 uint getDirectionalLightCount() { return LightUBO.light.directionalCount; }

@@ -75,6 +75,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	size_t getFrameBufferIndex() const noexcept { return this->frameBufferIndex; }
 	size_t getFrameBufferCount() const noexcept { return this->getNumberFrameBuffers(); }
 
+	bool isDebug()const noexcept;
 	void debug(const bool enable);
 
 	void captureScreenShot();

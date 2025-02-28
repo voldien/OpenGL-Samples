@@ -1,0 +1,31 @@
+#version 460
+#extension GL_ARB_derivative_control : enable
+#extension GL_EXT_fragment_shading_rate : enable
+#extension GL_ARB_enhanced_layouts : enable
+#extension GL_ARB_shader_image_load_store : enable
+#extension GL_ARB_explicit_attrib_location : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, r8ui) uniform readonly uimage2D VariableRateLUT;
+layout(set = 0, binding = 1, rgba16f) uniform writeonly image2D ColorTexture;
+
+#include "common.glsl"
+
+void main() {
+
+	/*	*/
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(VariableRateLUT)))) {
+		return;
+	}
+	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
+
+	uvec4 lut = imageLoad(VariableRateLUT, TexCoord);
+	const float red = rand(lut.x * 100);
+	const float green = rand(lut.x * 100 +100);
+	const float blue = rand(lut.x * 100 + 200);
+
+	imageStore(ColorTexture, TexCoord, vec4(red, green, blue, 1));
+}

@@ -1,0 +1,62 @@
+#version 460
+#extension GL_ARB_derivative_control : enable
+#extension GL_EXT_fragment_shading_rate : enable
+#extension GL_ARB_enhanced_layouts : enable
+#extension GL_ARB_shader_image_load_store : enable
+#extension GL_ARB_explicit_attrib_location : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D DepthTexture;
+layout(binding = 1, r8ui) uniform writeonly uimage2D VariableRateLUT;
+
+#include "texture.glsl"
+
+void main() {
+
+	/*	*/
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(VariableRateLUT)))) {
+		return;
+	}
+
+	// Compute sample coordinate.
+	ivec2 TexDiff = ivec2(1, 1);
+	ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
+	// TODO: fix sample position.
+
+	const vec2 sourceSize = textureSize(DepthTexture, 0);
+	const vec2 source_texel_size = (1.0 / sourceSize);
+
+	// TODO add recompute of the sample kernel coordinates.
+	const ivec2 lb = ivec2(-1 * TexDiff.x, -1 * TexDiff.y);
+	const vec4 p00 = texture(DepthTexture, TexCoord + lb);
+	const ivec2 b = ivec2(0.0 * TexDiff.x, -1 * TexDiff.y);
+	const vec4 p10 = texture(DepthTexture, TexCoord + b);
+	const ivec2 rb = ivec2(1 * TexDiff.x, -1 * TexDiff.y);
+	const vec4 p20 = texture(DepthTexture, TexCoord + rb);
+
+	const ivec2 l = ivec2(-1 * TexDiff.x, 0.0 * TexDiff.y);
+	const vec4 p01 = texture(DepthTexture, TexCoord + l);
+	const ivec2 r = ivec2(1 * TexDiff.x, 0.0 * TexDiff.y);
+	const vec4 p21 = texture(DepthTexture, TexCoord + r);
+
+	const ivec2 lt = ivec2(-1 * TexDiff.x, 1 * TexDiff.y);
+	const vec4 p02 = texture(DepthTexture, TexCoord + lt);
+	const ivec2 t = ivec2(-1 * TexDiff.x, 1 * TexDiff.y);
+	const vec4 p12 = texture(DepthTexture, TexCoord + t);
+	const ivec2 rt = ivec2(1 * TexDiff.x, 1 * TexDiff.y);
+	const vec4 p22 = texture(DepthTexture, TexCoord + rt);
+
+	/* Compute Matrix X and Y.	*/
+	const vec3 gx = -p00.xyz + p20.xyz + 2.0 * (p21.xyz - p01.xyz) - p02.xyz + p22.xyz;
+	const vec3 gy = -p00.xyz - p20.xyz + 2.0 * (p12.xyz - p10.xyz) + p02.xyz + p22.xyz;
+
+	/* Compute the final.	*/
+	const vec3 edgeColor = sqrt(gx * gx + gy * gy);
+
+	uint index = clamp(1 + 3 - uint(edgeColor * 3), 1, 15);
+
+	imageStore(VariableRateLUT, TexCoord, uvec4(index));
+}

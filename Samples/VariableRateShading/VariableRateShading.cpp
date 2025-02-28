@@ -1,3 +1,4 @@
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -16,30 +17,49 @@ namespace glsample {
 	 */
 	class VariableRateShading : public ModelViewer {
 	  public:
-		VariableRateShading() : ModelViewer() { this->setTitle("Variable Rate Shading (VRS)"); }
+		VariableRateShading() : ModelViewer() {
+			this->setTitle("Variable Rate Shading (VRS)");
 
-		unsigned int variable_rate_program{};
+			this->variableRateSettingComponent = std::make_shared<VariableRateShadingSettingComponent>(*this);
+			this->addUIComponent(this->variableRateSettingComponent);
+		}
+
+		unsigned int variable_rate_color_program{};
+		unsigned int variable_depth_edge_rate_program{};
+		unsigned int variable_visual_edge_rate_program{};
 		int localWorkGroupSize[3]{};
 		unsigned int variable_rate_lut_texture = 0;
-
-		/*	G-Buffer	*/
-		unsigned int multipass_framebuffer{};
+		unsigned int variable_rate_visual_texture = 0;
 
 		unsigned int nthTexture = 0;
-		unsigned int multipass_texture_width{};
-		unsigned int multipass_texture_height{};
-		std::vector<unsigned int> multipass_textures;
-		unsigned int depthTexture{};
 
-		const std::string computeShaderPath = "Shaders/variablerateshading/variablerateshading.comp.spv";
+		const std::string VRS_color_edge_ShaderPath = "Shaders/variablerateshading/variablerateshading.comp.spv";
+		const std::string VRS_depth_dege_ShaderPath = "Shaders/variablerateshading/variablerateshading_depth.comp.spv";
+		const std::string VRS_visual_VShaderPath = "Shaders/variablerateshading/variablerateshading_visual.comp.spv";
+
+		class VariableRateShadingSettingComponent : public GLUIComponent<VariableRateShading> {
+
+		  public:
+			VariableRateShadingSettingComponent(VariableRateShading &sample)
+				: GLUIComponent(sample), uniform(sample.uniformStageBuffer) {
+				this->setName("Variable Rate");
+			}
+			void draw() override {
+				ImGui::Image(this->getRefSample().variable_rate_visual_texture, ImVec2(256, 256), ImVec2(1, 1),
+							 ImVec2(0, 0));
+			}
+
+			bool showWireFrame = false;
+
+		  private:
+			struct uniform_buffer_block &uniform;
+		};
+		std::shared_ptr<VariableRateShadingSettingComponent> variableRateSettingComponent;
 
 		void Release() override {
 			ModelViewer::Release();
 
-			glDeleteProgram(this->variable_rate_program);
-			/*	*/
-			glDeleteTextures(1, &this->depthTexture);
-			glDeleteTextures(this->multipass_textures.size(), this->multipass_textures.data());
+			glDeleteProgram(this->variable_rate_color_program);
 		}
 
 		void Initialize() override {
@@ -48,8 +68,10 @@ namespace glsample {
 
 			{
 				/*	Load shader binaries.	*/
-				const std::vector<uint32_t> variable_rate_shading_compute_binary =
-					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> variable_rate_shading_edgecolor_compute_binary =
+					IOUtil::readFileData<uint32_t>(this->VRS_color_edge_ShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> variable_rate_shading_visual_compute_binary =
+					IOUtil::readFileData<uint32_t>(this->VRS_visual_VShaderPath, this->getFileSystem());
 
 				/*	*/
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -57,24 +79,32 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Create compute pipeline.	*/
-				this->variable_rate_program =
-					ShaderLoader::loadComputeProgram(compilerOptions, &variable_rate_shading_compute_binary);
+				this->variable_rate_color_program =
+					ShaderLoader::loadComputeProgram(compilerOptions, &variable_rate_shading_edgecolor_compute_binary);
+				this->variable_visual_edge_rate_program =
+					ShaderLoader::loadComputeProgram(compilerOptions, &variable_rate_shading_visual_compute_binary);
 			}
 
 			/*	Setup graphic pipeline.	*/
-			glUseProgram(this->variable_rate_program);
-			glUniform1i(glGetUniformLocation(this->variable_rate_program, "ColorTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->variable_rate_program, "VariableRateLUT"), 1);
-			glGetProgramiv(this->variable_rate_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
+			glUseProgram(this->variable_rate_color_program);
+			glUniform1i(glGetUniformLocation(this->variable_rate_color_program, "ColorTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->variable_rate_color_program, "VariableRateLUT"), 1);
+			glGetProgramiv(this->variable_rate_color_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			glUseProgram(0);
 
-			/*	Create multipass framebuffer.	*/
-			glGenFramebuffers(1, &this->multipass_framebuffer);
+			/*	Setup graphic pipeline.	*/
+			glUseProgram(this->variable_visual_edge_rate_program);
+			glUniform1i(glGetUniformLocation(this->variable_visual_edge_rate_program, "VariableRateLUT"), 0);
+			glUniform1i(glGetUniformLocation(this->variable_visual_edge_rate_program, "ColorTexture"), 1);
+			glGetProgramiv(this->variable_visual_edge_rate_program, GL_COMPUTE_WORK_GROUP_SIZE,
+						   this->localWorkGroupSize);
+			glUseProgram(0);
 
 			/*	*/
-			this->multipass_textures.resize(1);
-			glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
+			glGenTextures(1, &variable_rate_visual_texture);
 			this->onResize(this->width(), this->height());
+
+			glShadingRateImageBarrierNV(GL_FALSE);
 		}
 
 		void onResize(int width, int height) override {
@@ -95,7 +125,7 @@ namespace glsample {
 
 				/* fill the rest	*/
 				for (GLint index = 4; index < palSize; ++index) {
-					palette[index] = GL_SHADING_RATE_1_INVOCATION_PER_PIXEL_NV;
+					palette[index] = GL_SHADING_RATE_1_INVOCATION_PER_4X4_PIXELS_NV;
 				}
 
 				glShadingRateImagePaletteNV(0, 0, palSize, palette);
@@ -125,10 +155,15 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->variable_rate_lut_texture);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 				glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8UI, lut_width, lut_height);
-				// glTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, lut_width, lut_height, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE,
-				// 			 nullptr);
-				// glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_shadingRateImageTexelWidth, m_shadingRateImageTexelHeight,
-				// 				GL_RED_INTEGER, GL_UNSIGNED_BYTE, &m_shadingRateImageData[0]);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				glBindTexture(GL_TEXTURE_2D, 0);
+
+				glBindTexture(GL_TEXTURE_2D, this->variable_rate_visual_texture);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, lut_width, lut_height, 0, GL_RGBA, GL_FLOAT, nullptr);
+				/*	Filtering.	*/
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 		}
@@ -142,13 +177,11 @@ namespace glsample {
 				/*	Variable rate shading.	*/
 				glBindShadingRateImageNV(this->variable_rate_lut_texture);
 
-				glEnable(GL_SHADING_RATE_IMAGE_PER_PRIMITIVE_NV);
 				glEnable(GL_SHADING_RATE_IMAGE_NV);
 
 				ModelViewer::draw();
 
 				glDisable(GL_SHADING_RATE_IMAGE_NV);
-				glDisable(GL_SHADING_RATE_IMAGE_PER_PRIMITIVE_NV);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
@@ -158,8 +191,10 @@ namespace glsample {
 			this->getSize(&width, &height);
 
 			/*	Bind and Compute variable rate look up table Program.	*/
+			glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
 			{
-				glUseProgram(this->variable_rate_program);
+				glUseProgram(this->variable_rate_color_program);
 
 				GLint width = 0;
 				GLint height = 0;
@@ -169,7 +204,8 @@ namespace glsample {
 				glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
 				/*	Previous game of life state.	*/
-				glBindImageTexture(0, this->getFrameBuffer()->attachments[0], 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->attachments[0]);
 				/*	The resulting game of life state.	*/
 				glBindImageTexture(1, this->variable_rate_lut_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8UI);
 
@@ -180,22 +216,15 @@ namespace glsample {
 
 				/*	Wait in till image has been written.	*/
 				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+				glUseProgram(this->variable_visual_edge_rate_program);
+
+				glBindImageTexture(0, this->variable_rate_lut_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R8UI);
+				glBindImageTexture(1, this->variable_rate_visual_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+				glDispatchCompute(workGroupX, workGroupY, 1);
+				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+				glUseProgram(0);
 			}
-
-			// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			// glViewport(0, 0, width, height);
-
-			// /*	Blit image targets to screen.	*/
-			// {
-			// 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
-			// 	glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
-
-			// 	/*	*/
-			// 	glReadBuffer(GL_COLOR_ATTACHMENT0);
-			// 	glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height, 0, 0, width,
-			// 					  height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-			// 	glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
-			// }
 		}
 
 		void update() override { ModelViewer::update(); }
@@ -216,7 +245,7 @@ namespace glsample {
 
 int main(int argc, const char **argv) {
 
-	const std::vector<const char *> required_extensions = {"GL_NV_shading_rate_image", "GL_NV_primitive_shading_rate"};
+	const std::vector<const char *> required_extensions = {"GL_NV_shading_rate_image"};
 
 	try {
 		glsample::VariableRateShadingGLSample sample;

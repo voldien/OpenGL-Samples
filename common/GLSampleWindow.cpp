@@ -5,6 +5,7 @@
 #include "FPSCounter.h"
 #include "GLUIComponent.h"
 
+#include "GraphicFormat.h"
 #include "PostProcessing/BloomPostProcessing.h"
 #include "PostProcessing/BlurPostProcessing.h"
 #include "PostProcessing/ChromaticAbberationPostProcessing.h"
@@ -52,8 +53,9 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 	void draw() override {
 
 		ImGui::SeparatorText("Debug");
-		bool isDebug = false; // this->getRefSample().debug(const bool enable)
+		bool isDebug = this->getRefSample().isDebug();
 		if (ImGui::Checkbox("Debug", &isDebug)) {
+			this->getRefSample().debug(isDebug);
 		}
 		ImGui::Text("FPS %d", this->getRefSample().getFPSCounter().getFPS());
 		ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
@@ -72,11 +74,12 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			this->getRefSample().captureDebugFrame();
 		}
 		ImGui::Text("WorkDirectory: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
-		bool isVsync = false; // this->getRefSample().debug(const bool enable)
+		bool isVsync = false;
 		if (ImGui::Checkbox("VSync", &isVsync)) {
+			this->getRefSample().vsync(isVsync);
 		}
-		// ImGui::Checkbox("Logging: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
 
+		ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0);
 		if (this->getRefSample().getDefaultFramebuffer() > 0) {
 			GLboolean isEnabled = 0;
 			glGetBooleanv(GL_MULTISAMPLE, &isEnabled);
@@ -88,7 +91,15 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 					glDisable(GL_MULTISAMPLE);
 				}
 			}
+
+			float min_sample = 0;
+			glGetFloatv(GL_MIN_SAMPLE_SHADING_VALUE, &min_sample);
+			if (ImGui::DragFloat("Min Sample", &min_sample, 1, 0, 1)) {
+				glEnable(GL_SAMPLE_SHADING);
+				glMinSampleShading(min_sample);
+			}
 		}
+		ImGui::EndDisabled();
 
 		/*	*/
 		ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0);
@@ -218,6 +229,9 @@ GLSampleWindow::GLSampleWindow()
 	/*	*/
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
+	glMinSampleShading(1);
+	glEnable(GL_SAMPLE_SHADING);
+
 	/*	Set Compile threads.	*/
 	if (glMaxShaderCompilerThreadsKHR) {
 		glMaxShaderCompilerThreadsKHR(Math::max<size_t>(1, fragcore::SystemInfo::getCPUCoreCount() / 2));
@@ -235,10 +249,8 @@ GLSampleWindow::~GLSampleWindow() {
 
 void GLSampleWindow::internalInit() {
 
-	/*	*/
 	const size_t use_post_process = this->getResult()["use-postprocessing"].as<bool>();
 	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
-	const std::string dynamicRange = this->getResult()["dynamic-range"].as<std::string>();
 	const bool useFBO = multi_sample_count > 0 || use_post_process || true; // TODO: fix conditions.
 
 	if (this->colorSpace == nullptr) {
@@ -498,6 +510,12 @@ void GLSampleWindow::setTitle(const std::string &title) {
 	nekomimi::MIMIWindow::setTitle(title + " - OpenGL version " + this->getRenderInterface()->getAPIVersion());
 }
 
+bool GLSampleWindow::isDebug() const noexcept {
+	fragcore::GLRendererInterface *interface =
+		dynamic_cast<fragcore::GLRendererInterface *>(this->getRenderInterface().get());
+	return true;
+}
+
 void GLSampleWindow::debug(const bool enable) {
 	fragcore::GLRendererInterface *interface =
 		dynamic_cast<fragcore::GLRendererInterface *>(this->getRenderInterface().get());
@@ -657,14 +675,26 @@ void GLSampleWindow::createDefaultFrameBuffer() {
 
 void GLSampleWindow::updateDefaultFramebuffer() {
 
+	/*	*/
 	const unsigned int multi_sample_count = this->getResult()["multi-sample"].as<int>();
+	/*	*/
 	const std::string dynamicRange = this->getResult()["dynamic-range"].as<std::string>();
+
+	GraphicFormat internal_format = GraphicFormat::R16G16B16A16_SFloat;
+	if (dynamicRange == "ldr") {
+		internal_format = GraphicFormat::B8G8R8A8_UNorm;
+	} else if (dynamicRange == "hdr" || dynamicRange == "hdr32") {
+		internal_format = GraphicFormat::R32G32B32A32_SFloat;
+	} else if (dynamicRange == "hdr16") {
+		internal_format = GraphicFormat::R16G16B16A16_SFloat;
+	}
 
 	if (this->MMSAFrameBuffer) {
 		Common::updateFrameBuffer(this->MMSAFrameBuffer,
 								  {{
 									  .width = this->width(),
 									  .height = this->height(),
+									  .graphicFormat = internal_format,
 									  .nrSamples = multi_sample_count,
 
 								  }},
@@ -681,6 +711,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 									   .width = this->width(),
 									   .height = this->height(),
 									   .depth = 1,
+									   .graphicFormat = internal_format,
 									   .nrSamples = 0,
 
 								   },
@@ -688,6 +719,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 									   .width = this->width(),
 									   .height = this->height(),
 									   .depth = 1,
+									   .graphicFormat = internal_format,
 									   .nrSamples = 0,
 
 								   },
@@ -695,8 +727,8 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 									   .width = this->width(),
 									   .height = this->height(),
 									   .depth = 1,
+									   .graphicFormat = internal_format,
 									   .nrSamples = 0,
-
 								   }},
 								  {
 									  .width = this->width(),

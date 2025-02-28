@@ -2,19 +2,12 @@
 #define _COMMON_HEADER_ 1
 
 #extension GL_EXT_control_flow_attributes2 : enable
+// #extension GL_NV_shading_rate_image : enable
+// #extension GL_NV_primitive_shading_rate: enable
 
 #include "colorspace.glsl"
 #include "noise.glsl"
-
-// enum GBuffer : unsigned int {
-
-// 	WorldSpace = 1,
-// 	TextureCoordinate = 2,
-// 	Albedo = 0,
-// 	Normal = 3,
-// 	Specular = 4, // Roughness
-// 	Emission = 5,
-// };
+#include "texture.glsl"
 
 /*	Constants.	*/
 #define PI 3.1415926535897932384626433832795
@@ -40,6 +33,7 @@ struct Camera {
 struct FogSettings {
 	/*	*/
 	vec4 fogColor;
+	// ec4 exposure; //
 	/*	*/
 	float CameraNear;
 	float CameraFar;
@@ -57,48 +51,37 @@ struct Frustum {
 	vec4 planes[6];
 };
 
-vec4 bump(const in sampler2D BumpTexture, const in vec2 uv, const in float dist) {
-
-	/*	*/
-	const vec2 size = vec2(2.0, 0.0);
-	const vec2 offset = 1.0 / textureSize(BumpTexture, 0);
-
-	/*	*/
-	const vec2 offxy = vec2(offset.x, offset.y);
-	const vec2 offzy = vec2(-offset.x, offset.y);
-	const vec2 offyx = vec2(offset.x, -offset.y);
-	const vec2 offyz = vec2(-offset.x, -offset.y);
-
-	const float bump_strength = dist;
-
-	/*	*/
-	const float s11 = texture(BumpTexture, uv).x;
-	const float s01 = texture(BumpTexture, uv + offxy).x;
-	const float s21 = texture(BumpTexture, uv + offzy).x;
-	const float s10 = texture(BumpTexture, uv + offyx).x;
-	const float s12 = texture(BumpTexture, uv + offyz).x;
-
-	vec3 va = bump_strength * vec3(size.x, size.y, s21 - s10);
-	vec3 vb = bump_strength * vec3(size.y, size.x, s12 - s01);
-
-	va = normalize(va);
-	vb = normalize(vb);
-
-	const vec4 normal = vec4(cross(va, vb) * 0.5 + 0.5, 1.0);
-
-	return normal;
+/*
+vec3 world_to_ndc(vec3 x, bool is_position) {
+	vec4 ndc = mul(vec4(x, (float)is_position), buffer_frame.view_projection);
+	return ndc.xyz / ndc.w;
 }
 
-vec4 bump(const in float height, const in float dist) {
-
-	const float x = 0; // dFdx(height) * dist;
-	const float y = 0; // dFdy(height) * dist;
-
-	const vec4 normal = vec4(x, y, 1, 0);
-
-	return normalize(normal);
+vec3 world_to_ndc(vec3 x, vec4x4 transform)
+{
+	vec4 ndc = mul(vec4(x, 1.0f), transform);
+	return ndc.xyz / ndc.w;
 }
 
+vec3 view_to_ndc(vec3 x, bool is_position = true) {
+	vec4 ndc = mul(vec4(x, (float)is_position), buffer_frame.projection);
+	return ndc.xyz / ndc.w;
+}
+
+vec2 world_to_uv(vec3 x, bool is_position = true) {
+	vec4 uv = mul(vec4(x, (float)is_position), buffer_frame.view_projection);
+	return (uv.xy / uv.w) * vec2(0.5f, -0.5f) + 0.5f;
+}
+
+vec2 view_to_uv(vec3 x, bool is_position = true) {
+	vec4 uv = mul(vec4(x, (float)is_position), buffer_frame.projection);
+	return (uv.xy / uv.w) * vec2(0.5f, -0.5f) + 0.5f;
+}
+
+vec2 ndc_to_uv(vec2 x) { return x * vec2(0.5f, -0.5f) + 0.5f; }
+
+vec2 ndc_to_uv(vec3 x) { return x.xy * vec2(0.5f, -0.5f) + 0.5f; }
+*/
 float getExpToLinear(const in float start, const in float end, const in float expValue) {
 	return ((2.0f * start) / (end + start - expValue * (end - start)));
 }

@@ -4,11 +4,15 @@
 #extension GL_ARB_enhanced_layouts : enable
 #extension GL_ARB_shader_image_load_store : enable
 #extension GL_ARB_explicit_attrib_location : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
 
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 1) in;
 
-layout(binding = 0, rgba16) uniform readonly image2D ColorTexture;
-layout(binding = 1, r8ui) uniform writeonly uimage2D VariableRateLUT;
+layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
+layout(set = 0, binding = 1, r8ui) uniform writeonly uimage2D VariableRateLUT;
+
+#include "texture.glsl"
 
 void main() {
 
@@ -17,13 +21,23 @@ void main() {
 		return;
 	}
 
-	// Get output fragcolor texture coordinate.
+	// Compute sample coordinate.
 	ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
-	ivec2 fragSize = imageSize(VariableRateLUT);
-	ivec2 TexSize = imageSize(ColorTexture);
+	const vec2 sourceSize = textureSize(ColorTexture, 0);
+	const ivec2 LUTSize = imageSize(VariableRateLUT);
 
-	float distance = imageLoad(ColorTexture, TexCoord).r;
+	const vec2 scaleDiff = sourceSize / LUTSize;
 
-	imageStore(VariableRateLUT, TexCoord, uvec4(3));
+	const vec2 source_texel_size = (1.0 / sourceSize) * scaleDiff;
+	const vec2 normalized_coordinate = TexCoord * source_texel_size;
+
+	/* Compute the final.	*/
+	const vec3 edgeColor = sobel(ColorTexture, 1, normalized_coordinate);
+	const float diff_length = length(edgeColor);
+	const int draft = 16 - int(diff_length * 1000);
+
+	uint index = clamp(draft, 1, 15);
+
+	imageStore(VariableRateLUT, TexCoord, uvec4(index));
 }

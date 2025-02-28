@@ -87,7 +87,8 @@ namespace glsample {
 			glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_write);
 			glGetBooleanv(GL_MULTISAMPLE, &use_multisample);
 
-			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("Skybox"), "Skybox");
+			const std::string groupName = "Skybox";
+			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, groupName.length(), groupName.data());
 
 			/*	*/
 			glDisable(GL_MULTISAMPLE); /*	*/

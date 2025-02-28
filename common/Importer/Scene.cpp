@@ -333,14 +333,14 @@ namespace glsample {
 		for (size_t geo_index = 0; geo_index < node->geometryObjectIndex.size(); geo_index++) {
 
 			/*	Setup material.	*/
+			const int material_index = node->materialIndex[geo_index];
 			{
-				const MaterialObject &material = this->materials[node->materialIndex[geo_index]];
+
+				const MaterialObject &material = this->materials[material_index];
 
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_buffer_binding,
 								  this->UBOStructure.node_and_common_uniform_buffer,
-								  this->UBOStructure.material_offset +
-									  node->materialIndex[geo_index] *
-										  sizeof(MaterialData), // TODO: fix uniform alignment.
+								  this->UBOStructure.material_offset, // TODO: fix uniform alignment.
 								  this->UBOStructure.material_align_size);
 
 				this->bindTexture(material, TextureType::Diffuse);
@@ -396,7 +396,8 @@ namespace glsample {
 
 			const MeshObject &refMesh = this->refGeometry[node->geometryObjectIndex[geo_index]];
 			glBindVertexArray(refMesh.vao);
-
+			/*	Material.	*/
+			glVertexAttribI2i(8, material_index, 0);
 			/*	*/
 			glDrawElementsBaseVertex(refMesh.primitiveType, refMesh.nrIndicesElements, GL_UNSIGNED_INT,
 									 (void *)(sizeof(unsigned int) * refMesh.indices_offset), refMesh.vertex_offset);

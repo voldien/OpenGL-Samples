@@ -73,6 +73,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Debugging");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 
+				/*	*/
 				this->getRefSample().scene.renderUI();
 			}
 
@@ -80,7 +81,6 @@ namespace glsample {
 
 		  private:
 			struct uniform_buffer_block &uniform;
-			bool lightvisible[4] = {true, true, true, true};
 		};
 
 		std::shared_ptr<ModelViewerSettingComponent> modelviewerSettingComponent;
