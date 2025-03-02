@@ -3,6 +3,8 @@
 
 # OpenGL Sample Repository - Work In Progress
 
+![github_opengl_thumbnail](https://github.com/user-attachments/assets/d3b6f060-8d80-479c-8543-b5a49bca78be)
+
 A collection of OpenGL Samples, work in progress, for personal educational purposes.
 
 ## CLI - Command Line Options
@@ -56,7 +58,7 @@ Usage:
 
 ### [**Fog**](Samples/Fog)
 
-![Fog](https://github.com/user-attachments/assets/28e60ff4-7579-430d-acee-89e19e1f527a)
+![Fog](https://github.com/user-attachments/assets/f296f2b3-fed6-457c-9c87-5c7a610f4de3)
 
 ### [**Simple Reflection**](Samples/SimpleReflection/)
 
@@ -82,13 +84,20 @@ Usage:
 
 ### [**Terrain**](Samples/Terrain/)
 
+![Terrain](https://github.com/user-attachments/assets/2bf63a11-dc83-4c42-b823-7d45bab0eabd)
+
+### [**FrustumCulling**](Samples/Frustum/)
+
+![FrustumCulling](https://github.com/user-attachments/assets/41275f2f-9a65-4e56-81ac-956e758b62bd)
+
+
 ### [**Shadow Map**](Samples/ShadowMapping/)
 
 ![BasicShadowMapp](https://github.com/user-attachments/assets/f4596f70-1f89-4595-912c-dd3848c0788c)
 
 ### [**Shadow Map PCF**](Samples/ShadowMapping/)
 
-![BasicShadowMap PCF](https://github.com/user-attachments/assets/1097b804-c8d5-46df-b032-b4e29df7ae58)
+![BasicShadowMap PCF](https://github.com/user-attachments/assets/f98cab19-afc2-454b-b843-c15aa821821f)
 ![BasicShadowMap PCF](https://github.com/user-attachments/assets/cae348e3-9c2a-4443-8119-02f018fc0109)
 
 ### [**Point Shadow Light**](Samples/ShadowPointLight/)
@@ -133,6 +142,8 @@ Usage:
 
 ### [**Simple Ocean**](Samples/SimpleOcean/)
 
+![SimpleOcean](https://github.com/user-attachments/assets/a9a12328-0428-44c6-9f67-3dae211ce358)
+
 ### [**Video Playback**](Samples/VideoPlayback/)
 
 ## Compute Shader Base Examples
@@ -145,7 +156,7 @@ Usage:
 
 ### [**Mandelbrot**](Samples/Mandelbrot/)
 
-![MandelBrot](https://github.com/voldien/OpenGL-Samples/assets/9608088/cae86eb2-b5f5-4c20-ad13-aed2c154d5d1)
+![MandelBrot](https://github.com/user-attachments/assets/e54c7c89-fc88-4048-86f0-92f32cfccc25)
 
 ### [**ReactionDiffusion**](Samples/ReactionDiffusion)
 
@@ -178,6 +189,8 @@ Usage:
 - **Mist Fog**
 
 - **Volumetric Scattering**
+
+![Volumetric](https://github.com/user-attachments/assets/a899f5da-8a9c-46eb-82e3-990f96ff7028)
 
 - **ColorSpace**
 
