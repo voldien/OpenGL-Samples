@@ -78,7 +78,9 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 																	   cxxopts::value<int>()->default_value("0"))(
 				"p,use-postprocessing", "Use Post Processing", cxxopts::value<bool>()->default_value("true"))(
 				"s,glsl-version", "Override glsl version from system (110,120,130,140,150,330...)",
-				cxxopts::value<int>()->default_value("-1"));
+				cxxopts::value<int>()->default_value("-1"))(
+				"I,ignore-requirements", "Ignore extension requirements",
+				cxxopts::value<bool>()->default_value("false"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);
@@ -97,6 +99,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		const bool debug = result["debug"].as<bool>();
 		const bool fullscreen = result["fullscreen"].as<bool>();
 		const bool vsync = result["vsync"].as<bool>();
+		const bool ignore_extension = result["ignore-requirements"].as<bool>();
 		const glsample::ColorSpace gammacorrection = glsample::ColorSpace::SRGB;
 
 		/*	Default window size.	*/
@@ -125,26 +128,23 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		this->sampleRef = new T();
 
 		/*	Check if required extensions */
-		bool all_required = true;
-		if (requiredExtension.size() > 0) {
+		bool all_extension_required = true;
+		if (requiredExtension.size() > 0 && !ignore_extension) {
 
-			const std::shared_ptr<fragcore::IRenderer> &renderer = this->sampleRef->getRenderInterface();
-
-			const fragcore::GLRendererInterface &glRenderer = renderer->as<fragcore::GLRendererInterface>();
+			const fragcore::GLRendererInterface *glRenderer = this->sampleRef->getGLRenderInterface();
 
 			/* Check all extension.	*/
-			for (size_t i = 0; i < requiredExtension.size(); i++) {
-				if (!glRenderer.isExtensionSupported(requiredExtension[i])) {
-					this->sampleRef->getLogger().error("{} Not Supported", requiredExtension[i]);
-					all_required = false;
+			for (size_t index = 0; index < requiredExtension.size(); index++) {
+				if (!glRenderer->isExtensionSupported(requiredExtension[index])) {
+					this->sampleRef->getLogger().error("{} Not Supported", requiredExtension[index]);
+					all_extension_required = false;
 				}
 			}
 		}
 
 		/*	*/
-		if (!all_required) {
+		if (!all_extension_required) {
 			this->sampleRef->getLogger().info("Bye Bye ^^");
-			delete this->sampleRef;
 			return;
 		}
 

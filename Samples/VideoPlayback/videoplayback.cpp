@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "GLSampleSession.h"
 #include <AL/al.h>
 #include <AL/alc.h>
@@ -313,6 +314,8 @@ namespace glsample {
 
 			/*	*/
 			this->frame_timer = av_gettime() / 1000000.0;
+
+			this->setColorSpace(ColorSpace::RawLinear);
 		}
 
 		void Initialize() override {
@@ -624,6 +627,9 @@ namespace glsample {
 				this->getLogger().debug("Failed to seek {}", error_message(res));
 				return;
 			}
+
+			/*	*/
+			this->listener->setVolume(this->videoplaybackSettingComponent->volume);
 
 			std::this_thread::sleep_for(8ms);
 		}

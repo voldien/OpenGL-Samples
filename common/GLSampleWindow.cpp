@@ -229,6 +229,7 @@ GLSampleWindow::GLSampleWindow()
 	/*	*/
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
+	/*	*/
 	glMinSampleShading(1);
 	glEnable(GL_SAMPLE_SHADING);
 

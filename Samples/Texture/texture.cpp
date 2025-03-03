@@ -39,7 +39,7 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 		size_t uniformSize = sizeof(uniform_buffer_block);
 
-		MeshObject planGeometry;
+		MeshObject cubeGeometry;
 
 		/*	*/
 		int texture_program{};
@@ -57,9 +57,9 @@ namespace glsample {
 			/*	*/
 			glDeleteTextures(1, (const GLuint *)&this->diffuse_texture);
 			/*	*/
-			glDeleteVertexArrays(1, &this->planGeometry.vao);
-			glDeleteBuffers(1, &this->planGeometry.vbo);
-			glDeleteBuffers(1, &this->planGeometry.ibo);
+			glDeleteVertexArrays(1, &this->cubeGeometry.vao);
+			glDeleteBuffers(1, &this->cubeGeometry.vbo);
+			glDeleteBuffers(1, &this->cubeGeometry.ibo);
 		}
 
 		void onResize(int width, int height) override {
@@ -93,7 +93,7 @@ namespace glsample {
 			glUseProgram(this->texture_program);
 			unsigned int uniform_buffer_index = glGetUniformBlockIndex(this->texture_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->texture_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->texture_program, "diffuse"), 0);
+			glUniform1i(glGetUniformLocation(this->texture_program, "DiffuseTexture"), 0);
 			glUseProgram(0);
 
 			/*	Load Texture	*/
@@ -112,36 +112,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			std::vector<ProceduralGeometry::Vertex> vertices;
-			std::vector<unsigned int> indices;
-			ProceduralGeometry::generateCube(1, vertices, indices);
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenVertexArrays(1, &this->planGeometry.vao);
-			glBindVertexArray(this->planGeometry.vao);
-
-			/*	Create indices buffer.	*/
-			glGenBuffers(1, &this->planGeometry.ibo);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, planGeometry.ibo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(indices[0]), indices.data(), GL_STATIC_DRAW);
-			this->planGeometry.nrIndicesElements = indices.size();
-
-			/*	Create array buffer, for rendering static geometry.	*/
-			glGenBuffers(1, &this->planGeometry.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, planGeometry.vbo);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-						 GL_STATIC_DRAW);
-
-			/*	*/
-			glEnableVertexAttribArray(0);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(0));
-
-			glEnableVertexAttribArray(1);
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex),
-								  reinterpret_cast<void *>(12));
-
-			glBindVertexArray(0);
+			Common::loadCube(this->cubeGeometry, 1);
 		}
 
 		void draw() override {
@@ -172,8 +143,8 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
 				/*	Draw triangle*/
-				glBindVertexArray(this->planGeometry.vao);
-				glDrawElements(GL_TRIANGLES, this->planGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
+				glBindVertexArray(this->cubeGeometry.vao);
+				glDrawElements(GL_TRIANGLES, this->cubeGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);
 
 				glUseProgram(0);
@@ -186,8 +157,7 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	Update uniform stage buffer values.	*/
-			this->uniform_stage_buffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
+			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
 			this->uniform_stage_buffer.modelViewProjection =
 				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix());
 

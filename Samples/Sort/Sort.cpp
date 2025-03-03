@@ -284,7 +284,6 @@ int main(int argc, const char **argv) {
 		glsample::SortGLSample sample;
 		sample.run(argc, argv);
 	} catch (const std::exception &ex) {
-
 		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
 		return EXIT_FAILURE;
 	}

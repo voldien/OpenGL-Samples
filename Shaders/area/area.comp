@@ -1,23 +1,28 @@
-#version 460
+#version 460 core
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_compute_shader : enable
 #extension GL_EXT_control_flow_attributes : enable
+#extension GL_KHR_shader_subgroup_basic : enable
 #extension GL_KHR_shader_subgroup_arithmetic : enable
 
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 struct vertexData {
 	vec3 position;
+	vec2 textureCoord;
 	vec3 normal;
-	// vec3 tangent;
+	vec3 tangent;
 };
 
 layout(std140, set = 0, binding = 0) uniform UniformBufferBlock {
+	/*	*/
 	mat4 view;
 	mat4 proj;
+	/*	*/
 	vec4 clip_plane;
 	vec4 bound_box_center;
 	vec4 bound_box_extended;
+	/*	*/
 	uint nrFaces;
 	uint padding0;
 	uint padding1;
@@ -28,7 +33,6 @@ areaSettings;
 /*	*/
 layout(std430, set = 0, binding = 1) readonly buffer IndicesBuffer { uint indices[]; }
 indices;
-
 /*	*/
 layout(std430, set = 0, binding = 2) readonly buffer VertexBuffer { vertexData vertices[]; }
 vertices;
@@ -36,83 +40,118 @@ vertices;
 /*	*/
 layout(std430, set = 0, binding = 3) writeonly buffer Result {
 	layout(offset = 0) float area;
-	layout(offset = 4) float dragAverage;
+	layout(offset = 4) float averageNormal;
 }
 result;
 
 layout(push_constant) uniform Transformation { layout(offset = 0) mat4 model; }
 transform;
 
+layout(constant_id = 2) const int sumSubGroupSize = 32;
+
+shared float sat[sumSubGroupSize];
+shared float sat0[sumSubGroupSize];
+
 void main() {
 
 	const vec3 orth_normal = vec3(0, 0, -1);
 	const uint triangle_index = gl_GlobalInvocationID.x;
 
+	/*	*/
 	if (triangle_index >= areaSettings.nrFaces) {
 		return;
 	}
+
+	float sum0 = 0;
 
 	/*	Extract Triangle per local thread.	*/
 	const uint v0_index = indices.indices[triangle_index * 3 + 0];
 	const uint v1_index = indices.indices[triangle_index * 3 + 1];
 	const uint v2_index = indices.indices[triangle_index * 3 + 2];
 
-	const mat4 mvp = transform.model * areaSettings.view * areaSettings.proj;
+	const mat4 model = transform.model;
+	const mat4 mvp = areaSettings.view * model; // areaSettings.proj *
 
 	/*	Compute World Space Transformation.	*/
 	vec4 v0 = mvp * vec4(vertices.vertices[v0_index].position, 1);
 	vec4 v1 = mvp * vec4(vertices.vertices[v1_index].position, 1);
 	vec4 v2 = mvp * vec4(vertices.vertices[v2_index].position, 1);
 
-	vec3 n0 = normalize((mvp * vec4(vertices.vertices[v0_index].normal, 0)).xyz);
-	vec3 n1 = normalize((mvp * vec4(vertices.vertices[v1_index].normal, 0)).xyz);
-	vec3 n2 = normalize((mvp * vec4(vertices.vertices[v2_index].normal, 0)).xyz);
-
 	/*	*/
+	const vec3 n0 = normalize((model * vec4(vertices.vertices[v0_index].normal, 0)).xyz);
+	const vec3 n1 = normalize((model * vec4(vertices.vertices[v1_index].normal, 0)).xyz);
+	const vec3 n2 = normalize((model * vec4(vertices.vertices[v2_index].normal, 0)).xyz);
+
+	/*	Normalize, based on perspective matrix.	*/
 	v0 /= v0.w;
 	v1 /= v1.w;
 	v2 /= v2.w;
 
 	/*	Clip Geometry.	*/
 
-	/*	Project Geometry.	*/
+	/*	Project Geometry to screen space.	*/
 	const vec2 proj_v0 = v0.xy;
 	const vec2 proj_v1 = v1.xy;
 	const vec2 proj_v2 = v2.xy;
 
 	/*	Compute Area.	*/
-
 	const mat2 proj_v0_v1 = mat2(proj_v0.x, proj_v0.y, proj_v1.x, proj_v1.y);
 	const mat2 proj_v1_v2 = mat2(proj_v1.x, proj_v1.y, proj_v2.x, proj_v2.y);
 	const mat2 proj_v2_v0 = mat2(proj_v2.x, proj_v2.y, proj_v0.x, proj_v0.y);
 
-	/*	*/
-	const float sum = 0.5 * max(0, determinant(proj_v0_v1) + determinant(proj_v0_v1) + determinant(proj_v0_v1));
+	/*	Compute sum of the triangle area.	*/
 
+	float sum = determinant(proj_v0_v1) + determinant(proj_v0_v1) + determinant(proj_v0_v1);
+	sum *= 0.5;
+
+	/*	Calculate overlapping/depth testing.	*/
+	for (uint i = 0; i < areaSettings.nrFaces; i++) {
+		/*	*/
+	}
+
+	/*	Determine front or back face.	*/
 	const float angle = dot(orth_normal, n0.xyz);
-	const float visable = angle > 0 ? 1 : 0;
+	const float visable = angle > 0 ? 1 : 0; // TODO: replace with step
 
-	float triangle_visable_area = subgroupAdd(sum * visable);
-
+	/*	*/
 	const float angle_surface0 = max(0, dot(orth_normal, n0.xyz));
 	const float angle_surface1 = max(0, dot(orth_normal, n1.xyz));
 	const float angle_surface2 = max(0, dot(orth_normal, n2.xyz));
 
+	/*	Calculate Face Normal.	*/
 	const float surface_angle = (angle_surface0 + angle_surface1 + angle_surface2) / 3.0;
 
-	const float average_drag = subgroupAdd(surface_angle * sum * visable);
+	/*	*/
+	float triangle_visable_area = subgroupAdd(sum * visable);
 
-	/*	Calculate overlapping/depth testing.	*/
+	/*	*/
+	float average_drag = subgroupAdd(surface_angle * visable);
 
-	/*	Determine front or back face.	*/
-
-	/*	Calculate Face Normal.	*/
-
-	/*	Average Drag Coeif.	*/
+	/*	Average Position.	*/
+	const vec4 triangle_center = v0 + (v0 - v1) * 0.5 + (v0 - v2) * 0.5;
 
 	/*	Merge all result.	*/
-	if (subgroupElect()) {
-		result.area = triangle_visable_area;
-		result.dragAverage = max(0.75, average_drag / triangle_visable_area);
+	if (gl_SubgroupInvocationID == 0) {
+		/*	Sum over the subgroup.	*/
+		sat[gl_SubgroupID] = triangle_visable_area;
+	}
+
+	memoryBarrierShared();
+	barrier();
+
+	/*	*/
+	if (gl_SubgroupID == 0) { /*	same as subgroupElect, possibly.	*/
+
+		sum0 = gl_SubgroupInvocationID < gl_NumSubgroups ? sat[gl_SubgroupInvocationID] : 0;
+		sum0 = subgroupAdd(sum0);
+
+		average_drag = gl_SubgroupInvocationID < gl_NumSubgroups ? sat0[gl_SubgroupInvocationID] : 0;
+		average_drag = subgroupAdd(average_drag);
+	}
+
+	/*	*/
+	if (gl_LocalInvocationID.x == 0) {
+		result.area = sum0;
+		result.averageNormal = average_drag;
 	}
 }

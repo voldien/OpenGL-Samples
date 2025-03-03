@@ -2,8 +2,6 @@
 #define _COMMON_HEADER_ 1
 
 #extension GL_EXT_control_flow_attributes2 : enable
-// #extension GL_NV_shading_rate_image : enable
-// #extension GL_NV_primitive_shading_rate: enable
 
 #include "colorspace.glsl"
 #include "noise.glsl"

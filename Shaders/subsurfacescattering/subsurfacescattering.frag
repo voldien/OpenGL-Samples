@@ -53,7 +53,7 @@ float trace() {
 
 	/*	Get light distance and view distance.	*/
 	const float d_i = texture(ShadowTexture, projCoords.xy).r;
-	const float d_o = (lightSpace / lightSpace.w).z;//- bias;
+	const float d_o = (lightSpace / lightSpace.w).z; //- bias;
 
 	/*	*/
 	const float volumeDistance = d_o - d_i;

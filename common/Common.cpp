@@ -14,6 +14,8 @@ void Common::loadPlan(MeshObject &planMesh, const float scale, const int segment
 	std::vector<unsigned int> indices;
 	ProceduralGeometry::generatePlan(scale, vertices, indices, segmentX, segmentY);
 
+	const unsigned int stride = sizeof(ProceduralGeometry::Vertex);
+
 	/*	Create array buffer, for rendering static geometry.	*/
 	glGenVertexArrays(1, &planMesh.vao);
 	glBindVertexArray(planMesh.vao);
@@ -21,8 +23,7 @@ void Common::loadPlan(MeshObject &planMesh, const float scale, const int segment
 	/*	Create array buffer, for rendering static geometry.	*/
 	glGenBuffers(1, &planMesh.vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, planMesh.vbo);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-				 GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * stride, vertices.data(), GL_STATIC_DRAW);
 
 	/*	*/
 	glGenBuffers(1, &planMesh.ibo);
@@ -31,19 +32,19 @@ void Common::loadPlan(MeshObject &planMesh, const float scale, const int segment
 
 	/*	Vertex.	*/
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
 
 	/*	UV.	*/
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(12));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(12));
 
 	/*	Normal.	*/
 	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(20));
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(20));
 
 	/*	Tangent.	*/
 	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(32));
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(32));
 
 	glBindVertexArray(0);
 
@@ -51,12 +52,15 @@ void Common::loadPlan(MeshObject &planMesh, const float scale, const int segment
 	planMesh.indices_offset = 0;
 	planMesh.vertex_offset = 0;
 	planMesh.nrVertices = vertices.size();
+	planMesh.stride = stride;
 }
 
 void Common::loadSphere(MeshObject &sphereMesh, const float radius, const int slices, const int segements) {
 	std::vector<ProceduralGeometry::Vertex> vertices;
 	std::vector<unsigned int> indices;
 	ProceduralGeometry::generateSphere(radius, vertices, indices, slices, segements);
+
+	const unsigned int stride = sizeof(ProceduralGeometry::Vertex);
 
 	/*	Create array buffer, for rendering static geometry.	*/
 	glGenVertexArrays(1, &sphereMesh.vao);
@@ -95,6 +99,7 @@ void Common::loadSphere(MeshObject &sphereMesh, const float radius, const int sl
 	sphereMesh.indices_offset = 0;
 	sphereMesh.vertex_offset = 0;
 	sphereMesh.nrVertices = vertices.size();
+	sphereMesh.stride = stride;
 }
 
 void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segmentX, const int segmentY) {
@@ -103,6 +108,8 @@ void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segment
 	std::vector<unsigned int> indices;
 	ProceduralGeometry::generateCube(scale, vertices, indices, segmentX);
 
+	const unsigned int stride = sizeof(ProceduralGeometry::Vertex);
+
 	/*	Create array buffer, for rendering static geometry.	*/
 	glGenVertexArrays(1, &cubeMesh.vao);
 	glBindVertexArray(cubeMesh.vao);
@@ -110,8 +117,7 @@ void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segment
 	/*	Create array buffer, for rendering static geometry.	*/
 	glGenBuffers(1, &cubeMesh.vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, cubeMesh.vbo);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(ProceduralGeometry::Vertex), vertices.data(),
-				 GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * stride, vertices.data(), GL_STATIC_DRAW);
 
 	/*	*/
 	glGenBuffers(1, &cubeMesh.ibo);
@@ -120,19 +126,19 @@ void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segment
 
 	/*	Vertex.	*/
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), nullptr);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
 
 	/*	UV.	*/
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(12));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(12));
 
 	/*	Normal.	*/
 	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(20));
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(20));
 
 	/*	Tangent.	*/
 	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(ProceduralGeometry::Vertex), reinterpret_cast<void *>(32));
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(32));
 
 	glBindVertexArray(0);
 
@@ -140,6 +146,7 @@ void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segment
 	cubeMesh.indices_offset = 0;
 	cubeMesh.vertex_offset = 0;
 	cubeMesh.nrVertices = vertices.size();
+	cubeMesh.stride = stride;
 }
 
 void Common::mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes) {}

@@ -38,6 +38,7 @@ namespace glsample {
 		GLuint baseInstance;
 	};
 
+	// TODO: add delete meshObject function
 	using MeshObject = struct geometry_object_t {
 		/*	*/
 		unsigned int vao = 0;

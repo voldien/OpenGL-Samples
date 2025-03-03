@@ -16,7 +16,6 @@
 #pragma once
 #include "GLSampleSession.h"
 #include "Math3D/Color.h"
-#include "Node.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 #include <initializer_list>
@@ -40,6 +39,7 @@ namespace glsample {
 		static void loadCube(MeshObject &cubeMesh, const float scale, const int segmentX = 1, const int segmentY = 1);
 		static void loadSphere(MeshObject &sphereMesh, const float radius = 1, const int slices = 8,
 							   const int segements = 8);
+
 
 		static void mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes);
 

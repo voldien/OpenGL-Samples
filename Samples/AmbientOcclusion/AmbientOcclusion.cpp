@@ -18,7 +18,7 @@ namespace glsample {
 
 	/**
 	 * Screen Space Ambient Occlusion post processing effect. Both World and Depth Space.
-	 * TODO: Downscale, Depth Only Support
+	 * TODO: Downscale.
 	 */
 	class ScreenSpaceAmbientOcclusion : public GLSampleWindow {
 	  public:

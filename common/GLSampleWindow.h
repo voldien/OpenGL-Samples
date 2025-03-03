@@ -53,6 +53,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	 * @brief
 	 *
 	 */
+	// TODO: refractor name
 	virtual void draw() = 0;
 	virtual void postDraw() {}
 
@@ -75,7 +76,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	size_t getFrameBufferIndex() const noexcept { return this->frameBufferIndex; }
 	size_t getFrameBufferCount() const noexcept { return this->getNumberFrameBuffers(); }
 
-	bool isDebug()const noexcept;
+	bool isDebug() const noexcept;
 	void debug(const bool enable);
 
 	void captureScreenShot();
@@ -109,7 +110,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void setColorSpace(const glsample::ColorSpace srgb);
 	glsample::ColorSpace getColorSpace() const noexcept;
 
-	glsample::ColorSpaceConverter *getColorSpaceConverter() const noexcept { return this->colorSpace; }
+	glsample::ColorSpaceConverter *getColorSpaceConverter() noexcept { return this->colorSpace; }
+	const glsample::ColorSpaceConverter *getColorSpaceConverter() const noexcept { return this->colorSpace; }
 
 	void vsync(const bool enable_vsync);
 

@@ -8,7 +8,6 @@
 #include <ModelViewer.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 namespace glsample {
 	/**
@@ -45,10 +44,12 @@ namespace glsample {
 				this->setName("Variable Rate");
 			}
 			void draw() override {
-				ImGui::Image(this->getRefSample().variable_rate_visual_texture, ImVec2(256, 256), ImVec2(1, 1),
-							 ImVec2(0, 0));
+				ImGui::Image(this->getRefSample().variable_rate_visual_texture, ImVec2(512, 512), ImVec2(0, 1),
+							 ImVec2(1, 0));
+				ImGui::Checkbox("Use Variable Rate Shading", &useVRS);
 			}
 
+			bool useVRS = true;
 			bool showWireFrame = false;
 
 		  private:
@@ -177,7 +178,9 @@ namespace glsample {
 				/*	Variable rate shading.	*/
 				glBindShadingRateImageNV(this->variable_rate_lut_texture);
 
-				glEnable(GL_SHADING_RATE_IMAGE_NV);
+				if (this->variableRateSettingComponent->useVRS) {
+					glEnable(GL_SHADING_RATE_IMAGE_NV);
+				}
 
 				ModelViewer::draw();
 
