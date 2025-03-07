@@ -7,6 +7,7 @@
 
 layout(location = 0) in vec3 Vertex;
 layout(location = 1) in vec2 TextureCoord;
+layout(location = 8) in ivec2 vAssigns;
 
 layout(location = 0) out vec2 UV;
 
@@ -37,7 +38,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 void main() {
-	const mat4 model = getModel();
+	const mat4 model = getModel(vAssigns.y);
 
 	gl_Position = ubo.lightSpaceMatrix * model * vec4(Vertex, 1.0);
 	UV = TextureCoord;

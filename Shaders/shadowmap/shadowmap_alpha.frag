@@ -13,6 +13,7 @@ layout(location = 0) in vec2 UV;
 void main() {
 
 	const float alpha = texture(DiffuseTexture, UV).a * texture(AlphaMaskedTexture, UV).r;
+	
 	if (alpha < 0.95) {
 		discard;
 	} else {

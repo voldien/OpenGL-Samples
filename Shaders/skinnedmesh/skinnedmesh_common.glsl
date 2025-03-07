@@ -16,10 +16,5 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 
 	/*	Light source.	*/
 	DirectionalLight directional;
-
-	vec4 ambientColor;
-
-	/*	Material color.	*/
-	vec4 tintColor;
 }
 ubo;

@@ -76,7 +76,7 @@ namespace glsample {
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
-		const int shadowBinding = 8;
+		const int shadowBinding = 15;
 
 		CameraController camera;
 
@@ -356,7 +356,7 @@ namespace glsample {
 				glEnable(GL_CULL_FACE);
 
 				/*	Render shadow.	*/
-				this->scene.render();
+				this->scene.render(nullptr);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
@@ -388,7 +388,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + shadowBinding);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
-				glActiveTexture(GL_TEXTURE0 + 10);
+				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				this->scene.render(&this->camera);

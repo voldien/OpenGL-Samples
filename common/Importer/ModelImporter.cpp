@@ -1,6 +1,7 @@
 #include "ModelImporter.h"
 #include "Core/SystemInfo.h"
 #include "Math/Math.h"
+#include "RenderDesc.h"
 #include "TaskScheduler/IScheduler.h"
 #include "assimp/Importer.hpp"
 #include "assimp/ProgressHandler.hpp"
@@ -218,7 +219,6 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 	/*	*/
 	if (scene->HasMaterials()) {
-		/*	Extract additional texture */
 
 		this->materials.resize(scene->mNumMaterials);
 		for (size_t x = 0; x < scene->mNumMaterials; x++) {
@@ -573,7 +573,6 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t index) {
 
-	aiString name;
 	aiString path;
 
 	aiTextureMapping mapping;
@@ -587,13 +586,12 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 
 	MaterialObject *material = &this->materials[index];
 
-	if (!ref_material) {
-		return nullptr;
-	}
+	assert(ref_material != nullptr);
 
 	const bool isTextureEmpty = this->textures.size() == 0;
 
 	/*	*/
+	aiString name;
 	if (ref_material->Get(AI_MATKEY_NAME, name) == aiReturn_SUCCESS) {
 		material->name = name.C_Str();
 	}
@@ -626,27 +624,38 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 										 &op, &mapmode) == aiReturn::aiReturn_SUCCESS) {
 
 				/*	If embeeded.	*/
-				int texIndex = 0;
+				unsigned int texTableIndex = 0;
 				if (path.data[0] == '*' && embeededTexture) {
-					texIndex = atoi(&path.data[1]);
+					texTableIndex = atoi(&path.data[1]);
+					texTableIndex = fragcore::Math::clamp<unsigned int>(texTableIndex, 0, this->textures.size() - 1);
 				} else {
+					/*	Find if accessiable.	*/
 					const TextureAssetObject *textureObj = this->textureMapping[path.C_Str()];
-					if (textureObj) {
-						texIndex = this->textureIndexMapping[path.C_Str()];
+					auto it = textureIndexMapping.find(path.C_Str());
+					if (textureObj && it != this->textureIndexMapping.end()) {
+						texTableIndex = (*it).second;
+					} else {
+						continue;
 					}
 				}
 
 				/*	*/
-				if (texIndex >= 0) {
+				if (texTableIndex >= 0) {
 					switch (mapmode) {
-
+					default:
+					case _aiTextureMapMode_Force32Bit:
 					case aiTextureMapMode_Wrap:
+						material->texture_sampling[textureType].wrapping = TextureWrappingMode::Repeat;
+						break;
 					case aiTextureMapMode_Clamp:
+						material->texture_sampling[textureType].wrapping = TextureWrappingMode::Clamp;
+						break;
 					case aiTextureMapMode_Decal:
 					case aiTextureMapMode_Mirror:
-					case _aiTextureMapMode_Force32Bit:
+						material->texture_sampling[textureType].wrapping = TextureWrappingMode::RepeatMirror;
 						break;
 					}
+
 					switch (mapping) {
 					case aiTextureMapping_UV:
 					case aiTextureMapping_SPHERE:
@@ -657,50 +666,50 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 					case _aiTextureMapping_Force32Bit:
 						break;
 					}
-					material->texture_sampling[texIndex].filtering = 0;
-					material->texture_sampling[texIndex].wrapping = mapmode;
-					material->texture_sampling[texIndex].uv_mapping = mapping;
+
+					material->texture_sampling[textureType].filtering = FilterMode::Linear;
+					material->texture_sampling[textureType].uv_mapping = mapping;
 				}
 
 				switch (textureType) {
 				case aiTextureType::aiTextureType_DIFFUSE:
-					material->diffuseIndex = texIndex;
+					material->diffuseIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_NORMALS:
-					material->normalIndex = texIndex;
+					material->normalIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_OPACITY:
-					material->maskTextureIndex = texIndex;
+					material->maskTextureIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_SPECULAR:
-					material->specularIndex = texIndex;
+					material->specularIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_HEIGHT:
-					material->heightbumpIndex = texIndex;
+					material->heightbumpIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_AMBIENT:
 					break;
 				case aiTextureType::aiTextureType_EMISSIVE:
-					material->emissionIndex = texIndex;
+					material->emissionIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_SHININESS:
 					break;
 				case aiTextureType::aiTextureType_DISPLACEMENT:
-					material->displacementIndex = texIndex;
+					material->displacementIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_LIGHTMAP:
 					break;
 				case aiTextureType::aiTextureType_REFLECTION:
-					material->reflectionIndex = texIndex;
+					material->reflectionIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_BASE_COLOR: /*	PBR.	*/
-					material->diffuseIndex = texIndex;
+					material->diffuseIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_NORMAL_CAMERA:
-					material->normalIndex = texIndex;
+					material->normalIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_EMISSION_COLOR:
-					material->emissionIndex = texIndex;
+					material->emissionIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_METALNESS:
 					break;
@@ -754,12 +763,11 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 			}
 			if (ref_material->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
 				material->shinininess = shininessStrength;
-				material->specular[3] = shininessStrength;
 			}
 
 			float tmp = NAN;
 			if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material->specular *= tmp;
+				material->shinininess *= tmp;
 			}
 			if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
 			}
@@ -771,7 +779,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 				material->transparent[3] = 1;
 			}
 			if (ref_material->Get(AI_MATKEY_TRANSPARENCYFACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material->transparent *= tmp;
+				material->shinininess *= tmp;
 			}
 
 			if (ref_material->Get(AI_MATKEY_REFRACTI, tmp) == aiReturn::aiReturn_SUCCESS) {
@@ -802,6 +810,8 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 			material->wireframe_mode = use_wireframe;
 		}
 	}
+
+	material->shinininess = fragcore::Math::max(material->shinininess, 1.0f);
 
 	return material;
 }

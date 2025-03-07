@@ -23,7 +23,7 @@ namespace glsample {
 			this->addUIComponent(this->normalSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(20.0f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 

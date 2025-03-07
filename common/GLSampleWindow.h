@@ -131,8 +131,11 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	/*	*/
 	size_t debug_prev_frame_sample_count = 0;
 	size_t debug_prev_frame_primitive_count = 0;
-	int debug_prev_frame_cs_invocation_count = 0;
-	int debug_prev_frame_frag_invocation_count = 0;
+	size_t debug_prev_frame_cs_invocation_count = 0;
+	size_t debug_prev_frame_frag_invocation_count = 0;
+	size_t debug_prev_frame_vertex_invocation_count = 0;
+	size_t nrPrimitives = 0, nrSamples = 0, time_elapsed = 0;
+	size_t time_resolution = 1000 * 1000;
 
   protected:
 	void displayMenuBar() override;

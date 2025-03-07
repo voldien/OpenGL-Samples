@@ -47,7 +47,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 void main() {
-	const mat4 model = getModel();
+	const mat4 model = getModel(vAssigns.y);
 	const mat4 viewProj = getCamera().viewProj;
 
 	gl_Position = (viewProj * model) * vec4(Vertex, 1.0);

@@ -15,6 +15,7 @@ layout(location = 1) in vec2 UV;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec4 lightSpace;
+layout(location = 8) flat in ivec2 fAssigns;
 
 layout(binding = 9) uniform sampler2DShadow ShadowTexture;
 
@@ -87,7 +88,7 @@ float ShadowCalculationPCF(const in vec4 fragPosLightSpace) {
 
 void main() {
 
-	const material mat = getMaterial();
+	const material mat = getMaterial(fAssigns.x);
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
 	vec3 viewDir = normalize(getCamera().position.xyz - vertex);
@@ -97,8 +98,9 @@ void main() {
 	const float shadow = max(ubo.shadowStrength - ShadowCalculationPCF(lightSpace), 0);
 
 	/*	*/
+	const vec4 SpecularColor = vec4(mat.specular_roughness.rgb, 1) * texture(RoughnessTexture, UV);
 	const vec4 lightColor = computeBlinnDirectional(ubo.directional, NewNormal, viewDir, mat.specular_roughness.a,
-													mat.specular_roughness.rgb);
+													SpecularColor.rgb);
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
@@ -111,7 +113,7 @@ void main() {
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
 	fragColor *= mat.transparency.rgba;
 	fragColor.rgb += mat.emission.rgb * texture(EmissionTexture, UV).rgb;
-	if (fragColor.a < 0.8) {
+	if (fragColor.a < mat.clip_.x) {
 		discard;
 	}
 }

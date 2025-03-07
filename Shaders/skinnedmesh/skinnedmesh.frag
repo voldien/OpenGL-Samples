@@ -11,6 +11,8 @@ layout(location = 0) in vec3 FragIN_position;
 layout(location = 1) in vec2 FragIN_uv;
 layout(location = 2) in vec3 FragIN_normal;
 layout(location = 3) in vec3 FragIN_tangent;
+/*	*/
+layout(location = 8) flat in ivec2 fAssigns;
 
 #include "pbr.glsl"
 #include "phongblinn.glsl"
@@ -18,7 +20,7 @@ layout(location = 3) in vec3 FragIN_tangent;
 
 void main() {
 
-	const material mat = getMaterial();
+	const material mat = getMaterial(fAssigns.x);
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
 	vec3 viewDir = normalize(getCamera().position.xyz - FragIN_position);
@@ -27,8 +29,9 @@ void main() {
 	const vec3 NewNormal = getNormalFromMap(NormalTexture, FragIN_uv, FragIN_position, FragIN_normal);
 
 	/*	*/
-	const vec4 lightColor =
-		computeBlinnDirectional(ubo.directional, NewNormal, viewDir, mat.specular_roughness.a, mat.specular_roughness.rgb);
+	const vec4 SpecularColor = vec4(mat.specular_roughness.rgb, 1) * texture(RoughnessTexture, FragIN_uv).r;
+	vec4 lightColor =
+		computeBlinnDirectional(ubo.directional, NewNormal, viewDir, mat.specular_roughness.a, SpecularColor.rgb);
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
@@ -41,7 +44,7 @@ void main() {
 	fragColor.a *= texture(AlphaMaskedTexture, FragIN_uv).r;
 	fragColor *= mat.transparency.rgba;
 	fragColor.rgb += mat.emission.rgb * texture(EmissionTexture, FragIN_uv).rgb;
-	if (fragColor.a < 0.8) {
+	if (fragColor.a < mat.clip_.x) {
 		discard;
 	}
 }

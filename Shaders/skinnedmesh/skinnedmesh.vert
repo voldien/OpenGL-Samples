@@ -11,15 +11,23 @@ layout(location = 2) in vec3 Normal;
 layout(location = 3) in vec3 Tangent;
 layout(location = 4) in uvec4 BoneIDs; /*	*/
 layout(location = 5) in vec4 Weights;  /*	*/
+/*	*/
+layout(location = 8) in ivec2 vAssigns;
 
 layout(location = 0) out vec3 FragIN_position;
 layout(location = 1) out vec2 FragIN_uv;
 layout(location = 2) out vec3 FragIN_normal;
 layout(location = 3) out vec3 FragIN_tangent;
 
+/*	*/
+layout(location = 8) flat invariant out ivec2 fAssigns;
+
 #include "skinnedmesh_common.glsl"
 
 void main() {
+
+	const mat4 model = getModel(vAssigns.y);
+	const mat4 viewProj = getCamera().viewProj;
 
 	/*	*/
 	vec4 deformedVertex = vec4(0.0f);
@@ -42,8 +50,11 @@ void main() {
 		deformedTangent += localTangent * Weights[i];
 	}
 
-	gl_Position = ubo.modelViewProjection * deformedVertex;
-	FragIN_normal = normalize((ubo.model * vec4(deformedNormal, 0.0)).xyz);
-	FragIN_tangent = normalize((ubo.model * vec4(deformedTangent, 0.0)).xyz);
+	gl_Position = (viewProj * model) * deformedVertex;
+	FragIN_normal = normalize((model * vec4(deformedNormal, 0.0)).xyz);
+	FragIN_tangent = normalize((model * vec4(deformedTangent, 0.0)).xyz);
 	FragIN_uv = TextureCoord;
+
+	/*	*/
+	fAssigns = vAssigns;
 }

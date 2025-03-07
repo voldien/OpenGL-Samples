@@ -60,10 +60,14 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		ImGui::Text("FPS %d", this->getRefSample().getFPSCounter().getFPS());
 		ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
 		ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
+
+		ImGui::Text("Elapsed Time %.6f ms",
+					(float)this->getRefSample().time_elapsed / (float)this->getRefSample().time_resolution);
 		ImGui::Text("Primitive %zu", this->getRefSample().debug_prev_frame_primitive_count);
 		ImGui::Text("Samples %zu", this->getRefSample().debug_prev_frame_sample_count);
 		ImGui::Text("CS invocation %d", this->getRefSample().debug_prev_frame_cs_invocation_count);
 		ImGui::Text("Frag invocation %d", this->getRefSample().debug_prev_frame_frag_invocation_count);
+		ImGui::Text("Vertex invocation %d", this->getRefSample().debug_prev_frame_vertex_invocation_count);
 
 		bool renderDocEnable = this->getRefSample().isRenderDocEnabled();
 		if (ImGui::Checkbox("RenderDoc", &renderDocEnable)) {
@@ -100,6 +104,30 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			}
 		}
 		ImGui::EndDisabled();
+
+		{
+			const int item_selected_idx =
+				(int)this->getRefSample().getLogger().level(); // Here we store our selection data as an index.
+
+			std::string combo_preview_value =
+				std::string(magic_enum::enum_name(this->getRefSample().getLogger().level()));
+			ImGuiComboFlags flags = 0;
+			if (ImGui::BeginCombo("Logging Level", combo_preview_value.c_str(), flags)) {
+				for (int n = 0; n < (int)spdlog::level::level_enum::n_levels; n++) {
+					const bool is_selected = (item_selected_idx == n);
+
+					if (ImGui::Selectable(magic_enum::enum_name((spdlog::level::level_enum)n).data(), is_selected)) {
+						this->getRefSample().getLogger().set_level((spdlog::level::level_enum)n);
+					}
+
+					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+					if (is_selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+		}
 
 		/*	*/
 		ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0);
@@ -219,6 +247,8 @@ GLSampleWindow::GLSampleWindow()
 
 	/*	*/
 	glGenQueries(this->queries.size(), this->queries.data());
+	int time_precision = 0;
+	glGetQueryiv(GL_TIME_ELAPSED, GL_QUERY_COUNTER_BITS, &time_precision);
 
 	/*	Disable automatic framebuffer gamma correction, each application handle it manually.	*/
 	glDisable(GL_FRAMEBUFFER_SRGB);
@@ -363,6 +393,7 @@ void GLSampleWindow::renderUI() {
 		glBeginQuery(GL_PRIMITIVES_GENERATED, this->queries[2]);
 		glBeginQuery(GL_COMPUTE_SHADER_INVOCATIONS_ARB, this->queries[3]);
 		glBeginQuery(GL_FRAGMENT_SHADER_INVOCATIONS_ARB, this->queries[4]);
+		glBeginQuery(GL_VERTEX_SHADER_INVOCATIONS_ARB, this->queries[5]);
 	}
 
 	{
@@ -450,20 +481,21 @@ void GLSampleWindow::renderUI() {
 		glEndQuery(GL_PRIMITIVES_GENERATED);
 		glEndQuery(GL_COMPUTE_SHADER_INVOCATIONS_ARB);
 		glEndQuery(GL_FRAGMENT_SHADER_INVOCATIONS_ARB);
+		glEndQuery(GL_VERTEX_SHADER_INVOCATIONS_ARB);
 
-		int nrPrimitives = 0, nrSamples = 0, time_elasped = 0;
 		//	glGetQueryObjectui64v
-		glGetQueryObjectiv(this->queries[0], GL_QUERY_RESULT, &time_elasped);
-		glGetQueryObjectiv(this->queries[1], GL_QUERY_RESULT, &nrSamples);
-		glGetQueryObjectiv(this->queries[2], GL_QUERY_RESULT, &nrPrimitives);
-		glGetQueryObjectiv(this->queries[3], GL_QUERY_RESULT, &this->debug_prev_frame_cs_invocation_count);
-		glGetQueryObjectiv(this->queries[4], GL_QUERY_RESULT, &this->debug_prev_frame_frag_invocation_count);
+		glGetQueryObjectui64v(this->queries[0], GL_QUERY_RESULT, &time_elapsed);
+		glGetQueryObjectui64v(this->queries[1], GL_QUERY_RESULT, &nrSamples);
+		glGetQueryObjectui64v(this->queries[2], GL_QUERY_RESULT, &nrPrimitives);
+		glGetQueryObjectui64v(this->queries[3], GL_QUERY_RESULT, &this->debug_prev_frame_cs_invocation_count);
+		glGetQueryObjectui64v(this->queries[4], GL_QUERY_RESULT, &this->debug_prev_frame_frag_invocation_count);
+		glGetQueryObjectui64v(this->queries[5], GL_QUERY_RESULT, &this->debug_prev_frame_vertex_invocation_count);
 
 		this->debug_prev_frame_sample_count = nrSamples;
 		this->debug_prev_frame_primitive_count = nrPrimitives;
 
 		this->getLogger().debug("Samples: {} Primitives: {} Elapsed: {} ms", nrSamples, nrPrimitives,
-								time_elasped / 1000000.0f);
+								(float)time_elapsed / (float)this->time_resolution);
 	}
 
 	/*	*/
@@ -499,10 +531,8 @@ void GLSampleWindow::renderUI() {
 	this->getFPSCounter().update(this->getTimer().getElapsed<float>());
 
 	/*	*/
-	if (this->debugGL) {
-		this->getLogger().info("FPS: {} Elapsed Time: {}", this->getFPSCounter().getFPS(),
-							   this->getTimer().getElapsed<float>());
-	}
+	this->getLogger().info("FPS: {} Elapsed Time: {} ({} ms)", this->getFPSCounter().getFPS(),
+						   this->getTimer().getElapsed<float>(), this->getTimer().deltaTime<float>() * 1000);
 	this->getTimer().update();
 }
 
@@ -514,13 +544,15 @@ void GLSampleWindow::setTitle(const std::string &title) {
 bool GLSampleWindow::isDebug() const noexcept {
 	fragcore::GLRendererInterface *interface =
 		dynamic_cast<fragcore::GLRendererInterface *>(this->getRenderInterface().get());
-	return true;
+	return this->debugGL;
+	;
 }
 
 void GLSampleWindow::debug(const bool enable) {
-	fragcore::GLRendererInterface *interface =
-		dynamic_cast<fragcore::GLRendererInterface *>(this->getRenderInterface().get());
+
+	fragcore::GLRendererInterface *interface = this->getGLRenderInterface();
 	interface->setDebug(enable);
+	this->debugGL = enable;
 
 	if (enable) {
 		this->logger->set_level(spdlog::level::trace);

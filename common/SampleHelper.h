@@ -114,7 +114,7 @@ namespace glsample {
 
 			return *this;
 		}
-		/*	*/
+
 		camera_instance_t &operator=(CameraController &camera) {
 			//*this = camera.as<Camera<float>>();
 			// TODO: reuse function above

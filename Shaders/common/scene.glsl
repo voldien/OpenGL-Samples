@@ -51,7 +51,7 @@ layout(set = 1, binding = 3, std140) uniform UniformSkeletonBufferBlock { mat4 g
 skeletonUBO;
 
 /*	*/
-layout(set = 1, binding = 4, std140) uniform UniformMaterialBufferBlock { material materials[512]; }
+layout(set = 1, binding = 4, std140) uniform UniformMaterialBufferBlock { material materials[650]; }
 MaterialUBO;
 
 /*	*/
@@ -64,7 +64,7 @@ layout(binding = 1) uniform sampler2D NormalTexture;
 layout(binding = 2) uniform sampler2D AlphaMaskedTexture;
 
 /*	*/
-layout(binding = 5) uniform sampler2D RoughnessTexture;
+layout(binding = 3) uniform sampler2D RoughnessTexture;
 layout(binding = 6) uniform sampler2D MetalicTexture;
 layout(binding = 4) uniform sampler2D EmissionTexture;
 layout(binding = 7) uniform sampler2D DisplacementTexture;
@@ -75,7 +75,10 @@ layout(binding = 10) uniform sampler2D IrradianceTexture;
 layout(binding = 11) uniform samplerCube prefilterMap;
 layout(binding = 12) uniform sampler2D brdfLUT;
 
-mat4 getModel() { return NodeUBO.node[0].model; }
+layout(binding = 13) uniform sampler2D CameraDepthTexture;
+
+mat4 getModel(const in int index) { return NodeUBO.node[index].model; }
+mat4 getModel() { return getModel(0); }
 
 /*	*/
 material getMaterial(const int index) { return MaterialUBO.materials[index]; }
@@ -90,7 +93,6 @@ DirectionalLight getDirectional(const in int index) { return LightUBO.light.dire
 PointLight getPointLight(const in int index) { return LightUBO.light.point[index]; }
 
 /*	*/
-Camera getCamera() {return constantCommon.constant.camera;}
-
+Camera getCamera() { return constantCommon.constant.camera; }
 
 #endif

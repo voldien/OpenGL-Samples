@@ -32,13 +32,15 @@ namespace glsample {
 		Reflection = 5,		  /*	*/
 		AmbientOcclusion = 6, /*	*/
 		Displacement = 7,	  /*	*/
+		Reserve0 = 8,		  /*	*/
+		Reserve1 = 9,		  /*	*/
 		Irradiance = 10,	  /*	*/
 		PreFilter = 11,		  /*	*/
 		BRDFLUT = 12,		  /*	*/
 		DepthBuffer = 13,	  /*	*/
 	};
 
-	enum RenderQueue {
+	enum RenderQueue : unsigned int {
 		Background = 500,	 /*  */
 		Geometry = 1000,	 /*  */
 		AlphaTest = 1500,	 /*  */
@@ -76,6 +78,8 @@ namespace glsample {
 		virtual void update(const float deltaTime);
 
 		virtual void updateBuffers();
+
+		virtual void culling(Frustum *frustum); // TODO: add
 
 		virtual void render(Camera *camera);
 		virtual void render();
@@ -117,14 +121,14 @@ namespace glsample {
 			glm::mat4 proj[3]{};
 			glm::mat4 view[3]{};
 
-			glm::vec4 time;
+			glm::vec4 time; /*	elapsed, delta,	*/
 		};
 		using NodeData = struct alignas(16) _node_data_t {
 			glm::mat4 model;
 		};
 		using LightData = struct alignas(16) _light_data_t {
-			DirectionalLight directional[8];
-			PointLightInstance pointLight[16];
+			DirectionalLight directional[16];
+			PointLightInstance pointLight[64];
 			unsigned int directionalCount = 0;
 			unsigned int pointCount = 0;
 		};
@@ -146,6 +150,7 @@ namespace glsample {
 		/*	TODO add queue structure.	*/
 		std::map<RenderQueue, std::deque<const NodeObject *>> renderBucketQueue;
 		std::deque<const NodeObject *> renderQueue;
+		std::vector<NodeObject *> visableNodes;
 
 		std::vector<NodeObject *> nodes;
 		std::vector<MeshObject> refGeometry;
@@ -154,10 +159,12 @@ namespace glsample {
 		std::vector<AnimationObject> animations;
 
 	  protected: /*	Default texture if texture from material is missing.*/
-		std::array<int, 10> default_textures;
+		std::array<unsigned int, 16> default_textures;
 		std::array<unsigned int, 16> samplers;
 
 		DebugMode debugMode = DebugMode::None;
+		bool frustumCulling = false;
+		size_t currentNodeIndex = 0;
 
 		using UniformDataStructure = struct uniform_data_structure {
 			/*	*/
@@ -167,10 +174,12 @@ namespace glsample {
 			unsigned int node_offset = 0;
 			unsigned int node_size_align = 0;
 			unsigned int node_size_total_align = 0;
+			unsigned int max_node_per_binding = 0;
 
 			unsigned int material_offset = 0;
 			unsigned int material_align_size = 0;
 			unsigned int material_align_total_size = 0;
+			unsigned int max_material_per_block = 0;
 
 			unsigned int light_offset = 0;
 			unsigned int light_align_size = 0;

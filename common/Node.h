@@ -17,6 +17,7 @@
 
 #include "Core/Object.h"
 #include "DataStructure/ITree.h"
+#include "Importer/ModelImporter.h"
 #include <Math3D/Transform.h>
 
 namespace glsample {
@@ -25,9 +26,14 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class FVDECLSPEC Node : public fragcore::Transform, public fragcore::ITree<Node>, public fragcore::Object {
+	class FVDECLSPEC Node : public fragcore::Transform,
+							public fragcore::ITree<Node>,
+							public fragcore::Object,
+							public NodeObject {
 	  public:
 		~Node() override = default;
+
+		/*	*/
 	};
 
 } // namespace glsample

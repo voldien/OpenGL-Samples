@@ -42,10 +42,6 @@ namespace glsample {
 			/*	light source.	*/
 			DirectionalLight directional;
 
-			/*	Material color.	*/
-			glm::vec4 ambientColor = glm::vec4(0.05, 0.05, 0.05, 1.0f);
-			glm::vec4 tintColor = glm::vec4(1);
-
 		} uniformStageBuffer;
 
 		CameraController camera;
@@ -90,10 +86,6 @@ namespace glsample {
 				ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
-
-				ImGui::TextUnformatted("Material Settings");
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
 				ImGui::TextUnformatted("Debugging");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);

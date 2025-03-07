@@ -16,10 +16,9 @@ vec4 computeBlinnDirectional(const in DirectionalLight light, const in vec3 norm
 	const float spec = pow(normal_halfway_contr, shininess);
 	const float contribution = computeLightContributionFactor(normalize(light.direction.xyz), normal);
 
-	vec4 pointLightSpecular;
-	pointLightSpecular.xyz = (specularColor * spec);
-	pointLightSpecular.a = 1;
-	return pointLightSpecular * contribution + (contribution * light.lightColor);
+	vec4 specularLightColor;
+	specularLightColor = vec4( (specularColor * spec), 1);
+	return specularLightColor * contribution + (contribution * light.lightColor);
 }
 
 vec4 computePhongDirectional(const in DirectionalLight light, const in vec3 normal, const in vec3 viewDir,
@@ -31,11 +30,10 @@ vec4 computePhongDirectional(const in DirectionalLight light, const in vec3 norm
 	const float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 	const float contribution = computeLightContributionFactor(normalize(light.direction.xyz), normal);
 
-	vec4 pointLightSpecular;
-	pointLightSpecular.xyz = (specularColor * spec);
-	pointLightSpecular.a = 1;
+	vec4 specularLightColor;
+	specularLightColor = vec4( (specularColor * spec), 1);
 
-	return pointLightSpecular * contribution + contribution * light.lightColor;
+	return specularLightColor * contribution + contribution * light.lightColor;
 }
 
 vec4 computePhongPoint(const in PointLight light, const in vec3 normal, const in vec3 vertex, const in vec3 viewDir,

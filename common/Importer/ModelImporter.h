@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "Math3D/LinAlg.h"
+#include "RenderDesc.h"
 #include <IO/IFileSystem.h>
 #include <Math3D/AABB.h>
 #include <assimp/Importer.hpp>
@@ -53,33 +54,14 @@ using VertexBoneBuffer = struct vertex_bone_buffer_t {
 };
 
 using MaterialTextureSampling = struct material_texture_sampling_t {
-	unsigned int wrapping = 0;
-	unsigned int filtering = 0;
+	fragcore::TextureWrappingMode wrapping = fragcore::TextureWrappingMode::Repeat;
+	fragcore::FilterMode filtering = fragcore::FilterMode::Linear;
 	unsigned int uv_mapping = 0;
 };
 
 using MaterialObject = struct material_object_t : public AssetObject {
 	unsigned int program = 0; // TODO: relocate.
 
-	/*	Texture index.	*/
-	union {
-		struct {
-			int diffuseIndex = -1;
-			int normalIndex = -1;
-			int maskTextureIndex = -1;
-			int specularIndex = -1;
-			int emissionIndex = -1;
-			int reflectionIndex = -1;
-			int ambientOcclusionIndex = -1;
-			int displacementIndex = -1;
-			int metalIndex = -1;
-			int heightbumpIndex = -1;
-		};
-		int texture_index[16];
-	};
-	MaterialTextureSampling texture_sampling[16];
-
-	/*	TODO its own struct.	*/
 	// Material properties.
 	glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
 	glm::vec4 diffuse = glm::vec4(1);
@@ -98,6 +80,31 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	/*	*/
 
 	unsigned int shade_model = 0; /*	aiShadingMode	*/
+
+	MaterialTextureSampling texture_sampling[16];
+
+	/*	Texture index.	*/
+	union {
+		struct {
+			int diffuseIndex = -1;
+			int normalIndex = -1;
+			int maskTextureIndex = -1;
+			int specularIndex = -1;
+			int emissionIndex = -1;
+			int reflectionIndex = -1;
+			int ambientOcclusionIndex = -1;
+			int displacementIndex = -1;
+			int metalIndex = -1;
+			int heightbumpIndex = -1;
+			int pad0 = -1;
+			int pad1 = -1;
+			int pad2 = -1;
+			int pad3 = -1;
+			int pad4 = -1;
+			int pad5 = -1;
+		};
+		std::array<int, 16> texture_index;
+	};
 };
 
 using NodeObject = struct node_object_t : public AssetObject {
