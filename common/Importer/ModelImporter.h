@@ -72,6 +72,7 @@ using MaterialObject = struct material_object_t : public AssetObject {
 
 	/*	*/
 	float shinininess = 1;
+	float bumpiness = 1;
 	float opacity = 1;
 	int blend_func_mode = 0; /*	aiBlendMode*/
 	int wireframe_mode = 0;

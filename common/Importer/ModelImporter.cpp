@@ -770,6 +770,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 				material->shinininess *= tmp;
 			}
 			if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
+				material->bumpiness = tmp;
 			}
 
 			if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {

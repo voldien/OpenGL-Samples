@@ -84,6 +84,7 @@ namespace glsample {
 		virtual void render(Camera *camera);
 		virtual void render();
 
+		virtual void bindMaterial(const MaterialObject* material);
 		virtual void renderNode(const NodeObject *node);
 
 		virtual void sortRenderQueue();
@@ -146,6 +147,8 @@ namespace glsample {
 		NodeData *stageNodeData = nullptr;
 		MaterialData *stageMaterialData = nullptr;
 		LightData *lightData = nullptr;
+
+		MaterialObject* currentBindedMaterial = nullptr;
 
 		/*	TODO add queue structure.	*/
 		std::map<RenderQueue, std::deque<const NodeObject *>> renderBucketQueue;

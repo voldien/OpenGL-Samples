@@ -18,6 +18,25 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
+	class SceneShadow : public Scene {
+	  public:
+		SceneShadow() = default;
+		void bindMaterial(const MaterialObject *material) override {
+			Scene::bindMaterial(material);
+			if (shadowPass) {
+				/*	*/
+				glCullFace(GL_FRONT);
+				glEnable(GL_CULL_FACE);
+				glDisable(GL_BLEND);
+			}
+		}
+		bool shadowPass = false;
+	};
+
+	/**
+	 * @brief
+	 *
+	 */
 	class ShadowMapping : public GLSampleWindow {
 	  public:
 		ShadowMapping() : GLSampleWindow() {
@@ -31,12 +50,12 @@ namespace glsample {
 		}
 
 		struct alignas(16) uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
-			glm::mat4 lightModelProject;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
+			glm::mat4 lightModelProject{};
 
 			/*	light source.	*/
 			DirectionalLight directional;
@@ -47,33 +66,33 @@ namespace glsample {
 			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1.0f);
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1.0f);
 
-			float bias = 0.01f;
+			float bias = 0.005f;
 			float shadowStrength = 1.0f;
 			float pcfRadius = 1.0f;
 		} uniformStageBuffer;
 
 		/*	*/
-		unsigned int shadowFramebuffer;
-		unsigned int shadowTexture;
-		size_t shadowWidth = static_cast<long>(4096) * 2;
-		size_t shadowHeight = static_cast<long>(4096) * 2;
+		unsigned int shadowFramebuffer{};
+		unsigned int shadowTexture{};
+		size_t shadowWidth = static_cast<long>(4096) * 2 * 2;
+		size_t shadowHeight = static_cast<long>(4096) * 2 * 2;
 
-		Scene scene;
+		SceneShadow scene;
 		Skybox skybox;
 
-		unsigned int irradiance_texture;
+		unsigned int irradiance_texture{};
 
 		/*	*/
-		unsigned int graphic_program;
-		unsigned int graphic_pfc_program;
-		unsigned int shadow_program;
-		unsigned int shadow_alpha_clip_program;
-		unsigned int skybox_program;
+		unsigned int graphic_program{};
+		unsigned int graphic_pfc_program{};
+		unsigned int shadow_program{};
+		unsigned int shadow_alpha_clip_program{};
+		unsigned int skybox_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_shadow_buffer_binding = 0;
 		unsigned int uniform_graphic_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		const int shadowBinding = 15;
@@ -89,7 +108,7 @@ namespace glsample {
 			void draw() override {
 
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
-				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f);
+				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f, "%.5f");
 				ImGui::DragFloat("PCF Radius", &this->uniform.pcfRadius, 1, 0.0f, 100.0f);
 				ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
@@ -293,7 +312,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(*modelLoader);
+			this->scene = Scene::loadFrom<SceneShadow>(*modelLoader);
 
 			/*	load Skybox Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -350,12 +369,8 @@ namespace glsample {
 					glUseProgram(this->shadow_program);
 				}
 
-				/*	*/
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-				glCullFace(GL_FRONT);
-				glEnable(GL_CULL_FACE);
-
 				/*	Render shadow.	*/
+				this->scene.shadowPass = true;
 				this->scene.render(nullptr);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
@@ -382,8 +397,6 @@ namespace glsample {
 					glUseProgram(this->graphic_program);
 				}
 
-				glCullFace(GL_BACK);
-
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + shadowBinding);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
@@ -391,6 +404,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
+				this->scene.shadowPass = false;
 				this->scene.render(&this->camera);
 				glUseProgram(0);
 			}

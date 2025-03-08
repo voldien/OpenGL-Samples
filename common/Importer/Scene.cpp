@@ -264,7 +264,7 @@ namespace glsample {
 		// TODO: fix camera argument.
 		if (camera) {
 			this->stageCommonBuffer->camera = *camera;
-			CameraController *cameraController = (CameraController *)camera;
+			CameraController *cameraController = dynamic_cast<CameraController *>(camera);
 			this->stageCommonBuffer->camera = *cameraController;
 			/*	*/
 			this->stageCommonBuffer->proj[0] = camera->getProjectionMatrix();
@@ -375,13 +375,73 @@ namespace glsample {
 		glBindSampler(textureMapIndex, this->samplers[textureMapIndex]);
 	}
 
+	void Scene::bindMaterial(const MaterialObject *material) {
+
+		if (this->currentBindedMaterial != material) {
+
+			this->bindTexture(*material, TextureType::Diffuse);
+			this->bindTexture(*material, TextureType::Normal);
+			this->bindTexture(*material, TextureType::AlphaMask);
+			this->bindTexture(*material, TextureType::Emission);
+			this->bindTexture(*material, TextureType::AmbientOcclusion);
+			this->bindTexture(*material, TextureType::Displacement);
+			this->bindTexture(*material, TextureType::Specular);
+			// this->bindTexture(material, TextureType::Irradiance); //TODO: enable once material has been binded
+			// with irradiance texture
+			this->bindTexture(*material, TextureType::DepthBuffer);
+
+			/*	*/
+			const RenderQueue domain = getQueueDomain(*material);
+
+			glDisable(GL_STENCIL_TEST);
+			glDepthFunc(GL_LESS);
+
+			/*	*/
+			glPolygonMode(GL_FRONT_AND_BACK, material->wireframe_mode ? GL_LINE : GL_FILL);
+
+			/*	*/
+			if (domain == RenderQueue::Transparent) {
+				/*	*/
+				glEnable(GL_BLEND);
+				glEnable(GL_DEPTH_TEST);
+				glDepthMask(GL_FALSE);
+
+				/*	*/
+				material->blend_func_mode;
+				// glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+			} else {
+				/*	*/
+				glDisable(GL_BLEND);
+				glEnable(GL_DEPTH_TEST);
+				glDepthMask(GL_TRUE);
+			}
+
+			/*	*/
+			if (material->culling_both_side_mode) {
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_FRONT_AND_BACK);
+			} else {
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_BACK);
+			}
+
+			/*	*/
+			this->currentBindedMaterial = (MaterialObject *)material;
+		}
+	}
+
 	void Scene::renderNode(const NodeObject *node) {
 
 		/*	Update binding offset.	*/
 		if (currentNodeIndex % this->UBOStructure.max_node_per_binding == 0) {
 			const unsigned int model_block_offset = currentNodeIndex / this->UBOStructure.max_node_per_binding;
 			const size_t model_total_offset =
-				this->UBOStructure.node_offset + model_block_offset * 65536;//TODO:fix constants.
+				this->UBOStructure.node_offset + (model_block_offset * 65536); // TODO:fix constants.
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_buffer_binding,
 							  this->UBOStructure.node_and_common_uniform_buffer, model_total_offset,
 							  this->UBOStructure.node_size_align);
@@ -399,57 +459,7 @@ namespace glsample {
 			{
 
 				const MaterialObject &material = this->materials[material_index];
-
-				this->bindTexture(material, TextureType::Diffuse);
-				this->bindTexture(material, TextureType::Normal);
-				this->bindTexture(material, TextureType::AlphaMask);
-				this->bindTexture(material, TextureType::Emission);
-				this->bindTexture(material, TextureType::AmbientOcclusion);
-				this->bindTexture(material, TextureType::Displacement);
-				this->bindTexture(material, TextureType::Specular);
-				// this->bindTexture(material, TextureType::Irradiance); //TODO: enable once material has been binded
-				// with irradiance texture
-				this->bindTexture(material, TextureType::DepthBuffer);
-
-				/*	*/
-				const RenderQueue domain = getQueueDomain(material);
-
-				glDisable(GL_STENCIL_TEST);
-				glDepthFunc(GL_LESS);
-
-				/*	*/
-				glPolygonMode(GL_FRONT_AND_BACK, material.wireframe_mode ? GL_LINE : GL_FILL);
-
-				/*	*/
-				if (domain == RenderQueue::Transparent) {
-					/*	*/
-					glEnable(GL_BLEND);
-					glEnable(GL_DEPTH_TEST);
-					glDepthMask(GL_FALSE);
-
-					/*	*/
-					material.blend_func_mode;
-					// glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-					glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
-					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-				} else {
-					/*	*/
-					glDisable(GL_BLEND);
-					glEnable(GL_DEPTH_TEST);
-					glDepthMask(GL_TRUE);
-				}
-
-				/*	*/
-				if (material.culling_both_side_mode) {
-					glDisable(GL_CULL_FACE);
-					// glCullFace(GL_BACK);
-				} else {
-					glEnable(GL_CULL_FACE);
-					// glCullFace(GL_BACK);
-				}
+				this->bindMaterial(&material);
 			}
 
 			const MeshObject &refMesh = this->refGeometry[node->geometryObjectIndex[geo_index]];
@@ -460,7 +470,7 @@ namespace glsample {
 			glDrawElementsBaseVertex(refMesh.primitiveType, refMesh.nrIndicesElements, GL_UNSIGNED_INT,
 									 (void *)(sizeof(unsigned int) * refMesh.indices_offset), refMesh.vertex_offset);
 
-			glBindVertexArray(0);
+			//glBindVertexArray(0);
 		}
 
 		/*	Update internal states*/
@@ -522,7 +532,7 @@ namespace glsample {
 		const bool use_clipping = material.maskTextureIndex >= 0 && material.maskTextureIndex < refTexture.size();
 		const bool useBlending = material.opacity < 1.0f;
 
-		return useBlending * 1000 + use_clipping * 100;
+		return (useBlending * 1000) + (use_clipping * 100);
 	}
 
 	RenderQueue Scene::getQueueDomain(const MaterialObject &material) const noexcept {
@@ -567,7 +577,7 @@ namespace glsample {
 			/*	*/
 			// TODO: add tree structure
 			if (ImGui::TreeNode("Nodes")) {
-				ImGui::Text("Count %u", this->nodes.size());
+				ImGui::Text("Count %lu", this->nodes.size());
 				for (size_t node_index = 0; node_index < nodes.size(); node_index++) {
 					ImGui::PushID(node_index);
 
@@ -614,7 +624,7 @@ namespace glsample {
 			ImGui::EndChild();
 
 			if (ImGui::BeginChild("Materials")) {
-				ImGui::Text("Count %u", this->materials.size());
+				ImGui::Text("Count %lu", this->materials.size());
 				size_t material_index = 0;
 				for (; material_index < this->materials.size(); material_index++) {
 					MaterialObject &mat = this->materials[material_index];
@@ -636,6 +646,7 @@ namespace glsample {
 
 					ImGui::DragFloat("Clipping", &mat.clipping, 1, 0, 1);
 					ImGui::DragFloat("Shinininess", &mat.shinininess, 1, 0, 128);
+					ImGui::DragFloat("Bumpiness", &mat.bumpiness, 1, 0, 128);
 
 					for (size_t tex_index = 0; tex_index < mat.texture_index.size(); tex_index++) {
 
