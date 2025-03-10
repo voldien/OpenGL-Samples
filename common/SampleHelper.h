@@ -162,7 +162,6 @@ namespace glsample {
 		std::array<unsigned int, 16> attachments;
 		unsigned int nrAttachments = 0;
 		unsigned int depthbuffer = 0;
-		std::array<unsigned int, 16> internalformats;
 	};
 
 	template <typename T, int m, int n>

@@ -26,7 +26,7 @@ void main() {
 	float ao = texture(AOTexture, TexCoords).r;
 
 	// input lighting data
-	vec3 N = getNormalFromMap(NormalTexture, TexCoords, WorldPos, Normal);
+	vec3 N = getNormalFromMap(NormalTexture, TexCoords, WorldPos, Normal, mat.clip_.y);
 	vec3 V = normalize(getCamera().position.xyz - WorldPos);
 	vec3 R = reflect(-V, N);
 

@@ -26,7 +26,7 @@ void main() {
 	vec3 viewDir = normalize(getCamera().position.xyz - FragIN_position);
 
 	/*	Compute normal.	*/
-	const vec3 NewNormal = getNormalFromMap(NormalTexture, FragIN_uv, FragIN_position, FragIN_normal);
+	const vec3 NewNormal = getNormalFromMap(NormalTexture, FragIN_uv, FragIN_position, FragIN_normal, mat.clip_.y);
 
 	/*	*/
 	const vec4 SpecularColor = vec4(mat.specular_roughness.rgb, 1) * texture(RoughnessTexture, FragIN_uv).r;

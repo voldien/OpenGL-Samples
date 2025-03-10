@@ -72,7 +72,7 @@ void main() {
 	const material mat = getMaterial();
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
-	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal);
+	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
 
 	const vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
 

@@ -1,6 +1,11 @@
 #ifndef _COMMON_LIGHT_H_
 #define _COMMON_LIGHT_H_ 1
 
+struct ShadowLight {
+	mat4 lightSpaceMatrix;
+	vec4 shadow;
+};
+
 struct DirectionalLight {
 	vec4 direction;
 	vec4 lightColor;

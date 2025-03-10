@@ -16,21 +16,10 @@ layout(location = 0) out vec2 UV;
 #include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
 	mat4 lightSpaceMatrix;
 
 	/*	Light source.	*/
 	DirectionalLight directional;
-	Camera camera;
-
-	vec4 ambientColor;
-	vec4 diffuseColor;
-	vec4 specularColor;
-
 	float bias;
 	float shadowStrength;
 	float radius;

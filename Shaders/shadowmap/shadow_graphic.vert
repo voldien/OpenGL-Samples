@@ -25,21 +25,10 @@ layout(location = 8) flat invariant out ivec2 fAssigns;
 #include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
 	mat4 lightSpaceMatrix;
 
 	/*	Light source.	*/
 	DirectionalLight directional;
-	Camera camera;
-
-	vec4 ambientColor;
-	vec4 diffuseColor;
-	vec4 specularColor;
-
 	float bias;
 	float shadowStrength;
 	float radius;
@@ -51,10 +40,10 @@ void main() {
 	const mat4 viewProj = getCamera().viewProj;
 
 	gl_Position = (viewProj * model) * vec4(Vertex, 1.0);
-	vertex = (ubo.model * vec4(Vertex, 1.0)).xyz;
-	normal = (ubo.model * vec4(Normal, 0.0)).xyz;
-	tangent = (ubo.model * vec4(Tangent, 0.0)).xyz;
-	lightSpace = ubo.lightSpaceMatrix * (ubo.model * vec4(Vertex, 1.0));
+	vertex = (model * vec4(Vertex, 1.0)).xyz;
+	normal = (model * vec4(Normal, 0.0)).xyz;
+	tangent = (model * vec4(Tangent, 0.0)).xyz;
+	lightSpace = ubo.lightSpaceMatrix * (model * vec4(Vertex, 1.0));
 	UV = TextureCoord;
 
 	/*	*/

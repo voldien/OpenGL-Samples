@@ -18,9 +18,10 @@ vec3 FresnelSchlick(const in vec3 F0, const in vec3 V, const in vec3 N) {
 vec3 FresnelSteinberg(const in vec3 F0, const in vec3 V, const in vec3 N) { return vec3(0); }
 
 vec3 getNormalFromMap(const in sampler2D normalMap, const in vec2 TexCoords, const in vec3 WorldPos,
-					  const in vec3 Normal) {
+					  const in vec3 Normal, const float bumpiness) {
 
-	const vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
+	vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
+	tangentNormal.xy *= bumpiness;
 
 	const vec3 Q1 = dFdx(WorldPos);
 	const vec3 Q2 = dFdy(WorldPos);

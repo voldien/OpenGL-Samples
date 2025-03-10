@@ -50,23 +50,13 @@ namespace glsample {
 		}
 
 		struct alignas(16) uniform_buffer_block {
-			glm::mat4 model{};
-			glm::mat4 view{};
-			glm::mat4 proj{};
-			glm::mat4 modelView{};
-			glm::mat4 modelViewProjection{};
+
 			glm::mat4 lightModelProject{};
 
 			/*	light source.	*/
 			DirectionalLight directional;
-			CameraInstance camera;
 
-			/*	*/
-			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
-			glm::vec4 diffuseColor = glm::vec4(1, 1, 1, 1.0f);
-			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1.0f);
-
-			float bias = 0.005f;
+			float bias = 0.00050f;
 			float shadowStrength = 1.0f;
 			float pcfRadius = 1.0f;
 		} uniformStageBuffer;
@@ -114,15 +104,6 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
 
-				ImGui::TextUnformatted("Material Settings");
-				ImGui::ColorEdit4("Ambient", &this->uniform.ambientColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Diffuse", &this->uniform.diffuseColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Specular", &this->uniform.specularColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoAlpha);
-				ImGui::DragFloat("Shininess", &this->uniform.specularColor[3]);
-
 				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
@@ -145,9 +126,9 @@ namespace glsample {
 		std::shared_ptr<BasicShadowMapSettingComponent> shadowSettingComponent;
 
 		/*	*/
-		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/texture.vert.spv";
-		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/texture.frag.spv";
-		const std::string fragmentPCFGraphicShaderPath = "Shaders/shadowmap/texture_pcf.frag.spv";
+		const std::string vertexGraphicShaderPath = "Shaders/shadowmap/shadow_graphic.vert.spv";
+		const std::string fragmentGraphicShaderPath = "Shaders/shadowmap/shadow_graphic.frag.spv";
+		const std::string fragmentPCFGraphicShaderPath = "Shaders/shadowmap/shadow_graphic_pcf.frag.spv";
 
 		/*	*/
 		const std::string vertexShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
@@ -352,7 +333,6 @@ namespace glsample {
 
 				glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
 				this->uniformStageBuffer.lightModelProject = lightSpaceMatrix;
-				this->uniformStageBuffer.camera = this->camera;
 
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_shadow_buffer_binding, this->uniform_buffer,
@@ -417,13 +397,6 @@ namespace glsample {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
 			this->scene.update(this->getTimer().deltaTime<float>());
-
-			/*	*/
-			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.view = this->camera.getViewMatrix();
-			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
-			this->uniformStageBuffer.modelViewProjection =
-				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

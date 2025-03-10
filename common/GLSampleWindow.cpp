@@ -57,6 +57,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		if (ImGui::Checkbox("Debug", &isDebug)) {
 			this->getRefSample().debug(isDebug);
 		}
+
+		ImGui::BeginGroup();
 		ImGui::Text("FPS %d", this->getRefSample().getFPSCounter().getFPS());
 		ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
 		ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
@@ -65,9 +67,12 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 					(float)this->getRefSample().time_elapsed / (float)this->getRefSample().time_resolution);
 		ImGui::Text("Primitive %zu", this->getRefSample().debug_prev_frame_primitive_count);
 		ImGui::Text("Samples %zu", this->getRefSample().debug_prev_frame_sample_count);
-		ImGui::Text("CS invocation %d", this->getRefSample().debug_prev_frame_cs_invocation_count);
-		ImGui::Text("Frag invocation %d", this->getRefSample().debug_prev_frame_frag_invocation_count);
-		ImGui::Text("Vertex invocation %d", this->getRefSample().debug_prev_frame_vertex_invocation_count);
+		ImGui::Text("CS invocation %zu", this->getRefSample().debug_prev_frame_cs_invocation_count);
+		ImGui::Text("Frag invocation %zu", this->getRefSample().debug_prev_frame_frag_invocation_count);
+		ImGui::Text("Vertex invocation %zu", this->getRefSample().debug_prev_frame_vertex_invocation_count);
+		ImGui::Text("Geometry invocation %zu", this->getRefSample().debug_prev_frame_geometry_invocation_count);
+
+		ImGui::EndGroup();
 
 		bool renderDocEnable = this->getRefSample().isRenderDocEnabled();
 		if (ImGui::Checkbox("RenderDoc", &renderDocEnable)) {
@@ -106,8 +111,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		ImGui::EndDisabled();
 
 		{
-			const int item_selected_idx =
-				(int)this->getRefSample().getLogger().level(); // Here we store our selection data as an index.
+			const int item_selected_idx = (int)this->getRefSample().getLogger().level();
 
 			std::string combo_preview_value =
 				std::string(magic_enum::enum_name(this->getRefSample().getLogger().level()));
@@ -120,7 +124,6 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 						this->getRefSample().getLogger().set_level((spdlog::level::level_enum)n);
 					}
 
-					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 					if (is_selected) {
 						ImGui::SetItemDefaultFocus();
 					}
@@ -133,8 +136,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0);
 		ImGui::SeparatorText("Color Space Settings");
 		if (this->getRefSample().getColorSpaceConverter()) {
-			const int item_selected_idx =
-				(int)this->getRefSample().getColorSpace(); // Here we store our selection data as an index.
+			const int item_selected_idx = (int)this->getRefSample().getColorSpace();
 
 			std::string combo_preview_value = std::string(magic_enum::enum_name(this->getRefSample().getColorSpace()));
 			ImGuiComboFlags flags = 0;
@@ -146,7 +148,6 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 						this->getRefSample().setColorSpace((ColorSpace)n);
 					}
 
-					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 					if (is_selected) {
 						ImGui::SetItemDefaultFocus();
 					}
@@ -394,6 +395,7 @@ void GLSampleWindow::renderUI() {
 		glBeginQuery(GL_COMPUTE_SHADER_INVOCATIONS_ARB, this->queries[3]);
 		glBeginQuery(GL_FRAGMENT_SHADER_INVOCATIONS_ARB, this->queries[4]);
 		glBeginQuery(GL_VERTEX_SHADER_INVOCATIONS_ARB, this->queries[5]);
+		glBeginQuery(GL_GEOMETRY_SHADER_INVOCATIONS, this->queries[6]);
 	}
 
 	{
@@ -432,6 +434,8 @@ void GLSampleWindow::renderUI() {
 
 		/*	*/
 		if (this->postprocessingManager) {
+			const std::string postStage = "post processing";
+			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, postStage.size(), postStage.data());
 			/*	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
 
@@ -446,6 +450,7 @@ void GLSampleWindow::renderUI() {
 																	  this->defaultFramebuffer->attachments[1]),
 				 std::make_tuple<const GBuffer, const unsigned int &>(GBuffer::IntermediateTarget2,
 																	  this->defaultFramebuffer->attachments[2])});
+			glPopDebugGroup();
 		}
 
 		/*	Transfer last result to the default OpenGL Framebuffer.	*/
@@ -467,6 +472,7 @@ void GLSampleWindow::renderUI() {
 							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
+
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("Post Draw"), "Post Draw");
 		this->postDraw();
 		glPopDebugGroup();
@@ -482,6 +488,7 @@ void GLSampleWindow::renderUI() {
 		glEndQuery(GL_COMPUTE_SHADER_INVOCATIONS_ARB);
 		glEndQuery(GL_FRAGMENT_SHADER_INVOCATIONS_ARB);
 		glEndQuery(GL_VERTEX_SHADER_INVOCATIONS_ARB);
+		glEndQuery(GL_GEOMETRY_SHADER_INVOCATIONS);
 
 		//	glGetQueryObjectui64v
 		glGetQueryObjectui64v(this->queries[0], GL_QUERY_RESULT, &time_elapsed);
@@ -490,6 +497,7 @@ void GLSampleWindow::renderUI() {
 		glGetQueryObjectui64v(this->queries[3], GL_QUERY_RESULT, &this->debug_prev_frame_cs_invocation_count);
 		glGetQueryObjectui64v(this->queries[4], GL_QUERY_RESULT, &this->debug_prev_frame_frag_invocation_count);
 		glGetQueryObjectui64v(this->queries[5], GL_QUERY_RESULT, &this->debug_prev_frame_vertex_invocation_count);
+		glGetQueryObjectui64v(this->queries[6], GL_QUERY_RESULT, &this->debug_prev_frame_geometry_invocation_count);
 
 		this->debug_prev_frame_sample_count = nrSamples;
 		this->debug_prev_frame_primitive_count = nrPrimitives;
@@ -542,10 +550,9 @@ void GLSampleWindow::setTitle(const std::string &title) {
 }
 
 bool GLSampleWindow::isDebug() const noexcept {
-	fragcore::GLRendererInterface *interface =
-		dynamic_cast<fragcore::GLRendererInterface *>(this->getRenderInterface().get());
+	const fragcore::GLRendererInterface *interface = this->getGLRenderInterface();
+
 	return this->debugGL;
-	;
 }
 
 void GLSampleWindow::debug(const bool enable) {

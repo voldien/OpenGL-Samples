@@ -688,11 +688,13 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 					material->heightbumpIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_AMBIENT:
+					material->ambientOcclusionIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_EMISSIVE:
 					material->emissionIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_SHININESS:
+					material->specularIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_DISPLACEMENT:
 					material->displacementIndex = texTableIndex;
@@ -712,14 +714,17 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 					material->emissionIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_METALNESS:
+					material->metalIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS:
+					material->diffuseIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_AMBIENT_OCCLUSION:
+					material->ambientOcclusionIndex = texTableIndex;
 					break;
 				case aiTextureType_UNKNOWN:
-					break;
 				default:
+					std::cerr << "Can't find any image " << texTableIndex << std::endl;
 					break;
 				}
 			}
@@ -769,9 +774,6 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 			if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
 				material->shinininess *= tmp;
 			}
-			if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material->bumpiness = tmp;
-			}
 
 			if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
 				material->opacity = tmp;
@@ -788,10 +790,28 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 			if (ref_material->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
 			}
 		} else {
+
+			material->ambient = glm::vec4(1);
+
+			if (ref_material->Get(AI_MATKEY_BASE_COLOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
+				material->diffuse = color;
+				material->diffuse[3] = 1;
+			}
+
 			/*	*/
 			if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
 				material->transparent *= color;
 			}
+
+			if (ref_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
+				material->emission = color;
+				material->emission[3] = 1;
+			}
+		}
+
+		float tmp;
+		if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
+			material->bumpiness = tmp;
 		}
 
 		aiBlendMode blendfunc;

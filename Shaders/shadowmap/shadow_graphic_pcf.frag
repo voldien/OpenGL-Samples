@@ -27,21 +27,10 @@ layout(constant_id = 16) const int PCF_SAMPLES = 7;
 #include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
 	mat4 lightSpaceMatrix;
 
 	/*	Light source.	*/
 	DirectionalLight directional;
-	Camera camera;
-
-	vec4 ambientColor;
-	vec4 diffuseColor;
-	vec4 specularColor;
-
 	float bias;
 	float shadowStrength;
 	float radius;
@@ -61,8 +50,9 @@ float ShadowCalculationPCF(const in vec4 fragPosLightSpace) {
 	projCoords = projCoords * 0.5 + 0.5;
 
 	const float bias =
-		clamp(0.05 * (1.0 - dot(normalize(normal), normalize(ubo.directional.direction).xyz)), 0, ubo.bias);
+		clamp(0.005 * (1.0 - dot(normalize(normal), normalize(-ubo.directional.direction).xyz)), 0.0005, ubo.bias);
 	projCoords.z *= (1 - bias);
+
 
 	float shadowFactor = 0;
 	const ivec2 gMapSize = textureSize(ShadowTexture, 0);
@@ -93,9 +83,9 @@ void main() {
 
 	vec3 viewDir = normalize(getCamera().position.xyz - vertex);
 
-	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal);
+	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
 
-	const float shadow = max(ubo.shadowStrength - ShadowCalculationPCF(lightSpace), 0);
+	const float shadow = max(1 - ShadowCalculationPCF(lightSpace) * ubo.shadowStrength, 0);
 
 	/*	*/
 	const vec4 SpecularColor = vec4(mat.specular_roughness.rgb, 1) * texture(RoughnessTexture, UV);

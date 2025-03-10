@@ -24,23 +24,10 @@ layout(binding = 9) uniform sampler2DShadow ShadowTexture;
 #include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 modelViewProjection;
 	mat4 lightSpaceMatrix;
 
 	/*	Light source.	*/
 	DirectionalLight directional;
-	Camera camera;
-
-	/*	*/
-	vec4 ambientColor;
-	vec4 diffuseColor;
-	vec4 specularColor;
-
-	/*	*/
 	float bias;
 	float shadowStrength;
 	float radius;
@@ -56,13 +43,14 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 		return 1;
 	}
 
-	// transform from NDC to Screen Space [0,1] range
+	/*	transform from NDC to Screen Space [0,1] range	*/
 	projCoords = projCoords * 0.5 + 0.5;
 
 	const float bias =
-		clamp(0.05 * (1.0 - dot(normalize(normal), normalize(ubo.directional.direction).xyz)), 0, ubo.bias);
+		clamp(0.005 * (1.0 - dot(normalize(normal), normalize(-ubo.directional.direction).xyz)), 0.0005, ubo.bias);
 	projCoords.z *= (1 - bias);
 
+	/*	*/
 	const float shadow = textureProj(ShadowTexture, projCoords, 0).r;
 
 	return (1.0 - shadow);
@@ -73,11 +61,11 @@ void main() {
 	const material mat = getMaterial(fAssigns.x);
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
-	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal);
+	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
 
-	const vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
+	const vec3 viewDir = normalize(getCamera().position.xyz - vertex);
 
-	const float shadow = max(ubo.shadowStrength - ShadowCalculation(lightSpace), 0);
+	const float shadow = max(1 - ShadowCalculation(lightSpace) * ubo.shadowStrength, 0);
 
 	/*	*/
 	const vec4 SpecularColor = vec4(mat.specular_roughness.rgb, 1) * texture(RoughnessTexture, UV).r;

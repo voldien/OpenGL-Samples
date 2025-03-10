@@ -193,6 +193,7 @@ namespace glsample {
 			this->stageMaterialData[material_index].emission = this->materials[material_index].emission;
 			this->stageMaterialData[material_index].transparency = this->materials[material_index].transparent;
 			this->stageMaterialData[material_index].clip_[0] = this->materials[material_index].clipping;
+			this->stageMaterialData[material_index].clip_[1] = this->materials[material_index].bumpiness;
 		}
 
 		glBindBuffer(GL_UNIFORM_BUFFER, this->UBOStructure.node_and_common_uniform_buffer);
@@ -281,6 +282,7 @@ namespace glsample {
 
 		/*	Reset States.	*/
 		this->currentNodeIndex = 0;
+		this->currentBindedMaterial = nullptr;
 
 		// TODO: sort materials and geometry.
 		this->sortRenderQueue();
@@ -470,7 +472,7 @@ namespace glsample {
 			glDrawElementsBaseVertex(refMesh.primitiveType, refMesh.nrIndicesElements, GL_UNSIGNED_INT,
 									 (void *)(sizeof(unsigned int) * refMesh.indices_offset), refMesh.vertex_offset);
 
-			//glBindVertexArray(0);
+			// glBindVertexArray(0);
 		}
 
 		/*	Update internal states*/
@@ -598,6 +600,9 @@ namespace glsample {
 						nodes[node_index]->modelGlobalTransform =
 							glm::translate(globaMat, nodes[node_index]->localPosition) *
 							glm::mat4_cast(nodes[node_index]->localRotation);
+					}
+
+					if (ImGui::DragFloat4("Scale (Quat)", &nodes[node_index]->localScale[0])) {
 					}
 
 					ImGui::PopID();
