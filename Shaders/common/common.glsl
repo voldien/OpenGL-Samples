@@ -1,6 +1,7 @@
 #ifndef _COMMON_HEADER_
 #define _COMMON_HEADER_ 1
 
+#extension GL_EXT_control_flow_attributes : enable
 #extension GL_EXT_control_flow_attributes2 : enable
 
 #include "colorspace.glsl"

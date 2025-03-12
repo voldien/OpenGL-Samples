@@ -26,5 +26,6 @@ struct OutputPatch {
 	vec3 WorldPos_B120;
 	vec3 WorldPos_B111;
 	vec3 Normal[3];
+	vec3 Tormal[3];
 	vec2 TexCoord[3];
 };

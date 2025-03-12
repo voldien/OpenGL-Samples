@@ -46,7 +46,7 @@ float ShadowCalculationPCF(const in vec4 fragPosLightSpace) {
 		return 0;
 	}
 
-	// transform to [0,1] range
+	// transform NDC to [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
 
 	const float bias =

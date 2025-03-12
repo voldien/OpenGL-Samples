@@ -1,6 +1,6 @@
 layout(constant_id = 1) const int NR_Particles = 8;
 
-#include"common.glsl"
+#include "common.glsl"
 
 struct particle_t {
 	vec3 position;
@@ -55,4 +55,3 @@ layout(binding = 0) uniform UniformBufferBlock {
 	float deltaTime;
 }
 ubo;
-
