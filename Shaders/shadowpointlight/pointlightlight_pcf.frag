@@ -12,10 +12,11 @@ layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec2 UV;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec3 tangent;
+layout(location = 8) flat in ivec2 fAssigns;
 
 #include "common.glsl"
 #include "scene.glsl"
-
+#include "pbr.glsl"
 #include "phongblinn.glsl"
 
 layout(binding = 16) uniform samplerCube ShadowTexture[4];
@@ -91,8 +92,10 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 
 void main() {
 
-	const material mat = getMaterial();
+	const material mat = getMaterial(fAssigns.x);
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+
+	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
 
 	vec4 pointLightColors = vec4(0);
 
@@ -108,7 +111,7 @@ void main() {
 			1.0 / (ubo.point_light[i].constant_attenuation + ubo.point_light[i].linear_attenuation * dist +
 				   ubo.point_light[i].qudratic_attenuation * (dist * dist));
 
-		float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
+		float contribution = max(dot(NewNormal, normalize(diffVertex)), 0.0);
 
 		float shadow = ShadowCalculation(vertex, ShadowTexture[i], i);
 
@@ -118,12 +121,20 @@ void main() {
 							shadow;
 	}
 	pointLightColors.a = 1;
-	fragColor = texture(DiffuseTexture, UV) * mat.diffuseColor * (glob_settings.ambientColor * mat.ambientColor + pointLightColors);
 
+	/*	*/
+	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
+	const vec4 irradiance_color = vec4(texture(IrradianceTexture, irradiance_uv).rgb, 1);
+
+	const vec4 color = texture(DiffuseTexture, UV) * mat.diffuseColor;
+	const vec4 lighting = (glob_settings.ambientColor * mat.ambientColor * irradiance_color + pointLightColors);
+
+	fragColor = vec4(lighting.rgb, 1) * color;
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
 	fragColor *= mat.transparency.rgba;
 	fragColor.rgb += mat.emission.rgb * texture(EmissionTexture, UV).rgb;
-	if (fragColor.a < 0.8) {
+
+	if (fragColor.a < mat.clip_.x) {
 		discard;
 	}
 }

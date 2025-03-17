@@ -59,22 +59,22 @@ namespace glsample {
 		struct uniform_buffer_block {
 			glm::mat4 modelViewProjection;
 
-		} uniformStageBuffer;
+		} uniformStageBuffer{};
 
-		unsigned int mipmap_texture;
-		unsigned int mipmap_sampler;
+		unsigned int mipmap_texture{};
+		unsigned int mipmap_sampler{};
 
 		unsigned int mip_levels = 6;
 
 		MipMapScene scene;
 
 		/*	*/
-		unsigned int mipmap_graphic_program;
-		float mipmapbias;
+		unsigned int mipmap_graphic_program{};
+		float mipmapbias{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_graphic_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 

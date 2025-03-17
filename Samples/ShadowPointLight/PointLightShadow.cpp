@@ -78,6 +78,8 @@ namespace glsample {
 		Scene scene;
 		Skybox skybox;
 
+		unsigned int irradiance_texture{};
+
 		/*	*/
 		unsigned int graphic_program = 0;
 		unsigned int graphic_pfc_program = 0;
@@ -330,6 +332,9 @@ namespace glsample {
 			modelLoader.loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom(modelLoader);
 
+			ProcessData util(this->getFileSystem());
+			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
+
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0.1, 0.1, 1), glm::vec4(0.1, 1, 0.1, 1), glm::vec4(0.1, 0.1, 1, 1),
 										glm::vec4(1, 0.1, 1, 1)};
@@ -418,17 +423,14 @@ namespace glsample {
 					glUseProgram(this->graphic_program);
 				}
 
-				glCullFace(GL_BACK);
-				glDisable(GL_CULL_FACE);
-
-				/*	Optional - to display wireframe.	*/
-				glPolygonMode(GL_FRONT_AND_BACK, this->shadowSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
-
 				/*	*/
 				for (size_t j = 0; j < this->nrPointLights; j++) {
 					glActiveTexture(GL_TEXTURE16 + j);
 					glBindTexture(GL_TEXTURE_CUBE_MAP, this->pointShadowTextures[j]);
 				}
+
+				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				this->scene.render(&this->camera);
 			}

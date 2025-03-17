@@ -85,7 +85,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int vertex_dat_buffer_binding = 1;
 
-		unsigned int query;
+		unsigned int query{};
 		unsigned int irradiance_texture{};
 
 		/*	*/
@@ -324,7 +324,7 @@ namespace glsample {
 			glBufferData(GL_ARRAY_BUFFER, this->marchingTotalCubeSize, nullptr, GL_DYNAMIC_DRAW);
 			/*	Vertex.	*/
 			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, 0);
+			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, nullptr);
 			/*	Vertex.	*/
 			glEnableVertexAttribArrayARB(1);
 			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)12);
@@ -419,7 +419,7 @@ namespace glsample {
 				glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
 				glBindVertexArray(0);
 
-				GLuint primitives;
+				GLuint primitives = 0;
 				glGetQueryObjectuiv(query, GL_QUERY_RESULT, &primitives);
 				marchingCubeSortedMesh.nrVertices = primitives * 3;
 
