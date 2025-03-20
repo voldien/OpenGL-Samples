@@ -33,13 +33,13 @@ namespace glsample {
 		Depth = 6,			   /*	*/
 		Velocity = 7,		   /*	*/
 		Roughness = 8,		   /*	*/
-		AO,
-		Displacement,
-		Metallic,			/*	*/
-		SubSurface,			/*	*/
-		LightPass,			/*	*/
-		IntermediateTarget, /*	*/
-		IntermediateTarget2 /*	*/
+		AO,					   /*	*/
+		Displacement,		   /*	*/
+		Metallic,			   /*	*/
+		SubSurface,			   /*	*/
+		LightPass,			   /*	*/
+		IntermediateTarget,	   /*	*/
+		IntermediateTarget2	   /*	*/
 	};
 
 	enum class FogType : unsigned int {

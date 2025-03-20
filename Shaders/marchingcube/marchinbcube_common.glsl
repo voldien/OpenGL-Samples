@@ -1,5 +1,9 @@
 #include "common.glsl"
 
+const uint chunk_size = 10;
+const uint chunk_size2 = chunk_size * chunk_size;
+const uint num_point_4_cell = 15;
+
 struct Vertex {
 	vec3 pos;
 	float scale;
@@ -28,3 +32,8 @@ layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	MarchingCubeCellData settings;
 }
 ubo;
+
+// layout(set = 0, binding = 1, std420) uniform buffer UniformBufferBlock {
+// 	MarchingCubeCellData settings;
+// }
+// ubo;

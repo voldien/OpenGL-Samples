@@ -226,7 +226,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 		}
 	}
 
-	this->initNoodeRoot(scene->mRootNode, nullptr);
+	this->initNodeRoot(scene->mRootNode, nullptr);
 
 	/*	*/
 	for (size_t x = 0; x < scene->mNumMeshes; x++) {
@@ -234,31 +234,33 @@ void ModelImporter::initScene(const aiScene *scene) {
 	}
 }
 
-void ModelImporter::initNoodeRoot(const aiNode *ai_node, NodeObject *parent) {
-	size_t gameObjectCount = 0;
-	size_t meshCount = 0;
+void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 
 	/*	iterate through each child of parent node.	*/
 	for (size_t node_index = 0; node_index < ai_node->mNumChildren; node_index++) {
 		aiNode *child_node = ai_node->mChildren[node_index];
 
-		unsigned int meshCount = 0;
 		aiVector3D position, scale;
 		aiQuaternion rotation;
 
+		// TODO: fetch from pool.
 		NodeObject *pobject = new NodeObject();
 
-		/*	extract position, rotation, position from transformation matrix.	*/
-		child_node->mTransformation.Decompose(scale, rotation, position);
 		if (parent) {
 			pobject->parent = parent;
 		} else {
 			pobject->parent = nullptr;
 		}
 
+		/*	extract position, rotation, position from transformation matrix.	*/
+
+		child_node->mTransformation.Decompose(scale, rotation, position);
+
+		/*	*/
 		pobject->localPosition = glm::vec3(position.x, position.y, position.z);
 		pobject->localRotation = glm::quat(rotation.w, rotation.x, rotation.y, rotation.z);
 		pobject->localScale = glm::vec3(scale.x, scale.y, scale.z);
+
 		/*	*/
 		pobject->modelLocalTransform = aiMatrix4x4ToGlm(&child_node->mTransformation);
 
@@ -295,7 +297,7 @@ void ModelImporter::initNoodeRoot(const aiNode *ai_node, NodeObject *parent) {
 		this->nodeByName[std::string(child_node->mName.C_Str())] = pobject;
 
 		/*	*/
-		this->initNoodeRoot(child_node, pobject);
+		this->initNodeRoot(child_node, pobject);
 	}
 }
 
@@ -688,7 +690,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 					material->heightbumpIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_AMBIENT:
-					material->ambientOcclusionIndex = texTableIndex;
+					material->diffuseIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_EMISSIVE:
 					material->emissionIndex = texTableIndex;

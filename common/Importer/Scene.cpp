@@ -25,10 +25,7 @@ namespace glsample {
 		Scene &scene;
 	};
 
-	Scene::Scene() {
-		this->init();
-		glCullFace(GL_BACK);
-	}
+	Scene::Scene() { this->init(); }
 
 	Scene::~Scene() = default;
 
@@ -98,22 +95,24 @@ namespace glsample {
 		{
 			/*	Align the uniform buffer size to hardware specific.	*/
 			GLint minMapBufferSize = 0;
-			GLint maxUniformBufferSize = 0;
+			GLint maxUniformBlockBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBufferSize);
+			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockBufferSize);
 
 			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(CommonConstantData), minMapBufferSize);
 			this->UBOStructure.common_size_total_align =
 				this->UBOStructure.common_size_align * UniformDataStructure::nrUniformBuffer;
 			this->UBOStructure.common_offset = 0;
 
-			const size_t NrNodes = 4096 * sizeof(NodeData);
+			this->UBOStructure.max_node_per_binding = 1024; // maxUniformBufferSize / sizeof(NodeData);
+			const size_t NrNodes = 4096 * sizeof(NodeData); // TODO: change number based on the max bininded uniform size.
 			this->UBOStructure.node_size_align = Math::align<size_t>(NrNodes, minMapBufferSize);
 			this->UBOStructure.node_size_total_align =
 				this->UBOStructure.node_size_align * UniformDataStructure::nrUniformBuffer;
-			this->UBOStructure.max_node_per_binding = 1024; // maxUniformBufferSize / sizeof(NodeData);
 
-			this->UBOStructure.material_align_size = Math::align<size_t>(4096 * sizeof(MaterialData), minMapBufferSize);
+
+			const size_t max_bindable_materials = 4096;
+			this->UBOStructure.material_align_size = Math::align<size_t>(max_bindable_materials * sizeof(MaterialData), minMapBufferSize);
 			this->UBOStructure.material_align_total_size =
 				this->UBOStructure.material_align_size * UniformDataStructure::nrUniformBuffer;
 
@@ -562,6 +561,11 @@ namespace glsample {
 
 		if (ImGui::CollapsingHeader("Scene Settings")) {
 
+			if (ImGui::TreeNode("Advanced, with Selectable nodes")) {
+
+				ImGui::TreePop();
+			}
+
 			/*	*/
 			if (ImGui::CollapsingHeader("Global Rendering Settings")) {
 				ImGui::ColorEdit4("Global Ambient Color", &this->stageCommonBuffer->renderSettings.ambientColor[0],
@@ -580,7 +584,13 @@ namespace glsample {
 			// TODO: add tree structure
 			if (ImGui::TreeNode("Nodes")) {
 				ImGui::Text("Count %lu", this->nodes.size());
+
 				for (size_t node_index = 0; node_index < nodes.size(); node_index++) {
+
+					if (node_index == 0) {
+						ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+					}
+
 					ImGui::PushID(node_index);
 
 					ImGui::TextUnformatted(nodes[node_index]->name.c_str());
@@ -602,8 +612,12 @@ namespace glsample {
 							glm::mat4_cast(nodes[node_index]->localRotation);
 					}
 
-					if (ImGui::DragFloat4("Scale (Quat)", &nodes[node_index]->localScale[0])) {
+					if (ImGui::DragFloat3("Rotation (Eular)", &nodes[node_index]->localRotation[0])) {
 					}
+
+					if (ImGui::DragFloat3("Scale", &nodes[node_index]->localScale[0])) {
+					}
+					ImGui::Separator();
 
 					ImGui::PopID();
 				}
@@ -611,7 +625,7 @@ namespace glsample {
 				/*	*/
 				ImGui::TreePop();
 			}
-			if (ImGui::BeginChild("Light Settings")) {
+			if (ImGui::CollapsingHeader("Light Settings")) {
 				size_t material_index = 0;
 
 				ImGui::TextUnformatted("PointLight");
@@ -626,9 +640,8 @@ namespace glsample {
 					ImGui::PopID();
 				}
 			}
-			ImGui::EndChild();
 
-			if (ImGui::BeginChild("Materials")) {
+			if (ImGui::CollapsingHeader("Materials")) {
 				ImGui::Text("Count %lu", this->materials.size());
 				size_t material_index = 0;
 				for (; material_index < this->materials.size(); material_index++) {
@@ -662,19 +675,43 @@ namespace glsample {
 						if (glIsTexture(tex)) {
 							const std::string texType = std::string(magic_enum::enum_name((TextureType)tex_index));
 
-							ImGui::Image(tex, ImVec2(64, 64));
+							ImGui::PushID(tex_index);
+
+							ImGui::Image(tex, ImVec2(96, 96));
 							ImGui::SameLine();
 							ImGui::Text("%s (%ld)", texType.c_str(), tex_index);
+							ImGui::SameLine();
+
+							const int item_selected_idx = (int)mat.texture_sampling[tex_index].wrapping;
+
+							std::string combo_preview_value =
+								std::string(magic_enum::enum_name((fragcore::TextureWrappingMode)item_selected_idx));
+							ImGuiComboFlags flags = 0;
+							if (ImGui::BeginCombo("Texture Wrapping", combo_preview_value.c_str(), flags)) {
+								for (int n = 0; n <= (int)fragcore::TextureWrappingMode::ClampBorder; n++) {
+									const bool is_selected = (item_selected_idx == n);
+
+									if (ImGui::Selectable(
+											magic_enum::enum_name((fragcore::TextureWrappingMode)n).data(),
+											is_selected)) {
+										mat.texture_sampling[tex_index].wrapping = (fragcore::TextureWrappingMode)n;
+									}
+
+									if (is_selected) {
+										ImGui::SetItemDefaultFocus();
+									}
+								}
+								ImGui::EndCombo();
+							}
+							ImGui::PopID();
 						}
 					}
 					ImGui::PopID();
 				}
 			}
-			ImGui::EndChild();
 
-			if (ImGui::BeginChild("Textures")) {
+			if (ImGui::CollapsingHeader("Textures")) {
 			}
-			ImGui::EndChild();
 		}
 	}
 

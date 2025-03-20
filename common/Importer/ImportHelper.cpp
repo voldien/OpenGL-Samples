@@ -250,7 +250,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				Image image = imageLoader.loadImage(refIO);
 
 				if (!materials.empty() && materials[0]->heightbumpIndex == texture_index) {
-					image = ImageUtil::convert2NormalMap(image);
+					image = ImageUtil::convert2NormalMap(image, 3.5f);
 					materials[0]->heightbumpIndex = -1;
 					materials[0]->normalIndex = texture_index;
 				}

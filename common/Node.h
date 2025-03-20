@@ -31,6 +31,8 @@ namespace glsample {
 							public fragcore::Object,
 							public NodeObject {
 	  public:
+		Node() = default;
+		Node(const NodeObject *node);
 		~Node() override = default;
 
 		/*	*/

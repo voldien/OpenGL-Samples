@@ -21,18 +21,18 @@ layout(location = 3, xfb_buffer = 0, xfb_offset = 32) out vec3 out_normal_worlds
 void main() {
 
 	/*  Determine if any visable geometry.  */
-	if (v_out_scale[0] < 0.001 && v_out_scale[1] < 0.001 && v_out_scale[2] < 0.001) {
+	if (v_out_scale[0] < 0.01 && v_out_scale[1] < 0.01 && v_out_scale[2] < 0.01) {
 		return;
 	}
 
 	[[unroll]] for (uint i = 0; i < 3; i++) {
-		//gl_Position = vec4(v_out_vertex_worldspace[i].xyz, 1);
+		// gl_Position = vec4(v_out_vertex_worldspace[i].xyz, 1);
 		out_vertex_worldspace = v_out_vertex_worldspace[i].xyz;
 		out_coord = v_out_coord[i];
 		out_color = v_out_color[i];
 		out_normal_worldspace = v_out_normal_worldspace[i];
 		EmitVertex();
 	}
-	
+
 	EndPrimitive();
 }

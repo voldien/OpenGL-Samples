@@ -8,6 +8,7 @@ FIND_PACKAGE(PkgConfig QUIET)
 FIND_PACKAGE(OpenMP QUIET)
 
 #
+SET(OpenGL_GL_PREFERENCE "GLVND")
 IF(PKG_CONFIG_FOUND)
 	MESSAGE(STATUS "Found pkg-config: ${PKG_CONFIG_EXECUTABLE} -- version ${PKG_CONFIG_VERSION_STRING}.")
 	PKG_CHECK_MODULES(SDL2 QUIET sdl2)
@@ -35,6 +36,7 @@ ENDIF()
 # ###########################################
 # Backend libraries
 # ###########################################
+SET(BUILD_WITH_OPENMP ON)
 SET(MIMI_VULKAN_SUPPORT OFF)
 SET(MIMI_TERMINAL_SUPPORT OFF)
 SET(MIMI_OPENGL_SUPPORT ON)

@@ -41,6 +41,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
 #include <spdlog/spdlog.h>
+#include <string>
 
 using namespace glsample;
 
@@ -52,63 +53,77 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 
 	void draw() override {
 
-		ImGui::SeparatorText("Debug");
-		bool isDebug = this->getRefSample().isDebug();
-		if (ImGui::Checkbox("Debug", &isDebug)) {
-			this->getRefSample().debug(isDebug);
-		}
+		if (ImGui::CollapsingHeader("Debug Status")) {
+			ImGui::SeparatorText("Debug");
+			bool isDebug = this->getRefSample().isDebug();
+			if (ImGui::Checkbox("Debug", &isDebug)) {
+				this->getRefSample().debug(isDebug);
+			}
 
-		ImGui::BeginGroup();
-		ImGui::Text("FPS %d", this->getRefSample().getFPSCounter().getFPS());
-		ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
-		ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
+			ImGui::BeginGroup();
+			ImGui::Text("FPS %d", this->getRefSample().getFPSCounter().getFPS());
+			ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
+			ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
 
-		ImGui::Text("Elapsed Time %.6f ms",
-					(float)this->getRefSample().time_elapsed / (float)this->getRefSample().time_resolution);
-		ImGui::Text("Primitive %zu", this->getRefSample().debug_prev_frame_primitive_count);
-		ImGui::Text("Samples %zu", this->getRefSample().debug_prev_frame_sample_count);
-		ImGui::Text("CS invocation %zu", this->getRefSample().debug_prev_frame_cs_invocation_count);
-		ImGui::Text("Frag invocation %zu", this->getRefSample().debug_prev_frame_frag_invocation_count);
-		ImGui::Text("Vertex invocation %zu", this->getRefSample().debug_prev_frame_vertex_invocation_count);
-		ImGui::Text("Geometry invocation %zu", this->getRefSample().debug_prev_frame_geometry_invocation_count);
+			ImGui::Text("Elapsed Time %.6f ms",
+						(float)this->getRefSample().time_elapsed / (float)this->getRefSample().time_resolution);
+			ImGui::Text("Primitive %zu", this->getRefSample().debug_prev_frame_primitive_count);
+			ImGui::Text("Samples %zu", this->getRefSample().debug_prev_frame_sample_count);
+			ImGui::Text("CS invocation %zu", this->getRefSample().debug_prev_frame_cs_invocation_count);
+			ImGui::Text("Frag invocation %zu", this->getRefSample().debug_prev_frame_frag_invocation_count);
+			ImGui::Text("Vertex invocation %zu", this->getRefSample().debug_prev_frame_vertex_invocation_count);
+			ImGui::Text("Geometry invocation %zu", this->getRefSample().debug_prev_frame_geometry_invocation_count);
 
-		ImGui::EndGroup();
+			ImGui::EndGroup();
 
-		bool renderDocEnable = this->getRefSample().isRenderDocEnabled();
-		if (ImGui::Checkbox("RenderDoc", &renderDocEnable)) {
-			this->getRefSample().enableRenderDoc(renderDocEnable);
-		}
-		/*	*/
-		if (ImGui::Button("Capture Frame")) {
-			this->getRefSample().captureDebugFrame();
-		}
-		ImGui::Text("WorkDirectory: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
-		bool isVsync = false;
-		if (ImGui::Checkbox("VSync", &isVsync)) {
-			this->getRefSample().vsync(isVsync);
-		}
+			ImGui::SameLine();
 
-		ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0);
-		if (this->getRefSample().getDefaultFramebuffer() > 0) {
-			GLboolean isEnabled = 0;
-			glGetBooleanv(GL_MULTISAMPLE, &isEnabled);
-			if (ImGui::Checkbox("MultiSampling (MSAA)", (bool *)&isEnabled)) {
+			ImGui::BeginGroup();
+			bool renderDocEnable = this->getRefSample().isRenderDocEnabled();
+			if (ImGui::Checkbox("RenderDoc", &renderDocEnable)) {
+				this->getRefSample().enableRenderDoc(renderDocEnable);
+			}
+			/*	*/
+			if (ImGui::Button("Capture Frame")) {
+				this->getRefSample().captureDebugFrame();
+			}
+			ImGui::EndGroup();
 
-				if (isEnabled) {
-					glEnable(GL_MULTISAMPLE);
-				} else {
-					glDisable(GL_MULTISAMPLE);
+			ImGui::SameLine();
+
+			ImGui::BeginGroup();
+
+			ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0);
+			if (this->getRefSample().getDefaultFramebuffer() > 0) {
+				GLboolean isEnabled = 0;
+				glGetBooleanv(GL_MULTISAMPLE, &isEnabled);
+				if (ImGui::Checkbox("MultiSampling (MSAA)", (bool *)&isEnabled)) {
+
+					if (isEnabled) {
+						glEnable(GL_MULTISAMPLE);
+					} else {
+						glDisable(GL_MULTISAMPLE);
+					}
+				}
+
+				float min_sample = 0;
+				glGetFloatv(GL_MIN_SAMPLE_SHADING_VALUE, &min_sample);
+				if (ImGui::DragFloat("Min Sample", &min_sample, 1, 0, 1)) {
+					glEnable(GL_SAMPLE_SHADING);
+					glMinSampleShading(min_sample);
 				}
 			}
+			ImGui::EndDisabled();
 
-			float min_sample = 0;
-			glGetFloatv(GL_MIN_SAMPLE_SHADING_VALUE, &min_sample);
-			if (ImGui::DragFloat("Min Sample", &min_sample, 1, 0, 1)) {
-				glEnable(GL_SAMPLE_SHADING);
-				glMinSampleShading(min_sample);
+			bool isVsync = false;
+			if (ImGui::Checkbox("VSync", &isVsync)) {
+				this->getRefSample().vsync(isVsync);
 			}
+
+			ImGui::EndGroup();
 		}
-		ImGui::EndDisabled();
+
+		ImGui::Text("WorkDirectory: %s", fragcore::SystemInfo::getCurrentDirectory().c_str());
 
 		{
 			const int item_selected_idx = (int)this->getRefSample().getLogger().level();
@@ -163,6 +178,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		}
 		ImGui::EndDisabled();
 
+		// ImGui::RadioButton("Off", &always_on, 0);
+
 		/*	List all builtin post processing.	*/
 		if (this->getRefSample().getPostProcessingManager() && ImGui::CollapsingHeader("Post Processing")) {
 
@@ -183,12 +200,19 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 				if (ImGui::Checkbox("Enabled", &isEnabled)) {
 					manager->enablePostProcessing(post_index, isEnabled);
 				}
+				ImGui::SetItemTooltip("Used or Not");
 				float enabled_intensity = postEffect.getIntensity();
 				if (ImGui::SliderFloat("Intensity", &enabled_intensity, 0.0, 1)) {
 					postEffect.setItensity(enabled_intensity);
 				}
 
-				postEffect.renderUI();
+				{
+					ImGui::PushID(post_index + 100);
+					postEffect.renderUI();
+					ImGui::PopID();
+				}
+
+				ImGui::Separator();
 
 				ImGui::EndDisabled();
 				ImGui::PopID();
@@ -198,14 +222,25 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		}
 
 		/*	Display All Framebuffer textures.	*/
+
 		const glsample::FrameBuffer *framebuffer = this->getRefSample().getFrameBuffer();
 		if (ImGui::CollapsingHeader("FrameBuffer Texture Targets") && framebuffer) {
+			/*	*/
 			for (size_t attach_index = 0; attach_index < framebuffer->nrAttachments; attach_index++) {
+				ImGui::BeginGroup();
+				ImGui::Text("Image %zu", attach_index);
 				ImGui::Image(static_cast<ImTextureID>(framebuffer->attachments[attach_index]), ImVec2(256, 256),
 							 ImVec2(1, 1), ImVec2(0, 0));
+				ImGui::EndGroup();
+
+				ImGui::SameLine();
 			}
+
+			ImGui::BeginGroup();
+			ImGui::TextUnformatted("Depth/Stencil");
 			ImGui::Image(static_cast<ImTextureID>(framebuffer->depthbuffer), ImVec2(256, 256), ImVec2(1, 1),
 						 ImVec2(0, 0));
+			ImGui::EndGroup();
 		}
 	}
 
@@ -274,8 +309,11 @@ GLSampleWindow::GLSampleWindow()
 }
 
 GLSampleWindow::~GLSampleWindow() {
+
 	delete this->colorSpace;
 	delete this->postprocessingManager;
+	delete this->defaultFramebuffer;
+	delete this->MMSAFrameBuffer;
 	/*	*/
 }
 
@@ -517,7 +555,7 @@ void GLSampleWindow::renderUI() {
 		}
 
 		/*	Enter fullscreen via short command.	*/
-		if (this->getInput().getKeyPressed(SDL_SCANCODE_RETURN) &&
+		if (this->getInput().getKeyReleased(SDL_SCANCODE_RETURN) &&
 			(this->getInput().getKeyPressed(SDL_SCANCODE_LCTRL) ||
 			 this->getInput().getKeyPressed(SDL_SCANCODE_RCTRL))) {
 			this->setFullScreen(!this->isFullScreen());
@@ -528,10 +566,10 @@ void GLSampleWindow::renderUI() {
 			this->enableImGUI(!this->isEnabled());
 		}
 
-		if (this->getInput().getKeyPressed(SDL_SCANCODE_F9)) {
+		if (this->getInput().getKeyReleased(SDL_SCANCODE_F9)) {
 			this->captureDebugFrame();
 		}
-		if (this->getInput().getKeyPressed(SDL_SCANCODE_F1)) {
+		if (this->getInput().getKeyReleased(SDL_SCANCODE_F1)) {
 			// this->setStatusBar(true);
 		}
 	}
@@ -539,14 +577,15 @@ void GLSampleWindow::renderUI() {
 	this->getFPSCounter().update(this->getTimer().getElapsed<float>());
 
 	/*	*/
-	this->getLogger().info("FPS: {} Elapsed Time: {} ({} ms)", this->getFPSCounter().getFPS(),
-						   this->getTimer().getElapsed<float>(), this->getTimer().deltaTime<float>() * 1000);
+	this->getLogger().trace("FPS: {} Elapsed Time: {} ({} ms)", this->getFPSCounter().getFPS(),
+							this->getTimer().getElapsed<float>(), this->getTimer().deltaTime<float>() * 1000);
 	this->getTimer().update();
 }
 
 void GLSampleWindow::setTitle(const std::string &title) {
 
-	nekomimi::MIMIWindow::setTitle(title + " - OpenGL version " + this->getRenderInterface()->getAPIVersion());
+	nekomimi::MIMIWindow::setTitle(title + " - OpenGL version " + this->getRenderInterface()->getAPIVersion() +
+								   " GLSL: ");
 }
 
 bool GLSampleWindow::isDebug() const noexcept {
@@ -666,11 +705,16 @@ void GLSampleWindow::enableRenderDoc(const bool status) {
 	}
 }
 
-bool GLSampleWindow::isRenderDocEnabled() {
+bool GLSampleWindow::isRenderDocEnabled() noexcept {
 	if (!this->rdoc_api) {
 		return false;
 	}
+
 	RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
+	// rdoc_api_inter->GetAPIVersion();
+	if (rdoc_api_inter->IsTargetControlConnected) {
+		return false;
+	}
 
 	return rdoc_api_inter->IsTargetControlConnected();
 }
@@ -690,8 +734,7 @@ unsigned int GLSampleWindow::getShaderVersion() const {
 		return glsl_version;
 	}
 
-	const fragcore::GLRendererInterface *interface =
-		dynamic_cast<const fragcore::GLRendererInterface *>(this->getRenderInterface().get());
+	const fragcore::GLRendererInterface *interface = this->getGLRenderInterface();
 
 	const char *shaderVersion = interface->getShaderVersion(fragcore::ShaderLanguage::GLSL);
 

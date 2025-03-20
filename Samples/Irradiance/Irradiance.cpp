@@ -71,6 +71,8 @@ namespace glsample {
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().irradiance_texture), ImVec2(512, 256),
 							 ImVec2(1, 1), ImVec2(0, 0));
+				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().skybox.getTexture()), ImVec2(512, 256),
+							 ImVec2(1, 1), ImVec2(0, 0));
 			}
 
 			bool showWireFrame = false;
@@ -135,7 +137,7 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			Common::loadSphere(this->sphere, 3, 16, 16);
+			Common::loadSphere(this->sphere, 3, 24, 24);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -149,7 +151,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 			/*	*/
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glClear(GL_DEPTH_BUFFER_BIT);
 
 			/*	Optional - to display wireframe.	*/
 			glPolygonMode(GL_FRONT_AND_BACK, skyboxSettingComponent->showWireFrame ? GL_LINE : GL_FILL);

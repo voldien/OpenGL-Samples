@@ -15,14 +15,20 @@ layout(location = 4) out float v_out_scale;
 layout(std430, set = 0, binding = 1) buffer readonly GeomBuffer { Vertex vertices[]; };
 
 void main() {
+
+	// TODO: add instance support.
+	const uint nr_points_per_cell = (num_point_4_cell * 9 * 9 * 9);
+	const uint offset = 0;
+
 	const int triID = gl_VertexID / 3;
+	const uint vertexID = offset + gl_VertexID;
 
-	const vec4 vertexPosition = vec4(vertices[gl_VertexID].pos, 1);
+	const vec4 vertexPosition = vec4(vertices[vertexID].pos, 1);
 
-	v_out_color = vertices[gl_VertexID].normal;
+	v_out_color = vertices[vertexID].normal;
 
-	v_out_normal_worldspace = vertices[gl_VertexID].normal;
-	v_out_scale = vertices[gl_VertexID].scale;
+	v_out_normal_worldspace = vertices[vertexID].normal;
+	v_out_scale = vertices[vertexID].scale;
 	v_out_coord = vec2(0);
 
 	v_out_vertex_worldspace = vertexPosition.xyz;

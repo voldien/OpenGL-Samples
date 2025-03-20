@@ -1,4 +1,6 @@
 #include "Exception.hpp"
+#include "GLUIComponent.h"
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -6,7 +8,9 @@
 #include <ImportHelper.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <iostream>
 #include <vector>
 
@@ -20,7 +24,7 @@ namespace glsample {
 	  public:
 		SubGroupArea() {
 			this->setTitle("SubGroup Area");
-			this->subgroupSettingComponent = std::make_shared<SubGroupAreaSettingComponent>();
+			this->subgroupSettingComponent = std::make_shared<SubGroupAreaSettingComponent>(*this);
 			this->addUIComponent(this->subgroupSettingComponent);
 		}
 
@@ -61,6 +65,7 @@ namespace glsample {
 
 		SubGroupAreaUniform subgroupArea{};
 		UniformBuffer uniform_stage_buffer{};
+		glm::vec3 rotation;
 		/*	*/
 
 		int localWorkGroupSize[3]{};
@@ -82,6 +87,7 @@ namespace glsample {
 
 		/*	*/
 		unsigned int result_buffer = 0;
+		ResultBuffer resultStage;
 		size_t result_buffer_size = sizeof(ResultBuffer);
 
 		/*	*/
@@ -93,11 +99,19 @@ namespace glsample {
 
 		CameraController camera;
 
-		class SubGroupAreaSettingComponent : public nekomimi::UIComponent {
+		class SubGroupAreaSettingComponent : public GLUIComponent<SubGroupArea> {
 
 		  public:
-			SubGroupAreaSettingComponent() { this->setName("SubGroup Settings"); }
-			void draw() override {}
+			SubGroupAreaSettingComponent(SubGroupArea &sample) : GLUIComponent(sample, "SubGroup Area") {}
+			void draw() override {
+
+				ImGui::TextUnformatted("Result");
+
+				ImGui::Text("Area: %f", this->getRefSample().resultStage.area);
+				ImGui::Text("Normal: %f", this->getRefSample().resultStage.averageNormal);
+
+				ImGui::DragFloat3("Rotation", &this->getRefSample().rotation[0]);
+			}
 
 		  private:
 		};
@@ -209,8 +223,7 @@ namespace glsample {
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->result_buffer);
 			ResultBuffer *resultBuffer = (ResultBuffer *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0,
 																		  this->result_buffer_size, GL_MAP_READ_BIT);
-			getLogger().info("Area {0}", resultBuffer->area);
-			getLogger().info("Normal {0}", resultBuffer->averageNormal);
+			this->resultStage = *resultBuffer;
 			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -281,14 +294,16 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	Update uniform stage buffer values.	*/
-			this->uniform_stage_buffer.model = glm::mat4(1);
+			glm::quat quatRotation = glm::quat(glm::vec3(this->rotation.x, this->rotation.y, this->rotation.z));
+			this->uniform_stage_buffer.model = glm::toMat4(quatRotation);
 			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
 			this->uniform_stage_buffer.modelViewProjection =
-				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix());
+				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix() * this->uniform_stage_buffer.model);
 
+			/*	*/
 			this->subgroupArea.nrFaces = this->cubeGeometry.nrIndicesElements / 3;
 			this->subgroupArea.proj = this->uniform_stage_buffer.proj;
-			this->subgroupArea.view = this->camera.getViewMatrix();
+			this->subgroupArea.view = glm::mat4(1); // glm::inverse(this->camera.getRotationMatrix());
 
 			/*	Update uniform buffer.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

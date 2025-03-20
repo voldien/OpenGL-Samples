@@ -256,7 +256,7 @@ class FVDECLSPEC ModelImporter {
 	/**
 	 *
 	 */
-	void initNoodeRoot(const aiNode *nodes, NodeObject *parent = nullptr);
+	void initNodeRoot(const aiNode *nodes, NodeObject *parent = nullptr);
 
 	MaterialObject *initMaterial(aiMaterial *material, size_t index);
 
@@ -301,7 +301,7 @@ class FVDECLSPEC ModelImporter {
 
 	std::string filepath;
 	const aiScene *sceneRef = nullptr;
-	std::vector<NodeObject *> nodes;
+	std::vector<NodeObject *> nodes; //TODO: convert to a pool.
 	std::map<std::string, NodeObject *> nodeByName;
 
 	std::vector<ModelSystemObject> models;

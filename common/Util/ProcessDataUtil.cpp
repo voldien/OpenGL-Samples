@@ -30,11 +30,11 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int &irrad
 
 	/*	*/
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 4);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -101,6 +101,10 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	glUseProgram(0);
+
+	glBindTexture(GL_TEXTURE_2D, irradiance_target);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void ProcessData::computePerlinNoise(unsigned int target_texture, const glm::vec2 &size, const glm::vec2 &tile_offset,

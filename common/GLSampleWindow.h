@@ -116,7 +116,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void vsync(const bool enable_vsync);
 
 	void enableRenderDoc(const bool status);
-	bool isRenderDocEnabled();
+	bool isRenderDocEnabled() noexcept;
 	void captureDebugFrame() noexcept;
 
 	spdlog::logger &getLogger() const noexcept { return *this->logger; }
@@ -133,8 +133,9 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	size_t debug_prev_frame_primitive_count = 0;
 	size_t debug_prev_frame_cs_invocation_count = 0;
 	size_t debug_prev_frame_frag_invocation_count = 0;
-	size_t debug_prev_frame_geometry_invocation_count = 0;
 	size_t debug_prev_frame_vertex_invocation_count = 0;
+	size_t debug_prev_frame_geometry_invocation_count = 0;
+
 	size_t nrPrimitives = 0, nrSamples = 0, time_elapsed = 0;
 	size_t time_resolution = 1000 * 1000;
 
@@ -151,6 +152,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	fragcore::SDLInput input;
 	bool debugGL = true;
 
+	//TODO: smart pointers.
 	glsample::PostProcessingManager *postprocessingManager = nullptr;
 	glsample::ColorSpaceConverter *colorSpace = nullptr;
 
@@ -159,15 +161,18 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	size_t frameBufferIndex = 0;
 	size_t frameBufferCount = 0;
 	std::array<unsigned int, 10> queries;
+		//TODO: smart pointers.
 	fragcore::IFileSystem *filesystem; /*	*/
 
 	int preWidth = -1;
 	int preHeight = -1;
-
+	
+	//TODO: smart pointers.
 	glsample::FrameBuffer *defaultFramebuffer = nullptr;
 	glsample::FrameBuffer *MMSAFrameBuffer = nullptr;
 
   protected:
+  	//TODO: smart pointers.
 	spdlog::logger *logger = nullptr;
 	void *rdoc_api = nullptr;
 };

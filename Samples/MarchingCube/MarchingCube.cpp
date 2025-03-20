@@ -1,3 +1,4 @@
+#include "GLSampleSession.h"
 #include "SampleHelper.h"
 #include <DataStructure/QuadTree.h>
 #include <GL/glew.h>
@@ -31,6 +32,8 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
+		using DomainChunk = struct domain_chunk_t {};
+
 		/*	*/
 		using Chunk = struct chunk_t {
 			MeshObject *marchingCube = nullptr;
@@ -38,16 +41,17 @@ namespace glsample {
 		};
 
 		MeshObject marchingCube;
-		MeshObject marchingCubeSortedMesh;
+		std::array<MeshObject, 2> marchingCubeSortedMesh;
+		unsigned int currentMarchingCubeMeshIndex = 0;
+
 		std::vector<Chunk> chunks;
 		fragcore::QuadTree<float> quadTree;
-
-		int localWorkGroupSize[3]{};
 
 		/*	Shader pipeline programs.	*/
 		unsigned int marching_cube_transform_program = 0;
 		unsigned int marching_cube_graphic_program = 0;
-		unsigned int marching_cube_generate_compute_program{};
+		unsigned int marching_cube_generate_compute_program = 0;
+		int localWorkGroupSize[3]{};
 
 		using MarchingCubeCellData = struct _marching_cube_cell_data_t {
 			glm::vec3 pos;
@@ -59,8 +63,8 @@ namespace glsample {
 		using MarchingCubeSettings = struct marching_cube_settings_t {
 			float voxel_size = 1;
 			float threshold = 0.01f;
-			float mag = 0.13f;
-			float scale = 0.009f;
+			float mag = 0.15f;
+			float scale = 0.029f;
 			glm::vec4 position_offset = glm::vec4(0);
 			glm::vec4 random_offset = glm::vec4(0);
 		};
@@ -85,7 +89,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int vertex_dat_buffer_binding = 1;
 
-		unsigned int query{};
+		unsigned int transform_feedback_written_query{};
 		unsigned int irradiance_texture{};
 
 		/*	*/
@@ -95,7 +99,9 @@ namespace glsample {
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t marchingCubeSize = 0;
 		size_t marchingTotalCubeSize = 0;
-		const size_t maxWorldChunkSize[3] = {static_cast<long>(16) * 2, 8, static_cast<long>(16) * 2};
+		const size_t maxWorldChunkSize[3] = {8, 8, 8};
+
+		bool waitingForResult = false;
 
 		const size_t max_points_per_voxel = 15; /*	*/
 
@@ -124,7 +130,7 @@ namespace glsample {
 				if (ImGui::DragFloat3("Random Offset", &this->uniform.settings.random_offset[0])) {
 					this->needUpdate = true;
 				}
-				if (ImGui::DragFloat("Thread", &this->uniform.settings.threshold)) {
+				if (ImGui::DragFloat("Thread", &this->uniform.settings.threshold, 1, 0, 0, "%.6f")) {
 					this->needUpdate = true;
 				}
 				if (ImGui::DragFloat("VoxelSize", &this->uniform.settings.voxel_size)) {
@@ -133,7 +139,7 @@ namespace glsample {
 				if (ImGui::DragFloat("Mag", &this->uniform.settings.mag)) {
 					this->needUpdate = true;
 				}
-				if (ImGui::DragFloat("Scale", &this->uniform.settings.scale)) {
+				if (ImGui::DragFloat("Scale", &this->uniform.settings.scale, 1, 0, 0, "%.6f")) {
 					this->needUpdate = true;
 				}
 
@@ -151,15 +157,15 @@ namespace glsample {
 		};
 		std::shared_ptr<MarchingCubeSettingComponent> marchingCubeSettingComponent;
 
-		/*	Texture shaders paths.	*/
+		/*	*/
 		const std::string vertexMarchingCubeShaderPath = "Shaders/marchingcube/geometry.vert.spv";
 		const std::string fragmentMarchingCubeShaderPath = "Shaders/marchingcube/geometry.frag.spv";
 		const std::string geometryMarchingCubeShaderPath = "Shaders/marchingcube/geometry.geom.spv";
 
-		/*	Texture shaders paths.	*/
+		/*	*/
 		const std::string vertexMarchingCubeGraphicShaderPath = "Shaders/marchingcube/marchingcube_graphic.vert.spv";
 
-		/*	Particle Simulation in Vector Field.	*/
+		/*	*/
 		const std::string groupVisualComputeShaderPath = "Shaders/marchingcube/marchingcube.comp.spv";
 
 		void Release() override {
@@ -167,6 +173,8 @@ namespace glsample {
 			/*	*/
 			glDeleteProgram(this->marching_cube_transform_program);
 			glDeleteProgram(this->marching_cube_generate_compute_program);
+			glDeleteProgram(this->marching_cube_graphic_program);
+
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
 		}
@@ -207,47 +215,49 @@ namespace glsample {
 					ShaderLoader::loadComputeProgram(compilerOptions, &compute_marching_cube_generator_binary);
 			}
 
-			/*	Setup instance graphic pipeline.	*/
-			glUseProgram(this->marching_cube_graphic_program);
+			{
+				/*	Setup instance graphic pipeline.	*/
+				glUseProgram(this->marching_cube_graphic_program);
 
-			/*	*/
-			int uniform_buffer_index =
-				glGetUniformBlockIndex(this->marching_cube_graphic_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->marching_cube_graphic_program, uniform_buffer_index,
-								  this->uniform_buffer_binding);
+				/*	*/
+				int uniform_buffer_index =
+					glGetUniformBlockIndex(this->marching_cube_graphic_program, "UniformBufferBlock");
+				glUniformBlockBinding(this->marching_cube_graphic_program, uniform_buffer_index,
+									  this->uniform_buffer_binding);
 
-			glUseProgram(0);
+				glUseProgram(0);
 
-			/*	Setup instance graphic pipeline.	*/
-			glUseProgram(this->marching_cube_transform_program);
+				/*	Setup instance graphic pipeline.	*/
+				glUseProgram(this->marching_cube_transform_program);
 
-			/*	*/
-			uniform_buffer_index = glGetUniformBlockIndex(this->marching_cube_transform_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->marching_cube_transform_program, uniform_buffer_index,
-								  this->uniform_buffer_binding);
-			/*	*/
-			int marching_data_write_index =
-				glGetProgramResourceIndex(this->marching_cube_transform_program, GL_SHADER_STORAGE_BLOCK, "GeomBuffer");
+				/*	*/
+				uniform_buffer_index =
+					glGetUniformBlockIndex(this->marching_cube_transform_program, "UniformBufferBlock");
+				glUniformBlockBinding(this->marching_cube_transform_program, uniform_buffer_index,
+									  this->uniform_buffer_binding);
+				/*	*/
+				int marching_data_write_index = glGetProgramResourceIndex(this->marching_cube_transform_program,
+																		  GL_SHADER_STORAGE_BLOCK, "GeomBuffer");
 
-			glShaderStorageBlockBinding(this->marching_cube_transform_program, marching_data_write_index,
-										this->vertex_dat_buffer_binding);
+				glShaderStorageBlockBinding(this->marching_cube_transform_program, marching_data_write_index,
+											this->vertex_dat_buffer_binding);
 
-			std::array<const char *, 4> feedbackVaryings = {"out_vertex_worldspace", "out_coord", "out_color",
-															"out_normal_worldspace"};
-			glTransformFeedbackVaryings(marching_cube_transform_program, feedbackVaryings.size(),
-										feedbackVaryings.data(), GL_INTERLEAVED_ATTRIBS);
+				std::array<const char *, 4> feedbackVaryings = {"out_vertex_worldspace", "out_coord", "out_color",
+																"out_normal_worldspace"};
+				glTransformFeedbackVaryings(marching_cube_transform_program, feedbackVaryings.size(),
+											feedbackVaryings.data(), GL_INTERLEAVED_ATTRIBS);
 
-			glUseProgram(0);
+				glUseProgram(0);
+			}
 
 			/*	*/
 			{
-
 				glUseProgram(this->marching_cube_generate_compute_program);
 				const int uniform_compute_index =
 					glGetUniformBlockIndex(this->marching_cube_generate_compute_program, "UniformBufferBlock");
 
-				marching_data_write_index = glGetProgramResourceIndex(this->marching_cube_generate_compute_program,
-																	  GL_SHADER_STORAGE_BLOCK, "GeomBuffer");
+				int marching_data_write_index = glGetProgramResourceIndex(this->marching_cube_generate_compute_program,
+																		  GL_SHADER_STORAGE_BLOCK, "GeomBuffer");
 				/*	*/
 				glUniformBlockBinding(this->marching_cube_generate_compute_program, uniform_compute_index,
 									  this->uniform_buffer_binding);
@@ -260,9 +270,9 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			glCreateQueries(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, 1, &this->query);
+			glCreateQueries(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, 1, &this->transform_feedback_written_query);
 
-			/*	*/
+			/*	Uniform buffer.	*/
 			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformAlignBufferSize =
@@ -270,13 +280,13 @@ namespace glsample {
 
 			glGenBuffers(1, &this->uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
+						 GL_DYNAMIC_DRAW);
 			glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uniformStageBuffer), &this->uniformStageBuffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	*/
+			/*	Chunk Data for the compute shaders.	*/
 			{
-
 				/*	*/
 				this->chunks.resize(fragcore::Math::product<size_t>(this->maxWorldChunkSize, 3));
 
@@ -317,27 +327,31 @@ namespace glsample {
 				this->marchingCube.nrVertices = marching_cube_chunk_num_vertices;
 			}
 
-			glGenVertexArrays(1, &marchingCubeSortedMesh.vao);
-			glBindVertexArray(marchingCubeSortedMesh.vao);
-			glGenBuffers(1, &this->marchingCubeSortedMesh.vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, this->marchingCubeSortedMesh.vbo);
-			glBufferData(GL_ARRAY_BUFFER, this->marchingTotalCubeSize, nullptr, GL_DYNAMIC_DRAW);
-			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(0);
-			glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, nullptr);
-			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(1);
-			glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)12);
-			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(2);
-			glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)(12 + 8));
-			/*	Vertex.	*/
-			glEnableVertexAttribArrayARB(3);
-			glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)(12 + 8 + 12));
+			/*	MarchingCube Mesh For Rendering.	*/
+			for (size_t i = 0; i < marchingCubeSortedMesh.size(); i++) {
 
-			glBindVertexArray(0);
+				glGenVertexArrays(1, &marchingCubeSortedMesh[i].vao);
+				glBindVertexArray(marchingCubeSortedMesh[i].vao);
 
-			fragcore::resetErrorFlag();
+				glGenBuffers(1, &this->marchingCubeSortedMesh[i].vbo);
+				glBindBuffer(GL_ARRAY_BUFFER, this->marchingCubeSortedMesh[i].vbo);
+				glBufferData(GL_ARRAY_BUFFER, this->marchingTotalCubeSize, nullptr, GL_DYNAMIC_DRAW);
+
+				/*	Vertex.	*/
+				glEnableVertexAttribArrayARB(0);
+				glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, nullptr);
+				/*	Vertex.	*/
+				glEnableVertexAttribArrayARB(1);
+				glVertexAttribPointerARB(1, 2, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)12);
+				/*	Vertex.	*/
+				glEnableVertexAttribArrayARB(2);
+				glVertexAttribPointerARB(2, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)(12 + 8));
+				/*	Vertex.	*/
+				glEnableVertexAttribArrayARB(3);
+				glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, 12 + 8 + 12 + 12, (const void *)(12 + 8 + 12));
+
+				glBindVertexArray(0);
+			}
 
 			/*	load Skybox Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -348,6 +362,71 @@ namespace glsample {
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
+
+		void updateChunks() {
+
+			refreshWholeRoundRobinBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer, this->nrUniformBuffer,
+										 &this->uniformStageBuffer, this->uniformAlignBufferSize);
+
+			/*	*/
+			uniform_buffer_block *uniformPointer = (uniform_buffer_block *)glMapBufferRange(
+				GL_UNIFORM_BUFFER, ((this->getFrameCount()) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+				this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			const Chunk &chunk = this->chunks[0];
+			uniformPointer->settings.position_offset = glm::vec4(chunk.position, 0);
+			glUnmapBuffer(GL_UNIFORM_BUFFER);
+
+			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT | GL_UNIFORM_BARRIER_BIT);
+
+			/*	Compute Marching Cube Cells.	*/
+			glUseProgram(this->marching_cube_generate_compute_program);
+			glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->vertex_dat_buffer_binding, chunk.marchingCube->vbo, 0,
+							  this->marchingCubeSize);
+
+			glDispatchCompute(this->maxWorldChunkSize[0], this->maxWorldChunkSize[1], this->maxWorldChunkSize[2]);
+
+			glUseProgram(0);
+
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+
+			/*	Render and construct sorted mesh.	*/
+			{
+				int nextMesh = (currentMarchingCubeMeshIndex + 1) % this->marchingCubeSortedMesh.size();
+				MeshObject &currentMarchingCubeSortedMesh = this->marchingCubeSortedMesh[nextMesh];
+
+				// TODO:
+				/*	Draw and save geometry, transform feeedback.	*/
+				glEnable(GL_RASTERIZER_DISCARD);
+
+				glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, currentMarchingCubeSortedMesh.vbo);
+
+				glUseProgram(this->marching_cube_transform_program);
+
+				/*	Draw Items.	*/
+				glBindVertexArray(this->marchingCube.vao);
+
+				/*	TODO: draw only visable sections.	*/
+				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, this->vertex_dat_buffer_binding, this->marchingCube.vbo);
+
+				glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, this->transform_feedback_written_query);
+				glBeginTransformFeedback(GL_TRIANGLES);
+
+				const Chunk &chunk = this->chunks[0];
+
+				glDrawArrays(GL_TRIANGLES, 0,
+							 chunk.marchingCube->nrVertices * this->maxWorldChunkSize[0] * this->maxWorldChunkSize[1] *
+								 this->maxWorldChunkSize[2]);
+
+				glEndTransformFeedback();
+				glBindVertexArray(0);
+				glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+
+				glDisable(GL_RASTERIZER_DISCARD);
+
+				this->waitingForResult = true;
+				this->marchingCubeSettingComponent->needUpdate = false;
+			}
+		}
 
 		void draw() override {
 
@@ -361,73 +440,23 @@ namespace glsample {
 
 			/*	*/
 			if (this->marchingCubeSettingComponent->needUpdate) {
-
-				refreshWholeRoundRobinBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer, this->nrUniformBuffer,
-											 &this->uniformStageBuffer, this->uniformAlignBufferSize);
-
-				glUseProgram(this->marching_cube_generate_compute_program);
-
-				for (size_t chunk_index = 0; chunk_index < this->chunks.size(); chunk_index++) {
-
-					const Chunk &chunk = this->chunks[chunk_index];
-
-					uniform_buffer_block *uniformPointer = (uniform_buffer_block *)glMapBufferRange(
-						GL_UNIFORM_BUFFER,
-						((this->getFrameCount()) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-						this->uniformAlignBufferSize, GL_MAP_WRITE_BIT);
-					uniformPointer->settings.position_offset = glm::vec4(chunk.position, 0);
-					glUnmapBuffer(GL_UNIFORM_BUFFER);
-
-					/*	Wait in till the */
-					glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT | GL_UNIFORM_BARRIER_BIT);
-
-					glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->vertex_dat_buffer_binding,
-									  chunk.marchingCube->vbo, chunk_index * this->marchingCubeSize,
-									  this->marchingCubeSize);
-
-					glDispatchCompute(1, 1, 1);
-				}
-
-				glUseProgram(0);
-
-				this->marchingCubeSettingComponent->needUpdate = false;
-
-				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT |
-								GL_UNIFORM_BARRIER_BIT);
-
-				// TODO:
-				/*	Draw and save geometry, transform feeedback.	*/
-				glEnable(GL_RASTERIZER_DISCARD);
-
-				glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, marchingCubeSortedMesh.vbo);
-
-				glUseProgram(this->marching_cube_transform_program);
-
-				/*	Draw Items.	*/
-				glBindVertexArray(this->marchingCube.vao);
-
-				/*	TODO: draw only visable sections.	*/
-				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, this->vertex_dat_buffer_binding, this->marchingCube.vbo);
-
-				const Chunk &chunk = this->chunks[0];
-
-				glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query);
-				glBeginTransformFeedback(GL_TRIANGLES);
-
-				glDrawArrays(GL_TRIANGLES, 0, chunk.marchingCube->nrVertices);
-				glEndTransformFeedback();
-				glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
-				glBindVertexArray(0);
-
-				GLuint primitives = 0;
-				glGetQueryObjectuiv(query, GL_QUERY_RESULT, &primitives);
-				marchingCubeSortedMesh.nrVertices = primitives * 3;
-
-				glDisable(GL_RASTERIZER_DISCARD);
-
-				glMemoryBarrier(GL_TRANSFORM_FEEDBACK_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+				this->updateChunks();
 			}
-			this->getLogger().info(marchingCubeSortedMesh.nrVertices);
+
+			MeshObject &currentMarchingCubeSortedMesh = this->marchingCubeSortedMesh[currentMarchingCubeMeshIndex];
+			this->getLogger().info(currentMarchingCubeSortedMesh.nrVertices);
+
+			GLuint aviable = 0;
+			glGetQueryObjectuiv(transform_feedback_written_query, GL_QUERY_RESULT_AVAILABLE, &aviable);
+			if (aviable && this->waitingForResult) {
+				GLuint primitives = 0;
+				glGetQueryObjectuiv(transform_feedback_written_query, GL_QUERY_RESULT_NO_WAIT, &primitives);
+				this->getLogger().info("Primitives Written {}", primitives);
+
+				currentMarchingCubeSortedMesh.nrVertices = static_cast<size_t>(primitives * 3);
+				currentMarchingCubeMeshIndex = (currentMarchingCubeMeshIndex + 1) % this->marchingCubeSortedMesh.size();
+				this->waitingForResult = false;
+			}
 
 			/*	*/
 			glClearColor(0.08f, 0.08f, 0.08f, 1.0f);
@@ -437,7 +466,7 @@ namespace glsample {
 			glViewport(0, 0, width, height);
 
 			/*	Wait in till the */
-			{
+			if (currentMarchingCubeSortedMesh.nrVertices > 0) {
 				glUseProgram(this->marching_cube_graphic_program);
 
 				/*	*/
@@ -454,14 +483,14 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->marchingCubeSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				glActiveTexture(GL_TEXTURE0 + 10);
+				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				/*	Draw Items.	*/
-				glBindVertexArray(this->marchingCubeSortedMesh.vao);
+				glBindVertexArray(currentMarchingCubeSortedMesh.vao);
 
 				/*	TODO: draw only visable sections.	*/
-				glDrawArrays(GL_TRIANGLES, 0, this->marchingCubeSortedMesh.nrVertices);
+				glDrawArrays(GL_TRIANGLES, 0, currentMarchingCubeSortedMesh.nrVertices);
 
 				glBindVertexArray(0);
 
