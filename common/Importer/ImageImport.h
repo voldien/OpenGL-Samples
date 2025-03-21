@@ -23,7 +23,7 @@
 
 namespace glsample {
 
-	enum class TextureCompression {
+	enum class TextureCompression : uint32_t {
 		None,	 /*	*/
 		Default, /*	*/
 		BPTC,	 /*	*/

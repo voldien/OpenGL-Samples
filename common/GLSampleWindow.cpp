@@ -115,7 +115,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			}
 			ImGui::EndDisabled();
 
-			bool isVsync = false;
+			bool isVsync = SDL_GL_GetSwapInterval();//TODO: move to class
 			if (ImGui::Checkbox("VSync", &isVsync)) {
 				this->getRefSample().vsync(isVsync);
 			}

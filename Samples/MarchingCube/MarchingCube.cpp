@@ -381,7 +381,7 @@ namespace glsample {
 			/*	Compute Marching Cube Cells.	*/
 			glUseProgram(this->marching_cube_generate_compute_program);
 			glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->vertex_dat_buffer_binding, chunk.marchingCube->vbo, 0,
-							  this->marchingCubeSize);
+							  this->marchingTotalCubeSize);
 
 			glDispatchCompute(this->maxWorldChunkSize[0], this->maxWorldChunkSize[1], this->maxWorldChunkSize[2]);
 

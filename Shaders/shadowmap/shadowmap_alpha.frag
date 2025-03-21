@@ -6,6 +6,9 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
+precision mediump float;
+precision mediump int;
+
 layout(location = 0) in vec2 UV;
 
 #include "scene.glsl"
@@ -13,7 +16,7 @@ layout(location = 0) in vec2 UV;
 void main() {
 
 	const float alpha = texture(DiffuseTexture, UV).a * texture(AlphaMaskedTexture, UV).r;
-	
+
 	if (alpha < 0.95) {
 		discard;
 	} else {

@@ -123,7 +123,7 @@ void ModelImporter::clear() noexcept {
 
 void ModelImporter::initScene(const aiScene *scene) {
 
-	fragcore::IScheduler *schedular = this->getFileSystem()->getScheduler().ptr();
+	fragcore::IScheduler *schedular = this->getFileSystem()->getScheduler().get();
 
 	this->models.resize(scene->mNumMeshes);
 

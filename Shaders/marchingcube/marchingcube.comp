@@ -69,7 +69,7 @@ void main() {
 	const float scale = ubo.settings.scale;
 	const float mag = ubo.settings.mag;
 
-	const vec3 geometry_offset = gl_WorkGroupID * bounds.r * ubo.settings.voxel_size * scale;
+	const vec3 geometry_offset = gl_WorkGroupID * bounds.r * ubo.settings.voxel_size;
 	// TODO: rename
 	const vec3 position = ubo.settings.random_offset.xyz + (ubo.settings.position_offset.xyz + gl_GlobalInvocationID);
 

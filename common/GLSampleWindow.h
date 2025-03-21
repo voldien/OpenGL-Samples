@@ -84,7 +84,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	fragcore::IFileSystem *getFileSystem() const noexcept { return this->filesystem; }
 	void setFileSystem(fragcore::IFileSystem *filesystem) noexcept { this->filesystem = filesystem; }
 
-	fragcore::IScheduler *getSchedular() const noexcept { return *this->filesystem->getScheduler(); }
+	fragcore::IScheduler *getSchedular() const noexcept { return this->filesystem->getScheduler().get(); }
 
 	unsigned int getShaderVersion() const;
 
