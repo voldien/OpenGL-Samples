@@ -11,15 +11,15 @@ layout(location = 0) in vec2 screenUV;
 /*  */
 layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
 
+#include "postprocessing_base.glsl"
+
 layout(push_constant) uniform Settings {
-	layout(offset = 0) float blend;
+	layout(offset = 0) BaseSettings base;
 	layout(offset = 4) float time;
 	layout(offset = 8) float intensity;
 	layout(offset = 12) float speed;
 }
 settings;
-
-#include "postprocessing_base.glsl"
 
 void main() {
 
@@ -27,4 +27,6 @@ void main() {
 	const float noise_value = simple_rand(screenUV * settings.time) * settings.intensity;
 
 	fragColor = texture(ColorTexture, screenUV) + noise_value;
+
+	fragColor = mix(texture(ColorTexture, screenUV), fragColor, settings.base.blend);
 }

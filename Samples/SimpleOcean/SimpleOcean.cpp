@@ -340,7 +340,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Depth);
-				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->depthbuffer);
+				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->attachments[this->getFrameBuffer()->depthIndex]);
 
 				glCullFace(GL_FRONT);
 				glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -377,7 +377,7 @@ namespace glsample {
 			/*	Post processing.	*/
 			if (this->simpleOceanSettingComponent->useMistFogPost) {
 				this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachments[0],
-											this->getFrameBuffer()->depthbuffer);
+											this->getFrameBuffer()->attachments[this->getFrameBuffer()->depthIndex]);
 			}
 		}
 

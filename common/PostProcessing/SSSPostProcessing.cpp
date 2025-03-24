@@ -64,9 +64,8 @@ void SSSPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	this->setItensity(1);
 }
 
-void SSSPostProcessing::draw(
-	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+void SSSPostProcessing::draw(glsample::FrameBuffer *framebuffer,
+							 const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 
 	PostProcessing::draw(framebuffer, render_targets);
 
@@ -98,6 +97,11 @@ void SSSPostProcessing::draw(
 					 &this->SSSSettings.taa_jitter_offset[0]);
 		glUniform3fv(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.light_direction"), 1,
 					 &this->SSSSettings.light_direction[0]);
+
+		glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_resolution"),
+					this->SSSSettings.g_resolution);
+		glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.intensity"),
+					this->SSSSettings.shadow_intensity);
 
 		/*	*/
 		glDisable(GL_CULL_FACE);
@@ -145,4 +149,7 @@ void SSSPostProcessing::renderUI() {
 	ImGui::DragFloat("Step Length", &SSSSettings.step_length, 0.1f, 0.0f);
 	ImGui::DragFloat2("Jitter Offset", &SSSSettings.taa_jitter_offset[0], 0.1f, 0.0f);
 	ImGui::DragFloat3("Light Position", &SSSSettings.light_direction[0], 0.1f, 0.0f);
+
+	ImGui::DragFloat("Shadow ", &SSSSettings.shadow_intensity, 0.1f, 0.0f);
+	ImGui::DragFloat("resolution", &SSSSettings.g_resolution, 0.1f, 0.0f);
 }

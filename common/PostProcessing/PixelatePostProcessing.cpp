@@ -53,9 +53,10 @@ void PixelatePostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 void PixelatePostProcessing::draw(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
+	/*	*/
 	const unsigned int source_texture = getMappedBuffer(GBuffer::Color);
 	const unsigned int target_texture = getMappedBuffer(GBuffer::IntermediateTarget);
 

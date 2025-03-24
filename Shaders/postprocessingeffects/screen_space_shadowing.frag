@@ -22,10 +22,14 @@ layout(push_constant) uniform Settings {
 	layout(offset = 16) float g_sss_step_length;
 	layout(offset = 32) vec2 g_taa_jitter_offset;
 	layout(offset = 48) vec3 light_direction;
+	layout(offset = 60) float intensity;
+	layout(offset = 64) float g_resolution;
 }
 settings;
 
 #include "postprocessing_base.glsl"
+
+vec3 world_to_view(const in vec3 x) { return (constantCommon.constant.camera.view * vec4(x, 1)).xyz; }
 
 bool is_valid_uv(const vec2 value) {
 	return (value.x >= 0.0f && value.x <= 1.0f) && (value.y >= 0.0f && value.y <= 1.0f);
@@ -43,20 +47,25 @@ vec3 calcViewPosition(const in vec2 coords) {
 
 float interleaved_gradient_noise(in vec2 position_screen) {
 	// g_frame *
-	position_screen += vec2(0); // vec2(notEqual(settings.g_taa_jitter_offset, vec2(0))); // temporal factor
+	position_screen += vec2(0); // 1 * any(settings.g_taa_jitter_offset); // temporal factor
+
 	vec3 magic = vec3(0.06711056f, 0.00583715f, 52.9829189f);
 	return fract(magic.z * fract(dot(position_screen, magic.xy)));
 }
 
 float ScreenSpaceShadows() {
 	const mat4 g_projection = constantCommon.constant.camera.proj;
+	const mat4 g_view = constantCommon.constant.camera.view;
 
 	/* Compute ray position and direction (in view-space)	*/
 	vec3 ray_pos = calcViewPosition(screenUV);
-	const vec3 ray_dir = normalize(settings.light_direction);
+	//	ray_pos = world_to_view(ray_pos);
+	const vec3 ray_dir = normalize(world_to_view(normalize(settings.light_direction)));
 
 	/* Compute ray step	*/
 	const vec3 ray_step = ray_dir * settings.g_sss_step_length;
+	float ray_offset = interleaved_gradient_noise(settings.g_resolution * screenUV);
+	ray_pos += ray_step * ray_offset;
 
 	/*	Ray march towards the light	*/
 	float occlusion = 0.0;
@@ -64,44 +73,46 @@ float ScreenSpaceShadows() {
 
 	for (uint i = 0; i < settings.g_sss_max_steps; i++) {
 		/* Step the ray	*/
-		float ray_offset = 1;
+
 		ray_pos += ray_step * ray_offset;
 
 		/*	Update Ray UV.	*/
 		vec4 offset = vec4(ray_pos, 1.0);
 		offset = constantCommon.constant.camera.proj * offset;
+		/*	*/
 		offset.xyz /= offset.w;				 // perspective divide
 		offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
 		ray_uv = offset.xy;
 
 		/*	Ensure the UV coordinates are inside the screen	*/
-		if (is_valid_uv(ray_uv)) {
+		if (!is_valid_uv(ray_uv)) {
+			return 1;
+		}
 
-			// Compute the difference between the ray's and the camera's depth
-			float depth_z = calcViewPosition(ray_uv).z;
-			float depth_delta = ray_pos.z - depth_z;
+		// Compute the difference between the ray's and the camera's depth
+		float depth_z = calcViewPosition(ray_uv).z;
+		float depth_delta = ray_pos.z - depth_z;
 
-			// Check if the camera can't "see" the ray (ray depth must be larger than the camera depth, so
-			bool can_the_camera_see_the_ray = (depth_delta > 0.0f) && (depth_delta < settings.g_sss_thickness);
-			bool occluded_by_the_original_pixel =
-				true; // abs(ray_pos.z - depth_original) < settings.g_sss_max_delta_from_original_depth;
-			if (can_the_camera_see_the_ray && occluded_by_the_original_pixel) {
-				occlusion = 1.0f;
+		// Check if the camera can't "see" the ray (ray depth must be larger than the camera depth, so
+		bool can_the_camera_see_the_ray = (depth_delta > 0.0f) && (depth_delta < settings.g_sss_thickness);
+		bool occluded_by_the_original_pixel =
+			true; // abs(ray_pos.z - depth_original) < settings.g_sss_max_delta_from_original_depth;
+		if (can_the_camera_see_the_ray && occluded_by_the_original_pixel) {
+			occlusion = 1.0f;
 
-				/* Fade out as we approach the edges of the screen	*/
-				occlusion *= screen_fade(ray_uv);
+			/* Fade out as we approach the edges of the screen	*/
+			occlusion *= screen_fade(ray_uv);
 
-				break;
-			}
+			break;
 		}
 	}
 
 	/*	*/
-	return 1 - occlusion;
+	return (1 - occlusion) * settings.intensity;
 }
 
 void main() {
 	const float shadow = ScreenSpaceShadows();
 
-	fragColor =vec4(shadow.xxx, 1);//  mix(0, vec4(shadow.xxx, 1), settings.blend);
+	fragColor = vec4(shadow.xxx, 1); //  mix(0, vec4(shadow.xxx, 1), settings.blend);
 }

@@ -25,4 +25,4 @@ void DepthOfFieldProcessing::initialize(fragcore::IFileSystem *filesystem) {}
 
 void DepthOfFieldProcessing::draw(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {}
+	const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {}

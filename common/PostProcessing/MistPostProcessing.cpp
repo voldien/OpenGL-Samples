@@ -90,9 +90,8 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	this->vao = createVAO();
 }
 
-void MistPostProcessing::draw(
-	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+void MistPostProcessing::draw(glsample::FrameBuffer *framebuffer,
+							  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
 	this->render(0, this->getMappedBuffer(GBuffer::Albedo), this->getMappedBuffer(GBuffer::Depth));

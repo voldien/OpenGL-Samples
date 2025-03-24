@@ -14,7 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "SampleHelper.h"
+#include "RenderDesc.h"
 #include "TaskScheduler/IScheduler.h"
 #include <FragCore.h>
 #include <GL/glew.h>
@@ -23,20 +23,9 @@
 namespace glsample {
 
 	// TODO relocate.
-	using DrawElementsIndirectCommand = struct {
-		GLuint count;
-		GLuint instanceCount;
-		GLuint firstIndex;
-		GLuint baseVertex;
-		GLuint baseInstance;
-	};
-
-	using DrawArraysIndirectCommand = struct {
-		GLuint count;
-		GLuint instanceCount;
-		GLuint first;
-		GLuint baseInstance;
-	};
+	using DrawArraysIndirectCommand = fragcore::IndirectDrawArray;
+	using DrawElementsIndirectCommand = fragcore::IndirectDrawElement;
+	using DrawDispatchIndirectCommand = fragcore::IndirectDispatch;
 
 	// TODO: add delete meshObject function
 	using MeshObject = struct geometry_object_t {

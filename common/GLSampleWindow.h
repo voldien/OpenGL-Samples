@@ -25,6 +25,7 @@
 #include <IO/IFileSystem.h>
 #include <MIMIWindow.h>
 #include <ProceduralGeometry.h>
+#include <cstddef>
 #include <cxxopts.hpp>
 #include <spdlog/spdlog.h>
 
@@ -110,8 +111,10 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void setColorSpace(const glsample::ColorSpace srgb);
 	glsample::ColorSpace getColorSpace() const noexcept;
 
-	glsample::ColorSpaceConverter *getColorSpaceConverter() noexcept { return this->colorSpace; }
-	const glsample::ColorSpaceConverter *getColorSpaceConverter() const noexcept { return this->colorSpace; }
+	std::shared_ptr<glsample::ColorSpaceConverter> &getColorSpaceConverter() noexcept { return this->colorSpace; }
+	const std::shared_ptr<glsample::ColorSpaceConverter> &getColorSpaceConverter() const noexcept {
+		return this->colorSpace;
+	}
 
 	void vsync(const bool enable_vsync);
 
@@ -126,7 +129,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void updateDefaultFramebuffer();
 	int getDefaultFramebuffer() const noexcept;
 	glsample::FrameBuffer *getFrameBuffer() { return this->defaultFramebuffer; }
-	glsample::PostProcessingManager *getPostProcessingManager() const noexcept { return this->postprocessingManager; }
+	glsample::PostProcessingManager *getPostProcessingManager() const noexcept { return this->postprocessingManager.get(); }
 
 	/*	*/
 	size_t debug_prev_frame_sample_count = 0;
@@ -137,7 +140,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	size_t debug_prev_frame_geometry_invocation_count = 0;
 
 	size_t nrPrimitives = 0, nrSamples = 0, time_elapsed = 0;
-	size_t time_resolution = 1000 * 1000;
+	size_t time_resolution = static_cast<long>(1000) * 1000;
 
   protected:
 	void displayMenuBar() override;
@@ -150,29 +153,30 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	glsample::FPSCounter<float> fpsCounter;
 	fragcore::Time time;
 	fragcore::SDLInput input;
-	bool debugGL = true;
 
-	//TODO: smart pointers.
-	glsample::PostProcessingManager *postprocessingManager = nullptr;
-	glsample::ColorSpaceConverter *colorSpace = nullptr;
+	// TODO: smart pointers.
+	fragcore::IFileSystem *filesystem; /*	*/
+
+	// TODO: smart pointers.
+	std::shared_ptr<glsample::PostProcessingManager> postprocessingManager = nullptr;
+	std::shared_ptr<glsample::ColorSpaceConverter> colorSpace;
+
+	// TODO: smart pointers.
+	glsample::FrameBuffer *defaultFramebuffer = nullptr;
+	glsample::FrameBuffer *MMSAFrameBuffer = nullptr;
 
 	/*	*/
+	bool debugGL = true;
 	size_t frameCount = 0;
 	size_t frameBufferIndex = 0;
 	size_t frameBufferCount = 0;
 	std::array<unsigned int, 10> queries;
-		//TODO: smart pointers.
-	fragcore::IFileSystem *filesystem; /*	*/
 
 	int preWidth = -1;
 	int preHeight = -1;
-	
-	//TODO: smart pointers.
-	glsample::FrameBuffer *defaultFramebuffer = nullptr;
-	glsample::FrameBuffer *MMSAFrameBuffer = nullptr;
 
   protected:
-  	//TODO: smart pointers.
-	spdlog::logger *logger = nullptr;
+	// TODO: smart pointers.
+	std::shared_ptr<spdlog::logger> logger;
 	void *rdoc_api = nullptr;
 };

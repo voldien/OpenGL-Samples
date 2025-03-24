@@ -15,7 +15,14 @@ struct common_data {
 
 	mat4 view[3];
 	mat4 proj[3];
+
+	vec4 time;
 };
+
+struct BaseSettings {
+	float blend;
+};
+
 
 layout(set = 1, binding = 1, std140) uniform UniformCommonPostProcessingBufferBlock { common_data constant; }
 constantCommon;

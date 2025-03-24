@@ -71,9 +71,18 @@ void VolumetricScatteringPostProcessing::initialize(fragcore::IFileSystem *files
 	this->vao = createVAO();
 }
 
+void VolumetricScatteringPostProcessing::setItensity(const float intensity) {
+	PostProcessing::setItensity(intensity);
+	glUseProgram(this->volumetric_scattering_legacy_program);
+
+	glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.base.blend"),
+				this->getIntensity());
+	glUseProgram(0);
+}
+
 void VolumetricScatteringPostProcessing::draw(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+	const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 
 	PostProcessing::draw(framebuffer, render_targets);
 
@@ -91,13 +100,13 @@ void VolumetricScatteringPostProcessing::draw(
 		glUniform1i(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.numSamples"),
 					this->volumetricScatteringSettings.numSamples);
 		glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Density"),
-					this->volumetricScatteringSettings._Density);
+					this->volumetricScatteringSettings.Density);
 		glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Decay"),
-					this->volumetricScatteringSettings._Decay);
+					this->volumetricScatteringSettings.Decay);
 		glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Weight"),
-					this->volumetricScatteringSettings._Weight);
+					this->volumetricScatteringSettings.Weight);
 		glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Exposure"),
-					this->volumetricScatteringSettings._Exposure);
+					this->volumetricScatteringSettings.Exposure);
 		glUniform2fv(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.lightPosition"), 1,
 					 &this->volumetricScatteringSettings.lightPosition[0]);
 		glUniform4fv(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.color"), 1,
@@ -126,10 +135,10 @@ void VolumetricScatteringPostProcessing::draw(
 
 void VolumetricScatteringPostProcessing::renderUI() {
 	ImGui::DragInt("Samples", (int *)&volumetricScatteringSettings.numSamples, 1, 0, 128);
-	ImGui::DragFloat("Decay", &volumetricScatteringSettings._Decay, 0.1f, 0.0f);
-	ImGui::DragFloat("Density", &volumetricScatteringSettings._Density, 0.1f, 0.0f);
-	ImGui::DragFloat("Exposure", &volumetricScatteringSettings._Exposure, 0.1f, 0.0f);
-	ImGui::DragFloat("Weight", &volumetricScatteringSettings._Weight, 0.1f, 0.0f);
+	ImGui::DragFloat("Decay", &volumetricScatteringSettings.Decay, 0.1f, 0.0f);
+	ImGui::DragFloat("Density", &volumetricScatteringSettings.Density, 0.1f, 0.0f);
+	ImGui::DragFloat("Exposure", &volumetricScatteringSettings.Exposure, 0.1f, 0.0f);
+	ImGui::DragFloat("Weight", &volumetricScatteringSettings.Weight, 0.1f, 0.0f);
 	ImGui::DragFloat2("Light Position", &volumetricScatteringSettings.lightPosition[0], 0.1f, 0.0f);
 	ImGui::ColorEdit4("Color", &this->volumetricScatteringSettings.color[0],
 					  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);

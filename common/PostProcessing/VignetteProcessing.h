@@ -18,38 +18,26 @@
 
 namespace glsample {
 
-	/**
-	 * @brief
-	 *
-	 */
-	class FVDECLSPEC DepthOfFieldProcessing : public PostProcessing {
+	class FVDECLSPEC VignetteProcessing : public PostProcessing {
+
 	  public:
-		DepthOfFieldProcessing();
-		~DepthOfFieldProcessing() override;
+		VignetteProcessing();
+		~VignetteProcessing() override;
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
+		void setItensity(const float intensity) override;
 
-		void
-		draw(glsample::FrameBuffer *framebuffer,
-			 const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) override;
+		void draw(glsample::FrameBuffer *framebuffer,
+				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
+		void renderUI() override;
 
 	  public:
 		void render(unsigned int texture);
 
 	  private:
-		unsigned int guassian_blur_compute_program = 0;
-		unsigned int indirect_compute_program = 0;
+		int vignette_program = -1;
+		int vao = 0;
 
-		using DepthOfFieldSettings = struct depth_of_field_settings_t {
-			float aperature;
-			float Foc;
-		};
-
-		/*	*/
-		float variance;
-		int samples;
-		float radius;
-
-		int localWorkGroupSize[3];
+		float extent = 0.25f;
 	};
 } // namespace glsample

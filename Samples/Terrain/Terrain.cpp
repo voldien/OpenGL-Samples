@@ -375,7 +375,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::DepthBuffer);
-				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->depthbuffer);
+				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->attachments[this->getFrameBuffer()->depthIndex]);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
@@ -434,7 +434,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::DepthBuffer);
-				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->depthbuffer);
+				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->attachments[this->getFrameBuffer()->depthIndex]);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
@@ -463,7 +463,7 @@ namespace glsample {
 			/*	Post processing.	*/
 			if (this->terrainSettingComponent->useMistFogPost) {
 				this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachments[0],
-											this->getFrameBuffer()->depthbuffer);
+											this->getFrameBuffer()->attachments[this->getFrameBuffer()->depthIndex]);
 			}
 		}
 

@@ -115,7 +115,7 @@ namespace glsample {
 		  public:
 			AmbientOcclusionSettingComponent(ScreenSpaceAmbientOcclusion &base)
 				: GLUIComponent<ScreenSpaceAmbientOcclusion>(base, "Ambient Occlusion Settings"),
-				  uniform_ssao(getRefSample().uniformStageBlockSSAO) {}
+				  uniform_ssao(this->getRefSample().uniformStageBlockSSAO) {}
 
 			void draw() override {
 

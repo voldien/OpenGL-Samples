@@ -185,7 +185,7 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 void SSAOPostProcessing::draw(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) {
 
 	PostProcessing::draw(framebuffer, render_targets);
 	this->render(framebuffer, 0, 0, 0);

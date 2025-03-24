@@ -9,25 +9,27 @@ using namespace glsample;
 
 PostProcessing::PostProcessing() : computeShaderSupported(glewIsExtensionSupported("GL_ARB_compute_shader")) {}
 
-void PostProcessing::draw(
-	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+void PostProcessing::draw(glsample::FrameBuffer *framebuffer,
+						  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 
 	/*	*/
-	// this->mapped_buffer.clear();
+	this->mapped_buffer.clear();
 	for (const auto *it = render_targets.begin(); it != render_targets.end(); it++) {
 
 		/*	*/
 		const GBuffer target = std::get<0>(*it);
-		const unsigned int &texture = std::get<1>(*it);
+		const unsigned int texture_index = std::get<1>(*it);
 
 		/*	*/
-		this->mapped_buffer[target] = &texture;
+		const unsigned int texture = framebuffer->attachments[texture_index];
+		this->mapped_buffer[target] = &framebuffer->attachments[texture_index];
 
+		/*	*/
 		if (!this->isBufferRequired(target)) {
 			continue;
 		}
 
+		/*	*/
 		if (glBindTextureUnit) {
 			glBindTextureUnit(static_cast<unsigned int>(target), texture);
 		} else {
@@ -60,8 +62,10 @@ void PostProcessing::addRequireBuffer(const GBuffer required_data_buffer) noexce
 void PostProcessing::removeRequireBuffer(const GBuffer required_data_buffer) noexcept {}
 
 int PostProcessing::createVAO() {
-	unsigned int vao = 0;
-	glGenVertexArrays(1, &vao);
+	static unsigned int vao = 0;
+	if (!glIsVertexArray(vao)) {
+		glGenVertexArrays(1, &vao);
+	}
 
 	return vao;
 }

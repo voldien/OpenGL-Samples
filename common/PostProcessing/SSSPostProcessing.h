@@ -27,9 +27,8 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void
-		draw(glsample::FrameBuffer *framebuffer,
-			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
+		void draw(glsample::FrameBuffer *framebuffer,
+				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
 
 		void renderUI() override;
 
@@ -39,12 +38,14 @@ namespace glsample {
 
 		using ScreenSpaceSettings = struct screen_space_settings_t {
 			float blend = 1;
-			uint max_steps = 16;			// Max ray steps, affects quality and performance.
-			float ray_max_distance = 0.05f; // Max shadow length, longer shadows are less accurate.
-			float thickness = 0.02f;		// Depth testing thickness.
+			uint max_steps = 8;			   // Max ray steps, affects quality and performance.
+			float ray_max_distance = 0.4f; // Max shadow length, longer shadows are less accurate.
+			float thickness = 1.10f;	   // Depth testing thickness.
 			float step_length = ray_max_distance / float(max_steps);
 			glm::vec2 taa_jitter_offset = glm::vec2(0);
 			glm::vec3 light_direction = glm::vec3(-1, -1, 0);
+			float shadow_intensity = 1;
+			float g_resolution = 0.21;
 		};
 		ScreenSpaceSettings SSSSettings;
 

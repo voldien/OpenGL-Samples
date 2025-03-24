@@ -4,8 +4,8 @@
 
 using namespace glsample;
 
-void PostProcessingManager::addPostProcessing(PostProcessing &postProcessing) {
-	this->postProcessings.push_back(&postProcessing);
+void PostProcessingManager::addPostProcessing(const std::shared_ptr<PostProcessing> &postProcessing) {
+	this->postProcessings.push_back(postProcessing);
 	this->post_enabled.push_back(false);
 }
 
@@ -22,10 +22,11 @@ void PostProcessingManager::enablePostProcessing(const size_t index, const bool 
 
 void PostProcessingManager::render(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) { /*	*/
+	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) { /*	*/
 
 	/*	Bind Common Data.	*/
-	
+
+	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 	/*	*/
 	for (size_t i = 0; i < this->getNrPostProcessing(); i++) {
 		/*	*/
@@ -43,4 +44,12 @@ void PostProcessingManager::render(
 			glPopDebugGroup();
 		}
 	}
+}
+
+void PostProcessingManager::swapProcess(int a, int b) {
+	a = Math::clamp<int>(a, 0, this->postProcessings.size() - 1);
+	b = Math::clamp<int>(b, 0, this->postProcessings.size() - 1);
+
+	std::swap(this->postProcessings[a], this->postProcessings[b]);
+	std::swap(this->post_enabled[a], this->post_enabled[b]);
 }

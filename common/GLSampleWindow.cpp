@@ -21,6 +21,7 @@
 #include "PostProcessing/SSSPostProcessing.h"
 #include "PostProcessing/SobelPostProcessing.h"
 
+#include "PostProcessing/VignetteProcessing.h"
 #include "PostProcessing/VolumetricScattering.h"
 #include "SDL_scancode.h"
 #include "SDL_video.h"
@@ -28,6 +29,7 @@
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include "spdlog/common.h"
+#include "spdlog/logger.h"
 #include <GL/glew.h>
 #include <GLRendererInterface.h>
 #include <ImageLoader.h>
@@ -115,7 +117,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			}
 			ImGui::EndDisabled();
 
-			bool isVsync = SDL_GL_GetSwapInterval();//TODO: move to class
+			bool isVsync = SDL_GL_GetSwapInterval(); // TODO: move to class
 			if (ImGui::Checkbox("VSync", &isVsync)) {
 				this->getRefSample().vsync(isVsync);
 			}
@@ -178,8 +180,6 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		}
 		ImGui::EndDisabled();
 
-		// ImGui::RadioButton("Off", &always_on, 0);
-
 		/*	List all builtin post processing.	*/
 		if (this->getRefSample().getPostProcessingManager() && ImGui::CollapsingHeader("Post Processing")) {
 
@@ -196,6 +196,18 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 				/*	*/
 				ImGui::TextUnformatted(postEffect.getName().c_str());
 
+				ImGui::BeginGroup();
+				if (ImGui::Button("Up")) {
+					manager->swapProcess(post_index, post_index - 1);
+				}
+				if (ImGui::Button("Down")) {
+					manager->swapProcess(post_index, post_index + 1);
+				}
+				ImGui::EndGroup();
+
+				ImGui::SameLine();
+
+				ImGui::BeginGroup();
 				bool isEnabled = manager->isEnabled(post_index);
 				if (ImGui::Checkbox("Enabled", &isEnabled)) {
 					manager->enablePostProcessing(post_index, isEnabled);
@@ -215,6 +227,9 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 				ImGui::Separator();
 
 				ImGui::EndDisabled();
+
+				ImGui::EndGroup();
+
 				ImGui::PopID();
 			}
 
@@ -222,7 +237,6 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		}
 
 		/*	Display All Framebuffer textures.	*/
-
 		const glsample::FrameBuffer *framebuffer = this->getRefSample().getFrameBuffer();
 		if (ImGui::CollapsingHeader("FrameBuffer Texture Targets") && framebuffer) {
 			/*	*/
@@ -238,8 +252,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 
 			ImGui::BeginGroup();
 			ImGui::TextUnformatted("Depth/Stencil");
-			ImGui::Image(static_cast<ImTextureID>(framebuffer->depthbuffer), ImVec2(256, 256), ImVec2(1, 1),
-						 ImVec2(0, 0));
+			ImGui::Image(static_cast<ImTextureID>(framebuffer->attachments[framebuffer->depthIndex]), ImVec2(256, 256),
+						 ImVec2(1, 1), ImVec2(0, 0));
 			ImGui::EndGroup();
 		}
 	}
@@ -258,7 +272,7 @@ GLSampleWindow::GLSampleWindow()
 	stdout_sink->set_pattern("%g:%# [%^%l%$] %v");
 
 	/*	*/
-	this->logger = new spdlog::logger("glsample", {stdout_sink});
+	this->logger = std::shared_ptr<spdlog::logger>(new spdlog::logger("glsample", {stdout_sink}));
 	this->logger->set_level(spdlog::level::trace);
 
 	/*	*/
@@ -309,9 +323,6 @@ GLSampleWindow::GLSampleWindow()
 }
 
 GLSampleWindow::~GLSampleWindow() {
-
-	delete this->colorSpace;
-	delete this->postprocessingManager;
 	delete this->defaultFramebuffer;
 	delete this->MMSAFrameBuffer;
 	/*	*/
@@ -326,63 +337,69 @@ void GLSampleWindow::internalInit() {
 	if (this->colorSpace == nullptr) {
 
 		// TODO: add try catch.
-		this->colorSpace = new ColorSpaceConverter();
-		this->colorSpace->initialize(getFileSystem());
+		this->colorSpace = std::make_shared<ColorSpaceConverter>();
+		this->colorSpace->initialize(this->getFileSystem());
 
 		if (use_post_process) {
-			this->postprocessingManager = new PostProcessingManager();
+			this->postprocessingManager = std::make_shared<PostProcessingManager>();
 
-			SSAOPostProcessing *ssao = new SSAOPostProcessing();
-			ssao->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*ssao);
+			std::shared_ptr<SSAOPostProcessing> ssao = std::make_shared<SSAOPostProcessing>();
+			ssao->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(ssao);
 
-			SSSPostProcessing *sss = new SSSPostProcessing();
-			sss->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*sss);
+			std::shared_ptr<SSSPostProcessing> sss = std::make_shared<SSSPostProcessing>();
+			sss->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(sss);
 
-			SobelProcessing *sobelPostProcessing = new SobelProcessing();
-			sobelPostProcessing->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*sobelPostProcessing);
+			std::shared_ptr<SobelProcessing> sobelPostProcessing = std::make_shared<SobelProcessing>();
+			sobelPostProcessing->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(sobelPostProcessing);
 
-			ColorGradePostProcessing *colorgrade = new ColorGradePostProcessing();
-			colorgrade->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*colorgrade);
+			std::shared_ptr<ColorGradePostProcessing> colorgrade = std::make_shared<ColorGradePostProcessing>();
+			colorgrade->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(colorgrade);
 
-			PixelatePostProcessing *pixelate = new PixelatePostProcessing();
-			pixelate->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*pixelate);
+			std::shared_ptr<PixelatePostProcessing> pixelate = std::make_shared<PixelatePostProcessing>();
+			pixelate->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(pixelate);
 
-			GrainPostProcessing *grain = new GrainPostProcessing();
-			grain->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*grain);
+			std::shared_ptr<GrainPostProcessing> grain = std::make_shared<GrainPostProcessing>();
+			grain->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(grain);
 
-			DepthOfFieldProcessing *depthOfField = new DepthOfFieldProcessing();
-			depthOfField->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*depthOfField);
+			std::shared_ptr<DepthOfFieldProcessing> depthOfField = std::make_shared<DepthOfFieldProcessing>();
+			depthOfField->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(depthOfField);
 
-			MistPostProcessing *mistFog = new MistPostProcessing();
-			mistFog->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*mistFog);
+			std::shared_ptr<MistPostProcessing> mistFog = std::make_shared<MistPostProcessing>();
+			mistFog->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(mistFog);
 
-			VolumetricScatteringPostProcessing *volumetric = new VolumetricScatteringPostProcessing();
-			volumetric->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*volumetric);
+			std::shared_ptr<VolumetricScatteringPostProcessing> volumetric =
+				std::make_shared<VolumetricScatteringPostProcessing>();
+			volumetric->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(volumetric);
 
-			BlurPostProcessing *blur = new BlurPostProcessing();
-			blur->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*blur);
+			std::shared_ptr<BlurPostProcessing> blur = std::make_shared<BlurPostProcessing>();
+			blur->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(blur);
 
-			BloomPostProcessing *bloom = new BloomPostProcessing();
-			bloom->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*bloom);
+			std::shared_ptr<BloomPostProcessing> bloom = std::make_shared<BloomPostProcessing>();
+			bloom->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(bloom);
 
-			ChromaticAbberationPostProcessing *chromatic = new ChromaticAbberationPostProcessing();
-			chromatic->initialize(getFileSystem());
-			this->postprocessingManager->addPostProcessing(*chromatic);
+			std::shared_ptr<ChromaticAbberationPostProcessing> chromatic =
+				std::make_shared<ChromaticAbberationPostProcessing>();
+			chromatic->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(chromatic);
+
+			std::shared_ptr<VignetteProcessing> vignette = std::make_shared<VignetteProcessing>();
+			vignette->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(vignette);
 		}
 	}
 
-	/*	Multi sampling.	*/
+	/*	Multi Sampling.	*/
 	if (this->MMSAFrameBuffer == nullptr && multi_sample_count > 0) {
 
 		this->MMSAFrameBuffer = new glsample::FrameBuffer();
@@ -480,14 +497,10 @@ void GLSampleWindow::renderUI() {
 			this->postprocessingManager->render(
 				this->defaultFramebuffer,
 				/*	Setup References.	*/
-				{std::make_tuple<const GBuffer, const unsigned int &>(GBuffer::Albedo,
-																	  this->defaultFramebuffer->attachments[0]),
-				 std::make_tuple<const GBuffer, const unsigned int &>(GBuffer::Depth,
-																	  this->defaultFramebuffer->depthbuffer),
-				 std::make_tuple<const GBuffer, const unsigned int &>(GBuffer::IntermediateTarget,
-																	  this->defaultFramebuffer->attachments[1]),
-				 std::make_tuple<const GBuffer, const unsigned int &>(GBuffer::IntermediateTarget2,
-																	  this->defaultFramebuffer->attachments[2])});
+				{std::make_tuple<const GBuffer, unsigned int>(GBuffer::Albedo, 0u),
+				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::Depth, (unsigned int)this->defaultFramebuffer->depthIndex),
+				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget, 1u),
+				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget2, 2u)});
 			glPopDebugGroup();
 		}
 

@@ -61,7 +61,7 @@ namespace glsample {
 		};
 
 		using MarchingCubeSettings = struct marching_cube_settings_t {
-			float voxel_size = 1;
+			float voxel_size = 75;
 			float threshold = 0.01f;
 			float mag = 0.15f;
 			float scale = 0.029f;
@@ -159,11 +159,12 @@ namespace glsample {
 
 		/*	*/
 		const std::string vertexMarchingCubeShaderPath = "Shaders/marchingcube/geometry.vert.spv";
-		const std::string fragmentMarchingCubeShaderPath = "Shaders/marchingcube/geometry.frag.spv";
+
 		const std::string geometryMarchingCubeShaderPath = "Shaders/marchingcube/geometry.geom.spv";
 
 		/*	*/
 		const std::string vertexMarchingCubeGraphicShaderPath = "Shaders/marchingcube/marchingcube_graphic.vert.spv";
+		const std::string fragmentMarchingCubeShaderPath = "Shaders/marchingcube/marchingcube_graphic.frag.spv";
 
 		/*	*/
 		const std::string groupVisualComputeShaderPath = "Shaders/marchingcube/marchingcube.comp.spv";

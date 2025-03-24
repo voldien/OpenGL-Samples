@@ -3,6 +3,7 @@
 const uint chunk_size = 10;
 const uint chunk_size2 = chunk_size * chunk_size;
 const uint num_point_4_cell = 15;
+const uint nr_points_per_cell = (num_point_4_cell * 9 * 9 * 9);
 
 struct Vertex {
 	vec3 pos;

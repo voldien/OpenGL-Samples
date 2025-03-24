@@ -70,21 +70,21 @@ void main() {
 	const float mag = ubo.settings.mag;
 
 	const vec3 geometry_offset = gl_WorkGroupID * bounds.r * ubo.settings.voxel_size;
-	// TODO: rename
-	const vec3 position = ubo.settings.random_offset.xyz + (ubo.settings.position_offset.xyz + gl_GlobalInvocationID);
+	const vec3 marching_cube_sample_position =
+		ubo.settings.random_offset.xyz + (ubo.settings.position_offset.xyz + gl_GlobalInvocationID);
 
 	const float noise_scale = bounds.r * scale;
 	// Retrieve all necessary data from neighboring cells:
 	float vox_data[8];
-	vox_data[0] = mag * cnoise(noise_scale * position + noise_scale * uvec3(0));
-	vox_data[1] = mag * cnoise(noise_scale * position + noise_scale * uvec3(1, 0, 0));
-	vox_data[2] = mag * cnoise(noise_scale * position + noise_scale * uvec3(1, 1, 0));
-	vox_data[3] = mag * cnoise(noise_scale * position + noise_scale * uvec3(0, 1, 0));
+	vox_data[0] = mag * cnoise(noise_scale * marching_cube_sample_position + noise_scale * uvec3(0));
+	vox_data[1] = mag * cnoise(noise_scale * marching_cube_sample_position + noise_scale * uvec3(1, 0, 0));
+	vox_data[2] = mag * cnoise(noise_scale * marching_cube_sample_position + noise_scale * uvec3(1, 1, 0));
+	vox_data[3] = mag * cnoise(noise_scale * marching_cube_sample_position + noise_scale * uvec3(0, 1, 0));
 
-	vox_data[4] = mag * cnoise(noise_scale * position + noise_scale * vec3(0, 0, 1));
-	vox_data[5] = mag * cnoise(noise_scale * position + noise_scale * vec3(1, 0, 1));
-	vox_data[6] = mag * cnoise(noise_scale * position + noise_scale * vec3(1, 1, 1));
-	vox_data[7] = mag * cnoise(noise_scale * position + noise_scale * vec3(0, 1, 1));
+	vox_data[4] = mag * cnoise(noise_scale * marching_cube_sample_position + noise_scale * vec3(0, 0, 1));
+	vox_data[5] = mag * cnoise(noise_scale * marching_cube_sample_position + noise_scale * vec3(1, 0, 1));
+	vox_data[6] = mag * cnoise(noise_scale * marching_cube_sample_position + noise_scale * vec3(1, 1, 1));
+	vox_data[7] = mag * cnoise(noise_scale * marching_cube_sample_position + noise_scale * vec3(0, 1, 1));
 
 	// Turn this information into a triangle list index:
 	uint triangleTypeIndex = 0;

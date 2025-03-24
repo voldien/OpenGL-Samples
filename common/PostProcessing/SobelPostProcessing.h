@@ -27,7 +27,7 @@ namespace glsample {
 
 		void
 		draw(glsample::FrameBuffer *framebuffer,
-			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
+			 const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) override;
 
 		void render(glsample::FrameBuffer *framebuffer, unsigned int source_texture, unsigned int target_texture);
 
@@ -36,6 +36,11 @@ namespace glsample {
 	  private:
 		int sobel_program = -1;
 		float radius = 1;
+		enum SobelType : int {
+			Simple,
+			Complex,
+		};
+		SobelType type;
 		int localWorkGroupSize[3];
 	};
 } // namespace glsample

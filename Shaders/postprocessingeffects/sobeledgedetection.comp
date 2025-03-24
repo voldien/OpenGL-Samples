@@ -34,7 +34,10 @@ void main() {
 
 	vec2 sampleTexCoord = source_texel_size * TextureCoord;
 
+	//TODO: add custom kernel.
 	const vec3 edgeColor = sobel(ColorTexture, settings.radius, sampleTexCoord);
+
+	//TODO: option 2
 	// float prop = step(_ThresHold, length(round(g.rgb)));
 	// float4 edge = lerp(color.rgba, _Color.rgba, prop);
 	// g = edge.rgb;

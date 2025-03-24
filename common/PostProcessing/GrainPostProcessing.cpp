@@ -5,6 +5,7 @@
 #include "imgui.h"
 #include <GL/glew.h>
 #include <IOUtil.h>
+#include <SDL_opengl.h>
 
 using namespace glsample;
 
@@ -47,16 +48,20 @@ void GrainPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glUseProgram(0);
 }
 
-void GrainPostProcessing::draw(
-	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
-	PostProcessing::draw(framebuffer, render_targets);
+void GrainPostProcessing::setItensity(const float intensity) {
+	PostProcessing::setItensity(intensity);
+	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.base.blend"), this->getIntensity());
+}
 
-	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+void GrainPostProcessing::draw(glsample::FrameBuffer *framebuffer,
+							   const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
+
+	PostProcessing::draw(framebuffer, render_targets);
 
 	glUseProgram(this->grain_graphic_program);
 
 	/*	*/
+	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.base.blend"), this->getIntensity());
 	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.time"), grainSettings.time);
 	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.intensity"), grainSettings.intensity);
 	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.speed"), grainSettings.speed);
@@ -72,6 +77,8 @@ void GrainPostProcessing::draw(
 	glUseProgram(0);
 
 	glBindVertexArray(0);
+
+	/*	Don't need to flip/swap framebuffer attachment. writes only ontop and not dependent on neightor pixel data.	*/
 }
 
 void GrainPostProcessing::renderUI() {

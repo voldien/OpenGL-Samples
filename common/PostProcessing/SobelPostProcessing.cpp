@@ -48,19 +48,22 @@ void SobelProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 void SobelProcessing::draw(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
-	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color),
-				 this->getMappedBuffer(GBuffer::IntermediateTarget));
+	this->render(framebuffer, framebuffer->attachments[0],
+				 framebuffer->attachments[1]);
 }
 
 void SobelProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int source_texture,
 							 unsigned int target_texture) {
 
+	assert(target != source_texture);
+
 	GLint width = 0;
 	GLint height = 0;
 
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, source_texture);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
@@ -70,7 +73,6 @@ void SobelProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int so
 	glUniform1f(glGetUniformLocation(this->sobel_program, "settings.radius"), this->radius);
 
 	/*	The image where the graphic version will be stored as.	*/
-	// glBindImageTexture(0, source_texture, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
 	glBindImageTexture(1, target_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]);
@@ -85,9 +87,19 @@ void SobelProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int so
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT);
 
 	/*	Swap buffers.	(ping pong)	*/
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
-	std::swap(framebuffer->attachments[0], framebuffer->attachments[1]);
+	framebuffer->attachments[0] = target_texture; /*	New Result Texture*/
+	framebuffer->attachments[1] = source_texture; /*	Previous Image.	*/
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
 }
 
-void SobelProcessing::renderUI() { ImGui::DragFloat("Radius", &this->radius); }
+void SobelProcessing::renderUI() {
+	ImGui::DragFloat("Radius", &this->radius);
+
+	ImGui::BeginGroup();
+	ImGui::RadioButton("Sobel", (int *)&type, 0);
+	ImGui::SameLine();
+	ImGui::RadioButton("Sobel2", (int *)&type, 1);
+	ImGui::EndGroup();
+}

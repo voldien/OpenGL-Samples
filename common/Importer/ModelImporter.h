@@ -56,7 +56,7 @@ using VertexBoneBuffer = struct vertex_bone_buffer_t {
 using MaterialTextureSampling = struct material_texture_sampling_t {
 	fragcore::TextureWrappingMode wrapping = fragcore::TextureWrappingMode::Repeat;
 	fragcore::FilterMode filtering = fragcore::FilterMode::Linear;
-	unsigned int uv_mapping = 0;
+	fragcore::UVMappingMode uv_mapping = fragcore::UVMappingMode::UV;
 };
 
 using MaterialObject = struct material_object_t : public AssetObject {
@@ -301,7 +301,7 @@ class FVDECLSPEC ModelImporter {
 
 	std::string filepath;
 	const aiScene *sceneRef = nullptr;
-	std::vector<NodeObject *> nodes; //TODO: convert to a pool.
+	std::vector<NodeObject *> nodes; // TODO: convert to a pool.
 	std::map<std::string, NodeObject *> nodeByName;
 
 	std::vector<ModelSystemObject> models;

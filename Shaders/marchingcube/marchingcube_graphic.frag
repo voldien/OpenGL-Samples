@@ -7,8 +7,7 @@
 layout(early_fragment_tests) in;
 
 layout(location = 0) in vec2 coord;
-layout(location = 1) in vec3 color;
-layout(location = 2) in vec3 normal;
+layout(location = 1) in vec3 normal;
 
 layout(location = 0) out vec4 fragColor;
 
@@ -20,7 +19,7 @@ layout(binding = 10) uniform sampler2D IrradianceMap;
 
 void main() {
 
-	const vec3 albedo = color;
+	const vec3 albedo = vec3(0.5);
 	const vec3 V = vec3(0, 1, 0);
 	const float roughness = 0.5;
 

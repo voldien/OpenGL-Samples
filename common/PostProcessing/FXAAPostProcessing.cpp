@@ -50,9 +50,8 @@ void FXAAPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glUseProgram(0);
 }
 
-void FXAAPostProcessing::draw(
-	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) {
+void FXAAPostProcessing::draw(glsample::FrameBuffer *framebuffer,
+							  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 	this->render(this->getMappedBuffer(GBuffer::Color));
 }

@@ -16,8 +16,6 @@ layout(std430, set = 0, binding = 1) buffer readonly GeomBuffer { Vertex vertice
 
 void main() {
 
-	// TODO: add instance support.
-	const uint nr_points_per_cell = (num_point_4_cell * 9 * 9 * 9);
 	const uint offset = 0;
 
 	const int triID = gl_VertexID / 3;
@@ -26,7 +24,6 @@ void main() {
 	const vec4 vertexPosition = vec4(vertices[vertexID].pos, 1);
 
 	v_out_color = vertices[vertexID].normal;
-
 	v_out_normal_worldspace = vertices[vertexID].normal;
 	v_out_scale = vertices[vertexID].scale;
 	v_out_coord = vec2(0);

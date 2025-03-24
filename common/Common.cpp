@@ -183,8 +183,10 @@ void Common::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachme
 	glGenFramebuffers(1, &framebuffer->framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->framebuffer);
 
-	glGenTextures(nrAttachments, framebuffer->attachments.data());
-	glGenTextures(1, &framebuffer->depthbuffer);
+	framebuffer->depthIndex = 15;
+
+	glGenTextures(nrAttachments, framebuffer->attachments.data());		  /*	Color attachment textures.	*/
+	glGenTextures(1, &framebuffer->attachments[framebuffer->depthIndex]); /*	Depth/Stencil attachment textures.	*/
 	framebuffer->nrAttachments = nrAttachments;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -280,7 +282,7 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 		}
 
 		/*	*/
-		glBindTexture(texture_type, framebuffer->depthbuffer);
+		glBindTexture(texture_type, framebuffer->attachments[framebuffer->depthIndex]);
 		if (multisamples > 0) {
 			glTexImage2DMultisample(texture_type, multisamples, depth_internal, width, height, GL_TRUE);
 		} else {
@@ -302,7 +304,8 @@ void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_
 
 		glBindTexture(texture_type, 0);
 
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_type, framebuffer->depthbuffer, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_type,
+							   framebuffer->attachments[framebuffer->depthIndex], 0);
 	}
 
 	/*  Validate if created properly.*/

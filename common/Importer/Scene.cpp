@@ -105,14 +105,15 @@ namespace glsample {
 			this->UBOStructure.common_offset = 0;
 
 			this->UBOStructure.max_node_per_binding = 1024; // maxUniformBufferSize / sizeof(NodeData);
-			const size_t NrNodes = 4096 * sizeof(NodeData); // TODO: change number based on the max bininded uniform size.
+			const size_t NrNodes =
+				4096 * sizeof(NodeData); // TODO: change number based on the max bininded uniform size.
 			this->UBOStructure.node_size_align = Math::align<size_t>(NrNodes, minMapBufferSize);
 			this->UBOStructure.node_size_total_align =
 				this->UBOStructure.node_size_align * UniformDataStructure::nrUniformBuffer;
 
-
 			const size_t max_bindable_materials = 4096;
-			this->UBOStructure.material_align_size = Math::align<size_t>(max_bindable_materials * sizeof(MaterialData), minMapBufferSize);
+			this->UBOStructure.material_align_size =
+				Math::align<size_t>(max_bindable_materials * sizeof(MaterialData), minMapBufferSize);
 			this->UBOStructure.material_align_total_size =
 				this->UBOStructure.material_align_size * UniformDataStructure::nrUniformBuffer;
 
@@ -168,6 +169,9 @@ namespace glsample {
 			AnimationObject &animationClip = this->animations[anim_index];
 			// this->animations[x].curves;
 		}
+
+		/*	*/
+		this->stageCommonBuffer->time[0] = deltaTime;
 
 		this->updateBuffers();
 	}

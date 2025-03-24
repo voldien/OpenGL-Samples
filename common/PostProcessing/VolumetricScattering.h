@@ -28,9 +28,10 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void
-		draw(glsample::FrameBuffer *framebuffer,
-			 const std::initializer_list<std::tuple<const GBuffer, const unsigned int &>> &render_targets) override;
+		void draw(glsample::FrameBuffer *framebuffer,
+				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
+
+		void setItensity(const float intensity) override;
 
 		void renderUI() override;
 
@@ -42,10 +43,10 @@ namespace glsample {
 
 		using VolumetricScatteringSettings = struct volumetric_scattering_settings_t {
 			int numSamples = 64;
-			float _Density = 0.345;
-			float _Decay = 0.88;
-			float _Weight = 2.8;
-			float _Exposure = 4.2;
+			float Density = 0.345;
+			float Decay = 0.88;
+			float Weight = 2.8;
+			float Exposure = 4.2;
 			glm::vec2 lightPosition = glm::vec2(0.5f, 0.8);
 			glm::vec4 color = glm::vec4(1, 1, 1, 1);
 		};

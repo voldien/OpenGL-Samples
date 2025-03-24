@@ -159,9 +159,9 @@ namespace glsample {
 
 	using FrameBuffer = struct framebuffer_t {
 		unsigned int framebuffer = 0;
-		std::array<unsigned int, 16> attachments;
+		std::array<unsigned int, 16> attachments; /*	last */
 		unsigned int nrAttachments = 0;
-		unsigned int depthbuffer = 0;
+		unsigned int depthIndex = 15;
 	};
 
 	template <typename T, int m, int n>
