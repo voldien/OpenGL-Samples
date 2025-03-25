@@ -1,0 +1,25 @@
+#version 460 core
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) writeonly buffer SSBO { int histogram[]; };
+
+layout(set = 0, binding = 0) uniform sampler2D SourceTexture;
+
+layout(constant_id = 0) const float maxValue = 255.f;
+
+void main() {
+
+	/*	*/
+	if (any(greaterThan(gl_GlobalInvocationID.xy, textureSize(SourceTexture, 0)))) {
+		return;
+	}
+
+	const ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
+	const vec4 color = texelFetch(SourceTexture, texelCoords, 0);
+	/*	*/
+	uint lumen = uint(maxValue * (0.299 * color.r + 0.587 * color.g + 0.114 * color.b));
+
+	lumen = clamp(lumen, 0, uint(maxValue));
+
+	atomicAdd(histogram[lumen], 1);
+}

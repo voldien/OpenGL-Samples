@@ -10,7 +10,7 @@ layout(set = 0, binding = 1, rgba16f) uniform restrict writeonly image2D TargetT
 layout(push_constant) uniform Settings {
 	layout(offset = 0) int upscale;
 	layout(offset = 4) int filterRadius;
-	layout(offset = 8) uvec2 finalSize;
+	layout(offset = 8) vec2 sampleRegion;
 }
 settings;
 
@@ -40,14 +40,16 @@ void main() {
 
 	/*	*/
 	const vec2 source_texel_size = 1.0 / textureSize(SourceTexture, 0);
-	const vec2 maxUVSize = source_texel_size * sourceDownSampleSize;
+	const vec2 maxUVSize = settings.sampleRegion *  0.9 - source_texel_size * 0.5; //(source_texel_size * sourceDownSampleSize) * 0.85; //TODO: fix 
 
 	/*	*/
 	const float x = source_texel_size.x * settings.filterRadius;
 	const float y = source_texel_size.y * settings.filterRadius;
 	const vec2 texCoord = (upsampleCoordinate + 0.5) * source_texel_size * 0.5;
 
+	/*	*/
 	{
+
 		const vec3 a = texture(SourceTexture, min(vec2(texCoord.x - 2 * x, texCoord.y + 2 * y), maxUVSize)).rgb;
 		const vec3 b = texture(SourceTexture, min(vec2(texCoord.x, texCoord.y + 2 * y), maxUVSize)).rgb;
 		const vec3 c = texture(SourceTexture, min(vec2(texCoord.x + 2 * x, texCoord.y + 2 * y), maxUVSize)).rgb;

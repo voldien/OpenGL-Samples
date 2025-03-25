@@ -33,7 +33,7 @@ void main() {
 
 	/*	*/
 	const vec2 source_texel_size = (1.0 / sourceSize);
-	const vec2 maxUVSize = source_texel_size * sourceDownSampleSize;
+	const vec2 maxUVSize = source_texel_size * sourceDownSampleSize - source_texel_size * 0.5;
 
 	/*	*/
 	const uvec2 downSampleCoordinate = gl_GlobalInvocationID.xy;

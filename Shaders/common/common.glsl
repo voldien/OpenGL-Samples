@@ -12,6 +12,8 @@
 #define PI 3.1415926535897932384626433832795
 #define PI_HALF (PI / 2.0)
 #define E_CONSTANT 2.7182818284590
+
+/*	Application constant.	*/
 layout(constant_id = 0) const float EPSILON = 1.19209e-07;
 
 struct Camera {
@@ -81,6 +83,7 @@ vec2 ndc_to_uv(vec2 x) { return x * vec2(0.5f, -0.5f) + 0.5f; }
 
 vec2 ndc_to_uv(vec3 x) { return x.xy * vec2(0.5f, -0.5f) + 0.5f; }
 */
+
 float getExpToLinear(const in float start, const in float end, const in float expValue) {
 	return ((2.0f * start) / (end + start - expValue * (end - start)));
 }

@@ -202,6 +202,8 @@ Usage:
 
 - **Contact Shadow**
 
+- **Vignette**
+
 ## Required Packages
 
 ```bash

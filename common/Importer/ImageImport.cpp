@@ -72,6 +72,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		type = GL_FLOAT;
 		internalformat = GL_RGBA16F;
 		break;
+	case ImageFormat::R8:
 	case ImageFormat::Alpha8: /*	Single Channel.	*/
 		format = GL_RED;
 		type = GL_UNSIGNED_BYTE;
@@ -121,7 +122,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 			internalformat = GL_SR8_EXT; // GL_SLUMINANCE
 			break;
 		default:
-			throw RuntimeException("None Supported Format: {} ({})", magic_enum::enum_name(image.getFormat()),
+			throw RuntimeException("None Supported SRGB Format: {} ({})", magic_enum::enum_name(image.getFormat()),
 								   internalformat);
 		}
 	}
@@ -152,8 +153,9 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 				internalformat = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
 				break;
 			default:
-				throw RuntimeException("None Supported Format: {} ({})", magic_enum::enum_name(image.getFormat()),
-									   internalformat);
+				break; /*	Can't find any suitable compression type.	*/
+				throw RuntimeException("None Supported Compression Format: {} ({})",
+									   magic_enum::enum_name(image.getFormat()), internalformat);
 			}
 		} else if (compression == TextureCompression::ASTC) {
 			switch (internalformat) {
@@ -179,7 +181,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 				internalformat = GL_COMPRESSED_RGBA_ASTC_12x12_KHR;
 				break;
 			default:
-				throw RuntimeException("None Supported Format: {} ({})", magic_enum::enum_name(image.getFormat()),
+				throw RuntimeException("None Supported ASTC Format: {} ({})", magic_enum::enum_name(image.getFormat()),
 									   internalformat);
 			}
 		}

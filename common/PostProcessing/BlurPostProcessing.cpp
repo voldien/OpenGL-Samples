@@ -102,11 +102,10 @@ void BlurPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	setItensity(1);
 }
 
-void BlurPostProcessing::draw(
-	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) {
+void BlurPostProcessing::draw(glsample::FrameBuffer *framebuffer,
+							  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
-	
+
 	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color),
 				 this->getMappedBuffer(GBuffer::IntermediateTarget));
 }
@@ -125,28 +124,24 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 	switch (this->blurType) {
 	case BoxBlur:
 		glUseProgram(this->box_blur_compute_program);
-		glUniform1f(glGetUniformLocation(this->box_blur_compute_program, "settings.variance"), this->variance);
-		glUniform1f(glGetUniformLocation(this->box_blur_compute_program, "settings.mean"), this->mean);
-		glUniform1f(glGetUniformLocation(this->box_blur_compute_program, "settings.radius"), this->radius);
-		glUniform1i(glGetUniformLocation(this->box_blur_compute_program, "settings.samples"), this->samples);
+		glUniform1f(glGetUniformLocation(this->box_blur_compute_program, "settings.variance"),
+					this->blurSettings.variance);
+		glUniform1f(glGetUniformLocation(this->box_blur_compute_program, "settings.mean"), this->blurSettings.mean);
+		glUniform1f(glGetUniformLocation(this->box_blur_compute_program, "settings.radius"), this->blurSettings.radius);
+		glUniform1i(glGetUniformLocation(this->box_blur_compute_program, "settings.samples"),
+					this->blurSettings.samples);
 		break;
 	case GuassianBlur:
 		glUseProgram(this->guassian_blur_vertical_compute_program);
-		glUniform1f(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "settings.variance"),
-					this->variance);
-		glUniform1f(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "settings.mean"), this->mean);
 		glUniform1f(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "settings.radius"),
-					this->radius);
+					this->blurSettings.radius);
 		glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "settings.samples"),
-					this->samples);
+					this->blurSettings.samples);
 		glUseProgram(this->guassian_blur_horizontal_compute_program);
-		glUniform1f(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "settings.variance"),
-					this->variance);
-		glUniform1f(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "settings.mean"), this->mean);
 		glUniform1f(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "settings.radius"),
-					this->radius);
+					this->blurSettings.radius);
 		glUniform1i(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "settings.samples"),
-					this->samples);
+					this->blurSettings.samples);
 		break;
 	default:
 	case MaxBlur:
@@ -162,7 +157,7 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 	case BoxBlur: {
 		glUseProgram(this->box_blur_compute_program);
 		if (WorkGroupX > 0 && WorkGroupY > 0) {
-			for (int it = 0; it < this->nrIterations; it++) {
+			for (int it = 0; it < this->blurSettings.nrIterations; it++) {
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, read_color_texture);
@@ -178,7 +173,7 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 	case GuassianBlur: {
 
 		if (WorkGroupX > 0 && WorkGroupY > 0) {
-			for (int it = 0; it < this->nrIterations; it++) {
+			for (int it = 0; it < this->blurSettings.nrIterations; it++) {
 
 				glUseProgram(this->guassian_blur_vertical_compute_program);
 				glActiveTexture(GL_TEXTURE0);
@@ -220,31 +215,34 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 }
 
 void BlurPostProcessing::updateGuassianKernel() {
-	Math::guassian<float>(this->guassian.data(), this->samples, 0, this->variance);
+
+	Math::guassian<float>(this->blurSettings.guassian.data(), this->blurSettings.samples, 0,
+						  this->blurSettings.variance);
 
 	glUseProgram(this->guassian_blur_vertical_compute_program);
-	glUniform1fv(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "settings.kernel"), this->samples,
-				 this->guassian.data());
+	glUniform1fv(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "settings.kernel"),
+				 this->blurSettings.samples, this->blurSettings.guassian.data());
 	glUseProgram(0);
 
 	glUseProgram(this->guassian_blur_horizontal_compute_program);
-	glUniform1fv(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "settings.kernel"), this->samples,
-				 this->guassian.data());
+	glUniform1fv(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "settings.kernel"),
+				 this->blurSettings.samples, this->blurSettings.guassian.data());
 	glUseProgram(0);
 }
 
 void BlurPostProcessing::renderUI() {
 
-	if (ImGui::DragFloat("Variance", &this->variance, 1.0f, 0.0, std::numeric_limits<float>::max())) {
+	if (ImGui::DragFloat("Variance", &this->blurSettings.variance, 1.0f, 0.0, std::numeric_limits<float>::max())) {
 		/*	Update Guassian */
 		this->updateGuassianKernel();
 	}
-	ImGui::DragFloat("Radius", &this->radius);
-	if (ImGui::DragInt("Samples", &this->samples, 1.0, 1, maxSamples)) {
+	ImGui::DragFloat("Radius", &this->blurSettings.radius);
+	if (ImGui::DragInt("Samples", &this->blurSettings.samples, 1.0, 1, BlurSettings::maxSamples)) {
 		/*	Update Guassian */
 		this->updateGuassianKernel();
 	}
-	if (ImGui::DragInt("Number Iterations", &this->nrIterations, 1.0f, 0, std::numeric_limits<int>::max())) {
+	if (ImGui::DragInt("Number Iterations", &this->blurSettings.nrIterations, 1.0f, 0,
+					   std::numeric_limits<int>::max())) {
 	}
 
 	const int item_selected_idx = (int)this->blurType; // Here we store our selection data as an index.

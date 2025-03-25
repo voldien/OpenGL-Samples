@@ -34,7 +34,8 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	if (this->bloom_blur_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
+		const std::vector<uint32_t> post_vertex_binary =
+			IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
 		const std::vector<uint32_t> glow_fragment_binary = IOUtil::readFileData<uint32_t>(glow_frag_path, filesystem);
 
 		const std::vector<uint32_t> downsample2x2_compute_binary =
@@ -93,9 +94,8 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	setItensity(1);
 }
 
-void BloomPostProcessing::draw(
-	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) {
+void BloomPostProcessing::draw(glsample::FrameBuffer *framebuffer,
+							   const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
 	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color));
@@ -159,15 +159,20 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 
 		for (int i = 0; i < nr_down_samples; i++) {
 
+			const float targetWidthSize = width / (float)(1 << (nr_down_samples - i - 1));
+			const float targetHeightSize = height / (float)(1 << (nr_down_samples - i - 1));
+
 			const unsigned int WorkGroupX =
 				std::ceil(width / (float)localWorkGroupSize[0]) / (1 << (nr_down_samples - i - 1));
 			const unsigned int WorkGroupY =
 				std::ceil(height / (float)localWorkGroupSize[1]) / (1 << (nr_down_samples - i - 1));
 
 			if (WorkGroupX >= 2 && WorkGroupY >= 2) {
-
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, readTexture);
+
+				glUniform2f(glGetUniformLocation(this->upsample_compute_program, "settings.sampleRegion"),
+							(targetWidthSize / width) * 0.5, (targetHeightSize / height) * 0.5);
 
 				glBindImageTexture(1, targetTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
@@ -182,7 +187,6 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	{
-
 		glUseProgram(this->overlay_program);
 
 		/*	*/
@@ -195,7 +199,8 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 		/*	Draw overlay.	*/
 		glEnable(GL_BLEND);
 		glBlendEquation(GL_FUNC_ADD);
-		glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ZERO);
+		glBlendColor(0, 0, 0, 1 - this->threadshold);
+		glBlendFuncSeparate(GL_ONE_MINUS_CONSTANT_ALPHA, GL_ONE, GL_ONE, GL_ZERO);
 
 		glBindVertexArray(this->vao);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -207,4 +212,7 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 }
 
-void BloomPostProcessing::renderUI() { ImGui::DragInt("Image Size", (int *)&this->nr_down_samples); }
+void BloomPostProcessing::renderUI() {
+	ImGui::DragInt("Image Size", (int *)&this->nr_down_samples);
+	ImGui::DragFloat("ThjreadsHold", &this->threadshold, 1, 0, 1000.0f);
+}

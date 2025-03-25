@@ -32,7 +32,7 @@ namespace glsample {
 		Reflection = 5,		  /*	*/
 		AmbientOcclusion = 6, /*	*/
 		Displacement = 7,	  /*	*/
-		Reserve0 = 8,		  /*	*/
+		Metal = 8,			  /*	*/
 		Reserve1 = 9,		  /*	*/
 		Irradiance = 10,	  /*	*/
 		PreFilter = 11,		  /*	*/

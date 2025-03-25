@@ -26,9 +26,8 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void
-		draw(glsample::FrameBuffer *framebuffer,
-			 const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) override;
+		void draw(glsample::FrameBuffer *framebuffer,
+				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
 
 		void renderUI() override;
 

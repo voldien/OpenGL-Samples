@@ -62,7 +62,7 @@ void main() {
 
 	barrier(); // Wait till all threads reach this point
 
-	// TOOD: improve
+	// TODO: improve
 	const uint instance_index =
 		gl_GlobalInvocationID.z * (gl_NumWorkGroups.x * gl_NumWorkGroups.y * gl_WorkGroupSize.x * gl_WorkGroupSize.y) +
 		gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x) + gl_GlobalInvocationID.x;

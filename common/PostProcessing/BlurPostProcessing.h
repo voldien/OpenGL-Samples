@@ -27,9 +27,8 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void
-		draw(glsample::FrameBuffer *framebuffer,
-			 const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) override;
+		void draw(glsample::FrameBuffer *framebuffer,
+				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
 
 		void renderUI() override;
 
@@ -39,9 +38,11 @@ namespace glsample {
 	  private:
 		void updateGuassianKernel();
 
+	  private: /*	Memebers.	*/
 		int guassian_blur_vertical_compute_program = 0;
 		int guassian_blur_horizontal_compute_program = 0;
 		int box_blur_compute_program = 0;
+		int kuwahara_compute_program = 0;
 		unsigned int texture_sampler = 0;
 
 		Blur blurType = GuassianBlur;
@@ -50,23 +51,15 @@ namespace glsample {
 		using BlurSettings = struct blur_settings_t {
 			Blur blurType = GuassianBlur;
 			int nrIterations = 1;
-			float variance = 1;
-			int samples = 11;
 			float radius = 2;
+			float variance = 1;
 			float mean = 0;
+			int samples = 11;
 			static const int maxSamples = 9 + 9 + 1;
 			std::array<float, maxSamples> guassian;
 		};
 
 		BlurSettings blurSettings;
-
-		int nrIterations = 1;
-		float variance = 1;
-		int samples = 11;
-		float radius = 2;
-		float mean = 0;
-		static const int maxSamples = 9 + 9 + 1;
-		std::array<float, maxSamples> guassian;
 
 		int localWorkGroupSize[3];
 	};

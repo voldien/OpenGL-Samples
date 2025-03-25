@@ -1,0 +1,61 @@
+#version 460 core
+#extension GL_ARB_enhanced_layouts : enable
+#extension GL_ARB_shader_image_load_store : enable
+#extension GL_ARB_explicit_attrib_location : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+#extension GL_EXT_shader_16bit_storage : require
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+precision mediump float;
+precision mediump int;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
+layout(set = 0, binding = 1, rgba16f) uniform restrict image2D TargetTexture;
+
+layout(push_constant) uniform Settings {
+	layout(offset = 0) float blend;
+	layout(offset = 4) float variance;
+	layout(offset = 8) float mean;
+	layout(offset = 12) float radius;
+	layout(offset = 16) int samples;
+}
+settings;
+
+#include "postprocessing_base.glsl"
+layout(constant_id = 16) const int MAX_SAMPLES = 9 * 9 + 1;
+
+void main() {
+
+	/*	*/
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(TargetTexture)))) {
+		return;
+	}
+
+	/*  */
+	const vec2 resolution = textureSize(ColorTexture, 0);
+	const vec2 TexelInvOffset = 1.0 / resolution;
+	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
+	const vec2 NormalizeCoordinate = TexCoord / resolution;
+
+	/*  */
+	const int samples = clamp(settings.samples, 1, MAX_SAMPLES / 2);
+	const float radius = settings.radius;
+	const float totalInverse = 1.0f / (samples * samples);
+
+	vec4 color = vec4(0);
+	for (uint x = 0; x < samples; x++) {
+		for (uint y = 0; y < samples; y++) {
+			/*	*/
+			const vec2 uvP =
+				NormalizeCoordinate + TexelInvOffset * vec2(x + -samples * 0.5, y + -samples * 0.5) * radius;
+			color += texture(ColorTexture, uvP);
+		}
+	}
+
+	/* Normalize color. */
+	const vec4 finalColor = color * totalInverse;
+	imageStore(TargetTexture, TexCoord, finalColor);
+}
