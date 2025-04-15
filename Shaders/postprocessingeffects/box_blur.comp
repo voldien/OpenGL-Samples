@@ -15,8 +15,10 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
 layout(set = 0, binding = 1, rgba16f) uniform restrict image2D TargetTexture;
 
+#include "postprocessing_base.glsl"
+
 layout(push_constant) uniform Settings {
-	layout(offset = 0) float blend;
+	layout(offset = 0) BaseSettings base;
 	layout(offset = 4) float variance;
 	layout(offset = 8) float mean;
 	layout(offset = 12) float radius;
@@ -24,7 +26,6 @@ layout(push_constant) uniform Settings {
 }
 settings;
 
-#include "postprocessing_base.glsl"
 layout(constant_id = 16) const int MAX_SAMPLES = 9 * 9 + 1;
 
 void main() {

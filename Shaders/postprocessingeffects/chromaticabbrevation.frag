@@ -13,8 +13,10 @@ layout(location = 0) in vec2 screenUV;
 /*  */
 layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
 
+#include "postprocessing_base.glsl"
+
 layout(push_constant) uniform Settings {
-	layout(offset = 0) float blend;
+	layout(offset = 0) BaseSettings base;
 	layout(offset = 4) float redOffset;
 	layout(offset = 8) float greenOffset;
 	layout(offset = 12) float blueOffset;
@@ -22,13 +24,14 @@ layout(push_constant) uniform Settings {
 }
 settings;
 
-#include "postprocessing_base.glsl"
-
 void main() {
 
 	const vec2 direction = screenUV - settings.direction_center;
 
-	fragColor.r = texture(ColorTexture, screenUV + (direction * vec2(settings.redOffset))).r;
-	fragColor.g = texture(ColorTexture, screenUV + (direction * vec2(settings.greenOffset))).g;
-	fragColor.ba = texture(ColorTexture, screenUV + (direction * vec2(settings.blueOffset))).ba;
+	vec4 chromaticColor;
+	chromaticColor.r = texture(ColorTexture, screenUV + (direction * vec2(settings.redOffset))).r;
+	chromaticColor.g = texture(ColorTexture, screenUV + (direction * vec2(settings.greenOffset))).g;
+	chromaticColor.ba = texture(ColorTexture, screenUV + (direction * vec2(settings.blueOffset))).ba;
+
+	fragColor = mix(texture(ColorTexture, screenUV), chromaticColor, settings.base.blend);
 }

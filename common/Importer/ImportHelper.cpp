@@ -246,19 +246,18 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 				/*	*/
 				fragcore::ImageLoader imageLoader;
-
 				Image image = imageLoader.loadImage(refIO);
 
+				/*	Convert BumpMap to NormalMap*/
 				if (!materials.empty() && materials[0]->heightbumpIndex == texture_index) {
 					image = ImageUtil::convert2NormalMap(image, 3.5f);
 					materials[0]->heightbumpIndex = -1;
 					materials[0]->normalIndex = texture_index;
 				}
 
+				/*	*/
 				tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
-				if (tex.texture >= 0) {
-					glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
-				}
+
 				// TODO: use gpu to convert image.
 
 			} catch (const std::exception &ex) {
@@ -281,9 +280,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 					Image image = imageLoader.loadImage(refIO);
 
 					tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
-					if (tex.texture >= 0) {
-						glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
-					}
+
 				} catch (std::exception &ex) {
 					std::cerr << "Failed to load: " << ex.what() << std::endl;
 				}
@@ -295,11 +292,13 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				fragcore::Image image(tex.width, tex.height, ImageFormat::ARGB32);
 				image.setPixelData(tex.data, image.getSize());
 
+				/*	*/
 				tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
-				if (tex.texture >= 0) {
-					glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
-				}
 			}
+		}
+
+		if (tex.texture >= 0) {
+			glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
 		}
 
 		/*	*/

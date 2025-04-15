@@ -13,12 +13,6 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(set = 0, binding = 1, rgba16f) uniform image2D ColorTexture;
 
-layout(push_constant) uniform Settings {
-	layout(offset = 0) float exposure;
-	layout(offset = 4) float gamma;
-}
-settings;
-
 #include "common.glsl"
 
 void main() {
@@ -30,6 +24,8 @@ void main() {
 
 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
 
-	vec4 fragColor = imageLoad(ColorTexture, TexCoord);
-	imageStore(ColorTexture, TexCoord, vec4(fragColor.rgb, 1.0));
+	vec4 color = imageLoad(ColorTexture, TexCoord);
+	const float lumen = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+
+	imageStore(ColorTexture, TexCoord, vec4(lumen.xxx, 1.0));
 }

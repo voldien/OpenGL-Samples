@@ -54,15 +54,16 @@ void ChromaticAbberationPostProcessing::initialize(fragcore::IFileSystem *filesy
 
 void ChromaticAbberationPostProcessing::draw(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) {
+	const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 
 	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color));
 }
 
 void ChromaticAbberationPostProcessing::setItensity(const float intensity) {
+	PostProcessing::setItensity(intensity);
 	glUseProgram(this->chromatic_abberation_graphic_program);
-	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.blend"),
+	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.base.blend"),
 				this->getIntensity());
 	glUseProgram(0);
 }
@@ -99,7 +100,6 @@ void ChromaticAbberationPostProcessing::render(glsample::FrameBuffer *framebuffe
 	glBindVertexArray(0);
 
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
-
 
 	/*	Swap buffers.	(ping pong)	*/
 	framebuffer->attachments[0] = target_texture;

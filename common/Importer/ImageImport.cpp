@@ -1,4 +1,5 @@
 #include "Importer/ImageImport.h"
+#include "FragDef.h"
 #include <GL/glew.h>
 #include <GLHelper.h>
 #include <ImageLoader.h>
@@ -104,7 +105,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 		internalformat = GL_R32UI;
 		break;
 	default:
-		throw RuntimeException("None Supported Format: {}", magic_enum::enum_name(image.getFormat()));
+		throw NotSupportedException("None Supported Image Format: {}", magic_enum::enum_name(image.getFormat()));
 	}
 
 	if (colorSpace == ColorSpace::SRGB) {
@@ -122,8 +123,8 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 			internalformat = GL_SR8_EXT; // GL_SLUMINANCE
 			break;
 		default:
-			throw RuntimeException("None Supported SRGB Format: {} ({})", magic_enum::enum_name(image.getFormat()),
-								   internalformat);
+			throw NotSupportedException("None Supported SRGB Format: {} ({})", magic_enum::enum_name(image.getFormat()),
+										internalformat);
 		}
 	}
 
@@ -154,8 +155,8 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 				break;
 			default:
 				break; /*	Can't find any suitable compression type.	*/
-				throw RuntimeException("None Supported Compression Format: {} ({})",
-									   magic_enum::enum_name(image.getFormat()), internalformat);
+				throw NotSupportedException("None Supported Compression Format: {} ({})",
+											magic_enum::enum_name(image.getFormat()), internalformat);
 			}
 		} else if (compression == TextureCompression::ASTC) {
 			switch (internalformat) {
@@ -181,8 +182,8 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 				internalformat = GL_COMPRESSED_RGBA_ASTC_12x12_KHR;
 				break;
 			default:
-				throw RuntimeException("None Supported ASTC Format: {} ({})", magic_enum::enum_name(image.getFormat()),
-									   internalformat);
+				throw NotSupportedException("None Supported ASTC Format: {} ({})",
+											magic_enum::enum_name(image.getFormat()), internalformat);
 			}
 		}
 	}
@@ -248,7 +249,7 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths, const Co
 								 const TextureCompression compression) {
 	ImageLoader imageLoader;
 
-	GLenum target = GL_TEXTURE_CUBE_MAP;
+	const GLenum target = GL_TEXTURE_CUBE_MAP;
 	GLuint texture = 0;
 
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));
@@ -283,6 +284,9 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths, const Co
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0));
 
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 5));
+
+	//const size_t power_of_2 = std::floor(std::log(Math::max(image.width(), image.height())) / std::log(2));
+	//const size_t max_mipmap = Math::clamp<size_t>(power_of_2 - 4, 0, std::numeric_limits<size_t>::max());
 
 	for (size_t i = 0; i < paths.size(); i++) {
 		Ref<IO> io = Ref<IO>(filesystem->openFile(paths[i].c_str(), IO::IOMode::READ));
