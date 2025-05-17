@@ -142,7 +142,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			Common::loadCube(this->planGeometry, 1, 1, 1);
+			CommonUtil::loadCube(this->planGeometry, 1, 1, 1);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }

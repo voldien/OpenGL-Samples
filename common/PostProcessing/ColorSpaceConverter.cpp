@@ -31,21 +31,24 @@ ColorSpaceConverter::~ColorSpaceConverter() {
 
 void ColorSpaceConverter::initialize(fragcore::IFileSystem *filesystem) {
 
-	const char *AES_path = "Shaders/postprocessingeffects/colorspace/aces.comp.spv";
-	const char *gamma_path = "Shaders/postprocessingeffects/colorspace/gamma.comp.spv";
+	const char *AES_compute_path = "Shaders/postprocessingeffects/colorspace/aces.comp.spv";
+	const char *gamma_compute_path = "Shaders/postprocessingeffects/colorspace/gamma.comp.spv";
 
-	const char *heatwave_path = "Shaders/postprocessingeffects/colorspace/heatmap.comp.spv";
-	const char *kronos_pbr_path = "Shaders/postprocessingeffects/colorspace/KhronosPBRNeutral.comp.spv";
-	const char *filmic_path = "Shaders/postprocessingeffects/colorspace/filmic.comp.spv";
+	const char *heatwave_compute_path = "Shaders/postprocessingeffects/colorspace/heatmap.comp.spv";
+	const char *kronos_pbr_compute_path = "Shaders/postprocessingeffects/colorspace/KhronosPBRNeutral.comp.spv";
+	const char *filmic_compute_path = "Shaders/postprocessingeffects/colorspace/filmic.comp.spv";
 
-	if (this->aes_program == -1) {
+	if (this->aes_program == -1 && this->computeShaderSupported) {
 		/*	*/
-		const std::vector<uint32_t> compute_AES_binary = IOUtil::readFileData<uint32_t>(AES_path, filesystem);
-		const std::vector<uint32_t> compute_Gamma_binary = IOUtil::readFileData<uint32_t>(gamma_path, filesystem);
-		const std::vector<uint32_t> compute_HeatWave_binary = IOUtil::readFileData<uint32_t>(heatwave_path, filesystem);
+		const std::vector<uint32_t> compute_AES_binary = IOUtil::readFileData<uint32_t>(AES_compute_path, filesystem);
+		const std::vector<uint32_t> compute_Gamma_binary =
+			IOUtil::readFileData<uint32_t>(gamma_compute_path, filesystem);
+		const std::vector<uint32_t> compute_HeatWave_binary =
+			IOUtil::readFileData<uint32_t>(heatwave_compute_path, filesystem);
 		const std::vector<uint32_t> compute_Kronas_PBR_binary =
-			IOUtil::readFileData<uint32_t>(kronos_pbr_path, filesystem);
-		const std::vector<uint32_t> compute_filmic_binary = IOUtil::readFileData<uint32_t>(filmic_path, filesystem);
+			IOUtil::readFileData<uint32_t>(kronos_pbr_compute_path, filesystem);
+		const std::vector<uint32_t> compute_filmic_binary =
+			IOUtil::readFileData<uint32_t>(filmic_compute_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -58,6 +61,7 @@ void ColorSpaceConverter::initialize(fragcore::IFileSystem *filesystem) {
 		this->kronos_neutral_pbr_program =
 			ShaderLoader::loadComputeProgram(compilerOptions, &compute_Kronas_PBR_binary);
 		this->filmic_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_filmic_binary);
+	} else {
 	}
 
 	glUseProgram(this->aes_program);

@@ -47,7 +47,7 @@ namespace glsample {
 		glSamplerParameteri(this->skybox_sampler, GL_TEXTURE_MIN_LOD, 0);
 
 		/*	Load geometry.	*/
-		Common::loadCube(this->SkyboxCube, 1, 1, 1);
+		CommonUtil::loadCube(this->SkyboxCube, 1, 1, 1);
 
 		this->skybox_texture_panoramic = texture;
 		this->skybox_program = program;

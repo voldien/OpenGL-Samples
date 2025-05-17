@@ -22,6 +22,36 @@
 
 namespace glsample {
 
+	using DrawArraysIndirectCommand = fragcore::IndirectDrawArray;
+	using DrawElementsIndirectCommand = fragcore::IndirectDrawElement;
+	using DrawDispatchIndirectCommand = fragcore::IndirectDispatch;
+
+	using MeshObject = struct geometry_object_t {
+		/*	*/
+		unsigned int vao = 0;
+		unsigned int vbo = 0;
+		unsigned int ibo = 0;
+
+		size_t nrIndicesElements = 0;
+		size_t nrVertices = 0;
+
+		size_t vertex_offset = 0;
+		size_t indices_offset = 0;
+
+		unsigned int stride = 0;
+		int primitiveType = 0;
+
+		/*	*/
+		fragcore::Bound bound{};
+	};
+
+	using TextureObject = struct texture_object_t {
+		unsigned int width = 0;
+		unsigned int height = 0;
+		unsigned int depth = 0;
+		unsigned int texture = 0;
+	};
+
 	enum class ColorSpace : unsigned int {
 		RawLinear = 0,	   /*	Linear.	*/
 		SRGB,			   /*	SRGB encoded.	*/
@@ -32,14 +62,12 @@ namespace glsample {
 		MaxColorSpaces
 	};
 
-	// TODO: rename
-	class FVDECLSPEC Common {
+	class FVDECLSPEC CommonUtil {
 	  public:
 		static void loadPlan(MeshObject &planMesh, const float scale, const int segmentX = 1, const int segmentY = 1);
 		static void loadCube(MeshObject &cubeMesh, const float scale, const int segmentX = 1, const int segmentY = 1);
 		static void loadSphere(MeshObject &sphereMesh, const float radius = 1, const int slices = 8,
 							   const int segements = 8);
-
 
 		static void mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes);
 

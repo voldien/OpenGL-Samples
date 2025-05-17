@@ -134,7 +134,7 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 		/*	Create white texture.	*/
-		this->white_texture = glsample::Common::createColorTexture(1, 1, Color::white());
+		this->white_texture = glsample::CommonUtil::createColorTexture(1, 1, Color::white());
 
 		/*	Create noise normalMap.	*/
 		const size_t noiseW = 4;
@@ -183,9 +183,8 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	setItensity(1);
 }
 
-void SSAOPostProcessing::draw(
-	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) {
+void SSAOPostProcessing::draw(glsample::FrameBuffer *framebuffer,
+							  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 
 	PostProcessing::draw(framebuffer, render_targets);
 	this->render(framebuffer, 0, 0, 0);

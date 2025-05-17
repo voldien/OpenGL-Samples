@@ -46,7 +46,7 @@ void PostProcessingManager::render(
 	}
 }
 
-void PostProcessingManager::swapProcess(int a, int b) {
+void PostProcessingManager::swapPostProcessing(int a, int b) {
 	a = Math::clamp<int>(a, 0, this->postProcessings.size() - 1);
 	b = Math::clamp<int>(b, 0, this->postProcessings.size() - 1);
 

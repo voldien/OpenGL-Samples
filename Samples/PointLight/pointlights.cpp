@@ -163,7 +163,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			Common::loadPlan(this->plan, 1, 1, 1);
+			CommonUtil::loadPlan(this->plan, 1, 1, 1);
 
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0, 0, 1), glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 1, 1),

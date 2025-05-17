@@ -185,7 +185,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			Common::loadSphere(this->sphere, 1, 8, 8);
+			CommonUtil::loadSphere(this->sphere, 1, 8, 8);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }

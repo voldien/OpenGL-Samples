@@ -340,8 +340,8 @@ namespace glsample {
 					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSkeletonBufferSize,
 
 					this->uniformSkeletonBufferSize, GL_MAP_WRITE_BIT);
+					
 				/*	*/
-				int i = 0;
 				for (auto it = skeleton.bones.begin(); it != skeleton.bones.end(); it++) {
 
 					const size_t bone_index = (*it).second.boneIndex;

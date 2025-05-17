@@ -24,20 +24,21 @@
 namespace glsample {
 
 	enum TextureType : unsigned int {
-		Diffuse = 0,		  /*	*/
-		Normal = 1,			  /*	*/
-		AlphaMask = 2,		  /*	*/
-		Specular = 3,		  /*	*/
-		Emission = 4,		  /*	*/
-		Reflection = 5,		  /*	*/
-		AmbientOcclusion = 6, /*	*/
-		Displacement = 7,	  /*	*/
-		Metal = 8,			  /*	*/
-		Reserve1 = 9,		  /*	*/
-		Irradiance = 10,	  /*	*/
-		PreFilter = 11,		  /*	*/
-		BRDFLUT = 12,		  /*	*/
-		DepthBuffer = 13,	  /*	*/
+		Diffuse = 0,					 /*	*/
+		Normal = 1,						 /*	*/
+		AlphaMask = 2,					 /*	*/
+		Specular = 3,					 /*	*/
+		Emission = 4,					 /*	*/
+		Reflection = 5,					 /*	*/
+		AmbientOcclusion = 6,			 /*	*/
+		Displacement = 7,				 /*	*/
+		Metal = 8,						 /*	*/
+		Reserve1 = 9,					 /*	*/
+		Irradiance = 10,				 /*	*/
+		PreFilter = 11,					 /*	*/
+		BRDFLUT = 12,					 /*	*/
+		DepthBuffer = 13,				 /*	*/
+		DirectionalLightDepthBuffer = 14 /*	*/
 	};
 
 	enum RenderQueue : unsigned int {
@@ -53,6 +54,7 @@ namespace glsample {
 		None = 0,
 		Wireframe = 0x1,
 	};
+	
 	class AnimationPlayer {
 	  public:
 		AnimationPlayer(AnimationObject &animation) {}

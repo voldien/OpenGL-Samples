@@ -7,8 +7,8 @@
 
 using namespace glsample;
 
-ProcessData::ProcessData(fragcore::IFileSystem *filesystem) : filesystem(filesystem) {}
-ProcessData::~ProcessData() {
+MiscProcessingUtil::MiscProcessingUtil(fragcore::IFileSystem *filesystem) : filesystem(filesystem) {}
+MiscProcessingUtil::~MiscProcessingUtil() {
 	if (this->bump2normal_program >= 0) {
 		glDeleteProgram(this->bump2normal_program);
 	}
@@ -20,7 +20,7 @@ ProcessData::~ProcessData() {
 	}
 }
 
-void ProcessData::computeIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
+void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
 									const unsigned int height) {
 
 	glGenTextures(1, &irradiance_target);
@@ -39,10 +39,10 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int &irrad
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	ProcessData::computeIrradiance(env_source, irradiance_target);
+	MiscProcessingUtil::computeIrradiance(env_source, irradiance_target);
 }
 
-void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradiance_target) {
+void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int irradiance_target) {
 
 	const char *irradiance_path = "Shaders/compute/irradiance_env.comp.spv";
 
@@ -107,7 +107,7 @@ void ProcessData::computeIrradiance(unsigned int env_source, unsigned int irradi
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void ProcessData::computePerlinNoise(unsigned int target_texture, const glm::vec2 &size, const glm::vec2 &tile_offset,
+void MiscProcessingUtil::computePerlinNoise(unsigned int target_texture, const glm::vec2 &size, const glm::vec2 &tile_offset,
 									 const int octaves) {
 	const char *irradiance_path = "Shaders/compute/perlin_noise_2D_image.comp.spv";
 
@@ -163,7 +163,7 @@ void ProcessData::computePerlinNoise(unsigned int target_texture, const glm::vec
 	glUseProgram(0);
 }
 
-void ProcessData::computePerlinNoise(unsigned int *target, const unsigned int width, const unsigned int height,
+void MiscProcessingUtil::computePerlinNoise(unsigned int *target, const unsigned int width, const unsigned int height,
 									 const glm::vec2 &size, const glm::vec2 &tile_offset, const int octaves) {
 	glGenTextures(1, target);
 
@@ -180,10 +180,10 @@ void ProcessData::computePerlinNoise(unsigned int *target, const unsigned int wi
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	ProcessData::computePerlinNoise(*target, size, tile_offset, octaves);
+	MiscProcessingUtil::computePerlinNoise(*target, size, tile_offset, octaves);
 }
 
-void ProcessData::computeBump2Normal(unsigned int bump_source, unsigned int &normal_target, const unsigned int width,
+void MiscProcessingUtil::computeBump2Normal(unsigned int bump_source, unsigned int &normal_target, const unsigned int width,
 									 const unsigned int height) {
 
 	glGenTextures(1, &normal_target);
@@ -198,10 +198,10 @@ void ProcessData::computeBump2Normal(unsigned int bump_source, unsigned int &nor
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 5);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	ProcessData::computeBump2Normal(bump_source, normal_target);
+	MiscProcessingUtil::computeBump2Normal(bump_source, normal_target);
 }
 
-void ProcessData::computeBump2Normal(unsigned int bump_source, unsigned int normal_target) {
+void MiscProcessingUtil::computeBump2Normal(unsigned int bump_source, unsigned int normal_target) {
 	const char *irradiance_path = "Shaders/compute/bump2normal.comp.spv";
 
 	if (this->bump2normal_program == -1) {

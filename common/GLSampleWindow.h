@@ -16,6 +16,7 @@
 #pragma once
 #include "FPSCounter.h"
 #include "GLRendererInterface.h"
+#include "Math3D/Math3D.h"
 #include "PostProcessing/ColorSpaceConverter.h"
 #include "PostProcessing/PostProcessingManager.h"
 #include "SDLInput.h"
@@ -27,7 +28,9 @@
 #include <ProceduralGeometry.h>
 #include <cstddef>
 #include <cxxopts.hpp>
+#include <memory>
 #include <spdlog/spdlog.h>
+#include <Math3D/Math3D.h>
 
 class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
   public:
@@ -54,7 +57,6 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	 * @brief
 	 *
 	 */
-	// TODO: refractor name
 	virtual void draw() = 0;
 	virtual void postDraw() {}
 
@@ -82,8 +84,10 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	void captureScreenShot();
 
-	fragcore::IFileSystem *getFileSystem() const noexcept { return this->filesystem; }
-	void setFileSystem(fragcore::IFileSystem *filesystem) noexcept { this->filesystem = filesystem; }
+	fragcore::IFileSystem *getFileSystem() const noexcept { return this->filesystem.get(); }
+	void setFileSystem(fragcore::IFileSystem *filesystem) noexcept {
+		this->filesystem = std::shared_ptr<fragcore::IFileSystem>(filesystem);
+	}
 
 	fragcore::IScheduler *getSchedular() const noexcept { return this->filesystem->getScheduler().get(); }
 
@@ -117,6 +121,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	}
 
 	void vsync(const bool enable_vsync);
+	bool getVSync() const;
 
 	void enableRenderDoc(const bool status);
 	bool isRenderDocEnabled() noexcept;
@@ -128,8 +133,41 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void createDefaultFrameBuffer();
 	void updateDefaultFramebuffer();
 	int getDefaultFramebuffer() const noexcept;
-	glsample::FrameBuffer *getFrameBuffer() { return this->defaultFramebuffer; }
-	glsample::PostProcessingManager *getPostProcessingManager() const noexcept { return this->postprocessingManager.get(); }
+	glsample::FrameBuffer *getFrameBuffer() { return this->defaultFramebuffer.get(); }
+	glsample::PostProcessingManager *getPostProcessingManager() const noexcept {
+		return this->postprocessingManager.get();
+	}
+
+	//TODO: relocate
+	static void blitFrameBuffer(const glsample::FrameBuffer* framebuffer, const unsigned int width, const int height, fragcore::Vector4 rectNormalized, int mode = 0){
+	/*	Blit image targets to screen.	*/
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->framebuffer);
+	/*	Transfer each target to default framebuffer.	*/
+	const size_t widthDivior = 3;
+	const size_t heightDivior = 2;
+
+	const float sub_view_width = (int)(width / widthDivior);
+	const float sub_view_height = (int)(height / heightDivior);
+	
+	//TODO: make its function for resue it with other samples
+	for (size_t index = 0; index < framebuffer->nrAttachments; index++) {
+
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
+
+		/*	*/
+		const size_t dest_width = sub_view_width + (index % widthDivior) * sub_view_width;
+		const size_t dest_height = sub_view_height + (index / heightDivior) * sub_view_height;
+
+		const size_t source_width = 0;
+		const size_t source_height = 0;
+
+		glBlitFramebuffer(0, 0, source_width, source_height,
+						  (index % widthDivior) * (sub_view_width), (index / heightDivior) * sub_view_height,
+						  dest_width, dest_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	}
+		//glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
+	}
 
 	/*	*/
 	size_t debug_prev_frame_sample_count = 0;
@@ -154,16 +192,13 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	fragcore::Time time;
 	fragcore::SDLInput input;
 
-	// TODO: smart pointers.
-	fragcore::IFileSystem *filesystem; /*	*/
+	std::shared_ptr<fragcore::IFileSystem> filesystem; /*	*/
 
-	// TODO: smart pointers.
 	std::shared_ptr<glsample::PostProcessingManager> postprocessingManager = nullptr;
 	std::shared_ptr<glsample::ColorSpaceConverter> colorSpace;
 
-	// TODO: smart pointers.
-	glsample::FrameBuffer *defaultFramebuffer = nullptr;
-	glsample::FrameBuffer *MMSAFrameBuffer = nullptr;
+	std::shared_ptr<glsample::FrameBuffer> defaultFramebuffer = nullptr;
+	std::shared_ptr<glsample::FrameBuffer> MMSAFrameBuffer = nullptr;
 
 	/*	*/
 	bool debugGL = true;
@@ -176,7 +211,6 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	int preHeight = -1;
 
   protected:
-	// TODO: smart pointers.
 	std::shared_ptr<spdlog::logger> logger;
 	void *rdoc_api = nullptr;
 };

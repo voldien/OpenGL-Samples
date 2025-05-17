@@ -191,7 +191,7 @@ namespace glsample {
 			this->scene = Scene::loadFrom(modelLoader);
 
 			/*	Plan.	*/
-			Common::loadPlan(this->plan, 1);
+			CommonUtil::loadPlan(this->plan, 1);
 
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);

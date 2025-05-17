@@ -285,7 +285,7 @@ namespace glsample {
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
 			this->skybox.Init(skytexture, this->skybox_program);
 
-			ProcessData util(this->getFileSystem());
+			MiscProcessingUtil util(this->getFileSystem());
 			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
 
 			/*	*/
@@ -294,7 +294,7 @@ namespace glsample {
 			this->scene = Scene::loadFrom(modelLoader);
 
 			/*	Load geometry.	*/
-			Common::loadPlan(this->plan, 1, 1, 1);
+			CommonUtil::loadPlan(this->plan, 1, 1, 1);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }

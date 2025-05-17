@@ -10,7 +10,7 @@
 using namespace fragcore;
 using namespace glsample;
 
-TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesystem) { /*	TODO: create PBO */
+TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesystem) {
 	glCreateBuffers(3, this->pbos.data());
 }
 
@@ -117,7 +117,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 			internalformat = GL_SRGB8;
 			break;
 		case GL_RGBA16F:
-			internalformat = GL_RGBA16F; // TODO:
+			internalformat = GL_RGBA16F;
 			break;
 		case GL_R8:
 			internalformat = GL_SR8_EXT; // GL_SLUMINANCE
@@ -195,7 +195,7 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));
 
-	/*	Offload with PBO buffer.	*/ // TODO: add support
+	/*	Offload with PBO buffer.	*/
 
 	/*	Alignment.	*/
 	FVALIDATE_GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
@@ -285,8 +285,8 @@ int TextureImporter::loadCubeMap(const std::vector<std::string> &paths, const Co
 
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 5));
 
-	//const size_t power_of_2 = std::floor(std::log(Math::max(image.width(), image.height())) / std::log(2));
-	//const size_t max_mipmap = Math::clamp<size_t>(power_of_2 - 4, 0, std::numeric_limits<size_t>::max());
+	// const size_t power_of_2 = std::floor(std::log(Math::max(image.width(), image.height())) / std::log(2));
+	// const size_t max_mipmap = Math::clamp<size_t>(power_of_2 - 4, 0, std::numeric_limits<size_t>::max());
 
 	for (size_t i = 0; i < paths.size(); i++) {
 		Ref<IO> io = Ref<IO>(filesystem->openFile(paths[i].c_str(), IO::IOMode::READ));

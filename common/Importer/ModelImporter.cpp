@@ -112,6 +112,7 @@ void ModelImporter::clear() noexcept {
 		}
 	}
 
+	this->nodePool.clean();
 	this->nodes.clear();
 	this->models.clear();
 	this->materials.clear();
@@ -151,7 +152,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 		}
 
 		for (size_t x = 0; x < scene->mNumMeshes; x++) {
-			// TODO: relocate.
+
 			C_STRUCT aiAABB aabb = scene->mMeshes[x]->mAABB;
 
 			this->models[x].bound.aabb.min[0] = aabb.mMin.x;
@@ -207,6 +208,9 @@ void ModelImporter::initScene(const aiScene *scene) {
 				/*	*/
 			}
 		}
+
+		//TODO: compute
+		nodePool.resize(2048);
 	});
 	// process_animation_light_camera_thread.detach();
 
@@ -243,8 +247,7 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 		aiVector3D position, scale;
 		aiQuaternion rotation;
 
-		// TODO: fetch from pool.
-		NodeObject *pobject = new NodeObject();
+		NodeObject *pobject = nodePool.obtain();
 
 		if (parent) {
 			pobject->parent = parent;
@@ -370,8 +373,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 	/*	*/
 	float *vertices = (float *)malloc(aimesh->mNumVertices * StrideSize);
-	unsigned char *Indice =
-		(unsigned char *)malloc(indicesSize * aimesh->mNumFaces * 3); // TODO: compute number of faces.
+	unsigned char *Indice = (unsigned char *)malloc(indicesSize * aimesh->mNumFaces * 3);
 
 	/*	*/
 	unsigned char *Itemp = Indice;
@@ -512,7 +514,9 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 				nrFaces += face.mNumIndices;
 			}
 
-		} else { // TODO determine if can be removed.
+		} else {
+
+			// TODO determine if can be removed.
 			for (size_t x = 0; x < aimesh->mNumFaces; x++) {
 				const aiFace &face = aimesh->mFaces[x];
 
@@ -812,7 +816,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 			}
 		}
 
-		float tmp;
+		float tmp = NAN;
 		if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
 			material->bumpiness = tmp;
 		}

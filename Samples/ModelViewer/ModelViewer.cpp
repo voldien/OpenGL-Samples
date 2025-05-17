@@ -82,7 +82,7 @@ namespace glsample {
 		unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
 		this->skybox.Init(skytexture, this->skybox_program);
 
-		ProcessData util(this->getFileSystem());
+		MiscProcessingUtil util(this->getFileSystem());
 		util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
 
 		/*	*/

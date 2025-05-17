@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "DataStructure/PoolAllocator.h"
 #include "Math3D/LinAlg.h"
 #include "RenderDesc.h"
 #include <IO/IFileSystem.h>
@@ -172,9 +173,9 @@ using ModelSystemObject = struct model_system_object : public AssetObject {
 
 using Bone = struct bone_t : public AssetObject {
 	glm::mat4 finalTransform{};
-	glm::mat4 offsetBoneMatrix;
+	glm::mat4 offsetBoneMatrix{};
 	size_t boneIndex{};
-	NodeObject *armature_bone;
+	NodeObject *armature_bone{};
 };
 
 using SkeletonSystem = struct model_skeleton_t : public AssetObject {
@@ -244,8 +245,6 @@ class FVDECLSPEC ModelImporter {
 	ModelImporter &operator=(ModelImporter &&other);
 
 	virtual void loadContent(const std::string &path, unsigned long int supportFlag);
-	// virtual void loadContentMemory(const std::string &path, unsigned long int supportFlag);
-	// TODO:add load from memory.
 	virtual void clear() noexcept;
 
 	fragcore::IFileSystem *getFileSystem() const noexcept { return this->fileSystem; }
@@ -301,7 +300,8 @@ class FVDECLSPEC ModelImporter {
 
 	std::string filepath;
 	const aiScene *sceneRef = nullptr;
-	std::vector<NodeObject *> nodes; // TODO: convert to a pool.
+	fragcore::PoolAllocator<NodeObject> nodePool;
+	std::vector<NodeObject *> nodes;
 	std::map<std::string, NodeObject *> nodeByName;
 
 	std::vector<ModelSystemObject> models;
@@ -319,5 +319,5 @@ class FVDECLSPEC ModelImporter {
 	std::vector<LightObject> lights;
 
 	NodeObject *rootNode = nullptr;
-	glm::mat4 globalNodeTransform;
+	glm::mat4 globalNodeTransform{};
 };

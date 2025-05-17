@@ -31,7 +31,7 @@ void ColorGradePostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	const char *grayscale_compute_shader_path = "Shaders/postprocessingeffects/color/grayscale.comp.spv";
 	const char *sepia_compute_shader_path = "Shaders/postprocessingeffects/color/sepia.comp.spv";
 	const char *exposure_compute_shader_path = "Shaders/postprocessingeffects/color/exposure.comp.spv";
-	const char *gamma_compute_shader_path = "Shaders/postprocessingeffects/color/gamma.comp.spv";
+	const char *gamma_compute_shader_path = "Shaders/postprocessingeffects/colorspace/gamma.comp.spv";
 	const char *color_balance_compute_shader_path = "Shaders/postprocessingeffects/color/color_balance.comp.spv";
 
 	if (this->hue_color_grade_program == -1) {

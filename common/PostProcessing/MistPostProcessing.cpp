@@ -53,17 +53,21 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	}
 
 	/*	*/
-	glUseProgram(this->mist_fog_program);
-	glUniform1i(glGetUniformLocation(this->mist_fog_program, "ColorTexture"), (int)GBuffer::Albedo);
-	glUniform1i(glGetUniformLocation(this->mist_fog_program, "DepthTexture"), (int)GBuffer::Depth);
-	glUniform1i(glGetUniformLocation(this->mist_fog_program, "IrradianceTexture"), 2);
-	glUseProgram(0);
+	{
+		glUseProgram(this->mist_fog_program);
+		glUniform1i(glGetUniformLocation(this->mist_fog_program, "ColorTexture"), (int)GBuffer::Albedo);
+		glUniform1i(glGetUniformLocation(this->mist_fog_program, "DepthTexture"), (int)GBuffer::Depth);
+		glUniform1i(glGetUniformLocation(this->mist_fog_program, "IrradianceTexture"), 2);
+		glUseProgram(0);
+	}
 
 	/*	*/
-	glUseProgram(this->simple_fog_program);
-	glUniform1i(glGetUniformLocation(this->simple_fog_program, "ColorTexture"), (int)GBuffer::Albedo);
-	glUniform1i(glGetUniformLocation(this->simple_fog_program, "DepthTexture"), (int)GBuffer::Depth);
-	glUseProgram(0);
+	{
+		glUseProgram(this->simple_fog_program);
+		glUniform1i(glGetUniformLocation(this->simple_fog_program, "ColorTexture"), (int)GBuffer::Albedo);
+		glUniform1i(glGetUniformLocation(this->simple_fog_program, "DepthTexture"), (int)GBuffer::Depth);
+		glUseProgram(0);
+	}
 
 	/*	*/
 	GLint minMapBufferSize = 0;

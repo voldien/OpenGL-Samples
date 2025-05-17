@@ -220,7 +220,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 	textures.resize(Reftextures.size());
 
 	glsample::TextureImporter textureImporter(modelLoader.getFileSystem());
-	ProcessData process(modelLoader.getFileSystem());
+	MiscProcessingUtil process(modelLoader.getFileSystem());
 
 	for (size_t texture_index = 0; texture_index < Reftextures.size(); texture_index++) {
 
@@ -250,6 +250,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 				/*	Convert BumpMap to NormalMap*/
 				if (!materials.empty() && materials[0]->heightbumpIndex == texture_index) {
+					// TODO: use gpu to convert image.
 					image = ImageUtil::convert2NormalMap(image, 3.5f);
 					materials[0]->heightbumpIndex = -1;
 					materials[0]->normalIndex = texture_index;
@@ -257,8 +258,6 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 				/*	*/
 				tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
-
-				// TODO: use gpu to convert image.
 
 			} catch (const std::exception &ex) {
 				std::cerr << "Failed to load: " << tex.filepath << " " << ex.what() << std::endl;

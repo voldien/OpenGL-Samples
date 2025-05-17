@@ -117,7 +117,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			}
 			ImGui::EndDisabled();
 
-			bool isVsync = SDL_GL_GetSwapInterval(); // TODO: move to class
+			bool isVsync = this->getRefSample().getVSync();
 			if (ImGui::Checkbox("VSync", &isVsync)) {
 				this->getRefSample().vsync(isVsync);
 			}
@@ -150,7 +150,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		}
 
 		/*	*/
-		ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0);
+		ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0 ||
+							 this->getRefSample().getColorSpaceConverter() == nullptr);
 		ImGui::SeparatorText("Color Space Settings");
 		if (this->getRefSample().getColorSpaceConverter()) {
 			const int item_selected_idx = (int)this->getRefSample().getColorSpace();
@@ -198,10 +199,10 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 
 				ImGui::BeginGroup();
 				if (ImGui::Button("Up")) {
-					manager->swapProcess(post_index, post_index - 1);
+					manager->swapPostProcessing(post_index, post_index - 1);
 				}
 				if (ImGui::Button("Down")) {
-					manager->swapProcess(post_index, post_index + 1);
+					manager->swapPostProcessing(post_index, post_index + 1);
 				}
 				ImGui::EndGroup();
 
@@ -242,7 +243,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			/*	*/
 			for (size_t attach_index = 0; attach_index < framebuffer->nrAttachments; attach_index++) {
 				ImGui::BeginGroup();
-				ImGui::Text("Image %zu", attach_index);
+				ImGui::Text("Attachment %zu", attach_index);
 				ImGui::Image(static_cast<ImTextureID>(framebuffer->attachments[attach_index]), ImVec2(256, 256),
 							 ImVec2(1, 1), ImVec2(0, 0));
 				ImGui::EndGroup();
@@ -322,23 +323,21 @@ GLSampleWindow::GLSampleWindow()
 	this->addUIComponent(settingComponent);
 }
 
-GLSampleWindow::~GLSampleWindow() {
-	delete this->defaultFramebuffer;
-	delete this->MMSAFrameBuffer;
-	/*	*/
-}
+GLSampleWindow::~GLSampleWindow() = default;
 
 void GLSampleWindow::internalInit() {
 
-	const size_t use_post_process = this->getResult()["use-postprocessing"].as<bool>();
+	const bool use_color_space = !this->getResult()["disable-colorspace"].as<bool>();
+	const bool use_post_process = this->getResult()["use-postprocessing"].as<bool>();
 	const size_t multi_sample_count = this->getResult()["multi-sample"].as<int>();
-	const bool useFBO = multi_sample_count > 0 || use_post_process || true; // TODO: fix conditions.
+	const bool useFBO = multi_sample_count > 0 || use_post_process || use_color_space || true; // TODO: fix conditions.
 
 	if (this->colorSpace == nullptr) {
 
-		// TODO: add try catch.
-		this->colorSpace = std::make_shared<ColorSpaceConverter>();
-		this->colorSpace->initialize(this->getFileSystem());
+		if (use_color_space) {
+			this->colorSpace = std::make_shared<ColorSpaceConverter>();
+			this->colorSpace->initialize(this->getFileSystem());
+		}
 
 		if (use_post_process) {
 			this->postprocessingManager = std::make_shared<PostProcessingManager>();
@@ -402,16 +401,16 @@ void GLSampleWindow::internalInit() {
 	/*	Multi Sampling.	*/
 	if (this->MMSAFrameBuffer == nullptr && multi_sample_count > 0) {
 
-		this->MMSAFrameBuffer = new glsample::FrameBuffer();
-		memset(MMSAFrameBuffer, 0, sizeof(*this->MMSAFrameBuffer));
-		Common::createFrameBuffer(MMSAFrameBuffer, 1);
+		this->MMSAFrameBuffer = std::make_shared<glsample::FrameBuffer>();
+		memset(MMSAFrameBuffer.get(), 0, sizeof(*this->MMSAFrameBuffer));
+		CommonUtil::createFrameBuffer(MMSAFrameBuffer.get(), 1);
 	}
 
 	/*	Framebuffer.	*/
 	if (this->defaultFramebuffer == nullptr && useFBO) {
-		this->defaultFramebuffer = new glsample::FrameBuffer();
-		memset(defaultFramebuffer, 0, sizeof(*this->defaultFramebuffer));
-		Common::createFrameBuffer(defaultFramebuffer, 3);
+		this->defaultFramebuffer = std::make_shared<glsample::FrameBuffer>();
+		memset(defaultFramebuffer.get(), 0, sizeof(*this->defaultFramebuffer));
+		CommonUtil::createFrameBuffer(defaultFramebuffer.get(), 3);
 	}
 
 	/*	Update if not internal default framebuffer	*/
@@ -495,10 +494,11 @@ void GLSampleWindow::renderUI() {
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
 
 			this->postprocessingManager->render(
-				this->defaultFramebuffer,
+				this->defaultFramebuffer.get(),
 				/*	Setup References.	*/
 				{std::make_tuple<const GBuffer, unsigned int>(GBuffer::Albedo, 0u),
-				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::Depth, (unsigned int)this->defaultFramebuffer->depthIndex),
+				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::Depth,
+															  (unsigned int)this->defaultFramebuffer->depthIndex),
 				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget, 1u),
 				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget2, 2u)});
 			glPopDebugGroup();
@@ -506,7 +506,7 @@ void GLSampleWindow::renderUI() {
 
 		/*	Transfer last result to the default OpenGL Framebuffer.	*/
 		if (this->defaultFramebuffer) {
-			if (this->colorSpace) {
+			if (this->getColorSpaceConverter() && colorSpace->isSupported()) {
 				const std::string ColorSpaceConverterStage = "Color Space Conversion";
 				glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, ColorSpaceConverterStage.length(),
 								 ColorSpaceConverterStage.c_str());
@@ -651,8 +651,8 @@ void GLSampleWindow::captureScreenShot() {
 
 	glBufferData(GL_PIXEL_PACK_BUFFER, imageSizeInAlignBytes, nullptr, GL_STREAM_READ);
 
-	// FIXME: make sure that the image format is used correctly.
 	/*	Read framebuffer, and transfer the result to PBO, to allow DMA and less sync between frames.	*/
+
 	glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, screen_grab_width_size, screen_grab_height_size, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
 
@@ -713,6 +713,8 @@ glsample::ColorSpace GLSampleWindow::getColorSpace() const noexcept {
 
 void GLSampleWindow::vsync(const bool enable_vsync) { SDL_GL_SetSwapInterval(enable_vsync); }
 
+bool GLSampleWindow::getVSync() const { return SDL_GL_GetSwapInterval(); }
+
 void GLSampleWindow::enableRenderDoc(const bool status) {
 	if (status) {
 	}
@@ -764,8 +766,8 @@ bool GLSampleWindow::supportSPIRV() const {
 void GLSampleWindow::createDefaultFrameBuffer() {
 
 	if (this->defaultFramebuffer == nullptr) {
-		this->defaultFramebuffer = new glsample::FrameBuffer();
-		memset(defaultFramebuffer, 0, sizeof(*this->defaultFramebuffer));
+		this->defaultFramebuffer = std::make_shared<glsample::FrameBuffer>();
+		memset(defaultFramebuffer.get(), 0, sizeof(*this->defaultFramebuffer));
 	}
 }
 
@@ -786,51 +788,51 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 	}
 
 	if (this->MMSAFrameBuffer) {
-		Common::updateFrameBuffer(this->MMSAFrameBuffer,
-								  {{
-									  .width = this->width(),
-									  .height = this->height(),
-									  .graphicFormat = internal_format,
-									  .nrSamples = multi_sample_count,
+		CommonUtil::updateFrameBuffer(this->MMSAFrameBuffer.get(),
+									  {{
+										  .width = this->width(),
+										  .height = this->height(),
+										  .graphicFormat = internal_format,
+										  .nrSamples = multi_sample_count,
 
-								  }},
-								  {
-									  .width = this->width(),
-									  .height = this->height(),
-									  .nrSamples = multi_sample_count,
-								  });
+									  }},
+									  {
+										  .width = this->width(),
+										  .height = this->height(),
+										  .nrSamples = multi_sample_count,
+									  });
 	}
 
 	if (this->defaultFramebuffer != nullptr) {
-		Common::updateFrameBuffer(this->defaultFramebuffer,
-								  {{
-									   .width = this->width(),
-									   .height = this->height(),
-									   .depth = 1,
-									   .graphicFormat = internal_format,
-									   .nrSamples = 0,
+		CommonUtil::updateFrameBuffer(this->defaultFramebuffer.get(),
+									  {{
+										   .width = this->width(),
+										   .height = this->height(),
+										   .depth = 1,
+										   .graphicFormat = internal_format,
+										   .nrSamples = 0,
 
-								   },
-								   {
-									   .width = this->width(),
-									   .height = this->height(),
-									   .depth = 1,
-									   .graphicFormat = internal_format,
-									   .nrSamples = 0,
+									   },
+									   {
+										   .width = this->width(),
+										   .height = this->height(),
+										   .depth = 1,
+										   .graphicFormat = internal_format,
+										   .nrSamples = 0,
 
-								   },
-								   {
-									   .width = this->width(),
-									   .height = this->height(),
-									   .depth = 1,
-									   .graphicFormat = internal_format,
-									   .nrSamples = 0,
-								   }},
-								  {
-									  .width = this->width(),
-									  .height = this->height(),
-									  .nrSamples = 0,
-								  });
+									   },
+									   {
+										   .width = this->width(),
+										   .height = this->height(),
+										   .depth = 1,
+										   .graphicFormat = internal_format,
+										   .nrSamples = 0,
+									   }},
+									  {
+										  .width = this->width(),
+										  .height = this->height(),
+										  .nrSamples = 0,
+									  });
 	}
 }
 

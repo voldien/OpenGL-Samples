@@ -323,7 +323,7 @@ namespace glsample {
 			this->scene = Scene::loadFrom(modelLoader);
 
 			/*	Load geometry.	*/
-			Common::loadPlan(this->plan, 1, 1, 1);
+			CommonUtil::loadPlan(this->plan, 1, 1, 1);
 
 			/*	FIXME: improve vectors.		*/
 			{
@@ -346,7 +346,7 @@ namespace glsample {
 				}
 
 				/*	Create white texture.	*/
-				this->white_texture = Common::createColorTexture(1, 1, Color::white());
+				this->white_texture = CommonUtil::createColorTexture(1, 1, Color::white());
 
 				/*	Create noise normalMap.	*/
 				const size_t noiseW = 4;

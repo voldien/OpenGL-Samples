@@ -96,7 +96,7 @@ namespace glsample {
 		}
 
 		void Initialize() override {
-
+			
 			{
 				/*	Load shader binaries.	*/
 				const std::vector<uint32_t> reactiondiffusion_compute_binary =

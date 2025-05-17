@@ -332,7 +332,7 @@ namespace glsample {
 			modelLoader.loadContent(modelPath, 0);
 			this->scene = Scene::loadFrom(modelLoader);
 
-			ProcessData util(this->getFileSystem());
+			MiscProcessingUtil util(this->getFileSystem());
 			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
 
 			/*  Init lights.    */

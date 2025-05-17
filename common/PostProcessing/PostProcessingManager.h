@@ -42,10 +42,9 @@ namespace glsample {
 					const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets);
 
 		void populateCommonData() {}
-		void swapProcess(int a, int b);
+		void swapPostProcessing(int a, int b);
 
 	  protected:
-		// TODO: shared_pointer
 		std::vector<std::shared_ptr<PostProcessing>> postProcessings;
 		std::vector<uint32_t> post_enabled;
 

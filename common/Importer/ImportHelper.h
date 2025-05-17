@@ -14,7 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "GLSampleSession.h"
+#include "Common.h"
 #include "ModelImporter.h"
 
 namespace glsample {

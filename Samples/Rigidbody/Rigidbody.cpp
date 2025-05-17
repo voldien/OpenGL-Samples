@@ -214,7 +214,7 @@ namespace glsample {
 			glBindVertexArray(0);
 
 			/*	Create white texture.	*/
-			this->white_texture = Common::createColorTexture(1, 1, Color::white());
+			this->white_texture = CommonUtil::createColorTexture(1, 1, Color::white());
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize = 0;
@@ -249,8 +249,8 @@ namespace glsample {
 			}
 
 			/*	*/
-			Common::loadCube(this->boxMesh, 1);
-			Common::loadSphere(this->sphereMesh, 1);
+			CommonUtil::loadCube(this->boxMesh, 1);
+			CommonUtil::loadSphere(this->sphereMesh, 1);
 
 			{
 				this->physic_interface = new BulletPhysicInterface(nullptr);

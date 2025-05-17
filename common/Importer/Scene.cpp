@@ -63,7 +63,7 @@ namespace glsample {
 		const unsigned char white[] = {255, 255, 255, 255};
 		const unsigned char black[] = {0, 0, 0, 255};
 
-		this->default_textures[TextureType::Diffuse] = glsample::Common::createColorTexture(
+		this->default_textures[TextureType::Diffuse] = glsample::CommonUtil::createColorTexture(
 			1, 1, fragcore::Color(white[0] / 255.0f, white[1] / 255.0f, white[2] / 255.0f, white[3] / 255.0f));
 		this->default_textures[TextureType::AlphaMask] = this->default_textures[TextureType::Diffuse];
 		this->default_textures[TextureType::Emission] = this->default_textures[TextureType::Diffuse];
@@ -71,11 +71,11 @@ namespace glsample {
 		this->default_textures[TextureType::AmbientOcclusion] = this->default_textures[TextureType::Diffuse];
 		this->default_textures[TextureType::DepthBuffer] = this->default_textures[TextureType::Diffuse];
 		this->default_textures[TextureType::Specular] = this->default_textures[TextureType::Diffuse];
-		this->default_textures[TextureType::Displacement] = glsample::Common::createColorTexture(
+		this->default_textures[TextureType::Displacement] = glsample::CommonUtil::createColorTexture(
 			1, 1, fragcore::Color(black[0] / 255.0f, black[1] / 255.0f, black[2] / 255.0f, black[3] / 255.0f));
 
 		this->default_textures[TextureType::Normal] =
-			glsample::Common::createColorTexture(1, 1,
+			glsample::CommonUtil::createColorTexture(1, 1,
 												 fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f,
 																 normalForward[2] / 255.0f, normalForward[3] / 255.0f));
 
@@ -265,6 +265,7 @@ namespace glsample {
 
 	void Scene::render(Camera *camera) {
 		/* Optionally populate */
+
 		// TODO: fix camera argument.
 		if (camera) {
 			this->stageCommonBuffer->camera = *camera;

@@ -23,11 +23,10 @@
 
 namespace glsample {
 
-	// TODO: rename
-	class FVDECLSPEC ProcessData {
+	class FVDECLSPEC MiscProcessingUtil {
 	  public:
-		ProcessData(fragcore::IFileSystem *filesystem);
-		virtual ~ProcessData();
+		MiscProcessingUtil(fragcore::IFileSystem *filesystem);
+		virtual ~MiscProcessingUtil();
 
 		/**/
 		void computeIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,

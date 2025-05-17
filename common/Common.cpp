@@ -8,7 +8,7 @@
 using namespace glsample;
 using namespace fragcore;
 
-void Common::loadPlan(MeshObject &planMesh, const float scale, const int segmentX, const int segmentY) {
+void CommonUtil::loadPlan(MeshObject &planMesh, const float scale, const int segmentX, const int segmentY) {
 
 	std::vector<ProceduralGeometry::Vertex> vertices;
 	std::vector<unsigned int> indices;
@@ -55,7 +55,7 @@ void Common::loadPlan(MeshObject &planMesh, const float scale, const int segment
 	planMesh.stride = stride;
 }
 
-void Common::loadSphere(MeshObject &sphereMesh, const float radius, const int slices, const int segements) {
+void CommonUtil::loadSphere(MeshObject &sphereMesh, const float radius, const int slices, const int segements) {
 	std::vector<ProceduralGeometry::Vertex> vertices;
 	std::vector<unsigned int> indices;
 	ProceduralGeometry::generateSphere(radius, vertices, indices, slices, segements);
@@ -102,7 +102,7 @@ void Common::loadSphere(MeshObject &sphereMesh, const float radius, const int sl
 	sphereMesh.stride = stride;
 }
 
-void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segmentX, const int segmentY) {
+void CommonUtil::loadCube(MeshObject &cubeMesh, const float scale, const int segmentX, const int segmentY) {
 
 	std::vector<ProceduralGeometry::Vertex> vertices;
 	std::vector<unsigned int> indices;
@@ -149,9 +149,9 @@ void Common::loadCube(MeshObject &cubeMesh, const float scale, const int segment
 	cubeMesh.stride = stride;
 }
 
-void Common::mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes) {}
+void CommonUtil::mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes) {}
 
-int Common::createColorTexture(unsigned int width, unsigned int height, const fragcore::Color &color) {
+int CommonUtil::createColorTexture(unsigned int width, unsigned int height, const fragcore::Color &color) {
 	GLuint texRef = 0;
 
 	FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)&texRef));
@@ -178,7 +178,7 @@ int Common::createColorTexture(unsigned int width, unsigned int height, const fr
 	return texRef;
 }
 
-void Common::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachments) {
+void CommonUtil::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachments) {
 
 	glGenFramebuffers(1, &framebuffer->framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->framebuffer);
@@ -192,7 +192,7 @@ void Common::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachme
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Common::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_list<fragcore::TextureDesc> &desc,
+void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_list<fragcore::TextureDesc> &desc,
 							   const fragcore::TextureDesc &depthstencil) {
 
 	unsigned int attachment_index = 0;

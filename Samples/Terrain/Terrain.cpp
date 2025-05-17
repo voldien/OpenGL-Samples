@@ -279,7 +279,7 @@ namespace glsample {
 
 			/*	Create terrain texture.	*/
 			this->terrain_diffuse_texture = textureImporter.loadImage2D(panoramicPath);
-			this->color_texture = Common::createColorTexture(1, 1, Color(0, 1, 0, 1));
+			this->color_texture = CommonUtil::createColorTexture(1, 1, Color(0, 1, 0, 1));
 
 			/*	*/
 			GLint minMapBufferSize = 0;
@@ -293,7 +293,7 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			ProcessData util = ProcessData(this->getFileSystem());
+			MiscProcessingUtil util = MiscProcessingUtil(this->getFileSystem());
 
 			/*	Generate HeightMap.	*/
 			{
@@ -313,8 +313,8 @@ namespace glsample {
 			this->mistprocessing.initialize(this->getFileSystem());
 
 			/*	Load geometry.	*/
-			Common::loadPlan(this->terrain, 1, 32, 32);
-			Common::loadPlan(this->ocean_water, 20, 1, 1);
+			CommonUtil::loadPlan(this->terrain, 1, 32, 32);
+			CommonUtil::loadPlan(this->ocean_water, 20, 1, 1);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -334,7 +334,7 @@ namespace glsample {
 
 			if (this->terrainSettingComponent->updateTerrain) {
 				this->terrainSettingComponent->updateTerrain = false;
-				static ProcessData util = ProcessData(this->getFileSystem());
+				static MiscProcessingUtil util = MiscProcessingUtil(this->getFileSystem());
 				util.computePerlinNoise(this->terrain_heightMap,
 										this->uniform_stage_buffer.terrain.terrainSettings.tile_noise_size,
 										this->uniform_stage_buffer.terrain.terrainSettings.tile_noise_offset);

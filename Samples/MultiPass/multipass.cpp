@@ -247,7 +247,8 @@ namespace glsample {
 
 			const float sub_view_width = (int)(width / widthDivior);
 			const float sub_view_height = (int)(height / heightDivior);
-
+			
+			//TODO: make its function for resue it with other samples
 			for (size_t index = 0; index < this->multipass_textures.size(); index++) {
 
 				glReadBuffer(GL_COLOR_ATTACHMENT0 + index);

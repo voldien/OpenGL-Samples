@@ -286,7 +286,7 @@ namespace glsample {
 
 			/*	Load Light geometry.	*/
 			{
-				Common::loadCube(boundingBox, 1);
+				CommonUtil::loadCube(boundingBox, 1);
 
 				std::vector<ProceduralGeometry::Vertex> frustumVertices;
 				/*	Update frustum geometry.	*/

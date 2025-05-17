@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Common.h"
 #include "Core/UIDObject.h"
 #include "FragDef.h"
 #include "GLSampleSession.h"

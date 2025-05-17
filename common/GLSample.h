@@ -19,6 +19,7 @@
 #include "GLSampleSession.h"
 #include "GLSampleWindow.h"
 #include "GLUIComponent.h"
+#include "IO/IFileSystem.h"
 #include "IOUtil.h"
 #include "IRenderer.h"
 #include "TaskScheduler/IScheduler.h"
@@ -59,10 +60,16 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 		/*	Default common options between all samples.	*/
 		cxxopts::Options options("OpenGL Sample: " + fragcore::SystemInfo::getApplicationName(), helperInfo);
-		// TODO: default to debug during development and false during release
+
+#if NDEBUG
+		const char *defaultDebugState = "false";
+#else
+		const char *defaultDebugState = "true";
+#endif
+
 		cxxopts::OptionAdder &addr =
 			options.add_options(fragcore::SystemInfo::getApplicationName())("h,help", "helper information.")(
-				"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value("true"))(
+				"d,debug", "Enable Debug View.", cxxopts::value<bool>()->default_value(defaultDebugState))(
 				"t,time", "How long to run sample", cxxopts::value<float>()->default_value("0"))(
 				"f,fullscreen", "Run in FullScreen Mode", cxxopts::value<bool>()->default_value("false"))(
 				"v,vsync", "Vertical Blank Sync", cxxopts::value<bool>()->default_value("false"))(
@@ -77,10 +84,10 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 				cxxopts::value<std::string>()->default_value("hdr16"))("m,multi-sample", "Set MSAA",
 																	   cxxopts::value<int>()->default_value("0"))(
 				"p,use-postprocessing", "Use Post Processing", cxxopts::value<bool>()->default_value("true"))(
+				"C,disable-colorspace", "Use Color Space Convertion", cxxopts::value<bool>()->default_value("false"))(
 				"s,glsl-version", "Override glsl version from system (110,120,130,140,150,330...)",
-				cxxopts::value<int>()->default_value("-1"))(
-				"I,ignore-requirements", "Ignore extension requirements",
-				cxxopts::value<bool>()->default_value("false"));
+				cxxopts::value<int>()->default_value("-1"))("I,ignore-requirements", "Ignore extension requirements",
+															cxxopts::value<bool>()->default_value("false"));
 
 		/*	Append command option for the specific sample.	*/
 		this->customOptions(addr);
@@ -113,14 +120,16 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 			fragcore::Ref<fragcore::IScheduler>(new fragcore::TaskScheduler(2));
 
 		/*	Create filesystem that the asset will be read from.	*/
-		this->activeFileSystem = fragcore::FileSystem::createFileSystem(schedular);
+		this->activeFileSystem =
+			fragcore::Ref<fragcore::IFileSystem>(fragcore::FileSystem::createFileSystem(schedular));
 		const std::string filesystemPath = result["filesystem"].as<std::string>();
 		if (!this->activeFileSystem->isDirectory(filesystemPath.c_str())) {
 
 			const std::string extension = this->activeFileSystem->getFileExtension(filesystemPath.c_str());
 			if (extension == ".zip") {
 				std::cout << "Found Zip File System: " << filesystemPath << std::endl;
-				this->activeFileSystem = fragcore::ZipFileSystem::createZipFileObject(filesystemPath.c_str());
+				this->activeFileSystem = std::shared_ptr<fragcore::IFileSystem>(
+					fragcore::ZipFileSystem::createZipFileObject(filesystemPath.c_str()));
 			}
 		}
 
@@ -152,7 +161,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		fragcore::resetErrorFlag();
 
 		/*	Internal initialize.	*/
-		this->sampleRef->setFileSystem(activeFileSystem);
+		this->sampleRef->setFileSystem(activeFileSystem.get());
 
 		this->sampleRef->setCommandResult(result);
 

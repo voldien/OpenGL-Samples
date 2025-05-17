@@ -112,7 +112,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			Common::loadCube(this->cubeGeometry, 1);
+			CommonUtil::loadCube(this->cubeGeometry, 1);
 		}
 
 		void draw() override {

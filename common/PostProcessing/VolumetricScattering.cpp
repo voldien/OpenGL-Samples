@@ -20,6 +20,11 @@ VolumetricScatteringPostProcessing::~VolumetricScatteringPostProcessing() {
 	if (this->volumetric_scattering_legacy_program >= 0) {
 		glDeleteProgram(this->volumetric_scattering_legacy_program);
 	}
+
+	if (this->volumetric_scattering_raymarching_program >= 0) {
+		glDeleteProgram(this->volumetric_scattering_raymarching_program);
+	}
+
 	if (this->downsample_compute_program >= 0) {
 		glDeleteProgram(this->downsample_compute_program);
 	}
@@ -31,6 +36,8 @@ void VolumetricScatteringPostProcessing::initialize(fragcore::IFileSystem *files
 	const std::string vertexSSAOShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 	const std::string fragmentVolumetricLegacyShaderPath =
 		"Shaders/postprocessingeffects/volumetric_scattering_legacy.frag.spv";
+	const std::string fragmentVolumetricRayMarchingShaderPath =
+		"Shaders/postprocessingeffects/volumetric_scattering_raymarching_shadowmap.frag.spv";
 
 	{
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -38,24 +45,46 @@ void VolumetricScatteringPostProcessing::initialize(fragcore::IFileSystem *files
 		compilerOptions.glslVersion = 330;
 
 		/*	Load shader source.	*/
-		const std::vector<uint32_t> vertex_volumetric_binary =
+		const std::vector<uint32_t> vertex_post_binary =
 			IOUtil::readFileData<uint32_t>(vertexSSAOShaderPath, filesystem);
-		const std::vector<uint32_t> fragment_volumetric_binary =
+		const std::vector<uint32_t> fragment_volumetric_legacy_binary =
 			IOUtil::readFileData<uint32_t>(fragmentVolumetricLegacyShaderPath, filesystem);
+
+		const std::vector<uint32_t> fragment_volumetric_raymarching_binary =
+			IOUtil::readFileData<uint32_t>(fragmentVolumetricRayMarchingShaderPath, filesystem);
 
 		/*	Load shader	*/
 		this->volumetric_scattering_legacy_program =
-			ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_volumetric_binary, &fragment_volumetric_binary);
+			ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_post_binary, &fragment_volumetric_legacy_binary);
+
+		/*	Load shader	*/
+		this->volumetric_scattering_raymarching_program = ShaderLoader::loadGraphicProgram(
+			compilerOptions, &vertex_post_binary, &fragment_volumetric_raymarching_binary);
 	}
 
-	/*	Setup graphic ambient occlusion pipeline.	*/
-	glUseProgram(this->volumetric_scattering_legacy_program);
-	glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_legacy_program, "ColorTexture"),
-				   (int)GBuffer::Albedo);
-	glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_legacy_program, "DepthTexture"),
-				   (int)GBuffer::Depth);
-	glBindFragDataLocation(this->volumetric_scattering_legacy_program, 1, "fragColor");
-	glUseProgram(0);
+	/*	Setup graphic Volumetric Scattering Legacy pipeline.	*/
+	{
+		glUseProgram(this->volumetric_scattering_legacy_program);
+		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_legacy_program, "ColorTexture"),
+					   (int)GBuffer::Albedo);
+		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_legacy_program, "DepthTexture"),
+					   (int)GBuffer::Depth);
+		glBindFragDataLocation(this->volumetric_scattering_legacy_program, 1, "fragColor");
+		glUseProgram(0);
+	}
+
+	/*	Setup graphic Volumetric Scattering RayMarching	pipeline.	*/
+	{
+		glUseProgram(this->volumetric_scattering_raymarching_program);
+		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_program, "ColorTexture"),
+					   (int)GBuffer::Albedo);
+		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_program, "DepthTexture"),
+					   (int)GBuffer::Depth);
+		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_program, "DirectionalShadowTexture"),
+					   (int)GBuffer::Depth);
+		glBindFragDataLocation(this->volumetric_scattering_raymarching_program, 1, "fragColor");
+		glUseProgram(0);
+	}
 
 	/*	Create sampler.	*/
 	glCreateSamplers(1, &this->texture_sampler);
@@ -134,6 +163,9 @@ void VolumetricScatteringPostProcessing::draw(
 }
 
 void VolumetricScatteringPostProcessing::renderUI() {
+
+	// TODO: add option to choose
+
 	ImGui::DragInt("Samples", (int *)&volumetricScatteringSettings.numSamples, 1, 0, 128);
 	ImGui::DragFloat("Decay", &volumetricScatteringSettings.Decay, 0.1f, 0.0f);
 	ImGui::DragFloat("Density", &volumetricScatteringSettings.Density, 0.1f, 0.0f);

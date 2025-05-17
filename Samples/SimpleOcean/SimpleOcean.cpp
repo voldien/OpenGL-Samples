@@ -249,10 +249,10 @@ namespace glsample {
 			this->skybox.Init(this->reflection_texture, Skybox::loadDefaultProgram(this->getFileSystem()));
 
 			/*	*/
-			ProcessData util(this->getFileSystem());
+			MiscProcessingUtil util(this->getFileSystem());
 			util.computeIrradiance(this->reflection_texture, this->irradiance_texture, 256, 128);
 			/*	*/
-			this->color_texture = Common::createColorTexture(1, 1, Color(0, 1, 0, 1));
+			this->color_texture = CommonUtil::createColorTexture(1, 1, Color(0, 1, 0, 1));
 
 			/*	*/
 			this->mistprocessing.initialize(this->getFileSystem());
@@ -270,7 +270,7 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			Common::loadPlan(this->plan, 1, 1024, 1024);
+			CommonUtil::loadPlan(this->plan, 1, 1024, 1024);
 
 			/*	Initilize Waves.	*/
 			for (size_t i = 0; i < nrMaxWaves; i++) {

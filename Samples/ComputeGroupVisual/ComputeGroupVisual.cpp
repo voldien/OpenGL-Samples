@@ -234,7 +234,7 @@ namespace glsample {
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 			/*  */
-			Common::loadSphere(this->sphereMesh, 1, 8, 8);
+			CommonUtil::loadSphere(this->sphereMesh, 1, 8, 8);
 
 			/*	*/
 			this->uniformStageBuffer.nrFaces = this->sphereMesh.nrIndicesElements;

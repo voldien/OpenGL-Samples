@@ -173,8 +173,8 @@ namespace glsample {
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			/*	Load geometry.	*/
-			glsample::Common::loadCube(this->geometry, 1);
-			glsample::Common::loadPlan(this->plan, 1);
+			glsample::CommonUtil::loadCube(this->geometry, 1);
+			glsample::CommonUtil::loadPlan(this->plan, 1);
 
 			/*	*/
 			for (size_t i = 0; i < 4; i++) {

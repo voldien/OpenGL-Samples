@@ -37,6 +37,7 @@ namespace glsample {
 
 	  private:
 		int volumetric_scattering_legacy_program = -1;
+		int volumetric_scattering_raymarching_program = -1;
 		int downsample_compute_program = -1;
 
 		unsigned int texture_sampler = 0;

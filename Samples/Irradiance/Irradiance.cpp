@@ -121,7 +121,7 @@ namespace glsample {
 			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_texture_panoramic = textureImporter.loadImage2D(panoramicPath, ColorSpace::SRGB);
 
-			ProcessData util(this->getFileSystem());
+			MiscProcessingUtil util(this->getFileSystem());
 			util.computeIrradiance(this->skybox_texture_panoramic, this->irradiance_texture, 256, 128);
 
 			skybox.Init(this->skybox_texture_panoramic, Skybox::loadDefaultProgram(this->getFileSystem()));
@@ -137,7 +137,7 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			Common::loadSphere(this->sphere, 3, 24, 24);
+			CommonUtil::loadSphere(this->sphere, 3, 24, 24);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
