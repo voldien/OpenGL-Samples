@@ -42,7 +42,7 @@ namespace glsample {
 		};
 		struct alignas(16) WaterSettings {};
 
-		struct alignas(16) UniformTerrainBufferBlock {
+		struct alignas(32) UniformTerrainBufferBlock {
 			glm::mat4 model{};
 			glm::mat4 view{};
 			glm::mat4 proj{};

@@ -10,6 +10,8 @@ buildType:
         BUILD_WITH_UBSAN: OFF
         BUILD_WITH_TSAN: OFF
         BUILD_WITH_PEDANTIC: OFF
+        BUILD_WITH_COVERAGE: OFF
+        BUILD_WITH_PROFILER: OFF
     release:
       short: Release
       long: Optimize generated code
@@ -19,6 +21,19 @@ buildType:
         BUILD_WITH_UBSAN: OFF
         BUILD_WITH_TSAN: OFF
         BUILD_WITH_PEDANTIC: OFF
+        BUILD_WITH_COVERAGE: OFF
+        BUILD_WITH_PROFILER: OFF
+    releasedebug:
+      short: RelWithDebInfo
+      long: Optimize generated code and Debug
+      buildType: RelWithDebInfo
+      settings: 
+        BUILD_WITH_ASAN: OFF
+        BUILD_WITH_UBSAN: OFF
+        BUILD_WITH_TSAN: OFF
+        BUILD_WITH_PEDANTIC: OFF
+        BUILD_WITH_COVERAGE: OFF
+        BUILD_WITH_PROFILER: OFF
     asan:
       short: Asan
       long: Instrument with Address Sanitizer
@@ -27,6 +42,8 @@ buildType:
         BUILD_WITH_ASAN: ON
         BUILD_WITH_UBSAN: ON
         BUILD_WITH_PEDANTIC: OFF
+        BUILD_WITH_COVERAGE: OFF
+        BUILD_WITH_PROFILER: OFF
     tsan:
       short: Tsan
       long: Instrument with Thread Sanitizer
@@ -36,24 +53,29 @@ buildType:
         BUILD_WITH_UBSAN: ON
         BUILD_WITH_TSAN: ON
         BUILD_WITH_PEDANTIC: OFF
+        BUILD_WITH_COVERAGE: OFF
+        BUILD_WITH_PROFILER: OFF
     gprof:
       short: GNU Profiler
       long: Profiler
       buildType: Debug
       settings: 
+        BUILD_WITH_ASAN: OFF
+        BUILD_WITH_UBSAN: OFF
         BUILD_WITH_COVERAGE: ON
         BUILD_WITH_PROFILER: ON
         BUILD_WITH_PEDANTIC: OFF
     pedantic:
       short: Pedantic
       long: Pedantic Building
-      buildType: Debug
+      buildType: Release
       settings: 
         BUILD_WITH_ASAN: OFF
         BUILD_WITH_UBSAN: OFF
         BUILD_WITH_TSAN: OFF
         BUILD_WITH_PEDANTIC: ON
-
+        BUILD_WITH_COVERAGE: OFF
+        BUILD_WITH_PROFILER: OFF
 linkage:
   default: static
   choices:

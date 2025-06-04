@@ -43,5 +43,9 @@ namespace glsample {
 			float speed = 1;
 		};
 		GrainSettings grainSettings;
+
+		/*	TODO: relocate.	*/
+		bool animate;
+		float animationSpeed;
 	};
 } // namespace glsample

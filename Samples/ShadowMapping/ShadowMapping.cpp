@@ -49,7 +49,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct alignas(16) uniform_buffer_block {
+		struct alignas(32) uniform_buffer_block {
 
 			glm::mat4 lightModelProject{};
 

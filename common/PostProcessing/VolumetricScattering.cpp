@@ -21,8 +21,8 @@ VolumetricScatteringPostProcessing::~VolumetricScatteringPostProcessing() {
 		glDeleteProgram(this->volumetric_scattering_legacy_program);
 	}
 
-	if (this->volumetric_scattering_raymarching_program >= 0) {
-		glDeleteProgram(this->volumetric_scattering_raymarching_program);
+	if (this->volumetric_scattering_raymarching_shadow_depth_program >= 0) {
+		glDeleteProgram(this->volumetric_scattering_raymarching_shadow_depth_program);
 	}
 
 	if (this->downsample_compute_program >= 0) {
@@ -58,7 +58,7 @@ void VolumetricScatteringPostProcessing::initialize(fragcore::IFileSystem *files
 			ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_post_binary, &fragment_volumetric_legacy_binary);
 
 		/*	Load shader	*/
-		this->volumetric_scattering_raymarching_program = ShaderLoader::loadGraphicProgram(
+		this->volumetric_scattering_raymarching_shadow_depth_program = ShaderLoader::loadGraphicProgram(
 			compilerOptions, &vertex_post_binary, &fragment_volumetric_raymarching_binary);
 	}
 
@@ -75,14 +75,15 @@ void VolumetricScatteringPostProcessing::initialize(fragcore::IFileSystem *files
 
 	/*	Setup graphic Volumetric Scattering RayMarching	pipeline.	*/
 	{
-		glUseProgram(this->volumetric_scattering_raymarching_program);
-		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_program, "ColorTexture"),
+		glUseProgram(this->volumetric_scattering_raymarching_shadow_depth_program);
+		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "ColorTexture"),
 					   (int)GBuffer::Albedo);
-		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_program, "DepthTexture"),
+		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "DepthTexture"),
 					   (int)GBuffer::Depth);
-		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_program, "DirectionalShadowTexture"),
-					   (int)GBuffer::Depth);
-		glBindFragDataLocation(this->volumetric_scattering_raymarching_program, 1, "fragColor");
+		glUniform1iARB(
+			glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "DirectionalShadowTexture"),
+			(int)GBuffer::Depth);
+		glBindFragDataLocation(this->volumetric_scattering_raymarching_shadow_depth_program, 1, "fragColor");
 		glUseProgram(0);
 	}
 
@@ -174,4 +175,11 @@ void VolumetricScatteringPostProcessing::renderUI() {
 	ImGui::DragFloat2("Light Position", &volumetricScatteringSettings.lightPosition[0], 0.1f, 0.0f);
 	ImGui::ColorEdit4("Color", &this->volumetricScatteringSettings.color[0],
 					  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+
+	//ImGui::RadioButton("Legacy", &this->volumetric_mode, 1);
+	ImGui::SetItemTooltip("I am a tooltip");
+	ImGui::SameLine();
+	//ImGui::Button("Ray Tracing", &this->volumetric_mode, 2);
+	ImGui::SetItemTooltip("I am a tooltip");
+
 }

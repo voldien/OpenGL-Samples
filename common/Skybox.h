@@ -17,7 +17,6 @@
 #include "Common.h"
 #include "Core/UIDObject.h"
 #include "FragDef.h"
-#include "GLSampleSession.h"
 #include "SampleHelper.h"
 #include <Exception.hpp>
 #include <IO/FileSystem.h>

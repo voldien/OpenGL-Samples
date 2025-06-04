@@ -15,8 +15,8 @@
  */
 #pragma once
 #include "../Common.h"
+#include "TaskScheduler.h"
 #include <IO/FileSystem.h>
-#include <IO/IFileSystem.h>
 #include <ImageLoader.h>
 #include <string>
 #include <vector>
@@ -43,22 +43,32 @@ namespace glsample {
 		TextureImporter(fragcore::IFileSystem *filesystem);
 		virtual ~TextureImporter();
 
-		int loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::RawLinear,
-						const TextureCompression compression = TextureCompression::None);
-		int loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::RawLinear,
-						   const TextureCompression compression = TextureCompression::None);
+		unsigned int loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::RawLinear,
+								 const TextureCompression compression = TextureCompression::None);
+		void loadImage2DAsync(unsigned int &texRef, const std::string &path,
+							  const ColorSpace colorSpace = ColorSpace::RawLinear,
+							  const TextureCompression compression = TextureCompression::None);
 
-		int loadCubeMap(const std::string &px, const std::string &nx, const std::string &py, const std::string &ny,
-						const std::string &pz, const std::string &nz,
-						const ColorSpace colorSpace = ColorSpace::RawLinear,
-						const TextureCompression compression = TextureCompression::None);
-		int loadCubeMap(const std::vector<std::string> &paths, const ColorSpace colorSpace = ColorSpace::RawLinear,
-						const TextureCompression compression = TextureCompression::None);
+		unsigned int loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::RawLinear,
+									const TextureCompression compression = TextureCompression::None);
+
+		void loadImage2DRawAsync(unsigned int &texRef, const fragcore::Image &image,
+								 const ColorSpace colorSpace = ColorSpace::RawLinear,
+								 const TextureCompression compression = TextureCompression::None);
+
+		unsigned int loadCubeMap(const std::string &px, const std::string &nx, const std::string &py,
+								 const std::string &ny, const std::string &pz, const std::string &nz,
+								 const ColorSpace colorSpace = ColorSpace::RawLinear,
+								 const TextureCompression compression = TextureCompression::None);
+		unsigned int loadCubeMap(const std::vector<std::string> &paths,
+								 const ColorSpace colorSpace = ColorSpace::RawLinear,
+								 const TextureCompression compression = TextureCompression::None);
 
 	  private:
 		fragcore::IFileSystem *filesystem = nullptr;
-		std::array<unsigned int, 3> pbos = {};
-		std::atomic_int current_aviable = 0;
+		fragcore::TaskScheduler *schedular;
+		std::array<unsigned int, 4> pbos = {};
+		std::atomic_int current_pbo = 0;
 	};
 
 } // namespace glsample

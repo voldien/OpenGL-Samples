@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "DataStructure/PoolAllocator.h"
+#include "FragDef.h"
 #include "Math3D/LinAlg.h"
 #include "RenderDesc.h"
 #include <IO/IFileSystem.h>
@@ -44,7 +45,7 @@ using AssetObject = struct asset_object_t {
 	std::string name;
 };
 
-using VertexBoneData = struct vertex_bone_data_t {
+using VertexBoneData = struct alignas(32) vertex_bone_data_t {
 	static const int NUM_BONES_PER_VERTEX = 4;
 	uint32_t IDs[NUM_BONES_PER_VERTEX];
 	float Weights[NUM_BONES_PER_VERTEX];
@@ -54,7 +55,7 @@ using VertexBoneBuffer = struct vertex_bone_buffer_t {
 	std::vector<VertexBoneData> vertexBoneData;
 };
 
-using MaterialTextureSampling = struct material_texture_sampling_t {
+using MaterialTextureSampling = struct alignas(32) material_texture_sampling_t {
 	fragcore::TextureWrappingMode wrapping = fragcore::TextureWrappingMode::Repeat;
 	fragcore::FilterMode filtering = fragcore::FilterMode::Linear;
 	fragcore::UVMappingMode uv_mapping = fragcore::UVMappingMode::UV;
@@ -109,7 +110,7 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	};
 };
 
-using NodeObject = struct node_object_t : public AssetObject {
+using NodeObject = struct alignas(32) node_object_t : public AssetObject {
 	/*	*/
 	glm::vec3 localPosition;
 	glm::quat localRotation;
@@ -128,7 +129,7 @@ using NodeObject = struct node_object_t : public AssetObject {
 	struct node_object_t *parent = nullptr;
 };
 
-using MeshData = struct mesh_data_t : public AssetObject {
+using MeshData = struct alignas(32) mesh_data_t : public AssetObject {
 	/*	*/
 	size_t nrVertices{};
 	size_t nrIndices{};
@@ -144,7 +145,6 @@ using MeshData = struct mesh_data_t : public AssetObject {
 using MorpthTarget = struct morph_target {};
 
 using ModelSystemObject = struct model_system_object : public AssetObject {
-
 	// MeshData mesh;
 	// MeshData bone
 	size_t nrVertices{};
@@ -161,9 +161,10 @@ using ModelSystemObject = struct model_system_object : public AssetObject {
 
 	/*	*/
 	unsigned int vertexOffset{};
+	unsigned int uvOffset{};
 	unsigned int normalOffset{};
 	unsigned int tangentOffset{};
-	unsigned int uvOffset{};
+	unsigned int vertexColorOffset{};
 	unsigned int boneOffset{};
 	unsigned int boneWeightOffset{};
 	unsigned int boneIndexOffset{};
@@ -171,7 +172,7 @@ using ModelSystemObject = struct model_system_object : public AssetObject {
 	unsigned int primitiveType{};
 };
 
-using Bone = struct bone_t : public AssetObject {
+using Bone = struct alignas(16) bone_t : public AssetObject {
 	glm::mat4 finalTransform{};
 	glm::mat4 offsetBoneMatrix{};
 	size_t boneIndex{};
@@ -183,7 +184,7 @@ using SkeletonSystem = struct model_skeleton_t : public AssetObject {
 	std::map<std::string, Bone> bones;
 };
 
-using TextureAssetObject = struct texture_asset_object_t {
+using TextureAssetObject = struct alignas(32) texture_asset_object_t {
 	unsigned int texture = 0;
 	size_t width = 0;
 	size_t height = 0;
@@ -193,7 +194,7 @@ using TextureAssetObject = struct texture_asset_object_t {
 	char *data = nullptr;
 };
 
-using KeyFrame = struct key_frame_t {
+using KeyFrame = struct alignas(16) key_frame_t {
 	float time;		  /*	*/
 	float value;	  /*	*/
 	float tangentIn;  /*	*/
@@ -205,12 +206,12 @@ using Curve = struct curve_t : public AssetObject {
 };
 
 using AnimationObject = struct animation_object_t : public AssetObject {
-	std::map<std::string, Curve> curves__s;
+	std::map<std::string, Curve> curves_s;
 	std::vector<Curve> curves;
 	float duration;
 };
 
-using LightObject = struct light_object_t : public AssetObject {
+using LightObject = struct alignas(32) light_object_t : public AssetObject {
 
 	// C_ENUM aiLightSourceType mType;
 	glm::vec3 position;
@@ -238,11 +239,11 @@ class FVDECLSPEC ModelImporter {
   public:
 	ModelImporter(fragcore::IFileSystem *fileSystem) : fileSystem(fileSystem) {}
 	ModelImporter(const ModelImporter &other) = default;
-	ModelImporter(ModelImporter &&other);
+	ModelImporter(ModelImporter &&other) noexcept;
 	virtual ~ModelImporter() { this->clear(); }
 
 	ModelImporter &operator=(const ModelImporter &other) = default;
-	ModelImporter &operator=(ModelImporter &&other);
+	ModelImporter &operator=(ModelImporter &&other) noexcept;
 
 	virtual void loadContent(const std::string &path, unsigned long int supportFlag);
 	virtual void clear() noexcept;

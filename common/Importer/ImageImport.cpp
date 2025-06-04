@@ -11,28 +11,32 @@ using namespace fragcore;
 using namespace glsample;
 
 TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesystem) {
-	glCreateBuffers(3, this->pbos.data());
+	glCreateBuffers(this->pbos.size(), this->pbos.data());
+	for (size_t i = 0; i < this->pbos.size(); i++) {
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, this->pbos[i]);
+	}
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }
 
-TextureImporter::~TextureImporter() { glDeleteBuffers(3, this->pbos.data()); }
+TextureImporter::~TextureImporter() { glDeleteBuffers(this->pbos.size(), this->pbos.data()); }
 
-int TextureImporter::loadImage2D(const std::string &path, const ColorSpace colorSpace,
-								 const TextureCompression compression) {
+unsigned int TextureImporter::loadImage2D(const std::string &path, const ColorSpace colorSpace,
+										  const TextureCompression compression) {
 
 	ImageLoader imageLoader;
 	Ref<IO> io = Ref<IO>(this->filesystem->openFile(path.c_str(), IO::IOMode::READ));
 	Image image = imageLoader.loadImage(io);
 	io->close();
 
-	int texture_index = this->loadImage2DRaw(image, colorSpace);
+	const unsigned int texture_index = this->loadImage2DRaw(image, colorSpace);
 	if (texture_index >= 0) {
 		glObjectLabel(GL_TEXTURE, texture_index, path.size(), path.data());
 	}
 	return texture_index;
 }
 
-int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace,
-									const TextureCompression compression) {
+unsigned int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace,
+											 const TextureCompression compression) {
 
 	GLenum target = GL_TEXTURE_2D;
 	GLuint texture = 0;
@@ -191,6 +195,14 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 	const size_t power_of_2 = std::floor(std::log(Math::max(image.width(), image.height())) / std::log(2));
 	const size_t max_mipmap = Math::clamp<size_t>(power_of_2 - 4, 0, std::numeric_limits<size_t>::max());
 
+	GLuint currentPBO = this->pbos[current_pbo++];
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, currentPBO);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, image.getSize(), nullptr, GL_STREAM_COPY);
+	void *ptr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, 0, image.getSize(),
+								 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	memcpy(ptr, image.getPixelData(), image.getSize());
+	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));
 
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));
@@ -227,26 +239,29 @@ int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSp
 
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, max_mipmap));
 
-	FVALIDATE_GL_CALL(
-		glTexImage2D(target, 0, internalformat, image.width(), image.height(), 0, format, type, image.getPixelData()));
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, currentPBO);
+	FVALIDATE_GL_CALL(glTexImage2D(target, 0, internalformat, image.width(), image.height(), 0, format, type, nullptr));
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
 	FVALIDATE_GL_CALL(glGenerateMipmap(target));
 
 	FVALIDATE_GL_CALL(glBindTexture(target, 0));
 
+	current_pbo = (current_pbo + 1) % pbos.size();
+
 	return texture;
 }
 
-int TextureImporter::loadCubeMap(const std::string &px, const std::string &nx, const std::string &py,
-								 const std::string &ny, const std::string &pz, const std::string &nz,
-								 const ColorSpace colorSpace, const TextureCompression compression) {
+unsigned int TextureImporter::loadCubeMap(const std::string &px, const std::string &nx, const std::string &py,
+										  const std::string &ny, const std::string &pz, const std::string &nz,
+										  const ColorSpace colorSpace, const TextureCompression compression) {
 
 	std::vector<std::string> paths = {px, nx, py, ny, pz, nz};
 	return loadCubeMap(paths, colorSpace, compression);
 }
 
-int TextureImporter::loadCubeMap(const std::vector<std::string> &paths, const ColorSpace colorSpace,
-								 const TextureCompression compression) {
+unsigned int TextureImporter::loadCubeMap(const std::vector<std::string> &paths, const ColorSpace colorSpace,
+										  const TextureCompression compression) {
 	ImageLoader imageLoader;
 
 	const GLenum target = GL_TEXTURE_CUBE_MAP;

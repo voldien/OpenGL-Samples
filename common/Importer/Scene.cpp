@@ -74,10 +74,10 @@ namespace glsample {
 		this->default_textures[TextureType::Displacement] = glsample::CommonUtil::createColorTexture(
 			1, 1, fragcore::Color(black[0] / 255.0f, black[1] / 255.0f, black[2] / 255.0f, black[3] / 255.0f));
 
-		this->default_textures[TextureType::Normal] =
-			glsample::CommonUtil::createColorTexture(1, 1,
-												 fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f,
-																 normalForward[2] / 255.0f, normalForward[3] / 255.0f));
+		this->default_textures[TextureType::Normal] = glsample::CommonUtil::createColorTexture(
+			1, 1,
+			fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f, normalForward[2] / 255.0f,
+							normalForward[3] / 255.0f));
 
 		/*	Default samplers.	*/
 		glCreateSamplers(samplers.size(), samplers.data());
@@ -172,7 +172,6 @@ namespace glsample {
 
 		/*	*/
 		this->stageCommonBuffer->time[0] = deltaTime;
-
 		this->updateBuffers();
 	}
 

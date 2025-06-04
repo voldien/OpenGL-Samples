@@ -19,6 +19,16 @@
 
 namespace glsample {
 
+	enum AttributeMapping : unsigned int {
+		Vertex = 0,
+		UV = 1,
+		ANormal = 2,
+		ATangent = 3,
+		ABoneIndex = 4,
+		ABoneWeight = 5,
+		AVertexColor = 6,
+	};
+
 	class FVDECLSPEC ImportHelper {
 	  public:
 		/**

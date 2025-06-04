@@ -23,23 +23,23 @@
 namespace glsample {
 
 	enum class GBuffer : unsigned int {
-		Albedo = 0,			   /*	*/
-		Color = 0,			   /*	*/
-		WorldSpace = 1,		   /*	*/
-		TextureCoordinate = 2, /*	*/
-		Normal = 3,			   /*	*/
-		Specular = 4,		   /*	Roughness*/
-		Emission = 5,		   /*	*/
-		Depth = 6,			   /*	*/
-		Velocity = 7,		   /*	*/
-		Roughness = 8,		   /*	*/
-		AO,					   /*	*/
-		Displacement,		   /*	*/
-		Metallic,			   /*	*/
-		SubSurface,			   /*	*/
-		LightPass,			   /*	*/
-		IntermediateTarget,	   /*	*/
-		IntermediateTarget2	   /*	*/
+		Albedo = 0,				 /*	*/
+		Color = 0,				 /*	*/
+		WorldSpace = 1,			 /*	*/
+		TextureCoordinate = 2,	 /*	*/
+		Normal = 3,				 /*	*/
+		Specular = 4,			 /*	Roughness*/
+		Emission = 5,			 /*	*/
+		Depth = 6,				 /*	*/
+		Velocity = 7,			 /*	*/
+		Roughness = 8,			 /*	*/
+		AO = 9,					 /*	*/
+		Displacement = 10,		 /*	*/
+		Metallic = 11,			 /*	*/
+		SubSurface = 12,		 /*	*/
+		LightPass = 13,			 /*	*/
+		IntermediateTarget = 14, /*	*/
+		IntermediateTarget2 = 15 /*	*/
 	};
 
 	enum class FogType : unsigned int {
@@ -52,12 +52,12 @@ namespace glsample {
 
 	using UnfiformSubBuffer = struct uniform_sub_buffer_t {};
 
-	using GammaCorrectionSettings = struct alignas(16) gamme_correct_settings_t {
+	using GammaCorrectionSettings = struct gamme_correct_settings_t {
 		float exposure = 1.0f;
 		float gamma = 2.2f;
 	};
 
-	using FogSettings = struct alignas(16) fog_settings_t {
+	using FogSettings = struct fog_settings_t {
 		glm::vec4 fogColor = glm::vec4(0.45, 0.45, 0.45, 1);
 		/*	*/
 		float cameraNear = 0.15f;
@@ -72,7 +72,7 @@ namespace glsample {
 		float fogHeight = 0;
 	};
 
-	using MaterialInstance = struct alignas(16) material_instance_t {
+	using MaterialInstance = struct material_instance_t {
 		glm::mat4 model;
 
 		/*	Color attributes.	*/
@@ -86,14 +86,14 @@ namespace glsample {
 		/*	*/
 	};
 
-	using BlinnPhongMaterialData = struct alignas(16) blinn_phong_material_data_t {};
+	using BlinnPhongMaterialData = struct blinn_phong_material_data_t {};
 
 	using DirectionalLight = struct directional_light_t {
 		glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	};
 
-	using PointLightInstance = struct alignas(16) point_light_instance_t {
+	using PointLightInstance = struct point_light_instance_t {
 		glm::vec3 position = glm::vec3(0);
 		float range = 5;
 		glm::vec4 color = glm::vec4(1);
@@ -104,7 +104,7 @@ namespace glsample {
 		float quadratic_attenuation = 0.025f;
 	};
 
-	using CameraInstance = struct alignas(16) camera_instance_t {
+	using CameraInstance = struct camera_instance_t {
 		/*	*/
 		camera_instance_t &operator=(Camera &camera) {
 			this->near = camera.getNear();
@@ -146,7 +146,7 @@ namespace glsample {
 		glm::mat4 inverseProj = glm::mat4(1);
 	};
 
-	using FrustumInstance = struct alignas(16) frustum_instance_t {
+	using FrustumInstance = struct frustum_instance_t {
 		glm::vec4 planes[6];
 	};
 
@@ -159,8 +159,8 @@ namespace glsample {
 
 	using FrameBuffer = struct framebuffer_t {
 		unsigned int framebuffer = 0;
-		std::array<unsigned int, 16> attachments; /*	last */
-		std::array<glm::ivec2, 16> attachmentSize;
+		std::array<unsigned int, 16> attachments{}; /*	last */
+		std::array<glm::ivec2, 16> attachmentSize{};
 		unsigned int nrAttachments = 0;
 		unsigned int depthIndex = 15;
 	};

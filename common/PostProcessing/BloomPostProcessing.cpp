@@ -213,6 +213,6 @@ void BloomPostProcessing::render(FrameBuffer *framebuffer, unsigned int color_te
 }
 
 void BloomPostProcessing::renderUI() {
-	ImGui::DragInt("Image Size", (int *)&this->nr_down_samples);
+	ImGui::DragInt("Image Size", (&this->nr_down_samples));
 	ImGui::DragFloat("ThjreadsHold", &this->threadshold, 1, 0, 1000.0f);
 }

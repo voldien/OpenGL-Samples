@@ -11,7 +11,9 @@ using namespace fragcore;
 void CommonUtil::loadPlan(MeshObject &planMesh, const float scale, const int segmentX, const int segmentY) {
 
 	std::vector<ProceduralGeometry::Vertex> vertices;
+	vertices.reserve(sizeof(ProceduralGeometry::Vertex) * 1024);
 	std::vector<unsigned int> indices;
+	indices.reserve(sizeof(unsigned int) * 1024);
 	ProceduralGeometry::generatePlan(scale, vertices, indices, segmentX, segmentY);
 
 	const unsigned int stride = sizeof(ProceduralGeometry::Vertex);
@@ -57,7 +59,9 @@ void CommonUtil::loadPlan(MeshObject &planMesh, const float scale, const int seg
 
 void CommonUtil::loadSphere(MeshObject &sphereMesh, const float radius, const int slices, const int segements) {
 	std::vector<ProceduralGeometry::Vertex> vertices;
+	vertices.reserve(sizeof(ProceduralGeometry::Vertex) * 1024);
 	std::vector<unsigned int> indices;
+	indices.reserve(sizeof(unsigned int) * 1024);
 	ProceduralGeometry::generateSphere(radius, vertices, indices, slices, segements);
 
 	const unsigned int stride = sizeof(ProceduralGeometry::Vertex);
@@ -105,7 +109,9 @@ void CommonUtil::loadSphere(MeshObject &sphereMesh, const float radius, const in
 void CommonUtil::loadCube(MeshObject &cubeMesh, const float scale, const int segmentX, const int segmentY) {
 
 	std::vector<ProceduralGeometry::Vertex> vertices;
+	vertices.reserve(sizeof(ProceduralGeometry::Vertex) * 1024);
 	std::vector<unsigned int> indices;
+	indices.reserve(sizeof(unsigned int) * 1024);
 	ProceduralGeometry::generateCube(scale, vertices, indices, segmentX);
 
 	const unsigned int stride = sizeof(ProceduralGeometry::Vertex);
@@ -193,7 +199,7 @@ void CommonUtil::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAtta
 }
 
 void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_list<fragcore::TextureDesc> &desc,
-							   const fragcore::TextureDesc &depthstencil) {
+								   const fragcore::TextureDesc &depthstencil) {
 
 	unsigned int attachment_index = 0;
 	std::array<GLenum, 32> attachments_mapping = {0};
@@ -326,6 +332,7 @@ void glsample::refreshWholeRoundRobinBuffer(unsigned int bufferType, unsigned in
 	uint8_t *mappedData = (uint8_t *)glMapBufferRange(bufferType, offset, alignSize * robin,
 													  GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 
+	/*	*/
 	for (size_t i = 0; i < robin; i++) {
 		memcpy(&mappedData[i * alignSize], data, bufferSize);
 	}

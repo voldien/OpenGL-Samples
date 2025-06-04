@@ -208,8 +208,8 @@ namespace glsample {
 				static_cast<Circle *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, this->ParticleMemorySize, GL_MAP_WRITE_BIT));
 
 			std::default_random_engine generator;
-			std::uniform_real_distribution<float> randomPosition(0.00001,
-																 0.99999); /* random floats between [-1.0, 1.0] */
+			std::uniform_real_distribution<float> randomPosition(0.00001f,
+																 0.99999f); /* random floats between [-1.0, 1.0] */
 			for (size_t i = 0; i < nrCircles; i++) {
 				particle_buffer[i].position = glm::vec3(randomPosition(generator), randomPosition(generator), 0);
 			}

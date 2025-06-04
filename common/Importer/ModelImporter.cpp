@@ -47,7 +47,7 @@ static inline glm::mat4 aiMatrix4x4ToGlm(const aiMatrix4x4 *from) noexcept {
 	return to;
 }
 
-ModelImporter::ModelImporter(ModelImporter &&other)
+ModelImporter::ModelImporter(ModelImporter &&other) noexcept
 	: filepath(other.filepath), nodes(other.nodes), models(other.models), materials(other.materials),
 	  textures(other.textures), textureMapping(other.textureMapping), textureIndexMapping(other.textureIndexMapping),
 	  skeletons(other.skeletons), animations(other.animations), vertexBoneData(other.vertexBoneData),
@@ -55,7 +55,7 @@ ModelImporter::ModelImporter(ModelImporter &&other)
 	this->fileSystem = std::exchange(other.fileSystem, nullptr);
 }
 
-ModelImporter &ModelImporter::operator=(ModelImporter &&other) {
+ModelImporter &ModelImporter::operator=(ModelImporter &&other) noexcept {
 	this->fileSystem = std::exchange(other.fileSystem, nullptr);
 
 	this->globalNodeTransform = other.globalNodeTransform;
@@ -147,18 +147,22 @@ void ModelImporter::initScene(const aiScene *scene) {
 		}
 
 		/*	*/
-		for (size_t x = 0; x < scene->mNumMaterials; x++) {
+		const size_t nrMaterials = scene->mNumMaterials;
+		for (size_t x = 0; x < nrMaterials; x++) {
 			this->loadTexturesFromMaterials(scene->mMaterials[x]);
 		}
 
-		for (size_t x = 0; x < scene->mNumMeshes; x++) {
+		const size_t nrMeshes = scene->mNumMeshes;
+		for (size_t x = 0; x < nrMeshes; x++) {
 
-			C_STRUCT aiAABB aabb = scene->mMeshes[x]->mAABB;
+			C_STRUCT aiAABB &aabb = scene->mMeshes[x]->mAABB;
 
+			/*	*/
 			this->models[x].bound.aabb.min[0] = aabb.mMin.x;
 			this->models[x].bound.aabb.min[1] = aabb.mMin.y;
 			this->models[x].bound.aabb.min[2] = aabb.mMin.z;
 
+			/*	*/
 			this->models[x].bound.aabb.max[0] = aabb.mMax.x;
 			this->models[x].bound.aabb.max[1] = aabb.mMax.y;
 			this->models[x].bound.aabb.max[2] = aabb.mMax.z;
@@ -198,7 +202,8 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 		if (scene->HasLights()) {
 			this->lights.resize(scene->mNumLights);
-			for (unsigned int x = 0; x < scene->mNumLights; x++) {
+			const size_t nrLights = scene->mNumLights;
+			for (unsigned int x = 0; x < nrLights; x++) {
 				this->initLight(scene->mLights[x], x);
 			}
 		}
@@ -209,7 +214,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 			}
 		}
 
-		//TODO: compute
+		// TODO: compute
 		nodePool.resize(2048);
 	});
 	// process_animation_light_camera_thread.detach();
@@ -244,7 +249,7 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 	for (size_t node_index = 0; node_index < ai_node->mNumChildren; node_index++) {
 		aiNode *child_node = ai_node->mChildren[node_index];
 
-		aiVector3D position, scale;
+		aiVector3f position, scale;
 		aiQuaternion rotation;
 
 		NodeObject *pobject = nodePool.obtain();
@@ -256,7 +261,6 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 		}
 
 		/*	extract position, rotation, position from transformation matrix.	*/
-
 		child_node->mTransformation.Decompose(scale, rotation, position);
 
 		/*	*/
@@ -353,6 +357,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 	const size_t uvSize = nrUVs * (sizeof(float) * 2);
 	const size_t normalSize = sizeof(float) * 3;
 	const size_t tangentSize = sizeof(float) * 3;
+	const size_t vertexColorSize = nrVertexColors * sizeof(float) * 4;
 	const size_t boneIDSize = sizeof(unsigned int);
 	const size_t boneWeightSize = sizeof(float);
 
@@ -365,107 +370,121 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		bonecount = boneWeightCount;
 	}
 
+	const unsigned int numVertices = aimesh->mNumVertices;
+	const unsigned int numFaces = aimesh->mNumFaces;
+
 	/*	*/
-	const size_t StrideSize = vertexSize + uvSize + normalSize + tangentSize + boneByteSize;
-	const uint floatStride = StrideSize / sizeof(float);
+	const size_t StrideSize = vertexSize + uvSize + normalSize + tangentSize + vertexColorSize + boneByteSize;
+	const uint VertexFloatStride = StrideSize / sizeof(float);
 
 	const size_t indicesSize = 4;
 
 	/*	*/
-	float *vertices = (float *)malloc(aimesh->mNumVertices * StrideSize);
-	unsigned char *Indice = (unsigned char *)malloc(indicesSize * aimesh->mNumFaces * 3);
+	const bool hasPositions = aimesh->HasPositions();
+	const bool hasFaces = aimesh->HasFaces();
+	const bool hasNormal = aimesh->HasNormals();
+	const bool hasUV = aimesh->GetNumUVChannels() > 0;
+
+	/*	*/
+	float *vertices = (float *)malloc(numVertices * StrideSize);
+	unsigned char *Indice = nullptr;
+	if (hasFaces) {
+		Indice = (unsigned char *)malloc(indicesSize * numFaces * 3);
+	}
 
 	/*	*/
 	unsigned char *Itemp = Indice;
 
-	/*	*/
-	const aiVector3D Zero = aiVector3D(0, 0, 0);
-	if (aimesh->HasPositions()) {
+	for (unsigned int x = 0; x < numVertices; x++) {
 
-		for (unsigned int x = 0; x < aimesh->mNumVertices; x++) {
+		/*	Next Vertex/Data Point.	*/
+		float *pVertex = &vertices[static_cast<size_t>(VertexFloatStride * x)];
 
-			float *pVertex = &vertices[static_cast<size_t>(floatStride * x)];
+		/*	*/
+		const aiVector3D *Pos = &(aimesh->mVertices[x]);
+		aiVector3D *pNormal = &(aimesh->mNormals[x]);
+		const aiVector3D *Tangent = aimesh->mTangents ? &(aimesh->mTangents[x]) : nullptr;
 
-			/*	*/
-			const aiVector3D *Pos = &(aimesh->mVertices[x]);
-			aiVector3D *pNormal = &(aimesh->mNormals[x]);
-			const aiVector3D *Tangent = aimesh->mTangents ? &(aimesh->mTangents[x]) : nullptr;
+		/*	Vertex position.	*/
+		*pVertex++ = Pos->x;
+		*pVertex++ = Pos->y;
+		*pVertex++ = Pos->z;
 
-			/*	Vertex position.	*/
-			*pVertex++ = Pos->x;
-			*pVertex++ = Pos->y;
-			*pVertex++ = Pos->z;
+		/*	UV coordinates.	*/
+		if (hasUV) {
+			for (unsigned int uv_index = 0; uv_index < nrUVs; uv_index++) {
+				//	if (aimesh->HasTextureCoords(uv_index)) {
+				*pVertex++ = aimesh->mTextureCoords[uv_index][x].x;
+				*pVertex++ = aimesh->mTextureCoords[uv_index][x].y;
+				//	}
+			}
+		} else {
+			*pVertex++ = 0;
+			*pVertex++ = 0;
+		}
 
-			/*	UV coordinates.	*/
-			if (aimesh->GetNumUVChannels() > 0) {
-				for (unsigned int uv_index = 0; uv_index < aimesh->GetNumUVChannels(); uv_index++) {
-					if (aimesh->HasTextureCoords(uv_index)) {
-						*pVertex++ = aimesh->mTextureCoords[uv_index][x].x;
-						*pVertex++ = aimesh->mTextureCoords[uv_index][x].y;
-					}
-				}
-			} else {
-				*pVertex++ = 0;
+		/*	Normals.	*/
+		if (hasNormal) {
+			pNormal->Normalize();
+			*pVertex++ = pNormal->x;
+			*pVertex++ = pNormal->y;
+			*pVertex++ = pNormal->z;
+		} else {
+			*pVertex++ = 0;
+			*pVertex++ = 0;
+			*pVertex++ = 0;
+		}
+
+		/*	*/
+		if (Tangent) {
+			*pVertex++ = Tangent->x;
+			*pVertex++ = Tangent->y;
+			*pVertex++ = Tangent->z;
+		} else {
+			*pVertex++ = 0;
+			*pVertex++ = 0;
+			*pVertex++ = 0;
+		}
+
+		/*	*/
+		if (aimesh->GetNumColorChannels() > 0) {
+
+			for (unsigned int color_index = 0; color_index < aimesh->GetNumColorChannels(); color_index++) {
+				*pVertex++ = aimesh->mColors[color_index][x].r;
+				*pVertex++ = aimesh->mColors[color_index][x].g;
+				*pVertex++ = aimesh->mColors[color_index][x].b;
+				*pVertex++ = aimesh->mColors[color_index][x].a;
+			}
+		}
+
+		/*	Offset only. assign later.	*/
+		if (boneByteSize > 0 && bonecount > 0) {
+			/*	BoneID	*/
+			for (unsigned int i = 0; i < bonecount; i++) {
 				*pVertex++ = 0;
 			}
-
-			/*	Normals.	*/
-			if (aimesh->HasNormals()) {
-				pNormal->Normalize();
-				*pVertex++ = pNormal->x;
-				*pVertex++ = pNormal->y;
-				*pVertex++ = pNormal->z;
-			} else {
-				*pVertex++ = 0;
-				*pVertex++ = 0;
+			/*	BoneWeight	*/
+			for (unsigned int i = 0; i < bonecount; i++) {
 				*pVertex++ = 0;
 			}
+		}
 
-			/*	*/
-			if (Tangent) {
-				*pVertex++ = Tangent->x;
-				*pVertex++ = Tangent->y;
-				*pVertex++ = Tangent->z;
-			} else {
-
-				*pVertex++ = 0;
-				*pVertex++ = 0;
-				*pVertex++ = 0;
-			}
-
-			if (aimesh->GetNumColorChannels() > 0) {
-				for (unsigned int color_index = 0; color_index < aimesh->GetNumColorChannels(); color_index++) {
-					aimesh->mColors[color_index][x];
-				}
-			}
-
-			/*	Offset only. assign later.	*/
-			if (boneByteSize > 0 && bonecount > 0) {
-				/*	BoneID	*/
-				for (unsigned int i = 0; i < bonecount; i++) {
-					*pVertex++ = 0;
-				}
-				/*	BoneWeight	*/
-				for (unsigned int i = 0; i < bonecount; i++) {
-					*pVertex++ = 0;
-				}
-			}
-
-		} /*	*/
-	}
+	} /*	*/
 
 	/*	Assign data offset.	*/
 	pmesh->vertexOffset = 0;
 	pmesh->uvOffset = vertexSize;
 	pmesh->normalOffset = vertexSize + uvSize;
 	pmesh->tangentOffset = vertexSize + uvSize + normalSize;
+	pmesh->vertexColorOffset = 0; // vertexSize + uvSize + normalSize + tangentSize;
 
 	/*	Load bones.	*/
 	if (aimesh->HasBones()) {
 
 		/*	*/
-		pmesh->boneIndexOffset = (vertexSize + uvSize + normalSize + tangentSize);
-		pmesh->boneWeightOffset = (vertexSize + uvSize + normalSize + tangentSize + bonecount * boneIDSize);
+		pmesh->boneIndexOffset = (vertexSize + uvSize + normalSize + tangentSize + vertexColorSize);
+		pmesh->boneWeightOffset =
+			(vertexSize + uvSize + normalSize + tangentSize + vertexColorSize + bonecount * boneIDSize);
 
 		const uint BoneStrideOffset = (pmesh->boneIndexOffset / sizeof(float));
 
@@ -480,7 +499,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 				const unsigned int VertexID = aimesh->mBones[i]->mWeights[j].mVertexId;
 				const float Weight = aimesh->mBones[i]->mWeights[j].mWeight;
 
-				float *boneData = &vertices[(VertexID * floatStride) + BoneStrideOffset];
+				float *boneData = &vertices[(VertexID * VertexFloatStride) + BoneStrideOffset];
 
 				/*	Assign next bone without any value.	*/
 				for (uint x = 0; x < bonecount; x++) {
@@ -500,11 +519,11 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 
 	/*	Primitive Indices.	*/
 	size_t nrFaces = 0;
-	if (aimesh->HasFaces()) {
+	if (hasFaces) {
 
 		if (indicesSize == sizeof(unsigned int)) {
 
-			for (size_t x = 0; x < aimesh->mNumFaces; x++) {
+			for (size_t x = 0; x < numFaces; x++) {
 				const aiFace &face = aimesh->mFaces[x];
 
 				/*	*/
@@ -517,7 +536,7 @@ ModelSystemObject *ModelImporter::initMesh(const aiMesh *aimesh, unsigned int in
 		} else {
 
 			// TODO determine if can be removed.
-			for (size_t x = 0; x < aimesh->mNumFaces; x++) {
+			for (size_t x = 0; x < numFaces; x++) {
 				const aiFace &face = aimesh->mFaces[x];
 
 				if (face.mNumIndices == 3) {

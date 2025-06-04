@@ -54,14 +54,14 @@ namespace glsample {
 		None = 0,
 		Wireframe = 0x1,
 	};
-	
+
 	class AnimationPlayer {
 	  public:
 		AnimationPlayer(AnimationObject &animation) {}
 
 		float time{};
 		unsigned int mode{};
-		AnimationObject *animation;
+		AnimationObject *animation{};
 	};
 
 	/**
@@ -107,13 +107,13 @@ namespace glsample {
 		RenderQueue getQueueDomain(const MaterialObject &material) const noexcept;
 
 	  protected:
-		using GlobalRenderSettings = struct alignas(16) _global_rendering_settings_t {
+		using GlobalRenderSettings = struct _global_rendering_settings_t {
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
 			unsigned int IrradianceTexture = 0;
 			FogSettings fogSettings;
 			unsigned int FrustumCullingMode = 0;
 		};
-		using CommonConstantData = struct alignas(16) common_constant_data_t {
+		using CommonConstantData = struct common_constant_data_t {
 			// TODO: keep multi frame camera frustum.
 			CameraInstance camera;
 			FrustumInstance frustum{};
@@ -126,16 +126,17 @@ namespace glsample {
 
 			glm::vec4 time; /*	elapsed, delta,	*/
 		};
-		using NodeData = struct alignas(16) _node_data_t {
+		using NodeData = struct _node_data_t {
 			glm::mat4 model;
 		};
-		using LightData = struct alignas(16) _light_data_t {
+
+		using LightData = struct _light_data_t {
 			DirectionalLight directional[16];
 			PointLightInstance pointLight[64];
 			unsigned int directionalCount = 0;
 			unsigned int pointCount = 0;
 		};
-		using MaterialData = struct alignas(16) _material_data_t {
+		using MaterialData = struct _material_data_t {
 			glm::vec4 ambientColor;
 			glm::vec4 diffuseColor;
 			glm::vec4 transparency;

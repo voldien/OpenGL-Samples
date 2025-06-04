@@ -121,8 +121,9 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tmp_ibo);
 		glBindBuffer(GL_ARRAY_BUFFER, tmp_vbo);
 
+		// TODO: based on conditions
 		/*	Vertex.	*/
-		glEnableVertexAttribArrayARB(0);
+		glEnableVertexAttribArrayARB(AttributeMapping::Vertex);
 		glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, vertexStride,
 								 reinterpret_cast<void *>(refModel_base.vertexOffset));
 
@@ -217,25 +218,22 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 	std::vector<TextureAssetObject> &Reftextures = modelLoader.getTextures();
 
+	std::vector<Image> images;
+	images.resize(Reftextures.size());
+
 	textures.resize(Reftextures.size());
 
 	glsample::TextureImporter textureImporter(modelLoader.getFileSystem());
 	MiscProcessingUtil process(modelLoader.getFileSystem());
 
+	/*	*/
+#pragma omp parallel for schedule(dynamic, 4)
 	for (size_t texture_index = 0; texture_index < Reftextures.size(); texture_index++) {
 
 		std::vector<MaterialObject *> materials = modelLoader.getMaterials(texture_index);
 
 		TextureAssetObject &tex = Reftextures[texture_index];
-		ColorSpace colorSpace = ColorSpace::RawLinear;
 		TextureCompression compression = TextureCompression::Default;
-
-		/*	Determine color space, based on the texture usages.	*/
-		if (!materials.empty()) {
-			if (materials[0]->diffuseIndex == texture_index) {
-				colorSpace = ColorSpace::SRGB;
-			}
-		}
 
 		if (tex.data == nullptr) {
 
@@ -251,13 +249,14 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				/*	Convert BumpMap to NormalMap*/
 				if (!materials.empty() && materials[0]->heightbumpIndex == texture_index) {
 					// TODO: use gpu to convert image.
-					image = ImageUtil::convert2NormalMap(image, 3.5f);
+					image = std::move(ImageUtil::convert2NormalMap(image, 3.5f));
 					materials[0]->heightbumpIndex = -1;
 					materials[0]->normalIndex = texture_index;
 				}
 
 				/*	*/
-				tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
+				images[texture_index] = std::move(image);
+				// tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
 
 			} catch (const std::exception &ex) {
 				std::cerr << "Failed to load: " << tex.filepath << " " << ex.what() << std::endl;
@@ -277,8 +276,8 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				try {
 
 					Image image = imageLoader.loadImage(refIO);
-
-					tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
+					images[texture_index] = std::move(image);
+					// tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
 
 				} catch (std::exception &ex) {
 					std::cerr << "Failed to load: " << ex.what() << std::endl;
@@ -290,17 +289,40 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				/*	None-compressed.	*/
 				fragcore::Image image(tex.width, tex.height, ImageFormat::ARGB32);
 				image.setPixelData(tex.data, image.getSize());
-
+				images[texture_index] = std::move(image);
 				/*	*/
-				tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
+				// tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
 			}
-		}
-
-		if (tex.texture >= 0) {
-			glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
 		}
 
 		/*	*/
 	}
+
+	std::cout << "Start Transfering ImageData to GPU" << std::endl;
+#pragma omp master
+	for (size_t texture_index = 0; texture_index < images.size(); texture_index++) {
+
+		TextureAssetObject &tex = Reftextures[texture_index];
+		ColorSpace colorSpace = ColorSpace::RawLinear;
+		const TextureCompression compression = TextureCompression::Default;
+
+		std::vector<MaterialObject *> materials = modelLoader.getMaterials(texture_index);
+
+		/*	Determine color space, based on the texture usages.	*/
+		if (!materials.empty()) {
+			if (materials[0]->diffuseIndex == texture_index) {
+				colorSpace = ColorSpace::SRGB;
+			}
+		}
+
+		/*	*/
+		tex.texture = textureImporter.loadImage2DRaw(images[texture_index], colorSpace, compression);
+
+		/*	*/
+		if (tex.texture >= 0) {
+			glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
+		}
+	}
+
 	textures = Reftextures;
 }

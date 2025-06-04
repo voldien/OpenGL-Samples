@@ -60,6 +60,10 @@ void GrainPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 
 	glUseProgram(this->grain_graphic_program);
 
+	if (animate) {
+		grainSettings.time += 0.01f;
+	}
+
 	/*	*/
 	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.base.blend"), this->getIntensity());
 	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.time"), grainSettings.time);
@@ -84,5 +88,7 @@ void GrainPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 void GrainPostProcessing::renderUI() {
 	ImGui::DragFloat("Time", &this->grainSettings.time);
 	ImGui::DragFloat("Intensity Strength", &this->grainSettings.intensity);
+
+	this->animate = ImGui::Checkbox("Animiate", &this->animate);
 	ImGui::DragFloat("Speed", &this->grainSettings.speed);
 }
