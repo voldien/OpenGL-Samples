@@ -237,3 +237,12 @@ Force the system to try to use the NVIDIA GPU. This is very useful when using a 
 ```bash
 __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia program arguments
 ```
+
+### Mesa
+
+```bash
+MESA_DEBUG=1
+MESA_GLSL=source
+MESA_SHADER_DUMP_PATH=dump
+INTEL_DEBUG=perf
+```

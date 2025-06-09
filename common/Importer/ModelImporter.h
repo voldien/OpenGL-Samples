@@ -57,8 +57,8 @@ using VertexBoneBuffer = struct vertex_bone_buffer_t {
 
 using MaterialTextureSampling = struct alignas(32) material_texture_sampling_t {
 	fragcore::TextureWrappingMode wrapping = fragcore::TextureWrappingMode::Repeat;
-	fragcore::FilterMode filtering = fragcore::FilterMode::Linear;
-	fragcore::UVMappingMode uv_mapping = fragcore::UVMappingMode::UV;
+	fragcore::TextureFilterMode filtering = fragcore::TextureFilterMode::Linear;
+	fragcore::TextureUVMappingMode uv_mapping = fragcore::TextureUVMappingMode::UV;
 };
 
 using MaterialObject = struct material_object_t : public AssetObject {

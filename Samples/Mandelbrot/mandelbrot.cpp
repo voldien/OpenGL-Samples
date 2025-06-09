@@ -25,8 +25,10 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			float posX, posY;
-			float mousePosX, mousePosY;
+			float posX = 0;
+			float posY = 0;
+			float mousePosX = 0;
+			float mousePosY = 0;
 			float zoom = 1.0f; /*	*/
 			float c = 0;	   /*	*/
 			float ci = 1;	   /*	*/
@@ -61,6 +63,9 @@ namespace glsample {
 				ImGui::DragInt("Number of Samples", &this->uniform.nrSamples, 1, 0, 2048);
 				ImGui::DragFloat2("C", &this->uniform.c);
 				ImGui::DragFloat("Zoom", &this->uniform.zoom, 1.0f, 0.001, 10.0f);
+				ImGui::DragFloat2("Mouse Position", &this->uniform.mousePosX, 1.0f, 0.001, 10.0f);
+				ImGui::DragFloat2("Position", &this->uniform.posX, 1.0f, 0.001, 10.0f);
+
 				ImGui::DragInt("Program", &this->program, 1.0f, 0, 1);
 			}
 

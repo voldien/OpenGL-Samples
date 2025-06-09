@@ -7,6 +7,7 @@
 #include "colorspace.glsl"
 #include "noise.glsl"
 #include "texture.glsl"
+#include "transformation.glsl"
 
 /*	Constants.	*/
 #define PI 3.1415926535897932384626433832795
@@ -25,7 +26,9 @@ struct Camera {
 	vec4 viewDir;		/*	*/
 	vec4 position_size; /*	*/
 	uvec4 screen_width_padding;
+
 	mat4 view;
+	mat4 viewRot;
 	mat4 viewProj;
 	mat4 proj;
 	mat4 inverseProj;
@@ -52,63 +55,6 @@ struct Frustum {
 	vec4 planes[6];
 };
 
-/*
-vec3 world_to_ndc(vec3 x, bool is_position) {
-	vec4 ndc = mul(vec4(x, (float)is_position), buffer_frame.view_projection);
-	return ndc.xyz / ndc.w;
-}
-
-vec3 world_to_ndc(vec3 x, vec4x4 transform)
-{
-	vec4 ndc = mul(vec4(x, 1.0f), transform);
-	return ndc.xyz / ndc.w;
-}
-
-vec3 view_to_ndc(vec3 x, bool is_position = true) {
-	vec4 ndc = mul(vec4(x, (float)is_position), buffer_frame.projection);
-	return ndc.xyz / ndc.w;
-}
-
-vec2 world_to_uv(vec3 x, bool is_position = true) {
-	vec4 uv = mul(vec4(x, (float)is_position), buffer_frame.view_projection);
-	return (uv.xy / uv.w) * vec2(0.5f, -0.5f) + 0.5f;
-}
-
-vec2 view_to_uv(vec3 x, bool is_position = true) {
-	vec4 uv = mul(vec4(x, (float)is_position), buffer_frame.projection);
-	return (uv.xy / uv.w) * vec2(0.5f, -0.5f) + 0.5f;
-}
-
-vec2 ndc_to_uv(vec2 x) { return x * vec2(0.5f, -0.5f) + 0.5f; }
-
-vec2 ndc_to_uv(vec3 x) { return x.xy * vec2(0.5f, -0.5f) + 0.5f; }
-*/
-
-float getExpToLinear(const in float start, const in float end, const in float expValue) {
-	return ((2.0f * start) / (end + start - expValue * (end - start)));
-}
-
-vec3 calcViewPosition(const in vec2 coords, const in mat4 inverseProj, const in float fragmentDepth) {
-	/*	Convert from screenspace to Normalize Device Coordinate.	*/
-	const vec4 ndc = vec4(coords.x * 2.0 - 1.0, coords.y * 2.0 - 1.0, fragmentDepth * 2.0 - 1.0, 1.0);
-
-	/*	Transform to view space using inverse camera projection matrix.	*/
-	vec4 vs_pos = inverseProj * ndc;
-
-	/*	*/
-	vs_pos.xyz = vs_pos.xyz / vs_pos.w;
-
-	return vs_pos.xyz;
-}
-
-#ifdef GL_FRAGMENT_SHADER
-#endif
-
-float get_depth_linear(const in sampler2D inDepthTexture, const in vec2 coords, const in float start,
-					   const in float end) {
-	const float depth = texture(inDepthTexture, coords).x;
-	return getExpToLinear(start, end, depth);
-}
 
 float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }

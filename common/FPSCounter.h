@@ -19,19 +19,12 @@
 namespace glsample {
 
 	/**
-	 * @brief
 	 *
-	 * @tparam T
 	 */
 	template <typename T = float> class FPSCounter {
 	  public:
-		FPSCounter(const unsigned int nrFPSSample = 50, const size_t timeResolution = 1000000000) {
-			this->fpsSample = nrFPSSample;
-			this->timeResolution = timeResolution;
-
-			this->averageFPS = 0;
-			this->totalFPS = 0;
-		}
+		FPSCounter(const unsigned int nrFPSSample = 50, const size_t timeResolution = 1000000000)
+			: totalFPS(0), fpsSample(nrFPSSample), averageFPS(0), timeResolution(timeResolution) {}
 
 		void update(const float elapsedTime) noexcept { this->incrementFPS(elapsedTime); }
 

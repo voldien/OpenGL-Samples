@@ -22,6 +22,7 @@ void SSSPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	const std::string vertexScreenSpaceShadowShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 	const std::string fragmentScreenSpaceShaderPath = "Shaders/postprocessingeffects/screen_space_shadowing.frag.spv";
 
+	/*	*/
 	{
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -51,8 +52,8 @@ void SSSPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glSamplerParameterf(this->world_position_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
 	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MAX_LOD, 0);
 	glSamplerParameteri(this->world_position_sampler, GL_TEXTURE_MIN_LOD, 0);
@@ -61,7 +62,17 @@ void SSSPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	this->overlay_program = this->createOverlayGraphicProgram(filesystem);
 	this->vao = createVAO();
 
+	/*	*/
 	this->setItensity(1);
+}
+
+void SSSPostProcessing::setItensity(const float intensity) {
+	PostProcessing::setItensity(intensity);
+
+	glUseProgram(this->screen_space_shadow_frag_program);
+	glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.base.blend"),
+				this->getIntensity());
+	glUseProgram(0);
 }
 
 void SSSPostProcessing::draw(glsample::FrameBuffer *framebuffer,
@@ -80,11 +91,9 @@ void SSSPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 		glBindSampler((int)GBuffer::Depth, this->world_position_sampler);
 		glBindSampler((int)GBuffer::Albedo, this->world_position_sampler);
 
-		glUseProgram((int)this->screen_space_shadow_frag_program);
+		glUseProgram(this->screen_space_shadow_frag_program);
 
 		/*	*/
-		glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.blend"),
-					this->SSSSettings.blend);
 		glUniform1i(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_sss_max_steps"),
 					this->SSSSettings.max_steps);
 		glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_sss_ray_max_distance"),
@@ -93,6 +102,7 @@ void SSSPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 					this->SSSSettings.thickness);
 		glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_sss_step_length"),
 					this->SSSSettings.step_length);
+
 		glUniform2fv(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.g_taa_jitter_offset"), 1,
 					 &this->SSSSettings.taa_jitter_offset[0]);
 		glUniform3fv(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.light_direction"), 1,
@@ -144,7 +154,7 @@ void SSSPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 
 void SSSPostProcessing::renderUI() {
 	ImGui::DragInt("Max Steps", (int *)&SSSSettings.max_steps, 1, 0, 128);
-	ImGui::DragFloat("Ray Max Distance", &SSSSettings.ray_max_distance, 0.1f, 0.0f);
+	ImGui::DragFloat("Ray Max Distance", &SSSSettings.ray_max_distance, 0.1f, 0.0f, 0, "%.6f");
 	ImGui::DragFloat("Tichkness", &SSSSettings.thickness, 0.1f, 0.0f);
 	ImGui::DragFloat("Step Length", &SSSSettings.step_length, 0.1f, 0.0f);
 	ImGui::DragFloat2("Jitter Offset", &SSSSettings.taa_jitter_offset[0], 0.1f, 0.0f);

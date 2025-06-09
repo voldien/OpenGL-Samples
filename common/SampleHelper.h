@@ -24,11 +24,11 @@ namespace glsample {
 
 	enum class GBuffer : unsigned int {
 		Albedo = 0,				 /*	*/
-		Color = 0,				 /*	*/
+		Color = 0,				 /*	Color, Alpha	*/
 		WorldSpace = 1,			 /*	*/
-		TextureCoordinate = 2,	 /*	*/
+		TextureCoordinate = 2,	 /*	TexCoord0, TexCoord1	*/
 		Normal = 3,				 /*	*/
-		Specular = 4,			 /*	Roughness*/
+		Specular = 4,			 /* SpecularColor,	Roughness*/
 		Emission = 5,			 /*	*/
 		Depth = 6,				 /*	*/
 		Velocity = 7,			 /*	*/
@@ -128,6 +128,7 @@ namespace glsample {
 			this->far = camera.getFar();
 			this->viewDir = glm::vec4(camera.getLookDirection(), 0);
 			this->view = camera.getViewMatrix();
+			this->viewRot = camera.getRotationMatrix();
 			this->viewProj = this->proj * this->view;
 			return *this;
 		}
@@ -141,6 +142,7 @@ namespace glsample {
 		glm::vec4 position_size = glm::vec4(0);
 		glm::uvec4 screen_width_padding = glm::ivec4(1);
 		glm::mat4 view = glm::mat4(1);
+		glm::mat4 viewRot = glm::mat4(1);
 		glm::mat4 viewProj = glm::mat4(1);
 		glm::mat4 proj = glm::mat4(1);
 		glm::mat4 inverseProj = glm::mat4(1);

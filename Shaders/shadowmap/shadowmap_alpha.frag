@@ -5,6 +5,7 @@
 #extension GL_EXT_control_flow_attributes : enable
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_ARB_conservative_depth: enable
 
 precision mediump float;
 precision mediump int;
@@ -12,6 +13,8 @@ precision mediump int;
 layout(location = 0) in vec2 UV;
 
 #include "scene.glsl"
+
+layout(depth_less) out float gl_FragDepth;
 
 void main() {
 

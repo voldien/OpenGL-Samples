@@ -1,5 +1,6 @@
 #include "colorspace.glsl"
 #include "common.glsl"
+#include "transformation.glsl"
 
 // TODO: remove
 struct global_rendering_settings {
@@ -17,12 +18,12 @@ struct common_data {
 	mat4 proj[3];
 
 	vec4 time;
+	//ivec4 frame;
 };
 
 struct BaseSettings {
 	float blend;
 };
-
 
 layout(set = 1, binding = 1, std140) uniform UniformCommonPostProcessingBufferBlock { common_data constant; }
 constantCommon;

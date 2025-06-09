@@ -113,7 +113,7 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		for (size_t i = 0; i < SSAOPostProcessing::maxKernels; i++) {
 
 			/*	*/
-			glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0,
+			glm::vec3 sample((randomFloats(generator) * 2.0) - 1.0, (randomFloats(generator) * 2.0) - 1.0,
 							 randomFloats(generator));
 
 			sample = glm::normalize(sample);
@@ -217,7 +217,7 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 		if (this->useDepthOnly) {
 
-			glUseProgram((int)this->ssao_depth_only_program);
+			glUseProgram(this->ssao_depth_only_program);
 
 		} else {
 			glUseProgram(this->ssao_depth_world_program);

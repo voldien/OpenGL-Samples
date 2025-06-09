@@ -85,6 +85,9 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			if (ImGui::Checkbox("RenderDoc", &renderDocEnable)) {
 				this->getRefSample().enableRenderDoc(renderDocEnable);
 			}
+			if (ImGui::Button("Launch RenderDoc")) {
+				this->getRefSample().launchRenderDoc();
+			}
 			/*	*/
 			if (ImGui::Button("Capture Frame")) {
 				this->getRefSample().captureDebugFrame();
@@ -498,7 +501,7 @@ void GLSampleWindow::renderUI() {
 				/*	Setup References.	*/
 				{std::make_tuple<const GBuffer, unsigned int>(GBuffer::Albedo, 0u),
 				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::Depth,
-															  (unsigned int)this->defaultFramebuffer->depthIndex),
+															  this->defaultFramebuffer->depthIndex),
 				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget, 1u),
 				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget2, 2u)});
 			glPopDebugGroup();
@@ -598,7 +601,7 @@ void GLSampleWindow::renderUI() {
 void GLSampleWindow::setTitle(const std::string &title) {
 
 	nekomimi::MIMIWindow::setTitle(title + " - OpenGL version " + this->getRenderInterface()->getAPIVersion() +
-								   " GLSL: ");
+								   " GLSL: "); // + std::to_string(this->getShaderVersion())
 }
 
 bool GLSampleWindow::isDebug() const noexcept {
@@ -620,9 +623,13 @@ void GLSampleWindow::debug(const bool enable) {
 	}
 
 	try {
+		/*	*/
 		fragcore::Library library("librenderdoc.so");
+
+		/*	*/
 		pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)library.getfunc("RENDERDOC_GetAPI");
-		int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&this->rdoc_api);
+		int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (&this->rdoc_api));
+
 		assert(ret == 1);
 
 	} catch (const std::exception &ex) {
@@ -717,17 +724,29 @@ bool GLSampleWindow::getVSync() const { return SDL_GL_GetSwapInterval(); }
 
 void GLSampleWindow::enableRenderDoc(const bool status) {
 	if (status) {
+		RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
+
+		// rdoc_api_inter->LaunchReplayUI(1, "");
 	}
 }
 
+void GLSampleWindow::launchRenderDoc() {
+
+	RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
+
+	rdoc_api_inter->LaunchReplayUI(1, "");
+}
+
 bool GLSampleWindow::isRenderDocEnabled() noexcept {
+
 	if (!this->rdoc_api) {
 		return false;
 	}
 
+	/*	*/
 	RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
-	// rdoc_api_inter->GetAPIVersion();
-	if (rdoc_api_inter->IsTargetControlConnected) {
+
+	if (!rdoc_api_inter->IsTargetControlConnected) {
 		return false;
 	}
 
@@ -737,6 +756,7 @@ bool GLSampleWindow::isRenderDocEnabled() noexcept {
 void GLSampleWindow::captureDebugFrame() noexcept {
 	if (this->isRenderDocEnabled()) {
 		RENDERDOC_API_1_1_2 *rdoc_api_inter = (RENDERDOC_API_1_1_2 *)this->rdoc_api;
+		//		rdoc_api_inter->SetCaptureTitle("");
 		rdoc_api_inter->TriggerCapture();
 	}
 }

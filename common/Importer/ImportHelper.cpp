@@ -8,6 +8,7 @@
 #include <ProceduralGeometry.h>
 #include <cstdint>
 #include <exception>
+#include <half.hpp>
 #include <iostream>
 #include <ostream>
 
@@ -39,7 +40,6 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 	}
 
 	{
-
 		/*	*/
 		glGenBuffers(1, &tmp_ibo);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tmp_ibo);

@@ -25,12 +25,12 @@
 #include <Core/Time.h>
 #include <IO/IFileSystem.h>
 #include <MIMIWindow.h>
+#include <Math3D/Math3D.h>
 #include <ProceduralGeometry.h>
 #include <cstddef>
 #include <cxxopts.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
-#include <Math3D/Math3D.h>
 
 class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
   public:
@@ -124,6 +124,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	bool getVSync() const;
 
 	void enableRenderDoc(const bool status);
+	void launchRenderDoc();
 	bool isRenderDocEnabled() noexcept;
 	void captureDebugFrame() noexcept;
 
@@ -138,38 +139,52 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 		return this->postprocessingManager.get();
 	}
 
-	//TODO: relocate
-	static void blitFrameBuffer(const glsample::FrameBuffer* framebuffer, const unsigned int width, const int height, fragcore::Vector4 rectNormalized, int mode = 0){
-	/*	Blit image targets to screen.	*/
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->framebuffer);
-	/*	Transfer each target to default framebuffer.	*/
-	const size_t widthDivior = 3;
-	const size_t heightDivior = 2;
+	// TODO: relocate
+	static void blitFrameBuffer(const glsample::FrameBuffer *framebuffer, const unsigned int width, const int height,
+								glm::vec4 rectNormalized, int mode = 0) {
+									
+		/*	Blit image targets to screen.	*/
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->framebuffer);
+		/*	Transfer each target to default framebuffer.	*/
+		const size_t widthDivior = 3;
+		const size_t heightDivior = 2;
 
-	const float sub_view_width = (int)(width / widthDivior);
-	const float sub_view_height = (int)(height / heightDivior);
-	
-	//TODO: make its function for resue it with other samples
-	for (size_t index = 0; index < framebuffer->nrAttachments; index++) {
+		const float sub_view_width = (int)(width / widthDivior);
+		const float sub_view_height = (int)(height / heightDivior);
 
-		glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
+		// TODO: make its function for resue it with other samples
+		for (size_t index = 0; index < framebuffer->nrAttachments; index++) {
 
-		/*	*/
-		const size_t dest_width = sub_view_width + (index % widthDivior) * sub_view_width;
-		const size_t dest_height = sub_view_height + (index / heightDivior) * sub_view_height;
+			glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
 
-		const size_t source_width = 0;
-		const size_t source_height = 0;
+			/*	*/
+			const size_t dest_width = sub_view_width + (index % widthDivior) * sub_view_width;
+			const size_t dest_height = sub_view_height + (index / heightDivior) * sub_view_height;
 
-		glBlitFramebuffer(0, 0, source_width, source_height,
-						  (index % widthDivior) * (sub_view_width), (index / heightDivior) * sub_view_height,
-						  dest_width, dest_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-	}
-		//glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
+			const size_t source_width = 0;
+			const size_t source_height = 0;
+
+			glBlitFramebuffer(0, 0, source_width, source_height, (index % widthDivior) * (sub_view_width),
+							  (index / heightDivior) * sub_view_height, dest_width, dest_height, GL_COLOR_BUFFER_BIT,
+							  GL_LINEAR);
+		}
+		// glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 	}
 
 	/*	*/
+	struct debug_info_t {
+		size_t debug_prev_frame_sample_count = 0;
+		size_t debug_prev_frame_primitive_count = 0;
+		size_t debug_prev_frame_cs_invocation_count = 0;
+		size_t debug_prev_frame_frag_invocation_count = 0;
+		size_t debug_prev_frame_vertex_invocation_count = 0;
+		size_t debug_prev_frame_geometry_invocation_count = 0;
+
+		size_t nrPrimitives = 0, nrSamples = 0, time_elapsed = 0;
+		size_t time_resolution = static_cast<long>(1000) * 1000;
+	};
+
 	size_t debug_prev_frame_sample_count = 0;
 	size_t debug_prev_frame_primitive_count = 0;
 	size_t debug_prev_frame_cs_invocation_count = 0;

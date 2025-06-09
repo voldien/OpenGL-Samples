@@ -683,7 +683,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 
 					switch (mapping) {
 					case aiTextureMapping_UV:
-						material->texture_sampling[textureType].uv_mapping = fragcore::UVMappingMode::UV;
+						material->texture_sampling[textureType].uv_mapping = fragcore::TextureUVMappingMode::UV;
 						break;
 					case aiTextureMapping_SPHERE:
 					case aiTextureMapping_CYLINDER:
@@ -694,7 +694,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t ind
 						break;
 					}
 
-					material->texture_sampling[textureType].filtering = FilterMode::Linear;
+					material->texture_sampling[textureType].filtering = TextureFilterMode::Linear;
 				}
 
 				switch (textureType) {

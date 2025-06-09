@@ -2,6 +2,7 @@
 #include "../Common.h"
 #include "Math3D/Color.h"
 #include "ModelImporter.h"
+#include "RenderDesc.h"
 #include "UIComponent.h"
 #include "Util/CameraController.h"
 #include "Util/Frustum.h"
@@ -362,7 +363,10 @@ namespace glsample {
 			}
 
 			const MaterialTextureSampling &sampling = material.texture_sampling[materialTextureIndex];
+
 			/*	*/
+			glSamplerParameteri(this->samplers[textureMapIndex], GL_TEXTURE_MIN_FILTER , sampling.filtering == TextureFilterMode::Nearset ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR);
+			glSamplerParameteri(this->samplers[textureMapIndex], GL_TEXTURE_MAG_FILTER , sampling.filtering == TextureFilterMode::Nearset ? GL_NEAREST : GL_LINEAR);
 
 		} else {
 			texture_id = this->default_textures[texture_type];
@@ -649,6 +653,7 @@ namespace glsample {
 				ImGui::Text("Count %lu", this->materials.size());
 				size_t material_index = 0;
 				for (; material_index < this->materials.size(); material_index++) {
+
 					MaterialObject &mat = this->materials[material_index];
 					ImGui::PushID(material_index);
 					ImGui::TextUnformatted(this->materials[material_index].name.c_str());
@@ -670,6 +675,7 @@ namespace glsample {
 					ImGui::DragFloat("Shinininess", &mat.shinininess, 1, 0, 128);
 					ImGui::DragFloat("Bumpiness", &mat.bumpiness, 1, 0, 128);
 
+					/*	Textures.	*/
 					for (size_t tex_index = 0; tex_index < mat.texture_index.size(); tex_index++) {
 
 						if (mat.texture_index[tex_index] == -1) {
@@ -681,32 +687,64 @@ namespace glsample {
 
 							ImGui::PushID(tex_index);
 
-							ImGui::Image(tex, ImVec2(96, 96));
+							ImGui::Image(tex, ImVec2(96, 96), ImVec2(1, 1), ImVec2(0, 0));
 							ImGui::SameLine();
 							ImGui::Text("%s (%ld)", texType.c_str(), tex_index);
 							ImGui::SameLine();
 
-							const int item_selected_idx = (int)mat.texture_sampling[tex_index].wrapping;
+							{
+								const int texture_wrapping_item_selected_idx =
+									(int)mat.texture_sampling[tex_index].wrapping;
 
-							std::string combo_preview_value =
-								std::string(magic_enum::enum_name((fragcore::TextureWrappingMode)item_selected_idx));
-							ImGuiComboFlags flags = 0;
-							if (ImGui::BeginCombo("Texture Wrapping", combo_preview_value.c_str(), flags)) {
-								for (int n = 0; n <= (int)fragcore::TextureWrappingMode::ClampBorder; n++) {
-									const bool is_selected = (item_selected_idx == n);
+								/*	*/
+								const std::string combo_preview_value = std::string(magic_enum::enum_name(
+									(fragcore::TextureWrappingMode)texture_wrapping_item_selected_idx));
+								ImGuiComboFlags flags = 0;
+								if (ImGui::BeginCombo("Texture Wrapping", combo_preview_value.c_str(), flags)) {
+									for (int n = 0; n <= (int)fragcore::TextureWrappingMode::ClampBorder; n++) {
+										const bool is_selected = (texture_wrapping_item_selected_idx == n);
 
-									if (ImGui::Selectable(
-											magic_enum::enum_name((fragcore::TextureWrappingMode)n).data(),
-											is_selected)) {
-										mat.texture_sampling[tex_index].wrapping = (fragcore::TextureWrappingMode)n;
+										if (ImGui::Selectable(
+												magic_enum::enum_name((fragcore::TextureWrappingMode)n).data(),
+												is_selected)) {
+											mat.texture_sampling[tex_index].wrapping = (fragcore::TextureWrappingMode)n;
+										}
+
+										if (is_selected) {
+											ImGui::SetItemDefaultFocus();
+										}
 									}
-
-									if (is_selected) {
-										ImGui::SetItemDefaultFocus();
-									}
+									ImGui::EndCombo();
 								}
-								ImGui::EndCombo();
 							}
+
+							ImGui::SameLine();
+
+							{
+								const int texture_filtering_item_selected_idx =
+									(int)mat.texture_sampling[tex_index].filtering;
+
+								/*	*/
+								const std::string combo_preview_filter_value = std::string(
+									magic_enum::enum_name((fragcore::TextureFilterMode)texture_filtering_item_selected_idx));
+								ImGuiComboFlags flags = 0;
+								if (ImGui::BeginCombo("Texture Filtering", combo_preview_filter_value.c_str(), flags)) {
+									for (int n = 0; n <= (int)fragcore::TextureFilterMode::Trilinear; n++) {
+										const bool is_selected = (texture_filtering_item_selected_idx == n);
+
+										if (ImGui::Selectable(magic_enum::enum_name((fragcore::TextureFilterMode)n).data(),
+															  is_selected)) {
+											mat.texture_sampling[tex_index].filtering = (fragcore::TextureFilterMode)n;
+										}
+
+										if (is_selected) {
+											ImGui::SetItemDefaultFocus();
+										}
+									}
+									ImGui::EndCombo();
+								}
+							}
+
 							ImGui::PopID();
 						}
 					}
@@ -715,6 +753,9 @@ namespace glsample {
 			}
 
 			if (ImGui::CollapsingHeader("Textures")) {
+				size_t material_index = 0;
+				for (; material_index < this->materials.size(); material_index++) {
+				}
 			}
 		}
 	}

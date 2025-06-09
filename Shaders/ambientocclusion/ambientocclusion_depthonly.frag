@@ -29,7 +29,6 @@ ubo;
 
 vec3 calcViewPosition(const in vec2 coords) {
 	const float fragmentDepth = texture(DepthTexture, coords).r;
-
 	return calcViewPosition(coords, inverse(ubo.proj), fragmentDepth);
 }
 

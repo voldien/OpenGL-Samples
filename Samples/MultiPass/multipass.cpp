@@ -141,7 +141,9 @@ namespace glsample {
 				(unsigned int)GBuffer::WorldSpace, (unsigned int)GBuffer::TextureCoordinate,
 				(unsigned int)GBuffer::Albedo,	   (unsigned int)GBuffer::Normal,
 				(unsigned int)GBuffer::Specular,   (unsigned int)GBuffer::Emission,
+				(unsigned int)GBuffer::Velocity,
 			};
+
 			glGenTextures(this->multipass_textures.size(), this->multipass_textures.data());
 			glGenTextures(1, &this->depthTexture);
 			this->onResize(this->width(), this->height());
@@ -235,8 +237,16 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
+		}
+
+		void postDraw() override {
+			/*	*/
+			int width = 0, height = 0;
+			this->getSize(&width, &height);
+
 			/*	Blit image targets to screen.	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->multipass_framebuffer);
 
 			glViewport(0, 0, width, height);
@@ -247,8 +257,8 @@ namespace glsample {
 
 			const float sub_view_width = (int)(width / widthDivior);
 			const float sub_view_height = (int)(height / heightDivior);
-			
-			//TODO: make its function for resue it with other samples
+
+			// TODO: make its function for resue it with other samples
 			for (size_t index = 0; index < this->multipass_textures.size(); index++) {
 
 				glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
@@ -261,7 +271,7 @@ namespace glsample {
 								  (index % widthDivior) * (sub_view_width), (index / heightDivior) * sub_view_height,
 								  dest_width, dest_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 			}
-			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
 		void update() override {
