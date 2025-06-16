@@ -55,7 +55,7 @@ using VertexBoneBuffer = struct vertex_bone_buffer_t {
 	std::vector<VertexBoneData> vertexBoneData;
 };
 
-using MaterialTextureSampling = struct alignas(32) material_texture_sampling_t {
+using MaterialTextureSampling = struct material_texture_sampling_t {
 	fragcore::TextureWrappingMode wrapping = fragcore::TextureWrappingMode::Repeat;
 	fragcore::TextureFilterMode filtering = fragcore::TextureFilterMode::Linear;
 	fragcore::TextureUVMappingMode uv_mapping = fragcore::TextureUVMappingMode::UV;
@@ -67,7 +67,7 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	// Material properties.
 	glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
 	glm::vec4 diffuse = glm::vec4(1);
-	glm::vec4 emission = glm::vec4(1);
+	glm::vec4 emission = glm::vec4(0);
 	glm::vec4 specular = glm::vec4(1);
 	glm::vec4 transparent = glm::vec4(1);
 	glm::vec4 reflectivity = glm::vec4(1);
@@ -84,33 +84,49 @@ using MaterialObject = struct material_object_t : public AssetObject {
 
 	unsigned int shade_model = 0; /*	aiShadingMode	*/
 
-	MaterialTextureSampling texture_sampling[16];
+	MaterialTextureSampling texture_sampling[32];
 
 	/*	Texture index.	*/
 	union {
 		struct {
-			int diffuseIndex = -1;
-			int normalIndex = -1;
-			int maskTextureIndex = -1;
-			int specularIndex = -1;
-			int emissionIndex = -1;
-			int reflectionIndex = -1;
-			int ambientOcclusionIndex = -1;
-			int displacementIndex = -1;
-			int metalIndex = -1;
-			int heightbumpIndex = -1;
-			int pad0 = -1;
+			int diffuseIndex = -1;			/*	*/
+			int normalIndex = -1;			/*	*/
+			int maskTextureIndex = -1;		/*	*/
+			int specularIndex = -1;			/*	*/
+			int emissionIndex = -1;			/*	*/
+			int reflectionIndex = -1;		/*	*/
+			int ambientOcclusionIndex = -1; /*	*/
+			int displacementIndex = -1;		/*	*/
+			int metalIndex = -1;			/*	*/
+			int heightbumpIndex = -1;		/*	*/
 			int pad1 = -1;
 			int pad2 = -1;
 			int pad3 = -1;
 			int pad4 = -1;
 			int pad5 = -1;
+			int pad6 = -1;
+			int pad7 = -1;
+			int pad8 = -1;
+			int pad9 = -1;
+			int pad10 = -1;
+			int pad11 = -1;
+			int pad12 = -1;
+			int pad13 = -1;
+			int pad14 = -1;
+			int pad15 = -1;
+			int pad16 = -1;
+			int pad17 = -1;
+			int pad18 = -1;
+			int pad19 = -1;
+			int pad20 = -1;
+			int pad21 = -1;
+			int pad22 = -1;
 		};
-		std::array<int, 16> texture_index;
+		std::array<int, 32> texture_index; /*	TextureType.	*/
 	};
 };
 
-using NodeObject = struct alignas(32) node_object_t : public AssetObject {
+using NodeObject = struct node_object_t : public AssetObject {
 	/*	*/
 	glm::vec3 localPosition;
 	glm::quat localRotation;
@@ -129,7 +145,7 @@ using NodeObject = struct alignas(32) node_object_t : public AssetObject {
 	struct node_object_t *parent = nullptr;
 };
 
-using MeshData = struct alignas(32) mesh_data_t : public AssetObject {
+using MeshData = struct mesh_data_t : public AssetObject {
 	/*	*/
 	size_t nrVertices{};
 	size_t nrIndices{};
@@ -149,8 +165,8 @@ using ModelSystemObject = struct model_system_object : public AssetObject {
 	// MeshData bone
 	size_t nrVertices{};
 	size_t nrIndices{};
-	size_t vertexStride{};
-	size_t indicesStride{};
+	unsigned int vertexStride{};  /*	In Bytes.	*/
+	unsigned int indicesStride{}; /*	In Bytes.	*/
 
 	void *vertexData{};
 	void *indicesData{};
@@ -160,16 +176,25 @@ using ModelSystemObject = struct model_system_object : public AssetObject {
 	fragcore::Bound bound{};
 
 	/*	*/
-	unsigned int vertexOffset{};
-	unsigned int uvOffset{};
-	unsigned int normalOffset{};
-	unsigned int tangentOffset{};
-	unsigned int vertexColorOffset{};
-	unsigned int boneOffset{};
-	unsigned int boneWeightOffset{};
-	unsigned int boneIndexOffset{};
+	ssize_t vertexOffset{};
+	ssize_t uvOffset{};
+	ssize_t normalOffset{};
+	ssize_t tangentOffset{};
+	ssize_t vertexColorOffset{};
+	ssize_t boneOffset{};
+	ssize_t boneWeightOffset{};
+	ssize_t boneIndexOffset{};
 
 	unsigned int primitiveType{};
+
+	bool processed = false;
+};
+
+using CameraData = struct camera_data_t : public AssetObject{
+	glm::vec3 position;
+	glm::vec3 up;
+	glm::vec3 lookAt;
+
 };
 
 using Bone = struct alignas(16) bone_t : public AssetObject {
@@ -311,6 +336,8 @@ class FVDECLSPEC ModelImporter {
 	std::vector<TextureAssetObject> textures;
 	std::map<std::string, TextureAssetObject *> textureMapping;
 	std::map<std::string, unsigned int> textureIndexMapping;
+
+	std::vector<CameraData> cameras;
 
 	std::vector<SkeletonSystem> skeletons;
 

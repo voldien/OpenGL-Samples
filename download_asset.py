@@ -17,12 +17,12 @@ download_zip_asset_urls = [
 	"https://casual-effects.com/g3d/data10/common/model/teapot/teapot.zip",
 	"https://casual-effects.com/g3d/data10/research/model/dragon/dragon.zip",
 	"https://casual-effects.com/g3d/data10/common/model/CornellBox/CornellBox.zip",
-	# "https://casual-effects.com/g3d/data10/research/model/San_Miguel/San_Miguel.zip"
-	# "https://casual-effects.com/g3d/data10/research/model/gallery/gallery.zip"
+	# "https://casual-effects.com/g3d/data10/research/model/San_Miguel/San_Miguel.zip",
+	# "https://casual-effects.com/g3d/data10/research/model/gallery/gallery.zip",
 	# PBR Models
 	# "http://artisaverb.info/Cerberus/Cerberus_by_Andrew_Maximov.zip",
-	# "https://cdrdv2.intel.com/v1/dl/getContent/844047" # Jungle Ruins Scene
-	# "https://cdrdv2.intel.com/v1/dl/getContent/830833" # Sponza Base Scene
+	# "https://cdrdv2.intel.com/v1/dl/getContent/844047", # Jungle Ruins Scene
+	# "https://cdrdv2.intel.com/v1/dl/getContent/830833", # Sponza Base Scene
 ]
 download_asset_directly = [
 	# Textures

@@ -2,7 +2,7 @@ INCLUDE(FetchContent)
 IF(NOT TARGET assimp)
 	FetchContent_Declare(assimp_source
 		GIT_REPOSITORY https://github.com/assimp/assimp.git
-		GIT_TAG "v5.4.3"
+		GIT_TAG "v6.0.2"
 	)
 
 	FetchContent_GetProperties(assimp_source)

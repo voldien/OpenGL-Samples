@@ -48,7 +48,7 @@ namespace glsample {
 
 			/*	Light source.	*/
 			DirectionalLight directional;
-			CameraInstance camera;
+			CameraInstanceData camera;
 
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1);

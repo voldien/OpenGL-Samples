@@ -37,7 +37,7 @@ namespace glsample {
 			glm::mat4 modelView{};
 			glm::mat4 modelViewProjection{};
 
-			CameraInstance camera;
+			CameraInstanceData camera;
 
 		} uniformStageBuffer;
 

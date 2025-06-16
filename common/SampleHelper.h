@@ -104,9 +104,9 @@ namespace glsample {
 		float quadratic_attenuation = 0.025f;
 	};
 
-	using CameraInstance = struct camera_instance_t {
+	using CameraInstanceData = struct camera_instance_data_t {
 		/*	*/
-		camera_instance_t &operator=(Camera &camera) {
+		camera_instance_data_t &operator=(Camera &camera) {
 			this->near = camera.getNear();
 			this->far = camera.getFar();
 			this->proj = camera.getProjectionMatrix();
@@ -115,7 +115,7 @@ namespace glsample {
 			return *this;
 		}
 
-		camera_instance_t &operator=(CameraController &camera) {
+		camera_instance_data_t &operator=(CameraController &camera) {
 			//*this = camera.as<Camera<float>>();
 			// TODO: reuse function above
 			this->near = camera.getNear();

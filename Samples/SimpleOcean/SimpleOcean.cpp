@@ -51,7 +51,7 @@ namespace glsample {
 
 			/*	light source.	*/
 			DirectionalLight directional;
-			CameraInstance camera;
+			CameraInstanceData camera;
 
 			/*	*/
 			Wave waves[nrMaxWaves]{};

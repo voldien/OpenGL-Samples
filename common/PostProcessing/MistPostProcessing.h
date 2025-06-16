@@ -31,7 +31,7 @@ namespace glsample {
 		using MistUniformBuffer = struct mist_uniform_buffer_t {
 			glm::mat4 proj;
 			glm::mat4 viewRotation;
-			CameraInstance instance;
+			CameraInstanceData instance;
 			FogSettings fogSettings;
 		};
 

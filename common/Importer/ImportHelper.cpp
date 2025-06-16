@@ -35,6 +35,9 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 	/*	Sort based on vertex stride.	*/
 	for (size_t i = 0; i < modelLoader.getModels().size(); i++) {
 		const ModelSystemObject &refModel = modelLoader.getModels()[i];
+
+		assert(refModel.vertexStride > 0);
+
 		map[refModel.vertexStride].push_back({&refModel, i});
 		indicesDataSize += refModel.indicesStride * refModel.nrIndices;
 	}
@@ -77,8 +80,8 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 		const int vertexStride = (*it).first;
 
 		size_t vertexDataSize = 0;
-		for (size_t i = 0; i < ref.size(); i++) {
-			const ModelSystemObject &refModel = *ref[i].model;
+		for (size_t ref_index = 0; ref_index < ref.size(); ref_index++) {
+			const ModelSystemObject &refModel = *ref[ref_index].model;
 
 			nrVertices += refModel.nrVertices;
 			/*	*/
@@ -141,6 +144,9 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 		glEnableVertexAttribArrayARB(3);
 		glVertexAttribPointerARB(3, 3, GL_FLOAT, GL_FALSE, vertexStride,
 								 reinterpret_cast<void *>(refModel_base.tangentOffset));
+
+		if (refModel_base.vertexColorOffset >= 0) {
+		}
 
 		/*	Bone.	*/
 		if (refModel_base.boneIndexOffset > 0) {

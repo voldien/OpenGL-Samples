@@ -50,7 +50,7 @@ namespace glsample {
 			glm::mat4 viewProjection{};
 			glm::mat4 modelViewProjection{};
 
-			CameraInstance camera{};
+			CameraInstanceData camera{};
 
 			TerrainSettings terrainSettings;
 

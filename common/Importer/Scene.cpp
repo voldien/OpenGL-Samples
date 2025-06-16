@@ -9,6 +9,7 @@
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include <GL/glew.h>
+#include <cstdint>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
 #include <iostream>
@@ -365,8 +366,11 @@ namespace glsample {
 			const MaterialTextureSampling &sampling = material.texture_sampling[materialTextureIndex];
 
 			/*	*/
-			glSamplerParameteri(this->samplers[textureMapIndex], GL_TEXTURE_MIN_FILTER , sampling.filtering == TextureFilterMode::Nearset ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR);
-			glSamplerParameteri(this->samplers[textureMapIndex], GL_TEXTURE_MAG_FILTER , sampling.filtering == TextureFilterMode::Nearset ? GL_NEAREST : GL_LINEAR);
+			glSamplerParameteri(this->samplers[textureMapIndex], GL_TEXTURE_MIN_FILTER,
+								sampling.filtering == TextureFilterMode::Nearset ? GL_NEAREST_MIPMAP_NEAREST
+																				 : GL_LINEAR_MIPMAP_LINEAR);
+			glSamplerParameteri(this->samplers[textureMapIndex], GL_TEXTURE_MAG_FILTER,
+								sampling.filtering == TextureFilterMode::Nearset ? GL_NEAREST : GL_LINEAR);
 
 		} else {
 			texture_id = this->default_textures[texture_type];
@@ -601,20 +605,24 @@ namespace glsample {
 
 					ImGui::PushID(node_index);
 
+					if (nodes[node_index]->parent) {
+						ImGui::TextUnformatted(nodes[node_index]->parent->name.c_str());
+					}
+
 					ImGui::TextUnformatted(nodes[node_index]->name.c_str());
 					if (ImGui::DragFloat3("Position", &nodes[node_index]->localPosition[0])) {
-						glm::mat4 globaMat = nodes[node_index]->parent == nullptr
-												 ? glm::mat4(1)
-												 : nodes[node_index]->parent->modelGlobalTransform;
+						const glm::mat4 globaMat = nodes[node_index]->parent == nullptr
+													   ? glm::mat4(1)
+													   : nodes[node_index]->parent->modelGlobalTransform;
 						nodes[node_index]->modelGlobalTransform =
 							glm::translate(globaMat, nodes[node_index]->localPosition);
 					}
 
 					if (ImGui::DragFloat4("Rotation (Quat)", &nodes[node_index]->localRotation[0])) {
 						nodes[node_index]->localRotation = glm::normalize(nodes[node_index]->localRotation);
-						glm::mat4 globaMat = nodes[node_index]->parent == nullptr
-												 ? glm::mat4(1)
-												 : nodes[node_index]->parent->modelGlobalTransform;
+						const glm::mat4 globaMat = nodes[node_index]->parent == nullptr
+													   ? glm::mat4(1)
+													   : nodes[node_index]->parent->modelGlobalTransform;
 						nodes[node_index]->modelGlobalTransform =
 							glm::translate(globaMat, nodes[node_index]->localPosition) *
 							glm::mat4_cast(nodes[node_index]->localRotation);
@@ -676,25 +684,29 @@ namespace glsample {
 					ImGui::DragFloat("Bumpiness", &mat.bumpiness, 1, 0, 128);
 
 					/*	Textures.	*/
-					for (size_t tex_index = 0; tex_index < mat.texture_index.size(); tex_index++) {
+					for (size_t mat_tex_index = 0; mat_tex_index < mat.texture_index.size(); mat_tex_index++) {
 
-						if (mat.texture_index[tex_index] == -1) {
+						/*	Validate Texture.	*/
+						const uint32_t texture_index = mat.texture_index[mat_tex_index];
+						if (mat.texture_index[mat_tex_index] == -1) {
 							continue;
 						}
-						const unsigned int tex = this->refTexture[mat.texture_index[tex_index]].texture;
+
+						const unsigned int tex = this->refTexture[texture_index].texture;
 						if (glIsTexture(tex)) {
-							const std::string texType = std::string(magic_enum::enum_name((TextureType)tex_index));
 
-							ImGui::PushID(tex_index);
+							ImGui::PushID(mat_tex_index);
 
+							/*	*/
+							const std::string texType = std::string(magic_enum::enum_name((TextureType)mat_tex_index));
 							ImGui::Image(tex, ImVec2(96, 96), ImVec2(1, 1), ImVec2(0, 0));
 							ImGui::SameLine();
-							ImGui::Text("%s (%ld)", texType.c_str(), tex_index);
+							ImGui::Text("%s (%ld)", texType.c_str(), mat_tex_index);
 							ImGui::SameLine();
 
 							{
 								const int texture_wrapping_item_selected_idx =
-									(int)mat.texture_sampling[tex_index].wrapping;
+									(int)mat.texture_sampling[mat_tex_index].wrapping;
 
 								/*	*/
 								const std::string combo_preview_value = std::string(magic_enum::enum_name(
@@ -707,7 +719,8 @@ namespace glsample {
 										if (ImGui::Selectable(
 												magic_enum::enum_name((fragcore::TextureWrappingMode)n).data(),
 												is_selected)) {
-											mat.texture_sampling[tex_index].wrapping = (fragcore::TextureWrappingMode)n;
+											mat.texture_sampling[mat_tex_index].wrapping =
+												(fragcore::TextureWrappingMode)n;
 										}
 
 										if (is_selected) {
@@ -722,19 +735,21 @@ namespace glsample {
 
 							{
 								const int texture_filtering_item_selected_idx =
-									(int)mat.texture_sampling[tex_index].filtering;
+									(int)mat.texture_sampling[mat_tex_index].filtering;
 
 								/*	*/
-								const std::string combo_preview_filter_value = std::string(
-									magic_enum::enum_name((fragcore::TextureFilterMode)texture_filtering_item_selected_idx));
+								const std::string combo_preview_filter_value = std::string(magic_enum::enum_name(
+									(fragcore::TextureFilterMode)texture_filtering_item_selected_idx));
 								ImGuiComboFlags flags = 0;
 								if (ImGui::BeginCombo("Texture Filtering", combo_preview_filter_value.c_str(), flags)) {
 									for (int n = 0; n <= (int)fragcore::TextureFilterMode::Trilinear; n++) {
 										const bool is_selected = (texture_filtering_item_selected_idx == n);
 
-										if (ImGui::Selectable(magic_enum::enum_name((fragcore::TextureFilterMode)n).data(),
-															  is_selected)) {
-											mat.texture_sampling[tex_index].filtering = (fragcore::TextureFilterMode)n;
+										if (ImGui::Selectable(
+												magic_enum::enum_name((fragcore::TextureFilterMode)n).data(),
+												is_selected)) {
+											mat.texture_sampling[mat_tex_index].filtering =
+												(fragcore::TextureFilterMode)n;
 										}
 
 										if (is_selected) {
@@ -755,6 +770,20 @@ namespace glsample {
 			if (ImGui::CollapsingHeader("Textures")) {
 				size_t material_index = 0;
 				for (; material_index < this->materials.size(); material_index++) {
+				}
+			}
+
+			if (ImGui::CollapsingHeader("Meshes")) {
+				size_t mesh_index = 0;
+				for (; mesh_index < this->getMeshes().size(); mesh_index++) {
+					auto& ref = this->getMeshes()[mesh_index];
+					ImGui::PushID(mesh_index);
+					ImGui::Text("Index %zu", mesh_index);
+					ImGui::Text("Vertices %zu", ref.nrVertices);
+					ImGui::Text("Indices Elements %zu", ref.nrIndicesElements);
+					ImGui::Text("Vertex Stride %u", ref.stride);
+					//ImGui::Text("Indices Elements Stride %zu", ref.stride);
+					ImGui::PopID();
 				}
 			}
 		}

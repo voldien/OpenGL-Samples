@@ -44,10 +44,11 @@
 #include <spdlog/sinks/syslog_sink.h>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <tuple>
 
 using namespace glsample;
 
-unsigned int pboBuffer;
+static unsigned int pboBuffer;
 
 class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
   public:
@@ -500,8 +501,7 @@ void GLSampleWindow::renderUI() {
 				this->defaultFramebuffer.get(),
 				/*	Setup References.	*/
 				{std::make_tuple<const GBuffer, unsigned int>(GBuffer::Albedo, 0u),
-				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::Depth,
-															  this->defaultFramebuffer->depthIndex),
+				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::Depth, (unsigned int)this->defaultFramebuffer->depthIndex),
 				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget, 1u),
 				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget2, 2u)});
 			glPopDebugGroup();

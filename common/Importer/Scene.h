@@ -115,7 +115,7 @@ namespace glsample {
 		};
 		using CommonConstantData = struct common_constant_data_t {
 			// TODO: keep multi frame camera frustum.
-			CameraInstance camera;
+			CameraInstanceData camera;
 			FrustumInstance frustum{};
 
 			GlobalRenderSettings renderSettings = GlobalRenderSettings();
