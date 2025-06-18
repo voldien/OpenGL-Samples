@@ -166,6 +166,8 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/Sort)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/CirclePacking)
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/SubGroup)
 
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Samples/WindCoeff)
+
 
 ####################################
 # Shader Source Files
