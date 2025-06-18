@@ -70,7 +70,7 @@ void main() {
 	writeBuffer.instance[instance_index].model = transform;
 	writeBuffer.instance[instance_index].color = vec4(vec3(gl_GlobalInvocationID.xyz) * 0.05, 1);
 
-	/*	*/
+	/*	Execute once on the first invocation.	*/
 	if (gl_GlobalInvocationID.x == 0) {
 		instances.count = ubo.nrFaces;
 		instances.firstIndex = 0;

@@ -1,3 +1,7 @@
+#include "Common.h"
+#include "SampleHelper.h"
+#include "imgui.h"
+#include "internal_object_type.h"
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
@@ -25,12 +29,12 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model{};
-			glm::mat4 view{};
-			glm::mat4 proj{};
-			glm::mat4 modelView{};
-			glm::mat4 modelViewProjection{};
-			glm::vec4 viewPos{};
+			glm::mat4 model;
+			glm::mat4 view;
+			glm::mat4 proj;
+			glm::mat4 modelView;
+			glm::mat4 ViewProj;
+			glm::mat4 modelViewProjection;
 		} uniformData;
 
 		using ResultBuffer = struct alignas(16) uniform_buffer_result_t {
@@ -43,32 +47,31 @@ namespace glsample {
 		ResultBuffer resultStage;
 		size_t result_buffer_size = sizeof(ResultBuffer);
 
-		/*  */ // TODO: pass as arguments.
-		size_t rows = 16;
-		size_t cols = 16;
-
-		size_t instanceBatch = 0;
-		const size_t nrInstances = (rows * cols);
-		std::vector<glm::mat4> instance_model_matrices;
-
 		glm::vec3 rotation;
+
+		FrameBuffer framebuffer;
+
+		unsigned int SegmentsX = 0;
+		unsigned int SegmentsY = 0;
 
 		/*	*/
 		MeshObject instanceGeometry;
 
 		/*	*/
 		unsigned int instance_program{};
+
 		unsigned int compute_program{};
+		int localWorkGroupSize[3]{};
 
 		/*  Instance buffer model matrix.   */
-		unsigned int instance_model_buffer{};
+		unsigned int result_model_buffer{};
 
 		/*	*/
-		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_instance_buffer_binding = 1;
+		const unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_mvp_buffer{};
-		unsigned int uniform_instance_buffer{};
 		const size_t nrUniformBuffers = 3;
+
+		const unsigned int uniform_result_binding = 2;
 
 		size_t uniformSharedBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceSize = 0;
@@ -88,22 +91,27 @@ namespace glsample {
 				ImGui::Text("Normal: %f", this->getRefSample().resultStage.averageNormal);
 
 				ImGui::DragFloat3("Rotation", &this->getRefSample().rotation[0]);
+				ImGui::DragFloat3("Offset Position", &offsetPosition[0]);
 
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::Checkbox("Focus Camera", &this->focusCamera);
 			}
 
 			bool showWireFrame = false;
+			bool focusCamera = false;
+			glm::vec3 offsetPosition;
 		};
 		std::shared_ptr<WindCoeffSettingComponent> windCoeffSettingComponent;
 
-		const std::string vertexInstanceShaderPath = "Shaders/instance/instance.vert.spv";
-		const std::string fragmentInstanceShaderPath = "Shaders/instance/instance.frag.spv";
+		const std::string vertexInstanceShaderPath = "Shaders/debug/normal.vert.spv";
+		const std::string fragmentInstanceShaderPath = "Shaders/debug/normal.frag.spv";
+		const std::string computeShaderPath = "Shaders/area/windcoeff/windcoeff_screen_space.comp.spv";
 
 		void Release() override {
 			/*	*/
 			glDeleteProgram(this->instance_program);
- 
+
 			glDeleteBuffers(1, &this->uniform_mvp_buffer);
 
 			/*	*/
@@ -122,6 +130,9 @@ namespace glsample {
 				std::vector<uint32_t> instance_fragment_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentInstanceShaderPath, this->getFileSystem());
 
+				const std::vector<uint32_t> area_compute_binary =
+					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
+
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
@@ -129,17 +140,27 @@ namespace glsample {
 				/*	Load shader	*/
 				this->instance_program = ShaderLoader::loadGraphicProgram(compilerOptions, &instance_vertex_binary,
 																		  &instance_fragment_binary);
+
+				/*	Create compute pipeline.	*/
+				this->compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &area_compute_binary);
 			}
 			/*	Setup instance graphic pipeline.	*/
 			glUseProgram(this->instance_program);
-			glUniform1i(glGetUniformLocation(this->instance_program, "DiffuseTexture"), 0);
 			/*	*/
 			int uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->instance_program, uniform_buffer_index, this->uniform_buffer_binding);
-			/*	*/
-			int uniform_instance_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformInstanceBlock");
-			glUniformBlockBinding(this->instance_program, uniform_instance_buffer_index,
-								  this->uniform_instance_buffer_binding);
+			glUseProgram(0);
+
+			/*	Setup compute pipeline.	*/
+			glUseProgram(this->compute_program);
+			glUniform1i(glGetUniformLocation(this->compute_program, "ColorTexture"), 0);
+			glUniform1i(glGetUniformLocation(this->compute_program, "DepthTexture"), 1);
+
+			int result_index =
+				glGetProgramResourceIndex(this->compute_program, GL_SHADER_STORAGE_BLOCK, "ResultBuffer");
+			glShaderStorageBlockBinding(this->compute_program, result_index, this->uniform_result_binding);
+
+			glGetProgramiv(this->compute_program, GL_COMPUTE_WORK_GROUP_SIZE, this->localWorkGroupSize);
 			glUseProgram(0);
 
 			/*	*/
@@ -147,7 +168,8 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSharedBufferSize =
 				fragcore::Math::align<size_t>(this->uniformSharedBufferSize, (size_t)minMapBufferSize);
-
+			this->result_buffer_size =
+				Math::align<size_t>(this->result_buffer_size * (4096 * 16), (size_t)minMapBufferSize);
 			/*	*/
 			glGenBuffers(1, &this->uniform_mvp_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
@@ -155,20 +177,11 @@ namespace glsample {
 						 GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			/*	*/
-			GLint uniformMaxSize = 0;
-			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
-			this->instanceBatch = uniformMaxSize / sizeof(glm::mat4);
-
-			/*	*/
-			this->uniformInstanceSize =
-				fragcore::Math::align<size_t>(this->nrInstances * sizeof(glm::mat4), (size_t)minMapBufferSize);
-			this->instance_model_matrices.resize(this->nrInstances);
-			glGenBuffers(1, &this->uniform_instance_buffer);
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * this->nrUniformBuffers, nullptr,
-						 GL_DYNAMIC_DRAW);
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+			/*	Create uniform buffer.	*/
+			glGenBuffers(1, &this->result_buffer);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->result_buffer);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, this->result_buffer_size, nullptr, GL_DYNAMIC_DRAW);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 			/*	*/
 			{
@@ -212,18 +225,59 @@ namespace glsample {
 
 				glBindVertexArray(0);
 			}
+
+			/*	Create multipass framebuffer.	*/
+			CommonUtil::createFrameBuffer(&this->framebuffer, 1);
+			onResize(width(), height());
+		}
+
+		void onResize(int width, int height) override {
+
+			CommonUtil::updateFrameBuffer(&this->framebuffer,
+										  {{
+											  .width = this->width(),
+											  .height = this->height(),
+											  .graphicFormat = GraphicFormat::R32G32B32A32_SFloat,
+											  .nrSamples = 0,
+
+										  }},
+										  {
+											  .width = this->width(),
+											  .height = this->height(),
+											  .nrSamples = 0,
+										  });
+
+			this->camera.setAspect((float)width / (float)height);
 		}
 
 		void draw() override {
+
+			/*	Extract Result.	*/
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->result_buffer);
+			ResultBuffer *resultBuffer = (ResultBuffer *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0,
+																		  this->result_buffer_size, GL_MAP_READ_BIT);
+
+			this->resultStage.area = 0;
+			this->resultStage.averageNormal = 0;
+
+			for (size_t i = 0; i < SegmentsX * SegmentsY; i++) {
+				this->resultStage.area += resultBuffer[i].area;
+				this->resultStage.averageNormal += resultBuffer[i].averageNormal;
+			}
+
+			// this->resultStage = *resultBuffer;
+			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 			int width = 0, height = 0;
 			this->getSize(&width, &height);
 
 			/*	*/
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->framebuffer.framebuffer);
 			glViewport(0, 0, width, height);
 
 			/*	*/
-			glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+			glClearColor(0.00f, 0.00f, 0.00f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			/*	Bind MVP Uniform Buffer.	*/
@@ -236,26 +290,55 @@ namespace glsample {
 
 			glUseProgram(this->instance_program);
 			glDisable(GL_CULL_FACE);
- 
+
 			/*	Draw Instances.	*/
 			glBindVertexArray(this->instanceGeometry.vao);
 
-			for (size_t i = 0; i < this->nrInstances; i += this->instanceBatch) {
-
-				const size_t nrDrawInstances = std::min(this->nrInstances - i, this->instanceBatch);
-				/*	Bind Model Instance Uniform Buffer.	*/
-
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_binding,
-								  this->uniform_instance_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize +
-									  i * (instanceBatch * sizeof(glm::mat4)),
-								  nrDrawInstances * sizeof(glm::mat4));
-
-				glDrawElementsInstanced(GL_TRIANGLES, this->instanceGeometry.nrIndicesElements, GL_UNSIGNED_INT,
-										nullptr, nrDrawInstances);
-			}
+			glDrawElementsInstanced(GL_TRIANGLES, this->instanceGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+									1);
 
 			glBindVertexArray(0);
+
+			{
+				/*	Blit image targets to screen.	*/
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->framebuffer.framebuffer);
+
+				glViewport(0, 0, width, height);
+				glReadBuffer(GL_COLOR_ATTACHMENT0);
+				glBlitFramebuffer(0, 0, this->framebuffer.attachmentSize[0].x, this->framebuffer.attachmentSize[0].y, 0,
+								  0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
+			}
+
+			{
+
+				/*	*/
+				glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
+				glActiveTexture(GL_TEXTURE0 + 0);
+				glBindTexture(GL_TEXTURE_2D, this->framebuffer.attachments[0]);
+
+				glActiveTexture(GL_TEXTURE0 + 1);
+				glBindTexture(GL_TEXTURE_2D, this->framebuffer.attachments[this->framebuffer.depthIndex]);
+
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_result_binding, this->result_buffer, 0,
+								  this->result_buffer_size);
+
+				glUseProgram(compute_program);
+
+				SegmentsX = std::ceil(this->framebuffer.attachmentSize[0].x / (float)this->localWorkGroupSize[0]);
+				SegmentsY = std::ceil(this->framebuffer.attachmentSize[0].y / (float)this->localWorkGroupSize[1]);
+
+				glDispatchCompute(std::ceil(this->framebuffer.attachmentSize[0].x / (float)this->localWorkGroupSize[0]),
+								  std::ceil(this->framebuffer.attachmentSize[0].y / (float)this->localWorkGroupSize[1]),
+								  1);
+				glUseProgram(0);
+
+				/*	Wait in till image has been written.	*/
+				glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			}
 		}
 
 		void update() override {
@@ -263,27 +346,12 @@ namespace glsample {
 			/*	*/
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
-
-			/*	Update instance model matrix.	*/
-			for (size_t i = 0; i < rows; i++) {
-				for (size_t j = 0; j < cols; j++) {
-					const size_t index = i * cols + j;
-
-					glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(i * 10.0f, 0, j * 10.0f));
-					model = glm::rotate(model, glm::radians(elapsedTime * 45.0f + index * 11.5f),
-										glm::vec3(0.0f, 1.0f, 0.0f));
-					model = glm::scale(model, glm::vec3(1.95f));
-
-					instance_model_matrices[index] = model;
-				}
-			}
-
 			/*	*/
 			this->uniformData.proj = this->camera.getProjectionMatrix();
 			this->uniformData.model = glm::mat4(1.0f);
 			this->uniformData.view = this->camera.getViewMatrix();
-			this->uniformData.modelViewProjection = this->uniformData.model * this->camera.getViewMatrix();
-			this->uniformData.viewPos = glm::vec4(this->camera.getPosition(), 0);
+			this->uniformData.modelViewProjection =
+				this->uniformData.proj * this->uniformData.view * this->uniformData.model;
 
 			/*	Update uniform.	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_mvp_buffer);
@@ -293,16 +361,6 @@ namespace glsample {
 								 this->uniformSharedBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 			memcpy(uniformMVP, &this->uniformData, sizeof(this->uniformData));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
-
-			/*	Update instance buffer.	*/
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
-			void *uniformInstance = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformInstanceSize,
-				this->uniformInstanceSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformInstance, this->instance_model_matrices.data(),
-				   sizeof(this->instance_model_matrices[0]) * this->instance_model_matrices.size());
-
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}
 	};
 
@@ -311,8 +369,7 @@ namespace glsample {
 		WindCoeffGLSample() : GLSample<WindCoeff>() {}
 
 		void customOptions(cxxopts::OptionAdder &options) override {
-			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/diffuse.png"))(
-				"M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny/bunny.obj"));
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/bunny/bunny.obj"));
 		}
 	};
 

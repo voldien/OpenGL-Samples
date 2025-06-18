@@ -240,6 +240,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 				glTexImage2D(texture_type, 0, internal_format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 			}
 		}
+		framebuffer->attachmentSize[attachment_index] = {width, height, depth};
 
 		if (multisamples == 0) {
 

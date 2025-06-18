@@ -162,7 +162,7 @@ namespace glsample {
 	using FrameBuffer = struct framebuffer_t {
 		unsigned int framebuffer = 0;
 		std::array<unsigned int, 16> attachments{}; /*	last */
-		std::array<glm::ivec2, 16> attachmentSize{};
+		std::array<glm::ivec3, 16> attachmentSize{};
 		unsigned int nrAttachments = 0;
 		unsigned int depthIndex = 15;
 	};
