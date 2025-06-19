@@ -14,8 +14,8 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Core/Object.h"
 #include "Util/Frustum.h"
+#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
@@ -30,7 +30,6 @@ namespace glsample {
 	 *
 	 */
 	class FVDECLSPEC Camera : public Frustum {
-		static_assert(std::is_floating_point<float>::value, "Must be a decimal type(float/double/half).");
 
 	  public:
 		Camera() noexcept { this->updateProjectionMatrix(); }
@@ -81,10 +80,26 @@ namespace glsample {
 
 		const glm::mat4 &getProjectionMatrix() const noexcept { return this->proj; }
 
+		// TODO: Refractor
+		enum class CameraMode { Orthographic, Perspective };
+		// TODO: Refractor
+		void setMode(const CameraMode mode) {
+			this->mode = mode;
+			this->updateProjectionMatrix();
+		}
+		CameraMode getMode() const noexcept { return this->mode; }
+
 	  protected:
 		void updateProjectionMatrix() noexcept {
-			this->proj = glm::perspective(glm::radians(this->getFOV() * static_cast<float>(0.5)), this->aspect,
-										  this->near, this->far);
+			switch (getMode()) {
+
+			case CameraMode::Orthographic:
+				this->proj = glm::ortho(-this->far, this->far, -this->far, this->far, this->near, this->far);
+			case CameraMode::Perspective:
+			default:
+				this->proj = glm::perspective(glm::radians(this->getFOV() * 0.5f), this->aspect, this->near, this->far);
+				break;
+			}
 		}
 
 	  protected:
@@ -93,5 +108,6 @@ namespace glsample {
 		float near = 0.45f;
 		float far = 1650.0f;
 		glm::mat4 proj{};
+		CameraMode mode = CameraMode::Perspective;
 	};
 } // namespace glsample

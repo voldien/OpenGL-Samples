@@ -16,7 +16,6 @@
 #pragma once
 #include "FPSCounter.h"
 #include "GLRendererInterface.h"
-#include "Math3D/Math3D.h"
 #include "PostProcessing/ColorSpaceConverter.h"
 #include "PostProcessing/PostProcessingManager.h"
 #include "SDLInput.h"

@@ -36,7 +36,7 @@ namespace glsample {
 		~Node() override = default;
 
 		/*	*/
-		fragcore::Bound bound;
+		fragcore::Bound bound{};
 
 		/*	Geometry and material.	*/
 		std::vector<unsigned int> geometryObjectIndex;

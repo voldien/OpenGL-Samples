@@ -28,7 +28,7 @@ namespace glsample {
 			this->addUIComponent(this->subgroupSettingComponent);
 		}
 
-		using UniformBuffer = struct alignas(16) uniform_buffer_block {
+		using UniformBuffer = struct   uniform_buffer_block {
 			glm::mat4 model;
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -37,7 +37,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection;
 		};
 
-		using SubGroupAreaUniform = struct alignas(16) subgroup_area_uniform_buffer_block {
+		using SubGroupAreaUniform = struct   subgroup_area_uniform_buffer_block {
 			/*	*/
 			glm::mat4 view;
 			glm::mat4 proj;
@@ -52,7 +52,7 @@ namespace glsample {
 			uint padding2;
 		};
 
-		using ResultBuffer = struct alignas(16) uniform_buffer_result_t {
+		using ResultBuffer = struct  uniform_buffer_result_t {
 			float area;
 			float averageNormal;
 		};

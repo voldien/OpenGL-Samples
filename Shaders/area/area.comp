@@ -106,7 +106,7 @@ void main() {
 	/*	Average Position.	*/
 	const vec4 triangle_center = v0 + (v0 - v1) * 0.5 + (v0 - v2) * 0.5;
 
-	/*	*/
+	/*	Extract each transformed vertex normal.	*/
 	const vec3 n0 = normalize((model * vec4(vertices.vertices[v0_index].normal, 0)).xyz);
 	const vec3 n1 = normalize((model * vec4(vertices.vertices[v1_index].normal, 0)).xyz);
 	const vec3 n2 = normalize((model * vec4(vertices.vertices[v2_index].normal, 0)).xyz);

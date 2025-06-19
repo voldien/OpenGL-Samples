@@ -3,13 +3,17 @@
 #extension GL_ARB_compute_shader : enable
 #extension GL_EXT_control_flow_attributes : enable
 
+#extension GL_ARB_shading_language_include : enable
+
 #extension GL_KHR_shader_subgroup_basic : enable
 #extension GL_KHR_shader_subgroup_arithmetic : enable
 
-precision mediump float;
+precision highp float;
 precision mediump int;
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+#include "compute.glsl"
 
 layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
 layout(set = 0, binding = 1) uniform sampler2D DepthTexture;
@@ -25,15 +29,13 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-struct Result{
+struct Result {
 	float area;
 	float averageNormal;
 };
 
 /*	*/
-layout(std430, set = 0, binding = 2) writeonly buffer ResultBuffer {
-	Result[] results;
-}
+layout(std430, set = 0, binding = 2) writeonly buffer ResultBuffer { Result[] results; }
 result;
 
 layout(push_constant) uniform Transformation { layout(offset = 0) mat4 model; }
@@ -46,15 +48,16 @@ shared float sat[sumSubGroupSize];
 shared float sat0[sumSubGroupSize];
 #else
 
-shared float[16 * 16] localBuff0;
-shared float[16 * 16] localBuff1;
+layout(constant_id = 2) const int sumSubGroupSize = 16 * 16;
+
+shared float[sumSubGroupSize] localBuff0;
+shared float[sumSubGroupSize] localBuff1;
 
 #endif
 
-float reduction(float[16 * 16] arr) {
-	// Compute minimum;
-	float m = arr[0];
-	for (int i = 0; i < arr.length(); i++) {
+float reduction(float[sumSubGroupSize] arr) {
+	float m = 0;
+	for (uint i = 0; i < arr.length(); i++) {
 		m += arr[i];
 	}
 	return m;
@@ -62,7 +65,13 @@ float reduction(float[16 * 16] arr) {
 
 void main() {
 
-	const vec3 orth_normal = normalize((ubo.view * -vec4(0, 0, -1, 0)).xyz);
+	const uint id = gl_LocalInvocationIndex;
+	const uint work_index = getWorkIndex(); // (gl_WorkGroupID.y * gl_NumWorkGroups.x) + gl_WorkGroupID.x;
+
+	{
+		localBuff1[id] = 0;
+		localBuff0[id] = 0;
+	}
 
 	/*	*/
 	const uvec2 color_texture_size = uvec2(textureSize(ColorTexture, 0));
@@ -70,18 +79,21 @@ void main() {
 		return;
 	}
 
-	const vec2 UVCoordinate = vec2(gl_GlobalInvocationID.xy) / vec2(color_texture_size);
+	const vec3 orth_normal = normalize((ubo.view * -vec4(0, 0, -1, 0)).xyz);
+
+	const vec2 texelSize = 1.0 / vec2(color_texture_size);
+	const vec2 UVCoordinate = vec2(gl_GlobalInvocationID.xy) * texelSize;
 
 	const vec4 color = texture(ColorTexture, UVCoordinate);
 	const float depth = texture(DepthTexture, UVCoordinate).r;
-	const float sum = depth < 1 ? 1 : 0;
+	const float visable = float(depth < 0.999);
 
 	/*	Determine front or back face.	*/
-	const float visible_surface = dot(-orth_normal, color.xyz);
+	const float visible_surface = visable * max(0, dot(orth_normal, color.xyz));
 
 #if defined(GL_SUBGROUP_FEATURE_BASIC_BIT_KHR) && defined(GL_SUBGROUP_FEATURE_BASIC_BIT_KHR)
 
-	float triangle_visable_area = subgroupAdd(sum);
+	float triangle_visable_area = subgroupAdd(visable);
 	float average_drag = subgroupAdd(visible_surface);
 
 	/*	Merge all result.	*/
@@ -114,19 +126,22 @@ void main() {
 	}
 
 #else
-	const uint id = gl_LocalInvocationIndex;
-	const uint work_index = gl_WorkGroupID.x * gl_NumWorkGroups.y + gl_WorkGroupID.y;
+	// const uint work_index = getWorkIndex();
 
-	localBuff0[id] = sum;
+	memoryBarrierShared();
+	/*	*/
+	localBuff0[id] = visable;
 	localBuff1[id] = visible_surface;
 
 	memoryBarrierShared();
 
 	if (id == 0) {
 
-		float minimum0 = reduction(localBuff0); // Compute  minimum (or the reduction implemented);
-		float minimum1 = reduction(localBuff1); // Compute  minimum (or the reduction implemented);
+		/*	*/
+		const float minimum0 = reduction(localBuff0);
+		const float minimum1 = reduction(localBuff1);
 
+		/*	*/
 		result.results[work_index].area = minimum0;
 		result.results[work_index].averageNormal = minimum1;
 	}

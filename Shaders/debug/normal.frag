@@ -6,4 +6,4 @@ layout(location = 0) out vec4 fragColor;
 
 layout(location = 0) smooth in vec3 normal;
 
-void main() { fragColor =  vec4(normal, 1); }
+void main() { fragColor = vec4(normalize(normal), 1); }
