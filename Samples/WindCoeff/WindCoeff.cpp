@@ -1,4 +1,5 @@
 #include "Common.h"
+#include "GraphicFormat.h"
 #include "SampleHelper.h"
 #include "imgui.h"
 #include <GLSample.h>
@@ -256,7 +257,9 @@ namespace glsample {
 										  {
 											  .width = frame_width,
 											  .height = frame_height,
+											  .graphicFormat = GraphicFormat::Depth_32Bit,
 											  .nrSamples = 0,
+
 										  });
 
 			this->camera.setAspect((float)width / (float)height);

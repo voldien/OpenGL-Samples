@@ -281,9 +281,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		const unsigned int width = depthstencil.width;
 		const unsigned int height = depthstencil.height;
 		const unsigned int depth = depthstencil.depth;
-		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(GraphicFormat::Depth_32Bit);
-
-
+		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(depthstencil.graphicFormat);
 
 		GLenum texture_type = GL_TEXTURE_2D;
 		if (multisamples > 0) {

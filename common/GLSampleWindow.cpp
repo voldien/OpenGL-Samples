@@ -501,7 +501,8 @@ void GLSampleWindow::renderUI() {
 				this->defaultFramebuffer.get(),
 				/*	Setup References.	*/
 				{std::make_tuple<const GBuffer, unsigned int>(GBuffer::Albedo, 0u),
-				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::Depth, (unsigned int)this->defaultFramebuffer->depthIndex),
+				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::Depth,
+															  (unsigned int)this->defaultFramebuffer->depthIndex),
 				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget, 1u),
 				 std::make_tuple<const GBuffer, unsigned int>(GBuffer::IntermediateTarget2, 2u)});
 			glPopDebugGroup();
@@ -798,13 +799,16 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 	/*	*/
 	const std::string dynamicRange = this->getResult()["dynamic-range"].as<std::string>();
 
-	GraphicFormat internal_format = GraphicFormat::R16G16B16A16_SFloat;
+	GraphicFormat internal_color_format = GraphicFormat::R16G16B16A16_SFloat;
+	GraphicFormat internal_depth_format = GraphicFormat::Depth_32Bit;
+	
+	/*	Override the default color format.	*/
 	if (dynamicRange == "ldr") {
-		internal_format = GraphicFormat::B8G8R8A8_UNorm;
+		internal_color_format = GraphicFormat::B8G8R8A8_UNorm;
 	} else if (dynamicRange == "hdr" || dynamicRange == "hdr32") {
-		internal_format = GraphicFormat::R32G32B32A32_SFloat;
+		internal_color_format = GraphicFormat::R32G32B32A32_SFloat;
 	} else if (dynamicRange == "hdr16") {
-		internal_format = GraphicFormat::R16G16B16A16_SFloat;
+		internal_color_format = GraphicFormat::R16G16B16A16_SFloat;
 	}
 
 	if (this->MMSAFrameBuffer) {
@@ -812,13 +816,14 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 									  {{
 										  .width = this->width(),
 										  .height = this->height(),
-										  .graphicFormat = internal_format,
+										  .graphicFormat = internal_color_format,
 										  .nrSamples = multi_sample_count,
 
 									  }},
 									  {
 										  .width = this->width(),
 										  .height = this->height(),
+										  .graphicFormat = internal_depth_format,
 										  .nrSamples = multi_sample_count,
 									  });
 	}
@@ -829,7 +834,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .width = this->width(),
 										   .height = this->height(),
 										   .depth = 1,
-										   .graphicFormat = internal_format,
+										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
 
 									   },
@@ -837,7 +842,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .width = this->width(),
 										   .height = this->height(),
 										   .depth = 1,
-										   .graphicFormat = internal_format,
+										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
 
 									   },
@@ -845,12 +850,14 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .width = this->width(),
 										   .height = this->height(),
 										   .depth = 1,
-										   .graphicFormat = internal_format,
+										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
 									   }},
 									  {
 										  .width = this->width(),
 										  .height = this->height(),
+										  .depth = 1,
+										  .graphicFormat = internal_depth_format,
 										  .nrSamples = 0,
 									  });
 	}

@@ -202,4 +202,14 @@ vec2 pixelate_screenUV(const in vec2 screenUV, const in float pixel_size, const 
 	return floor(screenUV * pixel_size * aspect_ratio) / (pixel_size * aspect_ratio);
 }
 
+
+
+struct DrawElementsIndirectCommand {
+	uint count;
+	uint instanceCount;
+	uint firstIndex;
+	uint baseVertex;
+	uint baseInstance;
+};
+
 #endif

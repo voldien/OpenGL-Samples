@@ -14,7 +14,6 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "RenderDesc.h"
 #include "TaskScheduler/IScheduler.h"
 #include <FragCore.h>
 #include <GL/glew.h>

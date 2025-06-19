@@ -1,5 +1,4 @@
 #include "CameraController.h"
-#include "SDLWindowManager.h"
 #include "flythrough_camera.h"
 #include <Input.h>
 #include <SDL2/SDL_events.h>
@@ -16,7 +15,7 @@
 
 using namespace glsample;
 
-CameraController::CameraController() { this->input = new SDLInput(); }
+CameraController::CameraController() : input(new SDLInput()) {  }
 
 void CameraController::update(const float deltaTime) noexcept {
 
@@ -39,8 +38,8 @@ void CameraController::update(const float deltaTime) noexcept {
 	float yDiff = 0;
 
 	if (this->enabled_Look) {
-		xDiff = -(xprev - x) * this->xspeed;
-		yDiff = -(yprev - y) * this->yspeed;
+		xDiff = -(float)(xprev - x) * this->xspeed;
+		yDiff = -(float)(yprev - y) * this->yspeed;
 		xprev = x;
 		yprev = y;
 	}
