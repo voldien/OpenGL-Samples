@@ -56,69 +56,43 @@ void main() {
 
 	memoryBarrierBuffer(); // Wait till all threads reach this point
 
-	/*	*/
-	[[unroll]]
-	for (uint h = 0; h < CHUNK_DIM_SIZE; h++) {
+	const uvec3 height_offset = uvec3(0, 0, 0);
 
-		const uvec3 height_offset = uvec3(0, 0, h);
+	const vec3 worldPosition = ubo.spaceAppart * gl_GlobalInvocationID.xyz + height_offset;
 
-		const vec3 worldPosition = gl_GlobalInvocationID.xyz + height_offset;
+	const vec3 sample_point = ubo.globalScale * (gl_GlobalInvocationID.xyz + height_offset);
+	const float density = cnoise(sample_point);
 
-		const vec3 sample_point = ubo.globalScale * (gl_GlobalInvocationID.xyz + height_offset);
-		const float density = cnoise(sample_point);
+	const float scale = 0.5;
 
-		if (density > ubo.threshold) {
+	if (density > ubo.threshold) {
 
-			/* Frustum culling	*/
-			vec4 v0ClipSpace = ubo.proj * ubo.view * vec4(worldPosition, 1);
-			vec4 v1ClipSpace = ubo.proj * ubo.view * vec4(worldPosition, 1);
+		/* Frustum culling	*/
+		vec4 v0ClipSpace = ubo.proj * ubo.view * vec4(worldPosition, 1);
+		v0ClipSpace /= v0ClipSpace.w;
 
-			v0ClipSpace /= v0ClipSpace.w;
-			v1ClipSpace /= v1ClipSpace.w;
+		const bool v0OutFrustum = v0ClipSpace.x < -1 || v0ClipSpace.x > 1 || v0ClipSpace.y < -1 || v0ClipSpace.y > 1;
 
-			const bool v0OutFrustum =
-				v0ClipSpace.x < -1 || v0ClipSpace.x > 1 || v0ClipSpace.y < -1 || v0ClipSpace.y > 1;
-
-			const bool v1OutFrustum =
-				v1ClipSpace.x < -1 || v1ClipSpace.x > 1 || v1ClipSpace.y < -1 || v1ClipSpace.y > 1;
-			if (v0OutFrustum && v1OutFrustum) {
-					//continue;
-			}
-
-			// Distance culling
-			/*
-			const float far1 = 0.95;
-			if (v0ClipSpace.z > far1 && v1ClipSpace.z > far1 && rand(index) > 0.5) {
-				return;
-			}
-			const float far2 = 0.98;
-			if (v0ClipSpace.z > far2 && v1ClipSpace.z > far2 && rand(index) > 0.2) {
-				return;
-			}
-			const float far3 = 0.99;
-			if (v0ClipSpace.z > far3 && v1ClipSpace.z > far3 && rand(index) > 0.1) {
-				return;
-			}
-			*/
-
-			/*	construct translate scale matrix.	*/
-			mat4 transform = mat4(1);
-			transform[3][0] = worldPosition.x * ubo.spaceAppart;
-			transform[3][1] = worldPosition.y * ubo.spaceAppart;
-			transform[3][2] = worldPosition.z * ubo.spaceAppart;
-			const float scale = 0.5; // ubo.globalScale;
-			transform[0][0] = scale; // step(density, 0.5) * density;
-			transform[1][1] = scale; // step(density, 0.5) * density;
-			transform[2][2] = scale; // step(density, 0.5) * density;
-
-			const uint instance_index = atomicAdd(instances.instance[indirect_index].instanceCount, 1);
-
-			/*	*/
-			/*	Note: Look up table instead perhaps.	*/
-			writeBuffer.instance[instance_index].model = transform;
-			writeBuffer.instance[instance_index].color =
-				vec4(vec3(gl_GlobalInvocationID.xyz) * 0.05 * (density + 0.2), 1);
+		if (v0OutFrustum) {
+			return;
 		}
+
+		/*	construct translate scale matrix.	*/
+		mat4 transform = mat4(1);
+		transform[3][0] = worldPosition.x;
+		transform[3][1] = worldPosition.y;
+		transform[3][2] = worldPosition.z;
+
+		transform[0][0] = scale; // step(density, 0.5) * density;
+		transform[1][1] = scale; // step(density, 0.5) * density;
+		transform[2][2] = scale; // step(density, 0.5) * density;
+
+		const uint instance_index = atomicAdd(instances.instance[indirect_index].instanceCount, 1);
+
+		/*	*/
+		/*	Note: Look up table instead perhaps.	*/
+		writeBuffer.instance[instance_index].model = transform;
+		writeBuffer.instance[instance_index].color = vec4(vec3(gl_GlobalInvocationID.xyz) * 0.05 * (density + 0.2), 1);
 	}
 
 	/*	*/

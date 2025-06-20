@@ -77,8 +77,6 @@ void ChromaticAbberationPostProcessing::render(glsample::FrameBuffer *framebuffe
 
 	glUseProgram(this->chromatic_abberation_graphic_program);
 
-	glBindVertexArray(this->vao);
-
 	/*	*/
 	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.redOffset"),
 				this->settings.redOffset);
@@ -93,6 +91,8 @@ void ChromaticAbberationPostProcessing::render(glsample::FrameBuffer *framebuffe
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH_TEST);
+
+	glBindVertexArray(this->vao);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 

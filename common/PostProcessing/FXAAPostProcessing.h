@@ -30,19 +30,14 @@ namespace glsample {
 				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
 
 		void renderUI() override;
-
-	  public:
-		void render(unsigned int texture);
-
+ 
 	  private:
-		int fxaa_compute_program = -1;
-
+		int fxaa_frag_program = -1;
+		unsigned int vao = 0;
 		/*	Settings.	*/
-		int nrIterations = 1;
-		float variance = 1;
-		int samples = 11;
-		float radius = 2;
-		float mean = 0;
+		float span_max = 8.0f;
+		float reduce_min = (1.0 / 128.0);
+		float reduce_mul = (1.0 / 8.0);
 
 		int localWorkGroupSize[3];
 	};

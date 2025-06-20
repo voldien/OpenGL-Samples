@@ -132,7 +132,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
   public:
 	void createDefaultFrameBuffer();
 	void updateDefaultFramebuffer();
-	int getDefaultFramebuffer() const noexcept;
+	unsigned int getDefaultFramebuffer() const noexcept;
 	glsample::FrameBuffer *getFrameBuffer() { return this->defaultFramebuffer.get(); }
 	glsample::PostProcessingManager *getPostProcessingManager() const noexcept {
 		return this->postprocessingManager.get();
@@ -141,7 +141,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	// TODO: relocate
 	static void blitFrameBuffer(const glsample::FrameBuffer *framebuffer, const unsigned int width, const int height,
 								glm::vec4 rectNormalized, int mode = 0) {
-									
+
 		/*	Blit image targets to screen.	*/
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->framebuffer);
@@ -158,8 +158,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 			glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
 
 			/*	*/
-			const size_t dest_width = sub_view_width + (index % widthDivior) * sub_view_width;
-			const size_t dest_height = sub_view_height + (index / heightDivior) * sub_view_height;
+			const size_t dest_width = sub_view_width + ((index % widthDivior) * sub_view_width);
+			const size_t dest_height = sub_view_height + ((index / heightDivior) * sub_view_height);
 
 			const size_t source_width = 0;
 			const size_t source_height = 0;
@@ -223,6 +223,10 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	int preWidth = -1;
 	int preHeight = -1;
+	
+	/*	*/
+	bool useSSAA = false;
+	int SSAA = 1;
 
   protected:
 	std::shared_ptr<spdlog::logger> logger;

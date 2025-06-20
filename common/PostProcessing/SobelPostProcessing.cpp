@@ -58,7 +58,7 @@ void SobelProcessing::draw(
 void SobelProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int source_texture,
 							 unsigned int target_texture) {
 
-	assert(source_texture != source_texture);
+	assert(source_texture != target_texture);
 
 	GLint width = 0;
 	GLint height = 0;

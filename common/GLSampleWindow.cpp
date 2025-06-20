@@ -12,6 +12,7 @@
 #include "PostProcessing/ColorGradePostProcessing.h"
 #include "PostProcessing/ColorSpaceConverter.h"
 #include "PostProcessing/DepthOfFieldPostProcessing.h"
+#include "PostProcessing/FXAAPostProcessing.h"
 #include "PostProcessing/GrainPostProcessing.h"
 #include "PostProcessing/MistPostProcessing.h"
 #include "PostProcessing/PixelatePostProcessing.h"
@@ -101,15 +102,19 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 
 			ImGui::BeginDisabled(this->getRefSample().getDefaultFramebuffer() == 0);
 			if (this->getRefSample().getDefaultFramebuffer() > 0) {
-				GLboolean isEnabled = 0;
-				glGetBooleanv(GL_MULTISAMPLE, &isEnabled);
-				if (ImGui::Checkbox("MultiSampling (MSAA)", (bool *)&isEnabled)) {
+				GLboolean isMSAAEnabled = 0;
+				glGetBooleanv(GL_MULTISAMPLE, &isMSAAEnabled);
+				if (ImGui::Checkbox("MultiSampling (MSAA)", (bool *)&isMSAAEnabled)) {
 
-					if (isEnabled) {
+					if (isMSAAEnabled) {
 						glEnable(GL_MULTISAMPLE);
 					} else {
 						glDisable(GL_MULTISAMPLE);
 					}
+				}
+
+				GLboolean isSuperEnabled = 0;
+				if (ImGui::Checkbox("Super Sampling Anti-Aliasing (SSAA)", (bool *)&isSuperEnabled)) {
 				}
 
 				float min_sample = 0;
@@ -345,6 +350,10 @@ void GLSampleWindow::internalInit() {
 
 		if (use_post_process) {
 			this->postprocessingManager = std::make_shared<PostProcessingManager>();
+
+			std::shared_ptr<FXAAPostProcessing> fxaa = std::make_shared<FXAAPostProcessing>();
+			fxaa->initialize(this->getFileSystem());
+			this->postprocessingManager->addPostProcessing(fxaa);
 
 			std::shared_ptr<SSAOPostProcessing> ssao = std::make_shared<SSAOPostProcessing>();
 			ssao->initialize(this->getFileSystem());
@@ -686,12 +695,12 @@ void GLSampleWindow::captureScreenShot() {
 				// Application and time
 				time_t rawtime = 0;
 				struct tm *timeinfo = nullptr;
-				char buffer[256];
+				std::array<char, PATH_MAX> buffer{};
 				/*	*/
 				std::time(&rawtime);
 				timeinfo = localtime(&rawtime);
-				strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", timeinfo);
-				std::string str(buffer);
+				strftime(buffer.data(), buffer.size(), "%d-%m-%Y %H:%M:%S", timeinfo);
+				std::string str(buffer.data());
 
 				fragcore::ImageLoader loader;
 				const std::string filename = fragcore::SystemInfo::getApplicationName() + "-screenshot-" + str + ".jpg";
@@ -712,6 +721,7 @@ void GLSampleWindow::setColorSpace(const glsample::ColorSpace srgb) {
 		this->colorSpace->setColorSpace(srgb);
 	}
 }
+
 glsample::ColorSpace GLSampleWindow::getColorSpace() const noexcept {
 	if (this->colorSpace != nullptr) {
 		return this->colorSpace->getColorSpace();
@@ -801,7 +811,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 
 	GraphicFormat internal_color_format = GraphicFormat::R16G16B16A16_SFloat;
 	GraphicFormat internal_depth_format = GraphicFormat::Depth_32Bit;
-	
+
 	/*	Override the default color format.	*/
 	if (dynamicRange == "ldr") {
 		internal_color_format = GraphicFormat::B8G8R8A8_UNorm;
@@ -863,7 +873,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 	}
 }
 
-int GLSampleWindow::getDefaultFramebuffer() const noexcept {
+unsigned int GLSampleWindow::getDefaultFramebuffer() const noexcept {
 
 	if (this->MMSAFrameBuffer) {
 		GLboolean isEnabled = 0;

@@ -110,13 +110,14 @@ namespace glsample {
 			}
 
 			bool showWireFrame = false;
-			int workgroupSize[3] = {16, 16, 1};
+			int workgroupSize[3] = {16, 16, 16};
 			bool needUpdate = true;
 
 		  private:
 			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<InfinateSettingComponent> infinateSettingComponent;
+		
 
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/groupvisual/groupvisual_instance.vert.spv";
