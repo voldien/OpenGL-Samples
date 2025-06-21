@@ -364,7 +364,7 @@ namespace glsample {
 				this->uniformAlignBufferSize, GL_MAP_WRITE_BIT);
 
 			/*	Compute light matrices.	*/
-			this->camera.setFOV(90);
+			this->camera.setFOVDegree(90);
 			const glm::mat4 pointPer = glm::perspective(
 				glm::radians(90.0f), (float)this->panoramicWidth / (float)this->panoramicHeight, 0.45f, 2000.0f);
 

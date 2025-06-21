@@ -35,9 +35,9 @@ namespace glsample {
 	  protected:
 		void drawCamera(Camera &camera) {
 
-			float fov = camera.getFOV();
+			float fov = camera.getFOVDegree();
 			if (ImGui::SliderFloat("Field of View", &fov, 0.01f, 360.0f)) {
-				camera.setFOV(fov);
+				camera.setFOVDegree(fov);
 			}
 			float near = camera.getNear();
 			if (ImGui::DragFloat("Near Distance", &near, 1, 0.001f)) {

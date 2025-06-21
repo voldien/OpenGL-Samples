@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "GraphicFormat.h"
 #include "SampleHelper.h"
+#include "Util/Camera.h"
 #include "imgui.h"
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -10,6 +11,7 @@
 #include <cstddef>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/fwd.hpp>
+#include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -27,17 +29,19 @@ namespace glsample {
 			this->windCoeffSettingComponent = std::make_shared<WindCoeffSettingComponent>(*this);
 			this->addUIComponent(this->windCoeffSettingComponent);
 
-			this->camera.setPosition(glm::vec3(0));
-			this->camera.lookAt(glm::vec3(1));
+			this->camera.setPosition(glm::vec3(10));
+			this->camera.lookAt(glm::vec3(0));
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 ViewProj;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 ViewProj{};
+			glm::mat4 modelViewProjection{};
+
+			CameraInstanceData camera;
 		} uniformData{};
 
 		using ResultBuffer = struct uniform_buffer_result_t {
@@ -52,8 +56,8 @@ namespace glsample {
 
 		FrameBuffer framebuffer;
 
-		unsigned int SegmentsX = 0;
-		unsigned int SegmentsY = 0;
+		unsigned int DispatchX = 0;
+		unsigned int DispatchY = 0;
 
 		/*	*/
 		MeshObject instanceGeometry;
@@ -82,31 +86,57 @@ namespace glsample {
 		class WindCoeffSettingComponent : public GLUIComponent<WindCoeff> {
 
 		  public:
-			WindCoeffSettingComponent(WindCoeff &sample) : GLUIComponent(sample, "SubGroup Area") {
-				this->setName("Wind Coeff Settings");
-			}
+			WindCoeffSettingComponent(WindCoeff &sample) : GLUIComponent(sample, "Wind Coeff Settings") {}
 
 			void draw() override {
 
 				const float inv_num_pixels = 1.0f / (float)(this->getRefSample().framebuffer.attachmentSize[0].x *
 															this->getRefSample().framebuffer.attachmentSize[0].y);
 
-				ImGui::Text("Area: %f", this->getRefSample().resultStage.area);
-				ImGui::Text("Normal: %f", this->getRefSample().resultStage.averageNormal);
+				const float areaRatio = this->getRefSample().resultStage.area * inv_num_pixels;
+				const float normalRatio =
+					this->getRefSample().resultStage.averageNormal / this->getRefSample().resultStage.area;
 
-				ImGui::Text("Area Ratio: %f", this->getRefSample().resultStage.area * inv_num_pixels);
-				ImGui::Text("Normal Ratio: %f", this->getRefSample().resultStage.averageNormal * inv_num_pixels);
+				ImGui::DragFloat3("Bounding Box Size", &bounding_box_size[0]);
 
 				ImGui::DragFloat3("Rotation", &offsetRotation[0]);
 				ImGui::DragFloat3("Offset Position", &offsetPosition[0]);
 
+				const glm::vec3 volume = bounding_box_size * areaRatio;
+				const float sub_area = volume.x * volume.y; // TODO: improve
+
+				const float dragCoeff = (normalRatio);
+				const float dynamic_pressure = 0.5f * airPressure * (wind_speed_meter_second * wind_speed_meter_second);
+
+				glm::vec3 force =
+					dragCoeff * sub_area * dynamic_pressure * this->getRefSample().camera.getLookDirection();
+
+				ImGui::TextUnformatted("Wind Force Settings");
+				ImGui::DragFloat("Wind Speed", &wind_speed_meter_second);
+				ImGui::DragFloat("Pressure", &airPressure);
+
+				ImGui::Text("Surface Area : %f", sub_area);
+				ImGui::DragFloat3("Wind Force (Netwon)", &force[0]);
+				ImGui::Text("Force Magnitude %f", glm::length(force));
+
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Focus Camera", &this->focusCamera);
+
+				ImGui::Text("Area: %f", this->getRefSample().resultStage.area);
+				ImGui::Text("Normal: %f", this->getRefSample().resultStage.averageNormal);
+
+				ImGui::Text("Area Ratio: %f", areaRatio);
+				ImGui::Text("Normal Ratio: %f", normalRatio);
 			}
 
 			bool showWireFrame = false;
 			bool focusCamera = false;
+
+			float airPressure = 1.225f;
+
+			float wind_speed_meter_second = 10.0f;
+			glm::vec3 bounding_box_size{10, 10, 10};
 
 			glm::vec3 offsetPosition = {0, 0, 0};
 			glm::vec3 offsetRotation = {0, 0, 0};
@@ -201,6 +231,8 @@ namespace glsample {
 
 				const ModelSystemObject &modelRef = modelLoader.getModels()[0];
 
+				// modelRef.bound;
+
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenVertexArrays(1, &this->instanceGeometry.vao);
 				glBindVertexArray(this->instanceGeometry.vao);
@@ -279,7 +311,7 @@ namespace glsample {
 			this->resultStage.area = 0;
 			this->resultStage.averageNormal = 0;
 
-			for (size_t i = 0; i < static_cast<size_t>(SegmentsX * SegmentsY); i++) {
+			for (size_t i = 0; i < static_cast<size_t>(DispatchX * DispatchY); i++) {
 				this->resultStage.area += resultBuffer[i].area;
 				this->resultStage.averageNormal += resultBuffer[i].averageNormal;
 			}
@@ -350,10 +382,10 @@ namespace glsample {
 
 				glUseProgram(compute_program);
 
-				SegmentsX = std::ceil(this->framebuffer.attachmentSize[0].x / (float)this->localWorkGroupSize[0]);
-				SegmentsY = std::ceil(this->framebuffer.attachmentSize[0].y / (float)this->localWorkGroupSize[1]);
+				DispatchX = std::ceil(this->framebuffer.attachmentSize[0].x / (float)this->localWorkGroupSize[0]);
+				DispatchY = std::ceil(this->framebuffer.attachmentSize[0].y / (float)this->localWorkGroupSize[1]);
 
-				glDispatchCompute(SegmentsX, SegmentsY, 1);
+				glDispatchCompute(DispatchX, DispatchY, 1);
 				glUseProgram(0);
 
 				/*	Wait in till image has been written.	*/
@@ -367,18 +399,33 @@ namespace glsample {
 			const float elapsedTime = this->getTimer().getElapsed<float>();
 			this->camera.update(this->getTimer().deltaTime<float>());
 
-			if (windCoeffSettingComponent->focusCamera) {
-			}
+			this->uniformData.camera = this->camera;
 
 			this->uniformData.model = glm::translate(glm::mat4(1.0f), this->windCoeffSettingComponent->offsetPosition);
 			glm::quat quatRotation = glm::quat(this->windCoeffSettingComponent->offsetRotation);
 			this->uniformData.model = this->uniformData.model * glm::toMat4(quatRotation);
+			this->uniformData.model =
+				glm::scale(this->uniformData.model, glm::vec3(10)); // TODO: based on the orthographic and bounding box
 
 			/*	*/
 			this->uniformData.proj = this->camera.getProjectionMatrix();
 			this->uniformData.view = this->camera.getViewMatrix();
-			this->uniformData.modelViewProjection =
-				this->uniformData.proj * this->uniformData.view * this->uniformData.model;
+
+			if (windCoeffSettingComponent->focusCamera) {
+				this->camera.setMode(Camera::CameraMode::Orthographic);
+
+				this->camera.setPosition(glm::vec3(this->camera.getPosition().x, 0, this->camera.getPosition().z));
+				this->camera.lookAt(glm::vec3(0));
+
+				this->uniformData.view = this->camera.getRotationMatrix();
+
+				this->uniformData.modelViewProjection =
+					this->uniformData.proj * this->uniformData.view * this->uniformData.model;
+			} else {
+				this->camera.setMode(Camera::CameraMode::Perspective);
+				this->uniformData.modelViewProjection =
+					this->uniformData.proj * this->uniformData.view * this->uniformData.model;
+			}
 
 			{
 				/*	Update uniform.	*/

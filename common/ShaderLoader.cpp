@@ -362,6 +362,11 @@ int ShaderLoader::loadShader(const std::vector<char> &source, const int type) {
 	const unsigned int shader = glCreateShader(type);
 	fragcore::checkError();
 
+	//TODO: add macro for each shader type
+	switch (type) {
+	default:break;
+	}
+
 	/*	Load as Spirv if data is Spirv file and supported.	*/
 	if (spirv_magic_number == magic_number && glSpecializeShaderARB) {
 

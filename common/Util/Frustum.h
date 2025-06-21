@@ -35,8 +35,8 @@ namespace glsample {
 		 *	Intersection.
 		 */
 		enum Intersection : unsigned int {
-			Out = 0,	   /*	Outside frustum completly - Positive.*/
-			In = 1,		   /*	Inside frustum completly - Negative.*/
+			Out = 0,	   /*	Outside frustum completly - Positive.	*/
+			In = 1,		   /*	Inside frustum completly - Negative.	*/
 			Intersect = 2, /*	Intresecting frustum planes- Partially.	*/
 		};
 

@@ -22,6 +22,46 @@
 
 namespace glsample {
 
+	template <typename T, int m, int n>
+	inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, n> &em) noexcept {
+		glm::mat<m, n, float, glm::precision::highp> mat;
+		for (unsigned int i = 0; i < m; ++i) {
+			for (unsigned int j = 0; j < n; ++j) {
+				mat[j][i] = em(i, j);
+			}
+		}
+		return mat;
+	}
+
+	// template <typename A, class T...> struct align_uniform {};
+
+	template <typename T, int m>
+	inline glm::vec<m, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, 1> &em) noexcept {
+		glm::vec<m, float, glm::precision::highp> v;
+		for (unsigned int i = 0; i < m; ++i) {
+			v[i] = em(i);
+		}
+		return v;
+	}
+
+	template <typename T, int m> inline Eigen::Matrix<T, m, 1> GLM2E(const glm::vec<m, T> &em) noexcept {
+		Eigen::Matrix<T, m, 1> v;
+		for (unsigned int i = 0; i < m; ++i) {
+			v(i) = em[i];
+		}
+		return v;
+	}
+
+	template <typename T, int m, int n> inline Eigen::Matrix<T, m, n> GLM2E(const glm::mat<m, n, T> &em) noexcept {
+		Eigen::Matrix<T, m, n> mat;
+		for (unsigned int i = 0; i < m; ++i) {
+			for (unsigned int j = 0; j < n; ++j) {
+				mat(j, i) = em[i][j];
+			}
+		}
+		return mat;
+	}
+
 	enum class GBuffer : unsigned int {
 		Albedo = 0,				 /*	*/
 		Color = 0,				 /*	Color, Alpha	*/
@@ -106,7 +146,7 @@ namespace glsample {
 
 	using CameraInstanceData = struct camera_instance_data_t {
 		/*	*/
-		camera_instance_data_t &operator=(Camera &camera) {
+		camera_instance_data_t &operator=(const Camera &camera) {
 			this->near = camera.getNear();
 			this->far = camera.getFar();
 			this->proj = camera.getProjectionMatrix();
@@ -149,6 +189,14 @@ namespace glsample {
 	};
 
 	using FrustumInstance = struct frustum_instance_t {
+		frustum_instance_t() {}
+		frustum_instance_t(const Frustum &frustum) {
+
+			for (unsigned int i = 0; i < 6; i++) {
+				planes[i] = glm::vec4(E2GLM(frustum.getPlane(i).getNormal()), frustum.getPlane(i).distance());
+			}
+		}
+
 		glm::vec4 planes[6];
 	};
 
@@ -167,43 +215,4 @@ namespace glsample {
 		unsigned int depthIndex = 15;
 	};
 
-	template <typename T, int m, int n>
-	inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, n> &em) noexcept {
-		glm::mat<m, n, float, glm::precision::highp> mat;
-		for (unsigned int i = 0; i < m; ++i) {
-			for (unsigned int j = 0; j < n; ++j) {
-				mat[j][i] = em(i, j);
-			}
-		}
-		return mat;
-	}
-
-	// template <typename A, class T...> struct align_uniform {};
-
-	template <typename T, int m>
-	inline glm::vec<m, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, 1> &em) noexcept {
-		glm::vec<m, float, glm::precision::highp> v;
-		for (unsigned int i = 0; i < m; ++i) {
-			v[i] = em(i);
-		}
-		return v;
-	}
-
-	template <typename T, int m> inline Eigen::Matrix<T, m, 1> GLM2E(const glm::vec<m, T> &em) noexcept {
-		Eigen::Matrix<T, m, 1> v;
-		for (unsigned int i = 0; i < m; ++i) {
-			v(i) = em[i];
-		}
-		return v;
-	}
-
-	template <typename T, int m, int n> inline Eigen::Matrix<T, m, n> GLM2E(const glm::mat<m, n, T> &em) noexcept {
-		Eigen::Matrix<T, m, n> mat;
-		for (unsigned int i = 0; i < m; ++i) {
-			for (unsigned int j = 0; j < n; ++j) {
-				mat(j, i) = em[i][j];
-			}
-		}
-		return mat;
-	}
 } // namespace glsample

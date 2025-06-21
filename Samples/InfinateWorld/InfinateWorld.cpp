@@ -51,17 +51,16 @@ namespace glsample {
 			glm::mat4 modelView{};
 			glm::mat4 modelViewProjection{};
 
-			// FrustumInstance
-			glm::vec4 frustums[6];
+			FrustumInstance frustum;
 
 			/*	*/
-			glm::vec4 worldOffset;
+			glm::vec4 worldOffset{};
 			unsigned int nrFaces{};
 			unsigned int nrElements{};
+
 			float globalScale = 0.3f;
 			float threshold = 0.5f;
 			float spaceAppart = 2.0f;
-			float delta{};
 
 		} uniformStageBuffer;
 
@@ -117,7 +116,6 @@ namespace glsample {
 			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<InfinateSettingComponent> infinateSettingComponent;
-		
 
 		/*	*/
 		const std::string vertexShaderPath = "Shaders/groupvisual/groupvisual_instance.vert.spv";
@@ -351,15 +349,10 @@ namespace glsample {
 				this->uniformStageBuffer.modelViewProjection =
 					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
 
-				for (size_t i = 0; i < 6; i++) {
-					// TODO: improve
-					this->uniformStageBuffer.frustums[i] =
-						glm::vec4(E2GLM(this->camera.getPlane(i).getNormal()), this->camera.getPlane(i).distance());
-				}
+				// TODO: improve
+				this->uniformStageBuffer.frustum = this->camera;
 
-				this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
-				this->uniformStageBuffer.nrElements =
-					fragcore::Math::product(this->infinateSettingComponent->workgroupSize, 3) * 8 * 8 * 8;
+				this->uniformStageBuffer.nrElements = this->sphereMesh.nrIndicesElements;
 			}
 
 			/*	Bind buffer and update region with new data.	*/
