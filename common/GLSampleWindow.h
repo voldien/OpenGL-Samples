@@ -172,7 +172,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	}
 
 	/*	*/
-	struct debug_info_t {
+	using DebugInfo = struct debug_info_t {
 		size_t debug_prev_frame_sample_count = 0;
 		size_t debug_prev_frame_primitive_count = 0;
 		size_t debug_prev_frame_cs_invocation_count = 0;
@@ -183,16 +183,11 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 		size_t nrPrimitives = 0, nrSamples = 0, time_elapsed = 0;
 		size_t time_resolution = static_cast<long>(1000) * 1000;
 	};
-
-	size_t debug_prev_frame_sample_count = 0;
-	size_t debug_prev_frame_primitive_count = 0;
-	size_t debug_prev_frame_cs_invocation_count = 0;
-	size_t debug_prev_frame_frag_invocation_count = 0;
-	size_t debug_prev_frame_vertex_invocation_count = 0;
-	size_t debug_prev_frame_geometry_invocation_count = 0;
-
-	size_t nrPrimitives = 0, nrSamples = 0, time_elapsed = 0;
-	size_t time_resolution = static_cast<long>(1000) * 1000;
+	DebugInfo debugInfo;
+	
+	/*	*/
+	bool useSSAA = false;
+	int SSAASamples = 1;
 
   protected:
 	void displayMenuBar() override;
@@ -223,10 +218,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	int preWidth = -1;
 	int preHeight = -1;
-	
-	/*	*/
-	bool useSSAA = false;
-	int SSAA = 1;
+
 
   protected:
 	std::shared_ptr<spdlog::logger> logger;

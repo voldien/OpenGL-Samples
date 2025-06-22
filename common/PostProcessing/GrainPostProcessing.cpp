@@ -91,4 +91,5 @@ void GrainPostProcessing::renderUI() {
 
 	this->animate = ImGui::Checkbox("Animiate", &this->animate);
 	ImGui::DragFloat("Speed", &this->grainSettings.speed);
+	ImGui::DragFloat("Scale", &this->grainSettings.scale);
 }

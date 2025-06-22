@@ -41,6 +41,7 @@ namespace glsample {
 			float time = 1;
 			float intensity = 0.015f;
 			float speed = 1;
+			float scale = 1;
 		};
 		GrainSettings grainSettings;
 

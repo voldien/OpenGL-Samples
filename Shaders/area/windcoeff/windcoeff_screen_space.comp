@@ -38,7 +38,7 @@ struct Result {
 };
 
 /*	*/
-layout(std430, set = 0, binding = 2) writeonly coherent buffer ResultBuffer { Result[] results; }
+layout(std430, set = 0, binding = 2) writeonly buffer ResultBuffer { Result[] results; }
 result;
 
 layout(push_constant) uniform Transformation { layout(offset = 0) mat4 model; }
@@ -69,12 +69,14 @@ float reduction(float[sumSubGroupSize] arr) {
 void main() {
 
 	const uint id = gl_LocalInvocationIndex;
-	const uint work_index = getWorkIndex(); // (gl_WorkGroupID.y * gl_NumWorkGroups.x) + gl_WorkGroupID.x;
+	const uint work_index = getWorkIndex();
 
+	/*	Reset Values.	 */
 	{
 		localBuff1[id] = 0;
 		localBuff0[id] = 0;
 	}
+	memoryBarrierShared();
 
 	/*	*/
 	const uvec2 color_texture_size = uvec2(textureSize(ColorTexture, 0));
@@ -82,12 +84,12 @@ void main() {
 		return;
 	}
 
-	const vec3 orth_normal = ubo.camera.viewDir.xyz; // normalize((inverse(ubo.view) * vec4(0, 0, 1, 0)).xyz);
+	const vec3 orth_normal = normalize(ubo.camera.viewDir.xyz);
 
 	const vec2 texelSize = 1.0 / vec2(color_texture_size);
 	const vec2 UVCoordinate = vec2(gl_GlobalInvocationID.xy) * texelSize;
 
-	const vec4 normal = texture(ColorTexture, UVCoordinate);
+	const vec3 normal = normalize(texture(ColorTexture, UVCoordinate)).xyz;
 	const float depth = texture(DepthTexture, UVCoordinate).r;
 	const float visable_area = float(depth < 1);
 
@@ -131,7 +133,6 @@ void main() {
 #else
 	// const uint work_index = getWorkIndex();
 
-	memoryBarrierShared();
 	/*	*/
 	localBuff0[id] = visable_area;
 	localBuff1[id] = visible_normal_surface_attenuation;
@@ -148,8 +149,6 @@ void main() {
 		result.results[work_index].area = minimum0;
 		result.results[work_index].averageNormal = minimum1;
 	}
-
-	memoryBarrierBuffer();
 
 #endif
 }

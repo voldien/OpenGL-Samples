@@ -18,6 +18,7 @@ layout(push_constant) uniform Settings {
 	layout(offset = 4) float time;
 	layout(offset = 8) float intensity;
 	layout(offset = 12) float speed;
+	layout(offset = 16) float scale;
 }
 settings;
 

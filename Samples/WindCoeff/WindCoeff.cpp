@@ -298,7 +298,6 @@ namespace glsample {
 		}
 
 		void draw() override {
-
 			/*	Wait in till image has been written.	*/
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 			/*	Extract Result.	*/
@@ -388,7 +387,7 @@ namespace glsample {
 				glDispatchCompute(DispatchX, DispatchY, 1);
 				glUseProgram(0);
 
-				/*	Wait in till image has been written.	*/
+				/*	Wait in till all data has been written.	*/
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 			}
 		}

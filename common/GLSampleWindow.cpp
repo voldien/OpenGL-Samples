@@ -70,13 +70,13 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 			ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
 
 			ImGui::Text("Elapsed Time %.6f ms",
-						(float)this->getRefSample().time_elapsed / (float)this->getRefSample().time_resolution);
-			ImGui::Text("Primitive %zu", this->getRefSample().debug_prev_frame_primitive_count);
-			ImGui::Text("Samples %zu", this->getRefSample().debug_prev_frame_sample_count);
-			ImGui::Text("CS invocation %zu", this->getRefSample().debug_prev_frame_cs_invocation_count);
-			ImGui::Text("Frag invocation %zu", this->getRefSample().debug_prev_frame_frag_invocation_count);
-			ImGui::Text("Vertex invocation %zu", this->getRefSample().debug_prev_frame_vertex_invocation_count);
-			ImGui::Text("Geometry invocation %zu", this->getRefSample().debug_prev_frame_geometry_invocation_count);
+						(float)this->getRefSample().debugInfo.time_elapsed / (float)this->getRefSample().debugInfo.time_resolution);
+			ImGui::Text("Primitive %zu", this->getRefSample().debugInfo.debug_prev_frame_primitive_count);
+			ImGui::Text("Samples %zu", this->getRefSample().debugInfo.debug_prev_frame_sample_count);
+			ImGui::Text("CS invocation %zu", this->getRefSample().debugInfo.debug_prev_frame_cs_invocation_count);
+			ImGui::Text("Frag invocation %zu", this->getRefSample().debugInfo.debug_prev_frame_frag_invocation_count);
+			ImGui::Text("Vertex invocation %zu", this->getRefSample().debugInfo.debug_prev_frame_vertex_invocation_count);
+			ImGui::Text("Geometry invocation %zu", this->getRefSample().debugInfo.debug_prev_frame_geometry_invocation_count);
 
 			ImGui::EndGroup();
 
@@ -115,6 +115,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 
 				GLboolean isSuperEnabled = 0;
 				if (ImGui::Checkbox("Super Sampling Anti-Aliasing (SSAA)", (bool *)&isSuperEnabled)) {
+				}
+				if (ImGui::DragInt("SSAA Samples", &this->getRefSample().SSAASamples)) {
 				}
 
 				float min_sample = 0;
@@ -555,19 +557,19 @@ void GLSampleWindow::renderUI() {
 		glEndQuery(GL_GEOMETRY_SHADER_INVOCATIONS);
 
 		//	glGetQueryObjectui64v
-		glGetQueryObjectui64v(this->queries[0], GL_QUERY_RESULT, &time_elapsed);
-		glGetQueryObjectui64v(this->queries[1], GL_QUERY_RESULT, &nrSamples);
-		glGetQueryObjectui64v(this->queries[2], GL_QUERY_RESULT, &nrPrimitives);
-		glGetQueryObjectui64v(this->queries[3], GL_QUERY_RESULT, &this->debug_prev_frame_cs_invocation_count);
-		glGetQueryObjectui64v(this->queries[4], GL_QUERY_RESULT, &this->debug_prev_frame_frag_invocation_count);
-		glGetQueryObjectui64v(this->queries[5], GL_QUERY_RESULT, &this->debug_prev_frame_vertex_invocation_count);
-		glGetQueryObjectui64v(this->queries[6], GL_QUERY_RESULT, &this->debug_prev_frame_geometry_invocation_count);
+		glGetQueryObjectui64v(this->queries[0], GL_QUERY_RESULT, &debugInfo.time_elapsed);
+		glGetQueryObjectui64v(this->queries[1], GL_QUERY_RESULT, &debugInfo.nrSamples);
+		glGetQueryObjectui64v(this->queries[2], GL_QUERY_RESULT, &debugInfo.nrPrimitives);
+		glGetQueryObjectui64v(this->queries[3], GL_QUERY_RESULT, &this->debugInfo.debug_prev_frame_cs_invocation_count);
+		glGetQueryObjectui64v(this->queries[4], GL_QUERY_RESULT, &this->debugInfo.debug_prev_frame_frag_invocation_count);
+		glGetQueryObjectui64v(this->queries[5], GL_QUERY_RESULT, &this->debugInfo.debug_prev_frame_vertex_invocation_count);
+		glGetQueryObjectui64v(this->queries[6], GL_QUERY_RESULT, &this->debugInfo.debug_prev_frame_geometry_invocation_count);
 
-		this->debug_prev_frame_sample_count = nrSamples;
-		this->debug_prev_frame_primitive_count = nrPrimitives;
+		this->debugInfo.debug_prev_frame_sample_count = debugInfo.nrSamples;
+		this->debugInfo.debug_prev_frame_primitive_count = debugInfo.nrPrimitives;
 
-		this->getLogger().debug("Samples: {} Primitives: {} Elapsed: {} ms", nrSamples, nrPrimitives,
-								(float)time_elapsed / (float)this->time_resolution);
+		this->getLogger().debug("Samples: {} Primitives: {} Elapsed: {} ms", this->debugInfo.nrSamples, this->debugInfo.nrPrimitives,
+								(float)this->debugInfo.time_elapsed / (float)this->debugInfo.time_resolution);
 	}
 
 	/*	*/
