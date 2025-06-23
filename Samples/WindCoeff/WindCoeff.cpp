@@ -101,11 +101,12 @@ namespace glsample {
 
 				ImGui::DragFloat3("Rotation", &offsetRotation[0]);
 				ImGui::DragFloat3("Offset Position", &offsetPosition[0]);
+				ImGui::DragFloat3("Scale Factor", &scaleFactor[0]);
 
 				const glm::vec3 volume = bounding_box_size * areaRatio;
 				const float sub_area = volume.x * volume.y; // TODO: improve
 
-				const float dragCoeff = (normalRatio);
+				const float dragCoeff = Math::lerpClamped(1.0f, normalRatio, drag_influence);
 				const float dynamic_pressure = 0.5f * airPressure * (wind_speed_meter_second * wind_speed_meter_second);
 
 				glm::vec3 force =
@@ -114,6 +115,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Wind Force Settings");
 				ImGui::DragFloat("Wind Speed", &wind_speed_meter_second);
 				ImGui::DragFloat("Pressure", &airPressure);
+				ImGui::DragFloat("Drag Influence", &drag_influence);
 
 				ImGui::Text("Surface Area : %f", sub_area);
 				ImGui::DragFloat3("Wind Force (Netwon)", &force[0]);
@@ -136,8 +138,10 @@ namespace glsample {
 			float airPressure = 1.225f;
 
 			float wind_speed_meter_second = 10.0f;
+			float drag_influence = 1;
 			glm::vec3 bounding_box_size{10, 10, 10};
 
+			glm::vec3 scaleFactor = {1, 1, 1};
 			glm::vec3 offsetPosition = {0, 0, 0};
 			glm::vec3 offsetRotation = {0, 0, 0};
 		};
@@ -283,7 +287,7 @@ namespace glsample {
 										  {{
 											  .width = frame_width,
 											  .height = frame_height,
-											  .graphicFormat = GraphicFormat::R32G32B32A32_SFloat,
+											  .graphicFormat = GraphicFormat::R16G16B16A16_SNorm,
 											  .nrSamples = 0,
 										  }},
 										  {
@@ -405,6 +409,9 @@ namespace glsample {
 			this->uniformData.model = this->uniformData.model * glm::toMat4(quatRotation);
 			this->uniformData.model =
 				glm::scale(this->uniformData.model, glm::vec3(10)); // TODO: based on the orthographic and bounding box
+			this->uniformData.model = glm::scale(
+				this->uniformData.model,
+				this->windCoeffSettingComponent->scaleFactor); // TODO: based on the orthographic and bounding box
 
 			/*	*/
 			this->uniformData.proj = this->camera.getProjectionMatrix();
