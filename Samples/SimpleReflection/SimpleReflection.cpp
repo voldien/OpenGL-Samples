@@ -30,18 +30,18 @@ namespace glsample {
 
 		struct UniformObjectBufferBlock {
 
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Light source.	*/
 			glm::vec4 direction = glm::vec4(0.7, 0.7, 1, 1);
 			glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1);
-			glm::vec4 viewDir;
+			glm::vec4 viewDir{};
 
 			float shininess = 8;
 
@@ -53,23 +53,23 @@ namespace glsample {
 		Scene scene;
 
 		/*	G-Buffer	*/
-		unsigned int multipass_framebuffer;
-		unsigned int multipass_program;
-		unsigned int multipass_texture_width;
-		unsigned int multipass_texture_height;
-		unsigned int multipass_texture;
-		unsigned int depthstencil_texture;
+		unsigned int multipass_framebuffer{};
+		unsigned int multipass_program{};
+		unsigned int multipass_texture_width{};
+		unsigned int multipass_texture_height{};
+		unsigned int multipass_texture{};
+		unsigned int depthstencil_texture{};
 
 		/*	*/
-		unsigned int skybox_texture;
+		unsigned int skybox_texture{};
 
 		/*	*/
-		unsigned int graphic_program;
-		unsigned int skybox_program;
+		unsigned int graphic_program{};
+		unsigned int skybox_program{};
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(UniformObjectBufferBlock);
 

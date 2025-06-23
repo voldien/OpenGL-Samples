@@ -348,8 +348,8 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize *
-									  this->nrCameras +
+							  (((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize *
+									  this->nrCameras) +
 								  this->uniformAlignBufferSize,
 							  this->uniformAlignBufferSize);
 

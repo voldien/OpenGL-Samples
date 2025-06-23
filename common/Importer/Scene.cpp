@@ -61,25 +61,28 @@ namespace glsample {
 
 	void Scene::init() {
 
-		const unsigned char normalForward[] = {127, 127, 255, 255};
-		const unsigned char white[] = {255, 255, 255, 255};
-		const unsigned char black[] = {0, 0, 0, 255};
+		/*	Create default textures.	*/
+		{
+			const unsigned char normalForward[] = {127, 127, 255, 255};
+			const unsigned char white[] = {255, 255, 255, 255};
+			const unsigned char black[] = {0, 0, 0, 255};
 
-		this->default_textures[TextureType::Diffuse] = glsample::CommonUtil::createColorTexture(
-			1, 1, fragcore::Color(white[0] / 255.0f, white[1] / 255.0f, white[2] / 255.0f, white[3] / 255.0f));
-		this->default_textures[TextureType::AlphaMask] = this->default_textures[TextureType::Diffuse];
-		this->default_textures[TextureType::Emission] = this->default_textures[TextureType::Diffuse];
-		this->default_textures[TextureType::Irradiance] = this->default_textures[TextureType::Diffuse];
-		this->default_textures[TextureType::AmbientOcclusion] = this->default_textures[TextureType::Diffuse];
-		this->default_textures[TextureType::DepthBuffer] = this->default_textures[TextureType::Diffuse];
-		this->default_textures[TextureType::Specular] = this->default_textures[TextureType::Diffuse];
-		this->default_textures[TextureType::Displacement] = glsample::CommonUtil::createColorTexture(
-			1, 1, fragcore::Color(black[0] / 255.0f, black[1] / 255.0f, black[2] / 255.0f, black[3] / 255.0f));
+			this->default_textures[TextureType::Diffuse] = glsample::CommonUtil::createColorTexture(
+				1, 1, fragcore::Color(white[0] / 255.0f, white[1] / 255.0f, white[2] / 255.0f, white[3] / 255.0f));
+			this->default_textures[TextureType::AlphaMask] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureType::Emission] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureType::Irradiance] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureType::AmbientOcclusion] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureType::DepthBuffer] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureType::Specular] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureType::Displacement] = glsample::CommonUtil::createColorTexture(
+				1, 1, fragcore::Color(black[0] / 255.0f, black[1] / 255.0f, black[2] / 255.0f, black[3] / 255.0f));
 
-		this->default_textures[TextureType::Normal] = glsample::CommonUtil::createColorTexture(
-			1, 1,
-			fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f, normalForward[2] / 255.0f,
-							normalForward[3] / 255.0f));
+			this->default_textures[TextureType::Normal] = glsample::CommonUtil::createColorTexture(
+				1, 1,
+				fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f, normalForward[2] / 255.0f,
+								normalForward[3] / 255.0f));
+		}
 
 		/*	Default samplers.	*/
 		glCreateSamplers(samplers.size(), samplers.data());
@@ -101,24 +104,29 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockBufferSize);
 
+			/*	*/
 			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(CommonConstantData), minMapBufferSize);
 			this->UBOStructure.common_size_total_align =
 				this->UBOStructure.common_size_align * UniformDataStructure::nrUniformBuffer;
 			this->UBOStructure.common_offset = 0;
 
+			/*	*/
 			this->UBOStructure.max_node_per_binding = 1024; // maxUniformBufferSize / sizeof(NodeData);
+			const size_t max_nodes = 4096;
 			const size_t NrNodes =
-				4096 * sizeof(NodeData); // TODO: change number based on the max bininded uniform size.
+				max_nodes * sizeof(NodeData); // TODO: change number based on the max bininded uniform size.
 			this->UBOStructure.node_size_align = Math::align<size_t>(NrNodes, minMapBufferSize);
 			this->UBOStructure.node_size_total_align =
 				this->UBOStructure.node_size_align * UniformDataStructure::nrUniformBuffer;
 
+			/*	*/
 			const size_t max_bindable_materials = 4096;
 			this->UBOStructure.material_align_size =
 				Math::align<size_t>(max_bindable_materials * sizeof(MaterialData), minMapBufferSize);
 			this->UBOStructure.material_align_total_size =
 				this->UBOStructure.material_align_size * UniformDataStructure::nrUniformBuffer;
 
+			/*	*/
 			this->UBOStructure.light_align_size = Math::align<size_t>(sizeof(LightData), minMapBufferSize);
 			this->UBOStructure.light_align_total_size =
 				this->UBOStructure.light_align_size * UniformDataStructure::nrUniformBuffer;
@@ -150,9 +158,9 @@ namespace glsample {
 				this->stageMaterialData = (MaterialData *)&pdata[this->UBOStructure.common_size_total_align +
 																 this->UBOStructure.node_size_total_align];
 
-				this->lightData = (LightData *)&pdata[this->UBOStructure.common_size_total_align +
-													  this->UBOStructure.node_size_total_align +
-													  this->UBOStructure.material_align_total_size];
+				this->stageLightData = (LightData *)&pdata[this->UBOStructure.common_size_total_align +
+														   this->UBOStructure.node_size_total_align +
+														   this->UBOStructure.material_align_total_size];
 
 			} else {
 				glBufferData(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_DYNAMIC_DRAW);
@@ -226,12 +234,15 @@ namespace glsample {
 		this->visableNodes.clear();
 
 		/*	Frustum Culling.	*/
-		if (this->frustumCulling && frustum) {
-			for (size_t x = 0; x < this->getNodes().size(); x++) {
+		if (this->settings.frustumCulling && frustum) {
 
-				NodeObject *node = this->getNodes()[x];
+			/*	*/ //TODO: multi thread
+			for (size_t node_index = 0; node_index < this->getNodes().size(); node_index++) {
 
-				for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
+				NodeObject *node = this->getNodes()[node_index];
+
+				/*	*/
+				for (size_t mesh_index = 0; mesh_index < node->geometryObjectIndex.size(); mesh_index++) {
 
 					/*	Compute world space AABB.	*/
 					const AABB aabb = GeometryUtility::computeBoundingBox(
@@ -240,7 +251,7 @@ namespace glsample {
 							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
 						GLM2E<float, 4, 4>(node->modelGlobalTransform));
 
-					if (false) {
+					if (true) {
 						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), aabb.getSize().norm());
 
 						if (frustum->intersectionSphere(sphere) == Frustum::In) {
@@ -270,7 +281,7 @@ namespace glsample {
 		// TODO: fix camera argument.
 		if (camera) {
 			this->stageCommonBuffer->camera = *camera;
-			CameraController *cameraController = dynamic_cast<CameraController *>(camera);
+			CameraController *cameraController = dynamic_cast<CameraController *>(camera); //TODO: remove controller once the camera start using the base Node
 			this->stageCommonBuffer->camera = *cameraController;
 			/*	*/
 			this->stageCommonBuffer->proj[0] = camera->getProjectionMatrix();
@@ -305,6 +316,7 @@ namespace glsample {
 												RenderQueue::AlphaTest,	  RenderQueue::GeometryLast,
 												RenderQueue::Transparent, RenderQueue::Overlay};
 
+		/*	*/
 		for (auto it = order.begin(); it != order.end(); it++) {
 			// RenderQueue renderQueue = (*it).first;
 			std::deque<const NodeObject *> nodeQueue = this->renderBucketQueue[(*it)];
@@ -325,6 +337,7 @@ namespace glsample {
 			// this->renderNode(node);
 		}
 
+		/*	*/
 		if (this->debugMode & DebugMode::Wireframe) {
 			/*	*/
 			for (const NodeObject *node : this->renderQueue) {
@@ -573,8 +586,22 @@ namespace glsample {
 
 		if (ImGui::CollapsingHeader("Scene Settings")) {
 
-			if (ImGui::TreeNode("Advanced, with Selectable nodes")) {
+			if (ImGui::CollapsingHeader("Rendering Settings")) {
 
+				if (ImGui::Checkbox("Use Frustum Culling", &this->settings.frustumCulling)) {
+				}
+
+				bool showWireFrame = settings.debugMode & DebugMode::Wireframe;
+				if (ImGui::Checkbox("Show Wireframe", &showWireFrame)) {
+					// this->settings.debugMode &= ~(showWireFrame ? DebugMode::Wireframe : DebugMode::None);
+				}
+				bool showBoundingBox = settings.debugMode & DebugMode::BoundingBox;
+				if (ImGui::Checkbox("Show BoundingBox", &showBoundingBox)) {
+					// this->settings.debugMode &= ~(showWireFrame ? DebugMode::Wireframe : DebugMode::None);
+				}
+			}
+
+			if (ImGui::TreeNode("Advanced, with Selectable nodes")) {
 				ImGui::TreePop();
 			}
 
@@ -645,13 +672,13 @@ namespace glsample {
 				size_t material_index = 0;
 
 				ImGui::TextUnformatted("PointLight");
-				for (; material_index < this->lightData->pointCount; material_index++) {
+				for (; material_index < this->stageLightData->pointCount; material_index++) {
 					ImGui::PushID(material_index);
 					ImGui::PopID();
 				}
 
 				ImGui::TextUnformatted("DirectionalLight");
-				for (; material_index < this->lightData->directionalCount; material_index++) {
+				for (; material_index < this->stageLightData->directionalCount; material_index++) {
 					ImGui::PushID(material_index);
 					ImGui::PopID();
 				}
@@ -776,13 +803,13 @@ namespace glsample {
 			if (ImGui::CollapsingHeader("Meshes")) {
 				size_t mesh_index = 0;
 				for (; mesh_index < this->getMeshes().size(); mesh_index++) {
-					auto& ref = this->getMeshes()[mesh_index];
+					auto &ref = this->getMeshes()[mesh_index];
 					ImGui::PushID(mesh_index);
 					ImGui::Text("Index %zu", mesh_index);
 					ImGui::Text("Vertices %zu", ref.nrVertices);
 					ImGui::Text("Indices Elements %zu", ref.nrIndicesElements);
 					ImGui::Text("Vertex Stride %u", ref.stride);
-					//ImGui::Text("Indices Elements Stride %zu", ref.stride);
+					// ImGui::Text("Indices Elements Stride %zu", ref.stride);
 					ImGui::PopID();
 				}
 			}
