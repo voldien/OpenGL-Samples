@@ -24,10 +24,14 @@ download_zip_asset_urls = [
 	# "https://cdrdv2.intel.com/v1/dl/getContent/844047", # Jungle Ruins Scene
 	# "https://cdrdv2.intel.com/v1/dl/getContent/830833", # Sponza Base Scene
 ]
+
 download_asset_directly = [
 	# Textures
 	"https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/4k/snowy_forest_4k.exr",
-	"https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/4k/industrial_sunset_puresky_4k.exr"
+	"https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/4k/industrial_sunset_puresky_4k.exr",
+	"https://www.solarsystemscope.com/textures/download/8k_mars.jpg",
+	"https://ambientcg.com/get?file=NightSkyHDRI002_8K-HDR.exr", # https://ambientcg.com/view?id=NightSkyHDRI002
+	"https://ambientcg.com/get?file=NightSkyHDRI008_8K-HDR.exr", # https://ambientcg.com/view?id=NightSkyHDRI008
 ]
 
 output = sys.argv[1]

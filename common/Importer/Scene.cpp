@@ -252,7 +252,7 @@ namespace glsample {
 						GLM2E<float, 4, 4>(node->modelGlobalTransform));
 
 					if (true) {
-						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), aabb.getSize().norm());
+						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), aabb.getHalfSize().norm());
 
 						if (frustum->intersectionSphere(sphere) == Frustum::In) {
 							/*	*/

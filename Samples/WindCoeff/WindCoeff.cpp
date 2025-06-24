@@ -14,6 +14,7 @@
 #include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/trigonometric.hpp>
 
 namespace glsample {
 
@@ -24,7 +25,7 @@ namespace glsample {
 	class WindCoeff : public GLSampleWindow {
 	  public:
 		WindCoeff() : GLSampleWindow() {
-			this->setTitle("Instance");
+			this->setTitle("Wind Coefficient");
 
 			this->windCoeffSettingComponent = std::make_shared<WindCoeffSettingComponent>(*this);
 			this->addUIComponent(this->windCoeffSettingComponent);
@@ -61,6 +62,7 @@ namespace glsample {
 
 		/*	*/
 		MeshObject instanceGeometry;
+		AABB boundingBox;
 
 		/*	*/
 		unsigned int instance_program{};
@@ -86,7 +88,7 @@ namespace glsample {
 		class WindCoeffSettingComponent : public GLUIComponent<WindCoeff> {
 
 		  public:
-			WindCoeffSettingComponent(WindCoeff &sample) : GLUIComponent(sample, "Wind Coeff Settings") {}
+			WindCoeffSettingComponent(WindCoeff &sample) : GLUIComponent(sample, "Wind Coefficient Settings") {}
 
 			void draw() override {
 
@@ -97,7 +99,7 @@ namespace glsample {
 				const float normalRatio =
 					this->getRefSample().resultStage.averageNormal / this->getRefSample().resultStage.area;
 
-				ImGui::DragFloat3("Bounding Box Size", &bounding_box_size[0]);
+				ImGui::DragFloat3("Volume Size (X,Y,Z)", &bounding_box_size[0]);
 
 				ImGui::DragFloat3("Rotation", &offsetRotation[0]);
 				ImGui::DragFloat3("Offset Position", &offsetPosition[0]);
@@ -124,6 +126,8 @@ namespace glsample {
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Focus Camera", &this->focusCamera);
+				Vector3 size = this->getRefSample().boundingBox.getHalfSize();
+				ImGui::DragFloat3("Model Max Bounding Box", &size[0]);
 
 				ImGui::Text("Area: %f", this->getRefSample().resultStage.area);
 				ImGui::Text("Normal: %f", this->getRefSample().resultStage.averageNormal);
@@ -147,8 +151,8 @@ namespace glsample {
 		};
 		std::shared_ptr<WindCoeffSettingComponent> windCoeffSettingComponent;
 
-		const std::string vertexInstanceShaderPath = "Shaders/debug/normal.vert.spv";
-		const std::string fragmentInstanceShaderPath = "Shaders/debug/normal.frag.spv";
+		const std::string vertexNormalShaderPath = "Shaders/debug/normal.vert.spv";
+		const std::string fragmentNormalShaderPath = "Shaders/debug/normal.frag.spv";
 		const std::string computeShaderPath = "Shaders/area/windcoeff/windcoeff_screen_space.comp.spv";
 
 		void Release() override {
@@ -168,12 +172,12 @@ namespace glsample {
 
 			{
 				/*	Load shader source.	*/
-				std::vector<uint32_t> instance_vertex_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexInstanceShaderPath, this->getFileSystem());
-				std::vector<uint32_t> instance_fragment_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentInstanceShaderPath, this->getFileSystem());
+				std::vector<uint32_t> normal_vertex_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexNormalShaderPath, this->getFileSystem());
+				std::vector<uint32_t> normal_fragment_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentNormalShaderPath, this->getFileSystem());
 
-				const std::vector<uint32_t> area_compute_binary =
+				const std::vector<uint32_t> area_normal_compute_binary =
 					IOUtil::readFileData<uint32_t>(this->computeShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -181,14 +185,15 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->instance_program = ShaderLoader::loadGraphicProgram(compilerOptions, &instance_vertex_binary,
-																		  &instance_fragment_binary);
+				this->instance_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &normal_vertex_binary, &normal_fragment_binary);
 
 				/*	Create compute pipeline.	*/
-				this->compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &area_compute_binary);
+				this->compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &area_normal_compute_binary);
 			}
 			/*	Setup instance graphic pipeline.	*/
 			glUseProgram(this->instance_program);
+
 			/*	*/
 			int uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->instance_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -211,8 +216,10 @@ namespace glsample {
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->uniformSharedBufferSize =
 				fragcore::Math::align<size_t>(this->uniformSharedBufferSize, (size_t)minMapBufferSize);
+			GLint minStorageAlignSize = 0;
+			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &minStorageAlignSize);
 			this->result_buffer_size = Math::align<size_t>(this->result_buffer_size * (static_cast<size_t>(4096 * 32)),
-														   (size_t)minMapBufferSize);
+														   (size_t)minStorageAlignSize);
 
 			/*	*/
 			glGenBuffers(1, &this->uniform_mvp_buffer);
@@ -235,7 +242,17 @@ namespace glsample {
 
 				const ModelSystemObject &modelRef = modelLoader.getModels()[0];
 
-				// modelRef.bound;
+				/*	*/
+				this->boundingBox = GeometryUtility::computeBoundingBox(
+					fragcore::AABB::createMinMax(
+						Vector3(modelRef.bound.aabb.min[0], modelRef.bound.aabb.min[1], modelRef.bound.aabb.min[2]),
+						Vector3(modelRef.bound.aabb.max[0], modelRef.bound.aabb.max[1], modelRef.bound.aabb.max[2])),
+					GLM2E<float, 4, 4>(glm::mat4(1)));
+				/*	*/
+				Vector3 halfSize = this->boundingBox.getHalfSize();
+				halfSize.x() *= sqrt(2.0f);
+				halfSize.z() *= sqrt(2.0f);
+				this->boundingBox.setHalfSize(halfSize);
 
 				/*	Create array buffer, for rendering static geometry.	*/
 				glGenVertexArrays(1, &this->instanceGeometry.vao);
@@ -295,15 +312,13 @@ namespace glsample {
 											  .height = frame_height,
 											  .graphicFormat = GraphicFormat::Depth_32Bit,
 											  .nrSamples = 0,
-
 										  });
 
 			this->camera.setAspect((float)width / (float)height);
 		}
 
 		void draw() override {
-			/*	Wait in till image has been written.	*/
-			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
 			/*	Extract Result.	*/
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->result_buffer);
 			ResultBuffer *resultBuffer = (ResultBuffer *)glMapBufferRange(
@@ -323,34 +338,38 @@ namespace glsample {
 			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-			/*	*/
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->framebuffer.framebuffer);
-			glViewport(0, 0, this->framebuffer.attachmentSize[0].x, this->framebuffer.attachmentSize[0].y);
+			{
+				/*	*/
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->framebuffer.framebuffer);
+				glViewport(0, 0, this->framebuffer.attachmentSize[0].x, this->framebuffer.attachmentSize[0].y);
 
-			/*	*/
-			glClearColor(0.00f, 0.00f, 0.00f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				/*	*/
+				glClearColor(0.00f, 0.00f, 0.00f, 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			/*	Bind MVP Uniform Buffer.	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_mvp_buffer,
-							  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformSharedBufferSize,
-							  this->uniformSharedBufferSize);
+				/*	Bind MVP Uniform Buffer.	*/
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_mvp_buffer,
+								  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformSharedBufferSize,
+								  this->uniformSharedBufferSize);
 
-			/*	Optional - to display wireframe.	*/
-			glPolygonMode(GL_FRONT_AND_BACK, this->windCoeffSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
+				/*	Optional - to display wireframe.	*/
+				glPolygonMode(GL_FRONT_AND_BACK, this->windCoeffSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-			glUseProgram(this->instance_program);
-			glDisable(GL_CULL_FACE);
+				glUseProgram(this->instance_program);
+				glDisable(GL_CULL_FACE);
 
-			glEnable(GL_DEPTH_TEST);
-			glDepthMask(GL_TRUE);
-			/*	Draw Instances.	*/
-			glBindVertexArray(this->instanceGeometry.vao);
+				glEnable(GL_DEPTH_TEST);
+				glDepthMask(GL_TRUE);
+				/*	Draw Instances.	*/
+				glBindVertexArray(this->instanceGeometry.vao);
 
-			glDrawElementsInstanced(GL_TRIANGLES, this->instanceGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
-									1);
+				glDrawElementsInstanced(GL_TRIANGLES, this->instanceGeometry.nrIndicesElements, GL_UNSIGNED_INT,
+										nullptr, 1);
 
-			glBindVertexArray(0);
+				glBindVertexArray(0);
+			}
+
+			glTextureBarrier();
 
 			{
 				int width = 0, height = 0;
@@ -369,9 +388,6 @@ namespace glsample {
 			}
 
 			{
-
-				/*	*/
-				glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 
 				glActiveTexture(GL_TEXTURE0 + 0);
 				glBindTexture(GL_TEXTURE_2D, this->framebuffer.attachments[0]);
@@ -407,8 +423,6 @@ namespace glsample {
 			this->uniformData.model = glm::translate(glm::mat4(1.0f), this->windCoeffSettingComponent->offsetPosition);
 			glm::quat quatRotation = glm::quat(this->windCoeffSettingComponent->offsetRotation);
 			this->uniformData.model = this->uniformData.model * glm::toMat4(quatRotation);
-			this->uniformData.model =
-				glm::scale(this->uniformData.model, glm::vec3(10)); // TODO: based on the orthographic and bounding box
 			this->uniformData.model = glm::scale(
 				this->uniformData.model,
 				this->windCoeffSettingComponent->scaleFactor); // TODO: based on the orthographic and bounding box
@@ -420,8 +434,15 @@ namespace glsample {
 			if (windCoeffSettingComponent->focusCamera) {
 				this->camera.setMode(Camera::CameraMode::Orthographic);
 
-				this->camera.setPosition(glm::vec3(this->camera.getPosition().x, 0, this->camera.getPosition().z));
-				this->camera.lookAt(glm::vec3(0));
+				this->camera.setOrth(-boundingBox.getHalfSize().x(), boundingBox.getHalfSize().x(), 0,
+									 boundingBox.getHalfSize().y() * 2.0f, -boundingBox.getHalfSize().z() * 2,
+									 boundingBox.getHalfSize().z() * 2);
+
+				/*	*/
+				this->camera.setPosition(
+					E2GLM(boundingBox.getCenter()) +
+					glm::normalize(glm::vec3(this->camera.getPosition().x, 0, this->camera.getPosition().z)));
+				this->camera.lookAt(E2GLM(boundingBox.getCenter()));
 
 				this->uniformData.view = this->camera.getRotationMatrix();
 
@@ -429,6 +450,9 @@ namespace glsample {
 					this->uniformData.proj * this->uniformData.view * this->uniformData.model;
 			} else {
 				this->camera.setMode(Camera::CameraMode::Perspective);
+				this->camera.setNear(0.15f);
+				this->camera.setFar(1000.0f);
+
 				this->uniformData.modelViewProjection =
 					this->uniformData.proj * this->uniformData.view * this->uniformData.model;
 			}

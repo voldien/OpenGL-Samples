@@ -55,7 +55,6 @@ struct Frustum {
 	vec4 planes[6];
 };
 
-
 float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
 
@@ -202,8 +201,6 @@ vec2 pixelate_screenUV(const in vec2 screenUV, const in float pixel_size, const 
 	return floor(screenUV * pixel_size * aspect_ratio) / (pixel_size * aspect_ratio);
 }
 
-
-
 struct DrawElementsIndirectCommand {
 	uint count;
 	uint instanceCount;
@@ -211,5 +208,57 @@ struct DrawElementsIndirectCommand {
 	uint baseVertex;
 	uint baseInstance;
 };
+
+struct IndirectDrawArray {
+	uint count;			/*  */
+	uint instanceCount; /*  */
+	uint first;			/*  */
+	uint baseInstance;	/*  */
+};
+
+struct IndirectDispatchCommand {
+	uint num_groups_x;
+	uint num_groups_y;
+	uint num_groups_z;
+};
+
+vec2 sphere_uv_mapping(const vec3 position) { return inverse_equirectangular(normalize(position)); }
+
+struct Sphere {
+	vec4 position_radius;
+};
+
+float ray_sphere_intersect(const vec3 center, const float radius, const vec3 origin, const vec3 ray_dir) {
+	vec3 tmp = origin - center;
+	float t;
+	/*	*/
+	float a = dot(ray_dir, ray_dir);
+	float b = 2.0 * dot(ray_dir, tmp);
+	float c = dot(tmp, tmp) - (radius * radius);
+
+	/*	*/
+	const float discriminant = b * b - (4.0f * c * a);
+	if (discriminant < 0.0) {
+		return -1;
+	}
+	return (-b - sqrt(discriminant)) / (a * 2.0);
+}
+
+vec2 ray_sphere_intersect_samples(const vec3 center, const float radius, const vec3 origin, const vec3 ray_dir) {
+	vec3 tmp = origin - center;
+	float t;
+	/*	*/
+	float a = dot(ray_dir, ray_dir);
+	float b = 2.0 * dot(ray_dir, tmp);
+	float c = dot(tmp, tmp) - (radius * radius);
+
+	/*	*/
+	const float discriminant = b * b - (4.0f * c * a);
+	if (discriminant < 0.0) {
+		return vec2(-1.0, -1.0);
+	}
+
+	return vec2(-b - sqrt(discriminant), -b + sqrt(discriminant)) / (2.0 * a);
+}
 
 #endif

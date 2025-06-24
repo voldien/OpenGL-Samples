@@ -197,7 +197,7 @@ namespace glsample {
 			}
 		}
 
-		glm::vec4 planes[6];
+		glm::vec4 planes[6]{};
 	};
 
 	using UBOObject = struct uniform_buffer_object_t {

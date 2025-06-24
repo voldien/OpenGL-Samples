@@ -83,6 +83,16 @@ namespace glsample {
 			this->updateProjectionMatrix();
 		}
 
+		void setOrth(const float left, const float right, const float bottom, const float top, const float near,
+					 const float far) noexcept {
+			this->left = left;
+			this->right = right;
+			this->bottom = bottom;
+			this->top = top;
+			this->near = near;
+			this->far = far;
+		}
+
 		const glm::mat4 &getProjectionMatrix() const noexcept { return this->proj; }
 
 		// TODO: Refractor
@@ -98,7 +108,7 @@ namespace glsample {
 		void updateProjectionMatrix() noexcept {
 			switch (getMode()) {
 			case CameraMode::Orthographic:
-				this->proj = glm::ortho(this->left, this->right, this->bottom, this->top, -this->far, this->far);
+				this->proj = glm::ortho(this->left, this->right, this->bottom, this->top, this->near, this->far);
 				break;
 			case CameraMode::Perspective:
 			default:
