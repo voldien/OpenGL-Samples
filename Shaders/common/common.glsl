@@ -22,6 +22,7 @@ struct Camera {
 	float far;			/*	*/
 	float aspect;		/*	*/
 	float fov;			/*	*/
+	
 	vec4 position;		/*	*/
 	vec4 viewDir;		/*	*/
 	vec4 position_size; /*	*/

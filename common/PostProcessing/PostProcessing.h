@@ -38,7 +38,7 @@ namespace glsample {
 		virtual bool isActive() const noexcept { return getIntensity() > 0 && isSupported(); }
 
 		virtual float getIntensity() const noexcept;
-		virtual void setItensity(const float intensity);
+		virtual void setIntensity(const float intensity);
 
 		bool isBufferRequired(const GBuffer required_data_buffer) const noexcept;
 

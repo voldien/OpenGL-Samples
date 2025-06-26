@@ -19,10 +19,9 @@
 #include "GLSampleSession.h"
 #include "GLSampleWindow.h"
 #include "GLUIComponent.h"
+#include "IO/FileSystem.h"
 #include "IO/IFileSystem.h"
 #include "IOUtil.h"
-#include "IRenderer.h"
-#include "TaskScheduler/IScheduler.h"
 #include "Util/CameraController.h"
 #include "Util/ProcessDataUtil.h"
 #include <GLHelper.h>
@@ -49,8 +48,6 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 	~GLSample() override {
 		this->sampleRef->Release();
 		delete this->sampleRef;
-		delete this->getFileSystem();
-		delete this->getSchedular();
 	}
 
 	void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) override {
@@ -117,12 +114,11 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		const int msaa = result["multi-sample"].as<int>();
 		const int display_index = result["display"].as<int>();
 
-		fragcore::Ref<fragcore::IScheduler> schedular =
-			fragcore::Ref<fragcore::IScheduler>(new fragcore::TaskScheduler(2));
+		this->schedular = std::make_shared<fragcore::TaskScheduler>(2);
 
 		/*	Create filesystem that the asset will be read from.	*/
 		this->activeFileSystem =
-			fragcore::Ref<fragcore::IFileSystem>(fragcore::FileSystem::createFileSystem(schedular));
+			std::shared_ptr<fragcore::FileSystem>(fragcore::FileSystem::createFileSystem(this->schedular));
 		const std::string filesystemPath = result["filesystem"].as<std::string>();
 		if (!this->activeFileSystem->isDirectory(filesystemPath.c_str())) {
 

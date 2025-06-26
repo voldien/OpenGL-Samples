@@ -47,11 +47,11 @@ void VignetteProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glBindFragDataLocation(this->vignette_program, 0, "fragColor");
 	glUseProgram(0);
 
-	this->setItensity(1);
+	this->setIntensity(1);
 }
 
-void VignetteProcessing::setItensity(const float intensity) {
-	PostProcessing::setItensity(intensity);
+void VignetteProcessing::setIntensity(const float intensity) {
+	PostProcessing::setIntensity(intensity);
 	glUseProgram(this->vignette_program);
 
 	glUniform1f(glGetUniformLocation(this->vignette_program, "settings.base.blend"), this->getIntensity());

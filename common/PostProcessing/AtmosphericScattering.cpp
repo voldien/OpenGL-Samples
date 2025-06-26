@@ -9,14 +9,14 @@
 using namespace glsample;
 
 AtmosphericScattering::AtmosphericScattering() {
-	this->setName("Bloom");
+	this->setName("Atmospheric Scattering");
 	this->addRequireBuffer(GBuffer::Color);
 	this->addRequireBuffer(GBuffer::Depth);
 }
 
 AtmosphericScattering::~AtmosphericScattering() {
-	if (this->bloom_blur_graphic_program >= 0) {
-		glDeleteProgram(this->bloom_blur_graphic_program);
+	if (this->atmospheric_scattering_graphic_program >= 0) {
+		glDeleteProgram(this->atmospheric_scattering_graphic_program);
 	}
 	if (glIsSampler(this->texture_sampler)) {
 		glDeleteSamplers(1, &this->texture_sampler);
@@ -28,10 +28,9 @@ void AtmosphericScattering::initialize(fragcore::IFileSystem *filesystem) {
 	const char *vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 	const char *glow_frag_path = "Shaders/postprocessingeffects/atmospheric_scattering.frag.spv";
 
-	if (this->bloom_blur_graphic_program == -1) {
+	if (this->atmospheric_scattering_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary =
-			IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
+		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
 		const std::vector<uint32_t> glow_fragment_binary = IOUtil::readFileData<uint32_t>(glow_frag_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -39,13 +38,13 @@ void AtmosphericScattering::initialize(fragcore::IFileSystem *filesystem) {
 		compilerOptions.glslVersion = 420; /*	*/
 
 		/*  */
-		this->bloom_blur_graphic_program =
+		this->atmospheric_scattering_graphic_program =
 			ShaderLoader::loadGraphicProgram(compilerOptions, &post_vertex_binary, &glow_fragment_binary);
 	}
 
-	glUseProgram(this->bloom_blur_graphic_program);
-	glUniform1i(glGetUniformLocation(this->bloom_blur_graphic_program, "ColorTexture"), 0);
-	glBindFragDataLocation(this->bloom_blur_graphic_program, 1, "fragColor");
+	glUseProgram(this->atmospheric_scattering_graphic_program);
+	glUniform1i(glGetUniformLocation(this->atmospheric_scattering_graphic_program, "ColorTexture"), 0);
+	glBindFragDataLocation(this->atmospheric_scattering_graphic_program, 1, "fragColor");
 	glUseProgram(0);
 
 	/*	Create sampler.	*/
@@ -62,7 +61,7 @@ void AtmosphericScattering::initialize(fragcore::IFileSystem *filesystem) {
 
 	this->vao = this->createVAO();
 
-	setItensity(1);
+	setIntensity(1);
 }
 
 void AtmosphericScattering::draw(glsample::FrameBuffer *framebuffer,
@@ -117,6 +116,14 @@ void AtmosphericScattering::render(FrameBuffer *framebuffer, unsigned int color_
 }
 
 void AtmosphericScattering::renderUI() {
-	// ImGui::DragInt("Image Size", (&this->nr_down_samples));
-	// ImGui::DragFloat("ThjreadsHold", &this->threadshold, 1, 0, 1000.0f);
+
+	/*	Each planet.	*/
+	for (size_t i = 0; i < 0; i++) {
+	}
+
+	ImGui::DragFloat2("Light Position", &settings.sunDirection[0], 0.1f, 0.0f);
+
+	ImGui::DragInt("Image Size", (&this->settings.numSamples));
+	ImGui::DragFloat("Hr", &this->settings.Hr, 1, 0, 1000.0f);
+	ImGui::DragFloat("Hm", &this->settings.Hm, 1, 0, 1000.0f);
 }

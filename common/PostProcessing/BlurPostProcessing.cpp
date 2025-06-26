@@ -99,7 +99,7 @@ void BlurPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	/*	Update Guassian */
 	updateGuassianKernel();
 
-	setItensity(1);
+	setIntensity(1);
 }
 
 void BlurPostProcessing::draw(glsample::FrameBuffer *framebuffer,

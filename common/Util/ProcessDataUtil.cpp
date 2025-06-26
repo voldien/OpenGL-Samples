@@ -20,8 +20,8 @@ MiscProcessingUtil::~MiscProcessingUtil() {
 	}
 }
 
-void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
-									const unsigned int height) {
+void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int &irradiance_target,
+										   const unsigned int width, const unsigned int height) {
 
 	glGenTextures(1, &irradiance_target);
 
@@ -30,7 +30,7 @@ void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int
 
 	/*	*/
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR );
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -53,7 +53,7 @@ void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-		compilerOptions.glslVersion = 420;
+		compilerOptions.glslVersion = 420; /*	Min shader version required.	*/
 
 		/*  */
 		this->irradiance_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_irradiance_env_binary);
@@ -107,8 +107,8 @@ void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void MiscProcessingUtil::computePerlinNoise(unsigned int target_texture, const glm::vec2 &size, const glm::vec2 &tile_offset,
-									 const int octaves) {
+void MiscProcessingUtil::computePerlinNoise(unsigned int target_texture, const glm::vec2 &size,
+											const glm::vec2 &tile_offset, const int octaves) {
 	const char *irradiance_path = "Shaders/compute/perlin_noise_2D_image.comp.spv";
 
 	if (this->perlin_noise2D_program == -1) {
@@ -164,7 +164,7 @@ void MiscProcessingUtil::computePerlinNoise(unsigned int target_texture, const g
 }
 
 void MiscProcessingUtil::computePerlinNoise(unsigned int *target, const unsigned int width, const unsigned int height,
-									 const glm::vec2 &size, const glm::vec2 &tile_offset, const int octaves) {
+											const glm::vec2 &size, const glm::vec2 &tile_offset, const int octaves) {
 	glGenTextures(1, target);
 
 	glBindTexture(GL_TEXTURE_2D, *target);
@@ -183,8 +183,8 @@ void MiscProcessingUtil::computePerlinNoise(unsigned int *target, const unsigned
 	MiscProcessingUtil::computePerlinNoise(*target, size, tile_offset, octaves);
 }
 
-void MiscProcessingUtil::computeBump2Normal(unsigned int bump_source, unsigned int &normal_target, const unsigned int width,
-									 const unsigned int height) {
+void MiscProcessingUtil::computeBump2Normal(unsigned int bump_source, unsigned int &normal_target,
+											const unsigned int width, const unsigned int height) {
 
 	glGenTextures(1, &normal_target);
 	glBindTexture(GL_TEXTURE_2D, normal_target);
@@ -251,6 +251,77 @@ void MiscProcessingUtil::computeBump2Normal(unsigned int bump_source, unsigned i
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	glBindTexture(GL_TEXTURE_2D, normal_target);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glUseProgram(0);
+}
+
+void MiscProcessingUtil::computeColor2HeightMap(unsigned int color_source, unsigned int &height_target,
+												const unsigned int width, const unsigned int height) {
+	glGenTextures(1, &color_source);
+	glBindTexture(GL_TEXTURE_2D, color_source);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
+	/*	Filtering.	*/
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 5); // TODO: based on equation on width and height
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	MiscProcessingUtil::computeColor2HeightMap(color_source, color_source);
+}
+void MiscProcessingUtil::computeColor2HeightMap(unsigned int color_source, unsigned int height_target) {
+	const char *irradiance_path = "Shaders/compute/bump2normal.comp.spv";
+
+	if (this->bump2normal_program == -1) {
+		/*	*/
+		const std::vector<uint32_t> compute_bump_2_normal_binary =
+			IOUtil::readFileData<uint32_t>(irradiance_path, filesystem);
+
+		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+		compilerOptions.glslVersion = 420;
+
+		/*  */
+		this->bump2normal_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_bump_2_normal_binary);
+
+		glUseProgram(this->bump2normal_program);
+		glUniform1i(glGetUniformLocation(this->bump2normal_program, "SourceBumpTexture"), 0);
+		glUniform1i(glGetUniformLocation(this->bump2normal_program, "TargetNormalTexture"), 1);
+	}
+
+	glUseProgram(this->bump2normal_program);
+
+	GLint localWorkGroupSize[3];
+
+	glGetProgramiv(this->bump2normal_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+
+	GLint width = 0;
+	GLint height = 0;
+
+	glActiveTexture(GL_TEXTURE0 + 0);
+	glBindTexture(GL_TEXTURE_2D, color_source);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+
+	glBindTexture(GL_TEXTURE_2D, color_source);
+
+	glUniform1f(glGetUniformLocation(this->bump2normal_program, "settings.strength"), 1);
+
+	/*	The image where the graphic version will be stored as.	*/
+	glBindImageTexture(1, height_target, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+
+	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]);
+	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]);
+
+	glDispatchCompute(WorkGroupX, WorkGroupY, 1);
+
+	/*	Wait in till image has been written.	*/
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	glBindTexture(GL_TEXTURE_2D, height_target);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glUseProgram(0);

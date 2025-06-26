@@ -63,11 +63,11 @@ void SSSPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	this->vao = createVAO();
 
 	/*	*/
-	this->setItensity(1);
+	this->setIntensity(1);
 }
 
-void SSSPostProcessing::setItensity(const float intensity) {
-	PostProcessing::setItensity(intensity);
+void SSSPostProcessing::setIntensity(const float intensity) {
+	PostProcessing::setIntensity(intensity);
 
 	glUseProgram(this->screen_space_shadow_frag_program);
 	glUniform1f(glGetUniformLocation(this->screen_space_shadow_frag_program, "settings.base.blend"),

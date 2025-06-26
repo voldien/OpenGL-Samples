@@ -1,4 +1,4 @@
-#include "PostProcessing/ChromaticAbberationPostProcessing.h"
+#include "PostProcessing/ChromaticAberrationPostProcessing.h"
 #include "GLSampleSession.h"
 #include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
@@ -8,20 +8,20 @@
 
 using namespace glsample;
 
-ChromaticAbberationPostProcessing::ChromaticAbberationPostProcessing() {
+ChromaticAberrationPostProcessing::ChromaticAberrationPostProcessing() {
 	this->setName("Chromatic Abberation");
 	this->addRequireBuffer(GBuffer::Color);
 	this->addRequireBuffer(GBuffer::IntermediateTarget);
 }
 
-ChromaticAbberationPostProcessing::~ChromaticAbberationPostProcessing() {
+ChromaticAberrationPostProcessing::~ChromaticAberrationPostProcessing() {
 	if (glIsProgram(this->chromatic_abberation_graphic_program)) {
 		glDeleteProgram(this->chromatic_abberation_graphic_program);
 	}
 	glDeleteVertexArrays(1, &this->vao);
 }
 
-void ChromaticAbberationPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
+void ChromaticAberrationPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	const char *chromatic_abberation_frag_path = "Shaders/postprocessingeffects/chromaticabbrevation.frag.spv";
 	const char *post_vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 
@@ -47,12 +47,12 @@ void ChromaticAbberationPostProcessing::initialize(fragcore::IFileSystem *filesy
 	glBindFragDataLocation(this->chromatic_abberation_graphic_program, 1, "fragColor");
 	glUseProgram(0);
 
-	setItensity(1);
+	setIntensity(1);
 
 	this->vao = this->createVAO();
 }
 
-void ChromaticAbberationPostProcessing::draw(
+void ChromaticAberrationPostProcessing::draw(
 	glsample::FrameBuffer *framebuffer,
 	const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
@@ -60,15 +60,15 @@ void ChromaticAbberationPostProcessing::draw(
 	this->render(framebuffer, this->getMappedBuffer(GBuffer::Color));
 }
 
-void ChromaticAbberationPostProcessing::setItensity(const float intensity) {
-	PostProcessing::setItensity(intensity);
+void ChromaticAberrationPostProcessing::setIntensity(const float intensity) {
+	PostProcessing::setIntensity(intensity);
 	glUseProgram(this->chromatic_abberation_graphic_program);
 	glUniform1f(glGetUniformLocation(this->chromatic_abberation_graphic_program, "settings.base.blend"),
 				this->getIntensity());
 	glUseProgram(0);
 }
 
-void ChromaticAbberationPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int source_color_texture) {
+void ChromaticAberrationPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int source_color_texture) {
 
 	const unsigned int source_texture = source_color_texture;
 	const unsigned int target_texture = this->getMappedBuffer(GBuffer::IntermediateTarget);
@@ -108,7 +108,7 @@ void ChromaticAbberationPostProcessing::render(glsample::FrameBuffer *framebuffe
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
 }
 
-void ChromaticAbberationPostProcessing::renderUI() {
+void ChromaticAberrationPostProcessing::renderUI() {
 	ImGui::DragFloat("Red Offset", &this->settings.redOffset);
 	ImGui::DragFloat("Green Offset", &this->settings.greenOffset);
 	ImGui::DragFloat("Blue Offset", &this->settings.blueOffset);

@@ -191,7 +191,8 @@ namespace glsample {
 		using UniformDataStructure = struct uniform_data_structure {
 			/*	*/
 			static const size_t nrUniformBuffer = 3;
-			unsigned int node_and_common_uniform_buffer;
+			UBOObject uniform_buffer;
+			unsigned int node_and_common_uniform_buffer; //TODO: removed and replace with uniform_buffer;
 
 			unsigned int node_offset = 0;
 			unsigned int node_size_align = 0;

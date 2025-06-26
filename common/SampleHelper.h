@@ -89,9 +89,7 @@ namespace glsample {
 		Exp2,	/*	*/
 		Height	/*	*/
 	};
-
-	using UnfiformSubBuffer = struct uniform_sub_buffer_t {};
-
+ 
 	using GammaCorrectionSettings = struct gamme_correct_settings_t {
 		float exposure = 1.0f;
 		float gamma = 2.2f;
@@ -177,10 +175,12 @@ namespace glsample {
 		float far = 1000;
 		float aspect = 1.0;
 		float fov_radian = 0.9;
+
 		glm::vec4 position = glm::vec4(0);
 		glm::vec4 viewDir = glm::vec4(0, 0, 1, 0);
 		glm::vec4 position_size = glm::vec4(0);
 		glm::uvec4 screen_width_padding = glm::ivec4(1);
+
 		glm::mat4 view = glm::mat4(1);
 		glm::mat4 viewRot = glm::mat4(1);
 		glm::mat4 viewProj = glm::mat4(1);
@@ -201,10 +201,16 @@ namespace glsample {
 	};
 
 	using UBOObject = struct uniform_buffer_object_t {
-		unsigned int buffer;
-		unsigned int size;
-		unsigned int totalSize;
-		unsigned int alignment;
+		unsigned int buffer;	/*	*/
+		size_t size;			/*	*/
+		size_t totalSize;		/*	*/
+		unsigned int alignment; /*	*/
+	};
+
+	using UBORange = struct uniform_buffer_range_t {
+		UBOObject *reference; /*	*/
+		size_t offset;		  /*	*/
+		size_t size;		  /*	*/
 	};
 
 	using FrameBuffer = struct framebuffer_t {

@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "GLSampleSession.h"
+#include "Math3D/Color.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -27,12 +28,13 @@ namespace glsample {
 			this->planetSettingComponent = std::make_shared<PlanetSettingComponent>(*this);
 			this->addUIComponent(this->planetSettingComponent);
 
+			/*	*/
 			this->camera.setFar(2000.0f);
 			this->camera.setPosition(glm::vec3(-2.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		struct alignas(16) TerrainSettings {
+		struct alignas(16) PlanetSettings {
 			glm::ivec2 size = glm::ivec2(1, 1);
 			glm::vec2 tile_offset = glm::vec2(10, 10);
 
@@ -40,7 +42,7 @@ namespace glsample {
 			glm::vec2 tile_noise_offset = glm::vec2(0, 0);
 		};
 
-		struct alignas(32) UniformTerrainBufferBlock {
+		struct UniformPlanetBufferBlock {
 			glm::mat4 model{};
 			glm::mat4 view{};
 			glm::mat4 proj{};
@@ -50,7 +52,7 @@ namespace glsample {
 
 			CameraInstanceData camera{};
 
-			TerrainSettings terrainSettings;
+			PlanetSettings planetSettings;
 
 			/*	Material	*/
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
@@ -62,7 +64,6 @@ namespace glsample {
 			DirectionalLight directional;
 
 			/*	Tessellation Settings.	*/
-			glm::vec4 gEyeWorldPos{};
 			float gDisplace = 1.0f;
 			float tessLevel = 1;
 			float maxTessellation = 30.0f;
@@ -83,9 +84,8 @@ namespace glsample {
 		};
 
 		/*	Pack all uniform in single buffer.	*/
-		struct uniform_buffer_block {
-			UniformTerrainBufferBlock terrain;
-			// UniformOceanBufferBlock ocean;
+		struct uniform_buffer_block_t {
+			UniformPlanetBufferBlock planet;
 		} uniform_stage_buffer;
 
 		Skybox skybox;
@@ -93,7 +93,6 @@ namespace glsample {
 		MeshObject planet_sphere;
 
 		unsigned int planet_program = 0;
-		unsigned int simple_ocean_program = 0;
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
@@ -103,89 +102,80 @@ namespace glsample {
 		const size_t nrUniformBuffer = 3;
 
 		/*	Uniform align buffer sizes.	*/
-		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
-		size_t terrainUniformSize = 0;
+		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block_t);
+		size_t planetUniformSize = 0;
 		size_t oceanUniformSize = 0;
 
-		unsigned int terrain_diffuse_texture = 0;
-		unsigned int terrain_heightMap = 0;
+		unsigned int planet_diffuse_texture = 0;
+		unsigned int planet_heightMap = 0;
+		unsigned int planet_noise_textures = 0;
 		unsigned int irradiance_texture = 0;
 		unsigned int color_texture = 0;
-		unsigned int ocean_normal = 0;
+		unsigned int planet_normal = 0;
 
-		glm::mat4 cameraProj{};
 		CameraController camera;
 
 		/*	Simple Planet.	*/
-		const std::string vertexTerrainShaderPath = "Shaders/planet/planet.vert.spv";
-		const std::string fragmentTerrainShaderPath = "Shaders/planet/planet.frag.spv";
-		const std::string vertexTerrainControlShaderPath = "Shaders/planet/planet.tesc.spv";
-		const std::string fragmentTerrainEvolutionShaderPath = "Shaders/planet/planet.tese.spv";
-
-		/*	Simple Water.	*/
-		const std::string vertexSimpleWaterShaderPath = "Shaders/simpleocean/simple_water.vert.spv";
-		const std::string fragmentSimpleWaterShaderPath = "Shaders/simpleocean/simple_water.frag.spv";
-
-		/*	Occlusion.	*/
+		const std::string vertexPlanetShaderPath = "Shaders/planet/planet.vert.spv";
+		const std::string fragmentPlanetShaderPath = "Shaders/planet/planet.frag.spv";
+		const std::string vertexPlanetControlShaderPath = "Shaders/planet/planet.tesc.spv";
+		const std::string fragmentPlanetEvolutionShaderPath = "Shaders/planet/planet.tese.spv";
 
 		void Release() override {
 			glDeleteProgram(this->planet_program);
-			glDeleteProgram(this->simple_ocean_program);
 
 			glDeleteVertexArrays(1, &this->planet_sphere.vao);
 			glDeleteBuffers(1, &this->planet_sphere.vbo);
 			glDeleteBuffers(1, &this->planet_sphere.ibo);
- 
 		}
 
 		class PlanetSettingComponent : public GLUIComponent<Planet> {
 		  public:
 			PlanetSettingComponent(Planet &sample)
-				: GLUIComponent(sample, "Basic Shadow Mapping Settings"),
-				  stage_uniform(this->getRefSample().uniform_stage_buffer) {}
+				: GLUIComponent(sample, "Planet Settings"), stage_uniform(this->getRefSample().uniform_stage_buffer) {}
 
 			void draw() override {
 
 				ImGui::TextUnformatted("Light Setting");
 				{
-					ImGui::ColorEdit4("Color", &this->stage_uniform.terrain.directional.lightColor[0],
+					ImGui::ColorEdit4("Color", &this->stage_uniform.planet.directional.lightColor[0],
 									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 					if (ImGui::DragFloat3("Light Direction",
-										  &this->stage_uniform.terrain.directional.lightDirection[0])) {
+										  &this->stage_uniform.planet.directional.lightDirection[0])) {
 					}
 				}
 				ImGui::TextUnformatted("Material Setting");
-				ImGui::ColorEdit4("Ambient", &this->stage_uniform.terrain.ambientColor[0],
+				ImGui::ColorEdit4("Ambient", &this->stage_uniform.planet.ambientColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Diffuse", &this->stage_uniform.terrain.diffuseColor[0],
+				ImGui::ColorEdit4("Diffuse", &this->stage_uniform.planet.diffuseColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::ColorEdit4("Specular Color", &this->stage_uniform.terrain.specularColor[0],
+				ImGui::ColorEdit4("Specular Color", &this->stage_uniform.planet.specularColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat("Shin", &this->stage_uniform.terrain.shinines[0]);
+				ImGui::DragFloat("Shin", &this->stage_uniform.planet.shinines[0]);
 
 				ImGui::TextUnformatted("Tessellation");
-				ImGui::DragFloat("Displacement", &this->stage_uniform.terrain.gDisplace, 1, -1000.0f, 1000.0f);
-				ImGui::DragFloat("Levels", &this->stage_uniform.terrain.tessLevel, 1, 0.0f, 32.0f);
-				ImGui::DragFloat("Min Tessellation", &this->stage_uniform.terrain.minTessellation, 1, 0.0f, 100.0f);
-				ImGui::DragFloat("Max Tessellation", &this->stage_uniform.terrain.maxTessellation, 1, 0.0f, 100.0f);
-				// ImGui::DragFloat("Distance Tessellation", &this->stage_uniform.terrain.maxTessellation, 1, 0.0f,
+				ImGui::DragFloat("Displacement", &this->stage_uniform.planet.gDisplace, 1, -1000.0f, 1000.0f);
+				ImGui::DragFloat("Levels", &this->stage_uniform.planet.tessLevel, 1, 0.0f, 32.0f);
+				ImGui::DragFloat("Min Tessellation", &this->stage_uniform.planet.minTessellation, 1, 0.0f, 100.0f);
+				ImGui::DragFloat("Max Tessellation", &this->stage_uniform.planet.maxTessellation, 1, 0.0f, 100.0f);
+				// ImGui::DragFloat("Distance Tessellation", &this->stage_uniform.planet.maxTessellation, 1, 0.0f,
 				// 				 100.0f);
 
 				ImGui::TextUnformatted("Planet Settings");
-				ImGui::Checkbox("Show Planet", &this->showTerrain);
+				ImGui::Checkbox("Show Planet", &this->showPlanet);
 
-				if (ImGui::DragFloat2("Tile Scale", &this->stage_uniform.terrain.terrainSettings.tile_offset[0])) {
-					updateTerrain = true;
+				if (ImGui::DragFloat2("Tile Scale", &this->stage_uniform.planet.planetSettings.tile_offset[0])) {
+					updatePlanet = true;
 				}
 				if (ImGui::DragFloat2("Tile Noise Scale",
-									  &this->stage_uniform.terrain.terrainSettings.tile_noise_size[0])) {
-					updateTerrain = true;
+									  &this->stage_uniform.planet.planetSettings.tile_noise_size[0])) {
+					updatePlanet = true;
 				}
 				if (ImGui::DragFloat2("Tile Noise Offset",
-									  &this->stage_uniform.terrain.terrainSettings.tile_noise_offset[0])) {
-					updateTerrain = true;
+									  &this->stage_uniform.planet.planetSettings.tile_noise_offset[0])) {
+					updatePlanet = true;
 				}
-				ImGui::DragInt2("Size ", &this->stage_uniform.terrain.terrainSettings.size[0]);
+				ImGui::DragInt2("Size ", &this->stage_uniform.planet.planetSettings.size[0]);
 
 				// Depth
 
@@ -195,35 +185,31 @@ namespace glsample {
 			}
 
 			bool showWireFrame = false;
-			bool showTerrain = true;
+			bool showPlanet = true;
 			bool useMistFogPost = false;
-			bool updateTerrain = false;
+			bool updatePlanet = false;
 
 		  private:
-			struct uniform_buffer_block &stage_uniform;
+			struct uniform_buffer_block_t &stage_uniform;
 		};
 		std::shared_ptr<PlanetSettingComponent> planetSettingComponent;
 
 		void Initialize() override {
 
 			const std::string panoramicPath = this->getResult()["skybox"].as<std::string>();
+			const std::string planetDiffusePath = this->getResult()["planet-texture"].as<std::string>();
 
 			{
 
 				/*	*/
-				const std::vector<uint32_t> vertex_terrain_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexTerrainShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_terrain_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentTerrainShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> vertex_planet_binary =
+					IOUtil::readFileData<uint32_t>(this->vertexPlanetShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_planet_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentPlanetShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> control_binary_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexTerrainControlShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> evolution_terrain_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentTerrainEvolutionShaderPath, this->getFileSystem());
-
-				const std::vector<uint32_t> vertex_simple_ocean_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexSimpleWaterShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_simple_ocean_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentSimpleWaterShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->vertexPlanetControlShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> evolution_planet_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentPlanetEvolutionShaderPath, this->getFileSystem());
 
 				/*	*/
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
@@ -231,11 +217,8 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				this->planet_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_terrain_binary, &fragment_terrain_binary,
-													 nullptr, &control_binary_binary, &evolution_terrain_binary);
-
-				this->simple_ocean_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &vertex_simple_ocean_binary, &fragment_simple_ocean_binary);
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_planet_binary, &fragment_planet_binary,
+													 nullptr, &control_binary_binary, &evolution_planet_binary);
 			}
 
 			/*	Create Planet Shader.	*/
@@ -248,17 +231,6 @@ namespace glsample {
 			glUniformBlockBinding(this->planet_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	*/
-			glUseProgram(this->simple_ocean_program);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "DepthTexture"), TextureType::DepthBuffer);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "NormalTexture"), TextureType::Normal);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "IrradianceTexture"), TextureType::Irradiance);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "ReflectionTexture"), TextureType::Reflection);
-
-			uniform_buffer_index = glGetUniformBlockIndex(this->simple_ocean_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->simple_ocean_program, uniform_buffer_index, this->uniform_buffer_binding);
-			glUseProgram(0);
-
 			TextureImporter textureImporter(this->getFileSystem());
 
 			const int skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
@@ -266,9 +238,8 @@ namespace glsample {
 			const unsigned int skytexture = textureImporter.loadImage2D(panoramicPath);
 			skybox.Init(skytexture, skybox_program);
 
-			/*	Create terrain texture.	*/
-			this->terrain_diffuse_texture = textureImporter.loadImage2D(panoramicPath);
-			this->color_texture = CommonUtil::createColorTexture(1, 1, Color(0, 1, 0, 1));
+			/*	Load planet texture.	*/
+			this->planet_diffuse_texture = textureImporter.loadImage2D(planetDiffusePath);
 
 			/*	*/
 			GLint minMapBufferSize = 0;
@@ -285,19 +256,24 @@ namespace glsample {
 			MiscProcessingUtil util = MiscProcessingUtil(this->getFileSystem());
 
 			/*	Generate HeightMap.	*/
+			// TODO: generate multiple layers.
 			{
 				const size_t noiseW = 2048;
 				const size_t noiseH = 2048;
-
 				/*	Create random texture.	*/
-				util.computePerlinNoise(&this->terrain_heightMap, noiseW, noiseH);
+
+				util.computePerlinNoise(&this->planet_noise_textures, noiseW, noiseH);
 			}
 
+			util.computeColor2HeightMap(this->planet_diffuse_texture, this->planet_heightMap, 2048, 2048);
+
 			/*	*/
-			util.computeBump2Normal(this->terrain_heightMap, this->ocean_normal, 2048, 2048);
+			util.computeBump2Normal(this->planet_heightMap, this->planet_normal, 2048, 2048);
 
 			/*	*/
 			util.computeIrradiance(this->skybox.getTexture(), this->irradiance_texture, 256, 128);
+
+			this->color_texture = CommonUtil::createColorTexture(1, 1, fragcore::Color::red());
 
 			/*	Load geometry.	*/
 			CommonUtil::loadSphere(this->planet_sphere, 1, 32, 32);
@@ -315,26 +291,25 @@ namespace glsample {
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 			glDepthMask(GL_TRUE); //? Why needed?
-
 			glClear(GL_DEPTH_BUFFER_BIT);
 
-			if (this->planetSettingComponent->updateTerrain) {
-				this->planetSettingComponent->updateTerrain = false;
+			if (this->planetSettingComponent->updatePlanet) {
+				this->planetSettingComponent->updatePlanet = false;
 				static MiscProcessingUtil util = MiscProcessingUtil(this->getFileSystem());
-				util.computePerlinNoise(this->terrain_heightMap,
-										this->uniform_stage_buffer.terrain.terrainSettings.tile_noise_size,
-										this->uniform_stage_buffer.terrain.terrainSettings.tile_noise_offset);
-				util.computeBump2Normal(this->terrain_heightMap, this->ocean_normal);
+				util.computePerlinNoise(this->planet_heightMap,
+										this->uniform_stage_buffer.planet.planetSettings.tile_noise_size,
+										this->uniform_stage_buffer.planet.planetSettings.tile_noise_offset);
+				// util.computeBump2Normal(this->planet_heightMap, this->ocean_normal);
 			}
 
 			/*	Planet.	*/
-			if (this->planetSettingComponent->showTerrain) {
+			if (this->planetSettingComponent->showPlanet) {
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 								  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
 								  this->uniformAlignBufferSize);
 
-				/*	Draw terrain.	*/
+				/*	Draw planet.	*/
 				glUseProgram(this->planet_program);
 
 				glEnable(GL_CULL_FACE);
@@ -349,15 +324,15 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Diffuse);
-				glBindTexture(GL_TEXTURE_2D, this->terrain_diffuse_texture);
+				glBindTexture(GL_TEXTURE_2D, this->planet_diffuse_texture);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
-				glBindTexture(GL_TEXTURE_2D, this->ocean_normal);
+				glBindTexture(GL_TEXTURE_2D, this->planet_normal);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Displacement);
-				glBindTexture(GL_TEXTURE_2D, this->terrain_heightMap);
+				glBindTexture(GL_TEXTURE_2D, this->planet_heightMap);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::DepthBuffer);
@@ -408,24 +383,21 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	Update buffer.	*/
-			this->uniform_stage_buffer.terrain.model = glm::mat4(1.0f);
-			this->uniform_stage_buffer.terrain.model =
-				glm::rotate(this->uniform_stage_buffer.terrain.model, (float)-Math::PI_half, glm::vec3(1, 0, 0));
-			this->uniform_stage_buffer.terrain.model =
-				glm::scale(this->uniform_stage_buffer.terrain.model, glm::vec3(200.0f));
+			this->uniform_stage_buffer.planet.model = glm::mat4(1.0f);
+			this->uniform_stage_buffer.planet.model =
+				glm::rotate(this->uniform_stage_buffer.planet.model, (float)-Math::PI_half, glm::vec3(1, 0, 0));
+			this->uniform_stage_buffer.planet.model =
+				glm::scale(this->uniform_stage_buffer.planet.model, glm::vec3(250.0f));
 
-			this->uniform_stage_buffer.terrain.view = this->camera.getViewMatrix();
-			this->uniform_stage_buffer.terrain.proj = this->camera.getProjectionMatrix();
-			this->uniform_stage_buffer.terrain.viewProjection =
-				this->uniform_stage_buffer.terrain.proj * this->uniform_stage_buffer.terrain.view;
+			this->uniform_stage_buffer.planet.view = this->camera.getViewMatrix();
+			this->uniform_stage_buffer.planet.proj = this->camera.getProjectionMatrix();
+			this->uniform_stage_buffer.planet.viewProjection =
+				this->uniform_stage_buffer.planet.proj * this->uniform_stage_buffer.planet.view;
 
-			this->uniform_stage_buffer.terrain.modelViewProjection = this->uniform_stage_buffer.terrain.proj *
-																	 this->uniform_stage_buffer.terrain.view *
-																	 this->uniform_stage_buffer.terrain.model;
-			this->uniform_stage_buffer.terrain.gEyeWorldPos = glm::vec4(this->camera.getPosition(), 0);
-
-			this->uniform_stage_buffer.terrain.camera.position = glm::vec4(this->camera.getPosition(), 0);
-			this->uniform_stage_buffer.terrain.camera.viewDir = glm::vec4(this->camera.getLookDirection(), 0);
+			this->uniform_stage_buffer.planet.modelViewProjection = this->uniform_stage_buffer.planet.proj *
+																	 this->uniform_stage_buffer.planet.view *
+																	 this->uniform_stage_buffer.planet.model;
+			this->uniform_stage_buffer.planet.camera = this->camera;
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
@@ -442,7 +414,9 @@ namespace glsample {
 		PlanetGLSample() : GLSample<Planet>() {}
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("S,skybox", "Skybox Texture File Path",
-					cxxopts::value<std::string>()->default_value("asset/NightSkyHDRI002_8K-HDR.exr"));
+					cxxopts::value<std::string>()->default_value("asset/NightSkyHDRI002_8K-HDR.exr"))(
+				"P,planet-texture", "Planet Diffuse Texture",
+				cxxopts::value<std::string>()->default_value("asset/8k_mars.jpg"));
 		}
 	};
 } // namespace glsample

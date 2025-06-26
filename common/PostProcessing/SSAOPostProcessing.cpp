@@ -180,7 +180,7 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	/*	*/
 	this->overlay_program = this->createOverlayGraphicProgram(filesystem);
 	this->vao = createVAO();
-	setItensity(1);
+	setIntensity(1);
 }
 
 void SSAOPostProcessing::draw(glsample::FrameBuffer *framebuffer,
