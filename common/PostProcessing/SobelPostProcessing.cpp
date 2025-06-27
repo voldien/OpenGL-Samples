@@ -68,6 +68,9 @@ void SobelProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int so
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
+	switch(sobelType){
+		default:break;
+	}
 	glUseProgram(this->sobel_program);
 
 	glUniform1f(glGetUniformLocation(this->sobel_program, "settings.radius"), this->radius);
@@ -98,8 +101,8 @@ void SobelProcessing::renderUI() {
 	ImGui::DragFloat("Radius", &this->radius);
 
 	ImGui::BeginGroup();
-	ImGui::RadioButton("Sobel", (int *)&type, 0);
+	ImGui::RadioButton("Sobel", (int *)&sobelType, 0);
 	ImGui::SameLine();
-	ImGui::RadioButton("Sobel2", (int *)&type, 1);
+	ImGui::RadioButton("Sobel2", (int *)&sobelType, 1);
 	ImGui::EndGroup();
 }

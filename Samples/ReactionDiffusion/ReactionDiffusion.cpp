@@ -181,7 +181,7 @@ namespace glsample {
 					const float yCoord = scale_random * ((float)j / (float)this->reactiondiffusion_texture_height);
 
 					/*	*/
-					textureData[this->reactiondiffusion_texture_width * j + i] =
+					textureData[(this->reactiondiffusion_texture_width * j) + i] =
 						glm::vec2(fragcore::Math::PerlinNoise(xCoord + 0, yCoord + 0, 1) * 1.0f,
 								  fragcore::Math::PerlinNoise(xCoord + 1, yCoord + 1, 1) * 1.0f);
 				}

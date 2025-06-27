@@ -46,8 +46,10 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 	GLSample &operator=(GLSample &&) = delete;
 	explicit GLSample(T *sampleRef) : sampleRef(sampleRef) {}
 	~GLSample() override {
-		this->sampleRef->Release();
-		delete this->sampleRef;
+		if (this->sampleRef) {
+			this->sampleRef->Release();
+			delete this->sampleRef;
+		}
 	}
 
 	void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) override {

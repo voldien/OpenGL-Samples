@@ -89,7 +89,7 @@ int PostProcessing::createOverlayGraphicProgram(fragcore::IFileSystem *filesyste
 			IOUtil::readFileData<uint32_t>(fragmentOverlayTextureShaderPath, filesystem);
 
 		/*	Load shader	*/
-		static int overlay_graphic_program =
+		overlay_graphic_program =
 			ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
 	}
 

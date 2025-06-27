@@ -21,8 +21,7 @@ layout(set = 0, binding = 1, std140) uniform UniformBufferBlock {
 	mat4 viewRotation;
 	Camera camera;
 	FogSettings fogSettings;
-}
-ubo;
+} ubo;
 
 void main() {
 
@@ -31,7 +30,7 @@ void main() {
 
 	vec3 cr = normalize(cross(direction, vec3(0, -1, 0)));
 
-	//TODO: add contribution based on atomosphere
+	// TODO: add contribution based on atomosphere
 	const float aat = 1; // clamp(pow(abs(1 - dot(direction, vec3(0, 1, 0))), 1.05), 0, 1);
 
 	/*	*/

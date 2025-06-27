@@ -127,7 +127,7 @@ namespace glsample {
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Focus Camera", &this->focusCamera);
 				Vector3 size = this->getRefSample().boundingBox.getHalfSize();
-				ImGui::DragFloat3("Model Max Bounding Box", &size[0]);
+				ImGui::DragFloat3("Model Max Bounding Box", size.data());
 
 				ImGui::Text("Area: %f", this->getRefSample().resultStage.area);
 				ImGui::Text("Normal: %f", this->getRefSample().resultStage.averageNormal);

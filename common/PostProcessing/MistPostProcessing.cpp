@@ -25,13 +25,15 @@ MistPostProcessing::~MistPostProcessing() {
 
 void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	/*	*/
+	const char *post_vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
+
 	const char *mist_fog_frag_path = "Shaders/postprocessingeffects/mistfog.frag.spv";
 	const char *simple_fog_frag_path = "Shaders/postprocessingeffects/simplefog.frag.spv";
-	const char *post_vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
+	const char *leigh_mie_fog_frag_path = "Shaders/postprocessingeffects/rayleighmie.frag.spv";
 
 	if (this->mist_fog_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> vertex_mistfog_post_processing_binary =
+		const std::vector<uint32_t> vertex_base_post_processing_binary =
 			IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
 
 		const std::vector<uint32_t> fragment_mistfog_post_processing_binary =
@@ -40,16 +42,22 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		const std::vector<uint32_t> fragment_simple_post_processing_binary =
 			IOUtil::readFileData<uint32_t>(simple_fog_frag_path, filesystem);
 
+		const std::vector<uint32_t> fragment_leigh_mie_post_processing_binary =
+			IOUtil::readFileData<uint32_t>(leigh_mie_fog_frag_path, filesystem);
+
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 		compilerOptions.glslVersion = 330;
 
 		/*  */
 		this->mist_fog_program = ShaderLoader::loadGraphicProgram(
-			compilerOptions, &vertex_mistfog_post_processing_binary, &fragment_mistfog_post_processing_binary);
+			compilerOptions, &vertex_base_post_processing_binary, &fragment_mistfog_post_processing_binary);
 
 		this->simple_fog_program = ShaderLoader::loadGraphicProgram(
-			compilerOptions, &vertex_mistfog_post_processing_binary, &fragment_simple_post_processing_binary);
+			compilerOptions, &vertex_base_post_processing_binary, &fragment_simple_post_processing_binary);
+
+		this->rayleighmie_program = ShaderLoader::loadGraphicProgram(
+			compilerOptions, &vertex_base_post_processing_binary, &fragment_leigh_mie_post_processing_binary);
 	}
 
 	/*	*/
@@ -66,6 +74,14 @@ void MistPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		glUseProgram(this->simple_fog_program);
 		glUniform1i(glGetUniformLocation(this->simple_fog_program, "ColorTexture"), (int)GBuffer::Albedo);
 		glUniform1i(glGetUniformLocation(this->simple_fog_program, "DepthTexture"), (int)GBuffer::Depth);
+		glUseProgram(0);
+	}
+
+	/*	*/
+	{
+		glUseProgram(this->rayleighmie_program);
+		glUniform1i(glGetUniformLocation(this->rayleighmie_program, "ColorTexture"), (int)GBuffer::Albedo);
+		glUniform1i(glGetUniformLocation(this->rayleighmie_program, "DepthTexture"), (int)GBuffer::Depth);
 		glUseProgram(0);
 	}
 
@@ -101,7 +117,8 @@ void MistPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 	this->render(0, this->getMappedBuffer(GBuffer::Albedo), this->getMappedBuffer(GBuffer::Depth));
 }
 
-void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture, unsigned int depth_texture) {
+void MistPostProcessing::render(unsigned int skybox_irradiance, unsigned int frame_texture,
+								unsigned int depth_texture) {
 
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -120,10 +137,26 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 		glBindSampler((int)GBuffer::Depth, this->texture_sampler);
 		glBindSampler((int)GBuffer::TextureCoordinate, this->texture_sampler);
 
-		if (useSimple) {
+		switch (this->mistType) {
+
+		case MistType::SimpleFog:
 			glUseProgram(this->simple_fog_program);
-		} else {
+			break;
+		case MistType::IrradianceFog:
 			glUseProgram(this->mist_fog_program);
+			break;
+		case MistType::RayLeighMie:
+			glUseProgram(this->rayleighmie_program);
+			/*	*/
+			glUniform1f(glGetUniformLocation(this->rayleighmie_program, "settings.density"),
+						this->mistsettings.density);
+			glUniform1f(glGetUniformLocation(this->rayleighmie_program, "settings.betaR"), this->mistsettings.betaR);
+			glUniform1f(glGetUniformLocation(this->rayleighmie_program, "settings.betaM"), this->mistsettings.betaM);
+			glUniform1f(glGetUniformLocation(this->rayleighmie_program, "settings.g"), this->mistsettings.g);
+			glUniform4fv(glGetUniformLocation(this->rayleighmie_program, "settings.light.direction"), 1,
+						 &this->mistsettings.sunLight.lightDirection[0]);
+
+			break;
 		}
 
 		/*	*/
@@ -135,9 +168,9 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 		glBindTexture(GL_TEXTURE_2D, depth_texture);
 
 		/*	*/
-		if (skybox > 0) {
+		if (skybox_irradiance > 0) {
 			glActiveTexture(GL_TEXTURE0 + 2);
-			glBindTexture(GL_TEXTURE_2D, skybox);
+			glBindTexture(GL_TEXTURE_2D, skybox_irradiance);
 		}
 
 		/*	*/
@@ -155,12 +188,27 @@ void MistPostProcessing::render(unsigned int skybox, unsigned int frame_texture,
 }
 
 void MistPostProcessing::renderUI() {
-	ImGui::Checkbox("Simple", &useSimple);
 	ImGui::DragInt("Fog Type", (int *)&this->mistsettings.fogSettings.fogType);
+
+	/*	Group Different Fog Type.	*/
+	ImGui::RadioButton("Simple Fog", (int *)&this->mistType, (int)MistType::SimpleFog);
+	ImGui::SameLine();
+	ImGui::RadioButton("Irradiance Fog", (int *)&this->mistType, (int)MistType::IrradianceFog);
+	ImGui::SameLine();
+	ImGui::RadioButton("AtmoSpheric Scattering Fog", (int *)&this->mistType, (int)MistType::RayLeighMie);
+
 	ImGui::ColorEdit4("Fog Color", &this->mistsettings.fogSettings.fogColor[0],
 					  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 	ImGui::DragFloat("Fog Density", &this->mistsettings.fogSettings.fogDensity);
 	ImGui::DragFloat("Fog Intensity", &this->mistsettings.fogSettings.fogIntensity);
 	ImGui::DragFloat("Fog Start", &this->mistsettings.fogSettings.fogStart);
 	ImGui::DragFloat("Fog End", &this->mistsettings.fogSettings.fogEnd);
+
+	ImGui::DragFloat("Scattering Density", &this->mistsettings.density);
+	ImGui::DragFloat("Scattering Beta R", &this->mistsettings.betaR);
+	ImGui::DragFloat("Scattering Beta M", &this->mistsettings.betaM);
+	ImGui::DragFloat("Scattering G", &this->mistsettings.g);
+	ImGui::DragFloat3("Scattering Sun DDirection", &this->mistsettings.sunLight.lightDirection[0]);
+
+	/*	*/
 }

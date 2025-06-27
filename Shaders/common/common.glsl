@@ -8,11 +8,8 @@
 #include "noise.glsl"
 #include "texture.glsl"
 #include "transformation.glsl"
+#include "math.glsl"
 
-/*	Constants.	*/
-#define PI 3.1415926535897932384626433832795
-#define PI_HALF (PI / 2.0)
-#define E_CONSTANT 2.7182818284590
 
 /*	Application constant.	*/
 layout(constant_id = 0) const float EPSILON = 1.19209e-07;

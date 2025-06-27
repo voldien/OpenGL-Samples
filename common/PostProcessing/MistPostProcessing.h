@@ -33,6 +33,11 @@ namespace glsample {
 			glm::mat4 viewRotation;
 			CameraInstanceData instance;
 			FogSettings fogSettings;
+			float density; // Scattering density
+			float betaR;   // Rayleigh scattering coefficient
+			float betaM;   // Mie scattering coefficient
+			float g;	   // Mie phase function parameter
+			DirectionalLight sunLight;
 		};
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
@@ -46,14 +51,23 @@ namespace glsample {
 
 		MistUniformBuffer mistsettings;
 
+		enum class MistType : unsigned int {
+			SimpleFog = 0,
+			IrradianceFog = 1,
+			RayLeighMie = 2,
+		};
+
 	  private:
 		int mist_fog_program = -1;
 		int simple_fog_program = 0;
+		int rayleighmie_program = 0;
 		unsigned int vao = 0;
 
 		unsigned int texture_sampler = 0;
 
-		bool useSimple = false;
+		// Rayleigh and Mie
+
+		MistType mistType = MistType::SimpleFog;
 
 		unsigned int uniform_buffer = 0;
 		unsigned int uniform_buffer_binding = 1;

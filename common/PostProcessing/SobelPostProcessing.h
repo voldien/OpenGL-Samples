@@ -40,7 +40,7 @@ namespace glsample {
 			Simple,
 			Complex,
 		};
-		SobelType type;
+		SobelType sobelType;
 		int localWorkGroupSize[3];
 	};
 } // namespace glsample
