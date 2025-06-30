@@ -10,7 +10,7 @@ namespace glsample {
 	Frustum::Intersection Frustum::checkPoint(const Vector3 &pos) const noexcept {
 
 		/*	Iterate through each plane.	*/
-		for (unsigned int x = 0; x < FrustumPlanes::NPLANES; x++) {
+		for (unsigned int x = 0; x < FrustumPlane::NPLANES; x++) {
 			if (fragcore::GeometryUtility::testPlanesPoint(this->planes[x], pos)) {
 				return Intersection::Out;
 			}
@@ -25,7 +25,7 @@ namespace glsample {
 	Frustum::Intersection Frustum::intersectionAABB(const AABB &bounds) const noexcept {
 		Frustum::Intersection result = Frustum::In;
 
-		for (unsigned int i = 0; i < FrustumPlanes::NPLANES; i++) {
+		for (unsigned int i = 0; i < FrustumPlane::NPLANES; i++) {
 
 			if (!fragcore::GeometryUtility::testPlanesAABB(this->planes[i], bounds)) {
 				return Intersection::Out;
@@ -47,7 +47,7 @@ namespace glsample {
 
 	Frustum::Intersection Frustum::intersectionSphere(const BoundingSphere &sphere) const noexcept {
 
-		for (unsigned int i = 0; i < (unsigned int)FrustumPlanes::NPLANES; i++) {
+		for (unsigned int i = 0; i < (unsigned int)FrustumPlane::NPLANES; i++) {
 			if (!fragcore::GeometryUtility::testPlanesSphere(this->planes[i], sphere)) {
 				return Intersection::Out;
 			}

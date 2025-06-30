@@ -44,9 +44,9 @@ namespace glsample {
 			const Vector3 farDistance = this->getFar() * look_forward;
 
 			/*	*/ // TODO: impl
-			switch (getMode()) {
-			case CameraMode::Orthographic:
-			case CameraMode::Perspective:
+			switch (getProjectionMode()) {
+			case CameraProjectionMode::Orthographic:
+			case CameraProjectionMode::Perspective:
 				break;
 			}
 			this->planes[NEAR_PLANE] = {position + this->getNear() * look_forward, look_forward};
@@ -96,21 +96,21 @@ namespace glsample {
 		const glm::mat4 &getProjectionMatrix() const noexcept { return this->proj; }
 
 		// TODO: Refractor
-		enum class CameraMode { Orthographic, Perspective };
+		enum class CameraProjectionMode { Orthographic, Perspective };
 		// TODO: Refractor
-		void setMode(const CameraMode newMode) {
+		void setMode(const CameraProjectionMode newMode) {
 			this->mode = newMode;
 			this->updateProjectionMatrix();
 		}
-		CameraMode getMode() const noexcept { return this->mode; }
+		CameraProjectionMode getProjectionMode() const noexcept { return this->mode; }
 
 	  protected:
 		void updateProjectionMatrix() noexcept {
-			switch (getMode()) {
-			case CameraMode::Orthographic:
+			switch (getProjectionMode()) {
+			case CameraProjectionMode::Orthographic:
 				this->proj = glm::ortho(this->left, this->right, this->bottom, this->top, this->near, this->far);
 				break;
-			case CameraMode::Perspective:
+			case CameraProjectionMode::Perspective:
 			default:
 				this->proj =
 					glm::perspective(glm::radians(this->getFOVDegree() * 0.5f), this->aspect, this->near, this->far);
@@ -128,6 +128,6 @@ namespace glsample {
 		float near = 0.45f;
 		float far = 1650.0f;
 		glm::mat4 proj{};
-		CameraMode mode = CameraMode::Perspective;
+		CameraProjectionMode mode = CameraProjectionMode::Perspective;
 	};
 } // namespace glsample

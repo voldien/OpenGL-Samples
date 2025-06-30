@@ -30,7 +30,7 @@ void main() {
 
 	vec3 cr = normalize(cross(direction, vec3(0, -1, 0)));
 
-	// TODO: add contribution based on atomosphere
+	// TODO: add contribution based on atmosphere
 	const float aat = 1; // clamp(pow(abs(1 - dot(direction, vec3(0, 1, 0))), 1.05), 0, 1);
 
 	/*	*/

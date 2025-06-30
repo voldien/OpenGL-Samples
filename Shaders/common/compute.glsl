@@ -2,7 +2,6 @@
 #define _COMMON_COMPUTE_ 1
 
 uint getWorkIndex() {
- 
 
 	return (gl_WorkGroupID.z * gl_NumWorkGroups.x * gl_NumWorkGroups.y) + (gl_WorkGroupID.y * gl_NumWorkGroups.x) +
 		   gl_WorkGroupID.x;

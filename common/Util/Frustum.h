@@ -31,19 +31,18 @@ namespace glsample {
 	class FVDECLSPEC Frustum : public Node {
 	  public:
 		~Frustum() override = default;
-		/**
-		 *	Intersection.
-		 */
-		enum Intersection : unsigned int {
-			Out = 0,	   /*	Outside frustum completly - Positive.	*/
-			In = 1,		   /*	Inside frustum completly - Negative.	*/
-			Intersect = 2, /*	Intresecting frustum planes- Partially.	*/
+
+		/*	*/
+		enum Intersection {
+			Out = 0,	   /*	Outside frustum completely.*/
+			In = 1,		   /*	Inside frustum completely.*/
+			Intersect = 2, /*	Intersecting frustum planes.	*/
 		};
 
 		/**
 		 *
 		 */
-		enum FrustumPlanes : unsigned int {
+		enum FrustumPlane : unsigned int {
 			TOP_PLANE = 0,	  /*	*/
 			BOTTOM_PLANE = 1, /*	*/
 			LEFT_PLANE = 2,	  /*	*/
@@ -55,9 +54,6 @@ namespace glsample {
 
 		/**
 		 * @brief Get the Plane object
-		 *
-		 * @param index
-		 * @return Plane<float>&
 		 */
 		Plane<float> &getPlane(int index) { return this->planes[index]; }
 		const Plane<float> &getPlane(int index) const { return this->planes[index]; }

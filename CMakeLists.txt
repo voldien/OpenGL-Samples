@@ -69,6 +69,8 @@ ENDIF()
 # ###########################################
 # Backend libraries
 # ###########################################
+SET(INFOWARE_USE_OPENGL ON)
+SET(INFOWARE_USE_X11 OFF)
 SET(BUILD_WITH_OPENMP ON)
 SET(MIMI_VULKAN_SUPPORT OFF)
 SET(MIMI_TERMINAL_SUPPORT OFF)
@@ -186,6 +188,9 @@ FILE(GLOB_RECURSE GLSL_SOURCE_FILES
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.comp
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.task
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.mesh
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.rgen
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.miss
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.rchit
 )
 
 ####################################
