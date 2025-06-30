@@ -12,88 +12,86 @@ FXAAPostProcessing::FXAAPostProcessing() {
 	this->setName("FXAA");
 	this->addRequireBuffer(GBuffer::Color);
 	this->addRequireBuffer(GBuffer::IntermediateTarget);
-	this->addRequireBuffer(GBuffer::Depth);
 }
 
 FXAAPostProcessing::~FXAAPostProcessing() {
-	if (this->fxaa_compute_program >= 0) {
-		glDeleteProgram(this->fxaa_compute_program);
+	if (this->fxaa_frag_program >= 0) {
+		glDeleteProgram(this->fxaa_frag_program);
 	}
 }
 
 void FXAAPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	/*	*/
-	const char *fxaa_compute_path = "Shaders/postprocessingeffects/gaussian_blur.comp.spv";
-
+	const char *fxaa_compute_path = "Shaders/postprocessingeffects/fxaa.frag.spv";
+	const char *post_vertex_path = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 	/*	*/
-	if (this->fxaa_compute_program == -1) {
+	if (this->fxaa_frag_program == -1) {
 		/*	*/
+		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
 		const std::vector<uint32_t> guassian_blur_compute_binary =
 			IOUtil::readFileData<uint32_t>(fxaa_compute_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-		compilerOptions.glslVersion = 420;
+		compilerOptions.glslVersion = 330;
 
 		/*  */
-		this->fxaa_compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &guassian_blur_compute_binary);
+		this->fxaa_frag_program =
+			ShaderLoader::loadGraphicProgram(compilerOptions, &post_vertex_binary, &guassian_blur_compute_binary);
+
+		this->vao = createVAO();
 	}
 
 	/*  */
-	glUseProgram(this->fxaa_compute_program);
+	glUseProgram(this->fxaa_frag_program);
 
-	glGetProgramiv(this->fxaa_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
-
-	glUniform1i(glGetUniformLocation(this->fxaa_compute_program, "ColorTexture"), 0);
-	glUniform1i(glGetUniformLocation(this->fxaa_compute_program, "TargetTexture"), 1);
-
+	// glGetProgramiv(this->fxaa_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+	glUniform1i(glGetUniformLocation(this->fxaa_frag_program, "ColorTexture"), 0);
+	glBindFragDataLocation(this->fxaa_frag_program, 0, "fragColor");
 	glUseProgram(0);
 }
 
 void FXAAPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 							  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
-	this->render(this->getMappedBuffer(GBuffer::Color));
-}
-
-void FXAAPostProcessing::render(unsigned int source_texture) {
-
-	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-	GLint width = 0;
-	GLint height = 0;
-
-	glBindTexture(GL_TEXTURE_2D, source_texture);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
-
-	glUseProgram(this->fxaa_compute_program);
 
 	/*	*/
-	glUniform1f(glGetUniformLocation(this->fxaa_compute_program, "settings.variance"), this->variance);
-	glUniform1f(glGetUniformLocation(this->fxaa_compute_program, "settings.mean"), this->mean);
-	glUniform1f(glGetUniformLocation(this->fxaa_compute_program, "settings.radius"), this->radius);
-	glUniform1i(glGetUniformLocation(this->fxaa_compute_program, "settings.samples"), this->samples);
+	const unsigned int source_texture = this->getMappedBuffer(GBuffer::Color);
+	const unsigned int target_texture = this->getMappedBuffer(GBuffer::IntermediateTarget);
 
-	// TODO: maybe add linear filtering for improvements
-	/*	The image where the graphic version will be stored as.	*/
-	glBindImageTexture(0, source_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 
-	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]);
-	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]);
+	glUseProgram(this->fxaa_frag_program);
 
-	if (WorkGroupX > 0 && WorkGroupY > 0) {
-		for (int it = 0; it < this->nrIterations; it++) {
-			glDispatchCompute(WorkGroupX, WorkGroupY, 1);
-			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-		}
-	}
+	/*	*/
+	glUniform1f(glGetUniformLocation(this->fxaa_frag_program, "settings.span_max"), this->span_max);
+
+	glUniform1f(glGetUniformLocation(this->fxaa_frag_program, "settings.reduce_min"), this->reduce_min);
+	glUniform1f(glGetUniformLocation(this->fxaa_frag_program, "settings.reduce_mul"), this->reduce_mul);
+	/*	*/
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+
+	glBindVertexArray(this->vao);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
 	glUseProgram(0);
+
+	glBindVertexArray(0);
+
+	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
+	/*	Swap buffers.	(ping pong)	*/
+	framebuffer->attachments[0] = target_texture;
+	framebuffer->attachments[1] = source_texture;
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 1, GL_TEXTURE_2D, framebuffer->attachments[1], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + 0, GL_TEXTURE_2D, framebuffer->attachments[0], 0);
 }
 
 void FXAAPostProcessing::renderUI() {
-	ImGui::DragFloat("Variance", &this->variance);
-	ImGui::DragFloat("Radius", &this->radius);
-	ImGui::DragInt("Samples", &this->samples);
-	ImGui::DragInt("Number Iterations", &this->nrIterations);
+	ImGui::DragFloat("Span Max", &this->span_max, 1, 0, 0, "%.6f");
+	ImGui::DragFloat("Reduce Min", &this->reduce_min, 1, 0, 0, "%.6f");
+	ImGui::DragFloat("Reduce Mul", &this->reduce_mul, 1, 0, 0, "%.6f");
 }

@@ -26,7 +26,7 @@ namespace glsample {
 
 		void initialize(fragcore::IFileSystem *filesystem) override;
 
-		void setItensity(const float intensity) override;
+		void setIntensity(const float intensity) override;
 
 		void draw(glsample::FrameBuffer *framebuffer,
 				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
@@ -41,6 +41,7 @@ namespace glsample {
 			float time = 1;
 			float intensity = 0.015f;
 			float speed = 1;
+			float scale = 1;
 		};
 		GrainSettings grainSettings;
 

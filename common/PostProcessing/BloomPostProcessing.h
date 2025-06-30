@@ -49,7 +49,7 @@ namespace glsample {
 		float radius = 1;
 		float mean = 0;
 		int localWorkGroupSize[3];
-		float threadshold = 1;
+		float threshold = 1;
 		int vao = 0;
 	};
 } // namespace glsample

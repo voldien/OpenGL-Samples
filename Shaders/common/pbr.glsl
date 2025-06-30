@@ -4,6 +4,7 @@
 #include "common.glsl"
 #include "light.glsl"
 
+
 vec3 fresnelSchlickRoughness(const in float cosTheta, const in vec3 F0, const in float roughness) {
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
@@ -70,6 +71,9 @@ float GeometrySmith(const in vec3 N, const in vec3 V, const in vec3 L, const in 
 
 	return ggx1 * ggx2;
 }
+
+
+/***************************************************/
 
 vec4 computePBRPoint(const in PointLight light, const in vec3 normal, const in vec3 vertex, const in float shininess,
 					 const in vec3 specularColor) {

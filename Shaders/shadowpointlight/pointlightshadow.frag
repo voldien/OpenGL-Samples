@@ -2,9 +2,14 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_uniform_buffer_object : enable
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
 
 layout(location = 0) in vec4 FragVertex;
 layout(location = 1) in flat int FIndex;
+
+#include "scene.glsl"
 
 struct point_light {
 	vec3 position;
@@ -28,6 +33,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProjection[6];
 	mat4 modelViewProjection;
 
+
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
@@ -35,7 +41,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 cameraPosition;
 
 	point_light point_light[4];
-	vec4 PCFFilters[20];
+	vec4 PCFFilters[32];
 	float diskRadius;
 	int samples;
 }

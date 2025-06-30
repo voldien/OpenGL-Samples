@@ -29,7 +29,6 @@ namespace glsample {
 	 *
 	 */
 	class FVDECLSPEC Light : public Frustum {
-		static_assert(std::is_floating_point<float>::value, "Must be a decimal type(float/double/half).");
 
 	  public:
 		Light() noexcept { this->updateProjectionMatrix(); }

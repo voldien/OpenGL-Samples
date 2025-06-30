@@ -16,6 +16,7 @@
 #pragma once
 #include "Util/Camera.h"
 #include "Util/CameraController.h"
+#include"SampleHelper.h"
 #include "imgui.h"
 #include <UIComponent.h>
 
@@ -33,11 +34,12 @@ namespace glsample {
 		void draw() override = 0;
 
 	  protected:
-		void drawCamera(Camera &camera) {
 
-			float fov = camera.getFOV();
+		static void drawCamera(Camera &camera) {
+
+			float fov = camera.getFOVDegree();
 			if (ImGui::SliderFloat("Field of View", &fov, 0.01f, 360.0f)) {
-				camera.setFOV(fov);
+				camera.setFOVDegree(fov);
 			}
 			float near = camera.getNear();
 			if (ImGui::DragFloat("Near Distance", &near, 1, 0.001f)) {
@@ -49,7 +51,7 @@ namespace glsample {
 			}
 		}
 
-		void drawCameraController(CameraController &cameraController) {
+		static void drawCameraController(CameraController &cameraController) {
 
 			ImGui::TextUnformatted("Camera Controller");
 			glm::vec3 position = cameraController.getPosition();

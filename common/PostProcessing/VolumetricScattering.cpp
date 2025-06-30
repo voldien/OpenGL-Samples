@@ -101,8 +101,8 @@ void VolumetricScatteringPostProcessing::initialize(fragcore::IFileSystem *files
 	this->vao = createVAO();
 }
 
-void VolumetricScatteringPostProcessing::setItensity(const float intensity) {
-	PostProcessing::setItensity(intensity);
+void VolumetricScatteringPostProcessing::setIntensity(const float intensity) {
+	PostProcessing::setIntensity(intensity);
 	glUseProgram(this->volumetric_scattering_legacy_program);
 
 	glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.base.blend"),

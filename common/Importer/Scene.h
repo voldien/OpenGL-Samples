@@ -41,6 +41,7 @@ namespace glsample {
 		DirectionalLightDepthBuffer = 14 /*	*/
 	};
 
+	/*	The higher the later the will be rendered in the rendering queue.	*/
 	enum RenderQueue : unsigned int {
 		Background = 500,	 /*  */
 		Geometry = 1000,	 /*  */
@@ -53,6 +54,7 @@ namespace glsample {
 	enum DebugMode : unsigned int {
 		None = 0,
 		Wireframe = 0x1,
+		BoundingBox = 0x2,
 	};
 
 	class AnimationPlayer {
@@ -116,6 +118,7 @@ namespace glsample {
 		using CommonConstantData = struct common_constant_data_t {
 			// TODO: keep multi frame camera frustum.
 			CameraInstanceData camera;
+
 			FrustumInstance frustum{};
 
 			GlobalRenderSettings renderSettings = GlobalRenderSettings();
@@ -127,6 +130,7 @@ namespace glsample {
 			glm::vec4 time; /*	elapsed, delta,	*/
 		};
 		using NodeData = struct _node_data_t {
+			// glm::mat4 prevmodel; // For velocity data.
 			glm::mat4 model;
 		};
 
@@ -149,8 +153,9 @@ namespace glsample {
 		CommonConstantData *stageCommonBuffer = nullptr;
 		NodeData *stageNodeData = nullptr;
 		MaterialData *stageMaterialData = nullptr;
-		LightData *lightData = nullptr;
+		LightData *stageLightData = nullptr;
 
+		/*	*/
 		MaterialObject *currentBindedMaterial = nullptr;
 
 		/*	TODO add queue structure.	*/
@@ -168,6 +173,17 @@ namespace glsample {
 		std::array<unsigned int, 16> default_textures;
 		std::array<unsigned int, 16> samplers;
 
+		using Debug = struct debug_t {
+			DebugMode debugMode;
+		};
+
+		using RenderingSettings = struct rendering_settings_t {
+			DebugMode debugMode = DebugMode::None;
+			bool frustumCulling = false;
+		};
+
+		RenderingSettings settings;
+
 		DebugMode debugMode = DebugMode::None;
 		bool frustumCulling = false;
 		size_t currentNodeIndex = 0;
@@ -175,7 +191,8 @@ namespace glsample {
 		using UniformDataStructure = struct uniform_data_structure {
 			/*	*/
 			static const size_t nrUniformBuffer = 3;
-			unsigned int node_and_common_uniform_buffer;
+			UBOObject uniform_buffer;
+			unsigned int node_and_common_uniform_buffer; //TODO: removed and replace with uniform_buffer;
 
 			unsigned int node_offset = 0;
 			unsigned int node_size_align = 0;

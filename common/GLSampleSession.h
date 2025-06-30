@@ -14,7 +14,6 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "RenderDesc.h"
 #include "TaskScheduler/IScheduler.h"
 #include <FragCore.h>
 #include <GL/glew.h>
@@ -29,11 +28,13 @@ namespace glsample {
 	class FVDECLSPEC GLSampleSession {
 	  public:
 		virtual ~GLSampleSession() = default;
+
 		virtual void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) = 0;
 		virtual void customOptions(cxxopts::OptionAdder &options) {}
 
-		fragcore::IFileSystem *getFileSystem() noexcept { return this->activeFileSystem.get(); }
-		fragcore::IScheduler *getSchedular() noexcept { return this->schedular.get(); }
+		/*	*/
+		fragcore::IFileSystem *getFileSystem() const noexcept { return this->activeFileSystem.get(); }
+		fragcore::IScheduler *getSchedular() const  noexcept { return this->schedular.get(); }
 
 	  protected:
 		std::shared_ptr<fragcore::IFileSystem> activeFileSystem = nullptr;

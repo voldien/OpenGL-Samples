@@ -43,7 +43,7 @@ void PostProcessing::draw(glsample::FrameBuffer *framebuffer,
 }
 
 float PostProcessing::getIntensity() const noexcept { return this->intensity; }
-void PostProcessing::setItensity(const float intensity) { this->intensity = intensity; }
+void PostProcessing::setIntensity(const float intensity) { this->intensity = intensity; }
 
 bool PostProcessing::isBufferRequired(const GBuffer required_data_buffer) const noexcept {
 	return std::find(this->required_buffer.begin(), this->required_buffer.end(), required_data_buffer) !=
@@ -71,22 +71,27 @@ int PostProcessing::createVAO() {
 }
 
 int PostProcessing::createOverlayGraphicProgram(fragcore::IFileSystem *filesystem) {
-	/*	*/
-	const std::string vertexOverlayShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
-	const std::string fragmentOverlayTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
 
-	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-	compilerOptions.glslVersion = 330;
+	static int overlay_graphic_program = -1;
 
-	const std::vector<uint32_t> texture_vertex_binary =
-		IOUtil::readFileData<uint32_t>(vertexOverlayShaderPath, filesystem);
-	const std::vector<uint32_t> texture_fragment_binary =
-		IOUtil::readFileData<uint32_t>(fragmentOverlayTextureShaderPath, filesystem);
+	if (overlay_graphic_program == -1) {
+		/*	*/
+		const std::string vertexOverlayShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
+		const std::string fragmentOverlayTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
 
-	/*	Load shader	*/
-	int overlay_graphic_program =
-		ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
+		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+		compilerOptions.glslVersion = 330;
+
+		const std::vector<uint32_t> texture_vertex_binary =
+			IOUtil::readFileData<uint32_t>(vertexOverlayShaderPath, filesystem);
+		const std::vector<uint32_t> texture_fragment_binary =
+			IOUtil::readFileData<uint32_t>(fragmentOverlayTextureShaderPath, filesystem);
+
+		/*	Load shader	*/
+		overlay_graphic_program =
+			ShaderLoader::loadGraphicProgram(compilerOptions, &texture_vertex_binary, &texture_fragment_binary);
+	}
 
 	return overlay_graphic_program;
 }

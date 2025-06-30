@@ -16,9 +16,9 @@ void main() {
 
 	const ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
 	const vec4 color = texelFetch(SourceTexture, texelCoords, 0);
+
 	/*	*/
 	uint lumen = uint(maxValue * (0.299 * color.r + 0.587 * color.g + 0.114 * color.b));
-
 	lumen = clamp(lumen, 0, uint(maxValue));
 
 	atomicAdd(histogram[lumen], 1);

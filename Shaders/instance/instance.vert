@@ -12,7 +12,7 @@ layout(location = 1) out vec2 uv;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec4 instanceColor;
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
+layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
@@ -31,7 +31,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-layout(binding = 1, std140) uniform UniformInstanceBlock { mat4 model[512]; }
+layout(set = 0, binding = 1, std140) uniform UniformInstanceBlock { mat4 model[512]; }
 instance_ubo;
 
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }

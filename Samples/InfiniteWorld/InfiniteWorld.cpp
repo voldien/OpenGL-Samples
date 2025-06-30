@@ -1,6 +1,8 @@
 #include "GLSampleWindow.h"
 #include "RenderDesc.h"
+#include "SampleHelper.h"
 #include "ShaderLoader.h"
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <Importer/ImageImport.h>
@@ -31,34 +33,34 @@ namespace glsample {
 		/*	*/
 		MeshObject sphereMesh;
 
-		int localWorkGroupSize[3];
+		int localWorkGroupSize[3]{};
 
 		/*	Shader pipeline programs.	*/
-		unsigned int compute_visual_instance_graphic_program;
-		unsigned int infinate_world_chunck_constructor_compute_program;
+		unsigned int compute_visual_instance_graphic_program{};
+		unsigned int infinate_world_chunck_constructor_compute_program{};
 
-		typedef struct _instance_data_t {
+		using InstanceData = struct _instance_data_t {
 			glm::mat4 model;
 			glm::vec4 color;
-		} InstanceData;
+		};
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
-			/*	light source.	*/
-			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-			glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
+			FrustumInstance frustum;
 
 			/*	*/
-			unsigned int nrFaces;
-			unsigned int nrElements;
-			float delta;
-			float scale = 0.3f;
+			glm::vec4 worldOffset{};
+			unsigned int nrFaces{};
+			unsigned int nrElements{};
+
+			float globalScale = 0.3f;
+			float threshold = 0.5f;
+			float spaceAppart = 2.0f;
 
 		} uniformStageBuffer;
 
@@ -70,14 +72,14 @@ namespace glsample {
 		unsigned int uniform_instance_buffer_binding = 1;
 
 		/*	*/
-		unsigned int uniform_buffer;
-		unsigned int uniform_instance_buffer;
-		unsigned int indirect_buffer;
+		unsigned int uniform_buffer{};
+		unsigned int uniform_instance_buffer{};
+		unsigned int indirect_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t uniformInstanceMemorySize = 0;
 		const size_t maxGroupSize[3] = {16, 16, 16};
-		const size_t indirect_buffer_element_count = 32;
+		const size_t indirect_buffer_element_count = 1;
 
 		class InfinateSettingComponent : public nekomimi::UIComponent {
 
@@ -87,24 +89,39 @@ namespace glsample {
 			}
 			void draw() override {
 
+				ImGui::TextUnformatted("Settings");
+				if (ImGui::InputInt3("WorkGroup", this->workgroupSize)) {
+					needUpdate = true;
+				}
+
+				if (ImGui::DragFloat3("Offset", &uniform.worldOffset[0])) {
+				}
+				if (ImGui::DragFloat("Threshold", &uniform.threshold)) {
+				}
+				if (ImGui::DragFloat("Scale", &uniform.globalScale)) {
+				}
+				if (ImGui::DragFloat("Space Appart", &uniform.spaceAppart)) {
+				}
+
 				/*	*/
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 			}
 
 			bool showWireFrame = false;
-			int workgroupSize[3] = {32, 32, 1};
+			int workgroupSize[3] = {16, 16, 16};
+			bool needUpdate = true;
 
 		  private:
 			struct uniform_buffer_block &uniform;
 		};
 		std::shared_ptr<InfinateSettingComponent> infinateSettingComponent;
 
-		/*	Texture shaders paths.	*/
+		/*	*/
 		const std::string vertexShaderPath = "Shaders/groupvisual/groupvisual_instance.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/groupvisual/groupvisual_instance.frag.spv";
 
-		/*	Particle Simulation in Vector Field.	*/
+		/*	Compute Shader.	*/
 		const std::string groupVisualComputeShaderPath = "Shaders/infinateworld/infinateworld.comp.spv";
 
 		void Release() override {
@@ -146,21 +163,24 @@ namespace glsample {
 			}
 
 			/*	Setup instance graphic pipeline.	*/
-			glUseProgram(this->compute_visual_instance_graphic_program);
-			glUniform1i(glGetUniformLocation(this->compute_visual_instance_graphic_program, "DiffuseTexture"), 0);
-			/*	*/
-			int uniform_buffer_index =
-				glGetUniformBlockIndex(this->compute_visual_instance_graphic_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->compute_visual_instance_graphic_program, uniform_buffer_index,
-								  this->uniform_buffer_binding);
-			/*	*/
-			const int uniform_instance_buffer_index = glGetProgramResourceIndex(
-				this->compute_visual_instance_graphic_program, GL_SHADER_STORAGE_BLOCK, "UniformInstanceBlock");
-			glShaderStorageBlockBinding(this->compute_visual_instance_graphic_program, uniform_instance_buffer_index,
-										this->uniform_instance_buffer_binding);
+			{
+				glUseProgram(this->compute_visual_instance_graphic_program);
+				glUniform1i(glGetUniformLocation(this->compute_visual_instance_graphic_program, "DiffuseTexture"), 0);
+				/*	*/
+				int uniform_buffer_index =
+					glGetUniformBlockIndex(this->compute_visual_instance_graphic_program, "UniformBufferBlock");
+				glUniformBlockBinding(this->compute_visual_instance_graphic_program, uniform_buffer_index,
+									  this->uniform_buffer_binding);
+				/*	*/
+				const int uniform_instance_buffer_index = glGetProgramResourceIndex(
+					this->compute_visual_instance_graphic_program, GL_SHADER_STORAGE_BLOCK, "UniformInstanceBlock");
+				glShaderStorageBlockBinding(this->compute_visual_instance_graphic_program,
+											uniform_instance_buffer_index, this->uniform_instance_buffer_binding);
 
-			glUseProgram(0);
+				glUseProgram(0);
+			}
 
+			/*	*/
 			{
 				glUseProgram(this->infinate_world_chunck_constructor_compute_program);
 				const int uniform_compute_index = glGetUniformBlockIndex(
@@ -265,7 +285,8 @@ namespace glsample {
 				/*	*/
 				const size_t Xinvoke = this->infinateSettingComponent->workgroupSize[0];
 				const size_t Yinvoke = this->infinateSettingComponent->workgroupSize[1];
-				glDispatchCompute(Xinvoke, Yinvoke, 1);
+				const size_t Zinvoke = this->infinateSettingComponent->workgroupSize[2];
+				glDispatchCompute(Xinvoke, Yinvoke, Zinvoke);
 
 				glUseProgram(0);
 			}
@@ -323,14 +344,15 @@ namespace glsample {
 			{
 				this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();
 
-				this->uniformStageBuffer.delta = this->getTimer().deltaTime<float>();
-				this->uniformStageBuffer.nrElements =
-					fragcore::Math::product(this->infinateSettingComponent->workgroupSize, 3) * 8 * 8 * 8;
-
 				this->uniformStageBuffer.model = glm::mat4(1.0f);
 				this->uniformStageBuffer.view = this->camera.getViewMatrix();
 				this->uniformStageBuffer.modelViewProjection =
 					this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
+
+				// TODO: improve
+				this->uniformStageBuffer.frustum = this->camera;
+
+				this->uniformStageBuffer.nrElements = this->sphereMesh.nrIndicesElements;
 			}
 
 			/*	Bind buffer and update region with new data.	*/

@@ -44,6 +44,11 @@ namespace glsample {
 								const unsigned int height);
 		void computeBump2Normal(unsigned int bump_source, unsigned int normal_target);
 
+		/**/
+		void computeColor2HeightMap(unsigned int color_source, unsigned int &height_target, const unsigned int width,
+								const unsigned int height);
+		void computeColor2HeightMap(unsigned int color_source, unsigned int height_target);
+
 	  private:
 		fragcore::IFileSystem *filesystem = nullptr;
 		int irradiance_program = -1;

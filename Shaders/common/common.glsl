@@ -8,11 +8,8 @@
 #include "noise.glsl"
 #include "texture.glsl"
 #include "transformation.glsl"
+#include "math.glsl"
 
-/*	Constants.	*/
-#define PI 3.1415926535897932384626433832795
-#define PI_HALF (PI / 2.0)
-#define E_CONSTANT 2.7182818284590
 
 /*	Application constant.	*/
 layout(constant_id = 0) const float EPSILON = 1.19209e-07;
@@ -22,6 +19,7 @@ struct Camera {
 	float far;			/*	*/
 	float aspect;		/*	*/
 	float fov;			/*	*/
+	
 	vec4 position;		/*	*/
 	vec4 viewDir;		/*	*/
 	vec4 position_size; /*	*/
@@ -54,7 +52,6 @@ struct FogSettings {
 struct Frustum {
 	vec4 planes[6];
 };
-
 
 float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
 float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -200,6 +197,66 @@ float getGuas2D(const in float x, const in float y, const in float variance) {
 
 vec2 pixelate_screenUV(const in vec2 screenUV, const in float pixel_size, const in vec2 aspect_ratio) {
 	return floor(screenUV * pixel_size * aspect_ratio) / (pixel_size * aspect_ratio);
+}
+
+struct DrawElementsIndirectCommand {
+	uint count;
+	uint instanceCount;
+	uint firstIndex;
+	uint baseVertex;
+	uint baseInstance;
+};
+
+struct IndirectDrawArray {
+	uint count;			/*  */
+	uint instanceCount; /*  */
+	uint first;			/*  */
+	uint baseInstance;	/*  */
+};
+
+struct IndirectDispatchCommand {
+	uint num_groups_x;
+	uint num_groups_y;
+	uint num_groups_z;
+};
+
+vec2 sphere_uv_mapping(const vec3 position) { return inverse_equirectangular(normalize(position)); }
+
+struct Sphere {
+	vec4 position_radius;
+};
+
+float ray_sphere_intersect(const vec3 center, const float radius, const vec3 origin, const vec3 ray_dir) {
+	vec3 tmp = origin - center;
+	float t;
+	/*	*/
+	float a = dot(ray_dir, ray_dir);
+	float b = 2.0 * dot(ray_dir, tmp);
+	float c = dot(tmp, tmp) - (radius * radius);
+
+	/*	*/
+	const float discriminant = b * b - (4.0f * c * a);
+	if (discriminant < 0.0) {
+		return -1;
+	}
+	return (-b - sqrt(discriminant)) / (a * 2.0);
+}
+
+vec2 ray_sphere_intersect_samples(const vec3 center, const float radius, const vec3 origin, const vec3 ray_dir) {
+	vec3 tmp = origin - center;
+	float t;
+	/*	*/
+	float a = dot(ray_dir, ray_dir);
+	float b = 2.0 * dot(ray_dir, tmp);
+	float c = dot(tmp, tmp) - (radius * radius);
+
+	/*	*/
+	const float discriminant = b * b - (4.0f * c * a);
+	if (discriminant < 0.0) {
+		return vec2(-1.0, -1.0);
+	}
+
+	return vec2(-b - sqrt(discriminant), -b + sqrt(discriminant)) / (2.0 * a);
 }
 
 #endif

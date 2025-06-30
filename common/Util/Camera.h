@@ -14,8 +14,8 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Core/Object.h"
 #include "Util/Frustum.h"
+#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
@@ -30,7 +30,6 @@ namespace glsample {
 	 *
 	 */
 	class FVDECLSPEC Camera : public Frustum {
-		static_assert(std::is_floating_point<float>::value, "Must be a decimal type(float/double/half).");
 
 	  public:
 		Camera() noexcept { this->updateProjectionMatrix(); }
@@ -38,13 +37,18 @@ namespace glsample {
 		void calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
 							   const Vector3 &right) override {
 			/*	*/
-			const float halfVSide = this->getFar() * ::tanf(Math::degToRad(this->getFOV()) * 0.5f);
+			const float halfVSide = this->getFar() * ::tanf(Math::degToRad(this->getFOVDegree()) * 0.5f);
 			const float halfHSide = halfVSide * this->getAspect();
 
 			/*	*/
 			const Vector3 farDistance = this->getFar() * look_forward;
 
-			/*	*/
+			/*	*/ // TODO: impl
+			switch (getProjectionMode()) {
+			case CameraProjectionMode::Orthographic:
+			case CameraProjectionMode::Perspective:
+				break;
+			}
 			this->planes[NEAR_PLANE] = {position + this->getNear() * look_forward, look_forward};
 			this->planes[FAR_PLANE] = {position + farDistance, -look_forward};
 
@@ -73,25 +77,57 @@ namespace glsample {
 		}
 		float getFar() const noexcept { return this->far; }
 
-		float getFOV() const noexcept { return this->fov_degree; }
-		void setFOV(const float FOV_degree) noexcept {
+		float getFOVDegree() const noexcept { return this->fov_degree; }
+		void setFOVDegree(const float FOV_degree) noexcept {
 			this->fov_degree = FOV_degree;
 			this->updateProjectionMatrix();
 		}
 
+		void setOrth(const float left, const float right, const float bottom, const float top, const float near,
+					 const float far) noexcept {
+			this->left = left;
+			this->right = right;
+			this->bottom = bottom;
+			this->top = top;
+			this->near = near;
+			this->far = far;
+		}
+
 		const glm::mat4 &getProjectionMatrix() const noexcept { return this->proj; }
+
+		// TODO: Refractor
+		enum class CameraProjectionMode { Orthographic, Perspective };
+		// TODO: Refractor
+		void setMode(const CameraProjectionMode newMode) {
+			this->mode = newMode;
+			this->updateProjectionMatrix();
+		}
+		CameraProjectionMode getProjectionMode() const noexcept { return this->mode; }
 
 	  protected:
 		void updateProjectionMatrix() noexcept {
-			this->proj = glm::perspective(glm::radians(this->getFOV() * static_cast<float>(0.5)), this->aspect,
-										  this->near, this->far);
+			switch (getProjectionMode()) {
+			case CameraProjectionMode::Orthographic:
+				this->proj = glm::ortho(this->left, this->right, this->bottom, this->top, this->near, this->far);
+				break;
+			case CameraProjectionMode::Perspective:
+			default:
+				this->proj =
+					glm::perspective(glm::radians(this->getFOVDegree() * 0.5f), this->aspect, this->near, this->far);
+				break;
+			}
 		}
 
 	  protected:
 		float fov_degree = 80.0f;
 		float aspect = 16.0f / 9.0f;
+		float left = -10;
+		float right = 10;
+		float top = 10;
+		float bottom = -10;
 		float near = 0.45f;
 		float far = 1650.0f;
 		glm::mat4 proj{};
+		CameraProjectionMode mode = CameraProjectionMode::Perspective;
 	};
 } // namespace glsample

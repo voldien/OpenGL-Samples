@@ -37,6 +37,7 @@ namespace glsample {
 			float linear_attenuation{};
 			float qudratic_attenuation{};
 
+			/*	Shadow.	*/
 			float bias = 0.01f;
 			float shadowStrength = 1.0f;
 			float padding0{};
@@ -62,10 +63,10 @@ namespace glsample {
 			PointLight pointLights[nrPointLights];
 
 			/*	*/
-			glm::vec4 pcfFilters[20]{};
+			glm::vec4 pcfFilters[32]{};
 			float diskRadius = 25.0f;
 			int samples = 1;
-		} uniform;
+		} uniformStage;
 
 		/*	Point light shadow maps.	*/
 		std::vector<unsigned int> pointShadowFrameBuffers;
@@ -98,7 +99,7 @@ namespace glsample {
 		class PointLightShadowSettingComponent : public GLUIComponent<PointLightShadow> {
 		  public:
 			PointLightShadowSettingComponent(PointLightShadow &sample)
-				: GLUIComponent(sample, "Point Light Shadow Settings"), uniform(sample.uniform) {}
+				: GLUIComponent(sample, "Point Light Shadow Settings"), uniform(sample.uniformStage) {}
 
 			void draw() override {
 
@@ -339,16 +340,16 @@ namespace glsample {
 			const glm::vec4 colors[] = {glm::vec4(1, 0.1, 0.1, 1), glm::vec4(0.1, 1, 0.1, 1), glm::vec4(0.1, 0.1, 1, 1),
 										glm::vec4(1, 0.1, 1, 1)};
 			for (size_t i = 0; i < this->nrPointLights; i++) {
-				this->uniform.pointLights[i].range = 25.0f;
-				this->uniform.pointLights[i].position =
+				this->uniformStage.pointLights[i].range = 25.0f;
+				this->uniformStage.pointLights[i].position =
 					glm::vec3(i * -1.0f, i * 1.0f, i * -1.5f) * 12.0f + glm::vec3(2.0f);
-				this->uniform.pointLights[i].color = colors[i];
-				this->uniform.pointLights[i].constant_attenuation = 1.7f;
-				this->uniform.pointLights[i].linear_attenuation = 1.5f;
-				this->uniform.pointLights[i].qudratic_attenuation = 0.19f;
-				this->uniform.pointLights[i].intensity = 1.0f;
-				this->uniform.pointLights[i].shadowStrength = 1.0f;
-				this->uniform.pointLights[i].bias = 0.01f;
+				this->uniformStage.pointLights[i].color = colors[i];
+				this->uniformStage.pointLights[i].constant_attenuation = 1.7f;
+				this->uniformStage.pointLights[i].linear_attenuation = 1.5f;
+				this->uniformStage.pointLights[i].qudratic_attenuation = 0.19f;
+				this->uniformStage.pointLights[i].intensity = 1.0f;
+				this->uniformStage.pointLights[i].shadowStrength = 1.0f;
+				this->uniformStage.pointLights[i].bias = 0.01f;
 			}
 
 			/*	Copy PCF Filters	*/
@@ -358,7 +359,7 @@ namespace glsample {
 				glm::vec4(1, 1, 0, 0),	glm::vec4(1, -1, 0, 0),	 glm::vec4(-1, -1, 0, 0),  glm::vec4(-1, 1, 0, 0),
 				glm::vec4(1, 0, 1, 0),	glm::vec4(-1, 0, 1, 0),	 glm::vec4(1, 0, -1, 0),   glm::vec4(-1, 0, -1, 0),
 				glm::vec4(0, 1, 1, 0),	glm::vec4(0, -1, 1, 0),	 glm::vec4(0, -1, -1, 0),  glm::vec4(0, 1, -1, 0)};
-			std::memcpy(&this->uniform.pcfFilters[0][0], &samples[0][0], sizeof(samples));
+			std::memcpy(&this->uniformStage.pcfFilters[0][0], &samples[0][0], sizeof(samples));
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -448,9 +449,9 @@ namespace glsample {
 			if (this->shadowSettingComponent->animate) {
 
 				for (size_t i = 0; i < this->nrPointLights; i++) {
-					this->uniform.pointLights[i].position =
-						glm::vec3(5.0f * std::cos(this->getTimer().getElapsed<float>() * 0.51415 + 1.3 * i), 10,
-								  5.0f * std::sin(this->getTimer().getElapsed<float>() * 0.51415 + 1.3 * i));
+					this->uniformStage.pointLights[i].position =
+						glm::vec3(5.0f * std::cos((this->getTimer().getElapsed<float>() * 0.51415) + (1.3 * i)), 10,
+								  5.0f * std::sin((this->getTimer().getElapsed<float>() * 0.51415) + (1.3 * i)));
 				}
 			}
 
@@ -465,7 +466,7 @@ namespace glsample {
 
 			/*	*/
 			for (size_t i = 0; i < this->nrPointLights; i++) {
-				const glm::vec3 lightPosition = this->uniform.pointLights[i].position;
+				const glm::vec3 lightPosition = this->uniformStage.pointLights[i].position;
 
 				PointView[0] =
 					glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
@@ -483,20 +484,23 @@ namespace glsample {
 				/*	Compute light matrices.	*/
 				const glm::mat4 pointPer =
 					glm::perspective(glm::radians(90.0f), (float)this->shadowWidth / (float)this->shadowHeight, 0.15f,
-									 this->uniform.pointLights[i].range);
+									 this->uniformStage.pointLights[i].range);
 
 				for (size_t j = 0; j < 6; j++) {
-					this->uniform.ViewProjection[j] = pointPer * PointView[j];
+					this->uniformStage.ViewProjection[j] = pointPer * PointView[j];
 				}
 
+		 
 				/*	*/
-				this->uniform.model = glm::mat4(1.0f);
-				this->uniform.proj = this->camera.getProjectionMatrix();
-				this->uniform.view = this->camera.getViewMatrix();
-				this->uniform.modelViewProjection = this->uniform.proj * this->uniform.view * this->uniform.model;
-				this->uniform.lightPosition = glm::vec4(this->camera.getPosition(), 0.0f);
+				this->uniformStage.model = glm::mat4(1.0f);
+				this->uniformStage.proj = this->camera.getProjectionMatrix();
+				this->uniformStage.view = this->camera.getViewMatrix();
+				this->uniformStage.modelViewProjection =
+					this->uniformStage.proj * this->uniformStage.view * this->uniformStage.model;
+				this->uniformStage.lightPosition = glm::vec4(this->camera.getPosition(), 0.0f);
 
-				std::memcpy(&uniformPointer[i * this->uniformAlignBufferSize], &this->uniform, sizeof(this->uniform));
+				std::memcpy(&uniformPointer[i * this->uniformAlignBufferSize], &this->uniformStage,
+							sizeof(this->uniformStage));
 			}
 
 			glUnmapBuffer(GL_UNIFORM_BUFFER);

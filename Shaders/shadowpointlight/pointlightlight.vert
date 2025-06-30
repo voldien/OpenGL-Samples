@@ -43,6 +43,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 ViewProjection[6];
 	mat4 modelViewProjection;
+	Camera camera;
 
 	/*	Light source.	*/
 	vec4 direction;
@@ -51,7 +52,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 cameraPosition;
 
 	point_light point_light[4];
-	vec4 PCFFilters[20];
+	vec4 PCFFilters[32];
 	float diskRadius;
 	int samples;
 }

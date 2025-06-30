@@ -48,8 +48,8 @@ void GrainPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glUseProgram(0);
 }
 
-void GrainPostProcessing::setItensity(const float intensity) {
-	PostProcessing::setItensity(intensity);
+void GrainPostProcessing::setIntensity(const float intensity) {
+	PostProcessing::setIntensity(intensity);
 	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.base.blend"), this->getIntensity());
 }
 
@@ -91,4 +91,5 @@ void GrainPostProcessing::renderUI() {
 
 	this->animate = ImGui::Checkbox("Animiate", &this->animate);
 	ImGui::DragFloat("Speed", &this->grainSettings.speed);
+	ImGui::DragFloat("Scale", &this->grainSettings.scale);
 }

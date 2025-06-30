@@ -49,5 +49,6 @@ namespace glsample {
 		std::vector<uint32_t> post_enabled;
 
 		unsigned int common_uniform_buffer = 0;
+		UBOObject CommonUniformDataPool;
 	};
 } // namespace glsample

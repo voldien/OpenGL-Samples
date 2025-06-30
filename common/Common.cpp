@@ -240,6 +240,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 				glTexImage2D(texture_type, 0, internal_format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 			}
 		}
+		framebuffer->attachmentSize[attachment_index] = {width, height, depth};
 
 		if (multisamples == 0) {
 
@@ -280,7 +281,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		const unsigned int width = depthstencil.width;
 		const unsigned int height = depthstencil.height;
 		const unsigned int depth = depthstencil.depth;
-		const unsigned int depth_internal = GL_DEPTH_COMPONENT32;
+		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(depthstencil.graphicFormat);
 
 		GLenum texture_type = GL_TEXTURE_2D;
 		if (multisamples > 0) {
@@ -290,10 +291,13 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		/*	*/
 		glBindTexture(texture_type, framebuffer->attachments[framebuffer->depthIndex]);
 		if (multisamples > 0) {
-			glTexImage2DMultisample(texture_type, multisamples, depth_internal, width, height, GL_TRUE);
+			glTexImage2DMultisample(texture_type, multisamples, internal_format, width, height, GL_TRUE);
 		} else {
-			glTexImage2D(texture_type, 0, depth_internal, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+			glTexImage2D(texture_type, 0, internal_format, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 		}
+
+		framebuffer->attachmentSize[framebuffer->depthIndex] = {width, height, depth};
+
 
 		if (multisamples == 0) {
 

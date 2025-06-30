@@ -15,9 +15,9 @@ layout(location = 3) in vec3 tangent;
 layout(location = 8) flat in ivec2 fAssigns;
 
 #include "common.glsl"
-#include "scene.glsl"
 #include "pbr.glsl"
 #include "phongblinn.glsl"
+#include "scene.glsl"
 
 layout(binding = 16) uniform samplerCube ShadowTexture[4];
 
@@ -51,7 +51,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 cameraPosition;
 
 	point_light point_light[4];
-	vec4 PCFFilters[20];
+	vec4 PCFFilters[32];
 	float diskRadius;
 	int samples;
 }
@@ -61,7 +61,6 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 
 	const vec3 frag2Light = (fragPosLightSpace - ubo.point_light[index].position);
 
-	// float bias = ubo.point_light[0].bias;
 	float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(frag2Light).xyz)), ubo.point_light[index].bias);
 
 	float currentDepth = length(frag2Light);
@@ -69,12 +68,12 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 	float shadowFactor = 0;
 	const ivec2 gMapSize = textureSize(ShadowTexture, 0);
 
-	/*	*/
-	if (currentDepth > ubo.point_light[index].range) {
+	/*	Outside the shadow range. -> default to light.	*/
+	if (currentDepth >= ubo.point_light[index].range) {
 		return 1.0;
 	}
 
-	const float far_plane = 1000; // FIXME:
+	const float far_plane = 1000;  //TODO: make it the shadow cubemap far instead
 	const float viewDistance = length(ubo.cameraPosition.xyz - fragPosLightSpace);
 	const float diskRadius = (1.0 + (viewDistance / far_plane)) / ubo.diskRadius;
 	const int samples = 20;
@@ -87,6 +86,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 		shadowFactor += currentDepth - bias > closestDepth ? 0.0 : 1.0;
 	}
 
+	/*	*/
 	return shadowFactor / float(samples);
 }
 
@@ -121,6 +121,7 @@ void main() {
 							shadow;
 	}
 	pointLightColors.a = 1;
+
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));

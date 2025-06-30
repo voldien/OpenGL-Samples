@@ -19,6 +19,7 @@ layout(set = 0, binding = 1, std140) uniform UniformBufferBlock {
 	mat4 viewRotation;
 	Camera camera;
 	FogSettings fogSettings;
+ 
 }
 ubo;
 

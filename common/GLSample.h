@@ -19,12 +19,12 @@
 #include "GLSampleSession.h"
 #include "GLSampleWindow.h"
 #include "GLUIComponent.h"
+#include "IO/FileSystem.h"
 #include "IO/IFileSystem.h"
 #include "IOUtil.h"
-#include "IRenderer.h"
-#include "TaskScheduler/IScheduler.h"
 #include "Util/CameraController.h"
 #include "Util/ProcessDataUtil.h"
+#include "magic_enum.hpp"
 #include <GLHelper.h>
 #include <GeometryUtil.h>
 #include <ProceduralGeometry.h>
@@ -47,10 +47,10 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 	GLSample &operator=(GLSample &&) = delete;
 	explicit GLSample(T *sampleRef) : sampleRef(sampleRef) {}
 	~GLSample() override {
-		this->sampleRef->Release();
-		delete this->sampleRef;
-		delete this->getFileSystem();
-		delete this->getSchedular();
+		if (this->sampleRef) {
+			this->sampleRef->Release();
+			delete this->sampleRef;
+		}
 	}
 
 	void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) override {
@@ -117,12 +117,11 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		const int msaa = result["multi-sample"].as<int>();
 		const int display_index = result["display"].as<int>();
 
-		fragcore::Ref<fragcore::IScheduler> schedular =
-			fragcore::Ref<fragcore::IScheduler>(new fragcore::TaskScheduler(2));
+		this->schedular = std::make_shared<fragcore::TaskScheduler>(2);
 
 		/*	Create filesystem that the asset will be read from.	*/
 		this->activeFileSystem =
-			fragcore::Ref<fragcore::IFileSystem>(fragcore::FileSystem::createFileSystem(schedular));
+			std::shared_ptr<fragcore::FileSystem>(fragcore::FileSystem::createFileSystem(this->schedular));
 		const std::string filesystemPath = result["filesystem"].as<std::string>();
 		if (!this->activeFileSystem->isDirectory(filesystemPath.c_str())) {
 
@@ -136,6 +135,47 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 
 		/*	*/
 		this->sampleRef = new T();
+
+		/*  Verbose information.    */
+		{
+			this->sampleRef->getLogger().info("Platform: {} ({}) - {}", fragcore::SystemInfo::getOperatingSystemName(),
+											  fragcore::SystemInfo::getCPUArchitecture(),
+											  magic_enum::enum_name(fragcore::SystemInfo::getEndianness()));
+			this->sampleRef->getLogger().info("Platform Kernel: {}",
+											  magic_enum::enum_name(fragcore::SystemInfo::getSystemKernel()));
+
+			this->sampleRef->getLogger().info("CPU Architecture: {}", fragcore::SystemInfo::getCPUArchitecture());
+			this->sampleRef->getLogger().info("CPU Cores: {}", fragcore::SystemInfo::getCPUCoreCount());
+
+			std::string supportSIMDStr;
+			const std::vector<fragcore::SystemInfo::SIMD> supportedSIMD = fragcore::SystemInfo::getSupportedSIMD();
+			for (size_t i = 0; i < supportedSIMD.size(); i++) {
+
+				supportSIMDStr += std::string(magic_enum::enum_name(supportedSIMD[i]));
+				if (i < supportedSIMD.size() - 1) {
+					supportSIMDStr += ",";
+				}
+			}
+			this->sampleRef->getLogger().info("SIMD Features: {} ", supportSIMDStr);
+
+			this->sampleRef->getLogger().info("Memory: {} MB", fragcore::SystemInfo::systemMemorySize() /
+																   (static_cast<unsigned long>(1024 * 1024)));
+			this->sampleRef->getLogger().info("Cache line: {} bytes", fragcore::SystemInfo::getCPUCacheLine());
+			this->sampleRef->getLogger().info("page size: {} bytes", fragcore::SystemInfo::getPageSize());
+			this->sampleRef->getLogger().info("Current Directory: {}", fragcore::SystemInfo::getCurrentDirectory());
+
+			/*	Present all gpu device associated with system.	*/
+			const std::vector<fragcore::SystemInfo::GPUInformation> gpuDevices = fragcore::SystemInfo::getGPUDevices();
+			if (gpuDevices.size() > 0) {
+				for (size_t i = 0; i < gpuDevices.size(); i++) {
+					const fragcore::SystemInfo::GPUInformation &gpuDevice = gpuDevices[i];
+					this->sampleRef->getLogger().info("GPU Device: {} - Memory {}", gpuDevice.name,
+													  gpuDevice.memorySize / (static_cast<size_t>(1024 * 1024)));
+				}
+			} else {
+				this->sampleRef->getLogger().warn("GPU Device: No Found");
+			}
+		}
 
 		/*	Check if required extensions */
 		bool all_extension_required = true;

@@ -348,8 +348,8 @@ namespace glsample {
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  ((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize *
-									  this->nrCameras +
+							  (((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize *
+									  this->nrCameras) +
 								  this->uniformAlignBufferSize,
 							  this->uniformAlignBufferSize);
 
@@ -447,7 +447,7 @@ namespace glsample {
 						GLM2E<float, 4, 4>(node->modelGlobalTransform));
 
 					if (this->frustumCullingSettingComponent->useSphereCulling) {
-						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), aabb.getSize().norm());
+						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), aabb.getHalfSize().norm());
 
 						if (this->camera.intersectionSphere(sphere) == Frustum::In ||
 							!this->frustumCullingSettingComponent->useFrustumCulling) {
@@ -512,7 +512,7 @@ namespace glsample {
 
 					glm::mat4 localBoundMatrix = glm::mat4(1);
 					localBoundMatrix = glm::translate(localBoundMatrix, E2GLM<float, 3>(aabb.getCenter()));
-					localBoundMatrix = glm::scale(localBoundMatrix, E2GLM<float, 3>(aabb.getSize()));
+					localBoundMatrix = glm::scale(localBoundMatrix, E2GLM<float, 3>(aabb.getHalfSize()));
 
 					const glm::mat4 model = node->modelGlobalTransform * localBoundMatrix;
 

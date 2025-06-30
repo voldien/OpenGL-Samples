@@ -261,8 +261,8 @@ namespace glsample {
 
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_binding,
 								  this->uniform_instance_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize +
-									  i * (instanceBatch * sizeof(glm::mat4)),
+								  ((this->getFrameCount() % this->nrUniformBuffers) * this->uniformInstanceSize) +
+									  (i * (instanceBatch * sizeof(glm::mat4))),
 								  nrDrawInstances * sizeof(glm::mat4));
 
 				glDrawElementsInstanced(GL_TRIANGLES, this->instanceGeometry.nrIndicesElements, GL_UNSIGNED_INT,
@@ -281,10 +281,10 @@ namespace glsample {
 			/*	Update instance model matrix.	*/
 			for (size_t i = 0; i < rows; i++) {
 				for (size_t j = 0; j < cols; j++) {
-					const size_t index = i * cols + j;
+					const size_t index = (i * cols) + j;
 
 					glm::mat4 model = glm::translate(glm::mat4(1.0), glm::vec3(i * 10.0f, 0, j * 10.0f));
-					model = glm::rotate(model, glm::radians(elapsedTime * 45.0f + index * 11.5f),
+					model = glm::rotate(model, glm::radians((elapsedTime * 45.0f) + (index * 11.5f)),
 										glm::vec3(0.0f, 1.0f, 0.0f));
 					model = glm::scale(model, glm::vec3(1.95f));
 

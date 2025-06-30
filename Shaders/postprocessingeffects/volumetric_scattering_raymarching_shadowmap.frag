@@ -28,45 +28,84 @@ layout(push_constant) uniform UniformBufferBlock {
 }
 settings;
 
+// This function will tell us if a certain point in world space coordinates is in light or shadow of the main light
+float ShadowAtten(vec3 worldPosition) { return 0; }
+
+// Unity already has a function that can reconstruct world space position from depth
+vec3 GetWorldPos(const in vec2 uv, const in mat4 inverProj) {
+	const float depth = texture(DirectionalLightShadowMap, uv).r;
+
+	return calcViewPosition(uv, inverProj, depth);
+}
+
+// Mie scaterring approximated with Henyey-Greenstein phase function.
+float ComputeScattering(float lightDotView) {
+	// float result = 1.0f - _Scattering * _Scattering;
+	// result /= (4.0f * PI * pow(1.0f + _Scattering * _Scattering - (2.0f * _Scattering) * lightDotView, 1.5f));
+	// return result;
+	return 0;
+}
+
+// standart hash
+float random(vec2 p) { return fract(sin(dot(p, vec2(41, 289))) * 45758.5453) - 0.5; }
+float random01(vec2 p) { return fract(sin(dot(p, vec2(41, 289))) * 45758.5453); }
+
+// from Ronja https://www.ronja-tutorials.com/post/047-invlerp_remap/
+float invLerp(float from, float to, float value) { return (value - from) / (to - from); }
+float remap(float origFrom, float origTo, float targetFrom, float targetTo, float value) {
+	float rel = invLerp(origFrom, origTo, value);
+	return mix(targetFrom, targetTo, rel);
+}
+
+// this implementation is loosely based on http://www.alexandre-pestana.com/volumetric-lights/
+// and https://fr.slideshare.net/BenjaminGlatzel/volumetric-lighting-for-many-lights-in-lords-of-the-fallen
+
+// #define MIN_STEPS 25
+
 void main() {
+	// first we get the world space position of every pixel on screen
+	//vec3 worldPos = GetWorldPos(i.uv);
 
-	/*	*/
-	const vec2 _LightScreenPos = settings.lightPosition;
-	const vec2 deltascreenUVrd = (screenUV - _LightScreenPos);
+	//// we find out our ray info, that depends on the distance to the camera
+	//vec3 startPosition = _WorldSpaceCameraPos;
+	//vec3 rayVector = worldPos - startPosition;
+	//vec3 rayDirection = normalize(rayVector);
+	//float rayLength = length(rayVector);
 
-	/*	*/
-	const float inverseDensity = ((1.0 / float(settings.numSamples)) * settings._Density);
+	//if (rayLength > _MaxDistance) {
+	//	rayLength = _MaxDistance;
+	//	worldPos = startPosition + rayDirection * rayLength;
+	//}
 
-	const vec2 TexDiff = deltascreenUVrd * inverseDensity;
+	// We can limit the amount of steps for close objects
+	//  steps= remap(0,_MaxDistance,MIN_STEPS,_Steps,rayLength);
+	// or
+	//  steps= remap(0,_MaxDistance,0,_Steps,rayLength);
+	//  steps = max(steps,MIN_STEPS);
 
-	const vec4 color = texture(ColorTexture, screenUV);
-
-	vec4 colorResult = vec4(0);
-	float illuminationDecay = 1.0;
-
-	for (uint j = 0; j < settings.numSamples; j++) {
-
-		const vec2 OffsetUV = screenUV - TexDiff * j;
-
-		/*	Determine if occluded by geometry.	*/
-		float cameraDepth = texture(DepthTexture, OffsetUV).r;
-		float mask = (cameraDepth < 1 ? 0.0 : 1.0);
-
-		vec4 sampleColor = texture(ColorTexture, OffsetUV) * mask;
-		/*	*/
-		sampleColor *= illuminationDecay * settings._Weight;
-		/*	*/
-		colorResult += sampleColor;
-		/*	*/
-		illuminationDecay *= settings._Decay;
-	}
-
-	/*	*/
-	colorResult /= float(settings.numSamples);
-	colorResult *= settings._Exposure;
-
-	/*	*/
-	vec4 result = color + vec4(colorResult.rgb, 0.0) * settings.color;
-
-	fragColor = result;
+	//float stepLength = rayLength / _Steps;
+	//vec3 step = rayDirection * stepLength;
+//
+	//// to eliminate banding we sample at diffent depths for every ray, this way we obfuscate the shadowmap patterns
+	//float rayStartOffset = random01(i.uv) * stepLength * _JitterVolumetric / 100;
+	//vec3 currentPosition = startPosition + rayStartOffset * rayDirection;
+//
+	//float accumFog = 0;
+//
+	//// we ask for the shadow map value at different depths, if the sample is in light we compute the contribution at
+	//// that point and add it
+	//for (float j = 0; j < _Steps - 1; j++) {
+	//	float shadowMapValue = ShadowAtten(currentPosition);
+//
+	//	// if it is in light
+	//	if (shadowMapValue > 0) {
+	//		float kernelColor = ComputeScattering(dot(rayDirection, _SunDirection));
+	//		accumFog += kernelColor;
+	//	}
+	//	currentPosition += step;
+	//}
+	//// we need the average value, so we divide between the amount of samples
+	//accumFog /= _Steps;
+//
+	//return accumFog;
 }

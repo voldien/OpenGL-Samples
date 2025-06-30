@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "GLUIComponent.h"
 #include "SampleHelper.h"
 #include "Scene.h"
@@ -41,12 +42,6 @@ namespace glsample {
 
 		} uniformStageBuffer;
 
-		using DirectionalLight = struct directional_light_t {
-			glm::vec3 directiona = glm::vec3(1, 1, 1);
-			float intensity = 1;
-			glm::vec4 color = glm::vec4(1, 1, 1, 1);
-		};
-
 		std::vector<PointLightInstance> pointLights;
 		std::vector<DirectionalLight> directionalLights;
 
@@ -56,12 +51,7 @@ namespace glsample {
 		Scene scene;	   /*	World Scene.	*/
 		Skybox skybox;	   /*	*/
 
-		/*	*/
-		unsigned int deferred_framebuffer{};
-		unsigned int deferred_texture_width{};
-		unsigned int deferred_texture_height{};
-		std::vector<unsigned int> deferred_textures; /*	Albedo, WorldSpace, Normal, */
-		unsigned int depthstencil_texture{};
+		FrameBuffer deferredFramebuffer;
 
 		/*	*/
 		unsigned int deferred_pointlight_program{};
@@ -119,7 +109,7 @@ namespace glsample {
 					ImGui::PushID(1000 + i);
 					ImGui::PopID();
 				}
-				ImGui::ColorEdit4("Color", &this->getRefSample().directionalLights[0].color[0],
+				ImGui::ColorEdit4("Color", &this->getRefSample().directionalLights[0].lightColor[0],
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				// ImGui::DragFloat3("Direction", &this->uniform.direction[0]);
 
@@ -168,10 +158,6 @@ namespace glsample {
 
 			glDeleteProgram(this->multipass_program);
 			glDeleteProgram(this->skybox_program);
-
-			/*	*/
-			glDeleteTextures(1, &this->depthstencil_texture);
-			glDeleteTextures(this->deferred_textures.size(), this->deferred_textures.data());
 
 			/*	*/
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -409,12 +395,8 @@ namespace glsample {
 
 			{
 				/*	Create deferred framebuffer.	*/
-				glGenFramebuffers(1, &this->deferred_framebuffer);
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
+				CommonUtil::createFrameBuffer(&this->deferredFramebuffer, 4);
 
-				this->deferred_textures.resize(4);
-				glGenTextures(1, &this->depthstencil_texture);
-				glGenTextures(this->deferred_textures.size(), this->deferred_textures.data());
 				this->onResize(this->width(), this->height());
 			}
 
@@ -435,53 +417,38 @@ namespace glsample {
 
 		void onResize(int width, int height) override {
 
-			this->deferred_texture_width = width;
-			this->deferred_texture_height = height;
+			CommonUtil::updateFrameBuffer(&this->deferredFramebuffer,
+										  {{
+											   .width = width,
+											   .height = height,
+											   .graphicFormat = GraphicFormat::R16G16B16A16_SFloat,
+											   .nrSamples = 0,
+										   },
+										   {
+											   .width = width,
+											   .height = height,
+											   .graphicFormat = GraphicFormat::R32G32B32A32_SFloat,
+											   .nrSamples = 0,
+										   },
+										   {
+											   .width = width,
+											   .height = height,
+											   .graphicFormat = GraphicFormat::R16G16B16A16_SFloat,
+											   .nrSamples = 0,
+										   },
+										   {
+											   .width = width,
+											   .height = height,
+											   .graphicFormat = GraphicFormat::R16G16B16A16_SNorm,
+											   .nrSamples = 0,
+										   }},
+										  {
+											  .width = width,
+											  .height = height,
+											  .graphicFormat = GraphicFormat::Depth_24Bit_8Stencil,
+											  .nrSamples = 0,
 
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
-
-			/*	Resize the image.	*/
-			std::vector<GLenum> drawAttach(this->deferred_textures.size());
-			for (size_t i = 0; i < this->deferred_textures.size(); i++) {
-
-				glBindTexture(GL_TEXTURE_2D, this->deferred_textures[i]);
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, this->deferred_texture_width, this->deferred_texture_height,
-							 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-				/*	Border clamped to max value, it makes the outside area.	*/
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-
-				glBindTexture(GL_TEXTURE_2D, 0);
-
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D,
-									   this->deferred_textures[i], 0);
-				drawAttach[i] = GL_COLOR_ATTACHMENT0 + i;
-			}
-
-			/*	Depth/Stencil.	*/
-			glBindTexture(GL_TEXTURE_2D, this->depthstencil_texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, this->deferred_texture_width,
-						 this->deferred_texture_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
-								   this->depthstencil_texture, 0);
-
-			glDrawBuffers(drawAttach.size(), drawAttach.data());
-
-			/*  Validate if created properly.*/
-			const int frameStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-			if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
-				throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
-			}
-
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
+										  });
 
 			/*	*/
 			this->camera.setFar(2000.0f);
@@ -491,7 +458,6 @@ namespace glsample {
 		float computePointLightRadius(const PointLightInstance &pointLight) const noexcept { return 0; }
 
 		void draw() override {
-
 			/*	*/
 			int width = 0, height = 0;
 			this->getSize(&width, &height);
@@ -503,11 +469,12 @@ namespace glsample {
 
 			/*	Multipass.	*/
 			{
-				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferred_framebuffer);
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->deferredFramebuffer.framebuffer);
 
 				glDepthMask(GL_TRUE);
 				/*	*/
-				glViewport(0, 0, this->deferred_texture_width, this->deferred_texture_height);
+				glViewport(0, 0, this->deferredFramebuffer.attachmentSize[0].x,
+						   this->deferredFramebuffer.attachmentSize[0].y);
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -533,9 +500,10 @@ namespace glsample {
 
 				/*	Blit depth.	*/
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
-				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
-				glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height, 0, 0, width,
-								  height, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferredFramebuffer.framebuffer);
+				glBlitFramebuffer(0, 0, this->deferredFramebuffer.attachmentSize[0].x,
+								  this->deferredFramebuffer.attachmentSize[0].y, 0, 0, width, height,
+								  GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -564,9 +532,10 @@ namespace glsample {
 				// glDisable(GL_CULL_FACE);
 
 				/*	Bind all gbuffer textures.	*/
-				for (size_t i = 0; i < this->deferred_textures.size(); i++) {
-					glActiveTexture(GL_TEXTURE0 + i);
-					glBindTexture(GL_TEXTURE_2D, this->deferred_textures[i]);
+				for (size_t texture_index = 0; texture_index < this->deferredFramebuffer.nrAttachments;
+					 texture_index++) {
+					glActiveTexture(GL_TEXTURE0 + texture_index);
+					glBindTexture(GL_TEXTURE_2D, this->deferredFramebuffer.attachments[texture_index]);
 				}
 
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -600,8 +569,8 @@ namespace glsample {
 			}
 
 			/*	*/
-			for (size_t i = 0; i < this->deferred_textures.size(); i++) {
-				glActiveTexture(GL_TEXTURE0 + i);
+			for (size_t texture_index = 0; texture_index < this->deferredFramebuffer.nrAttachments; texture_index++) {
+				glActiveTexture(GL_TEXTURE0 + texture_index);
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 
@@ -638,12 +607,13 @@ namespace glsample {
 			/*	Blit image target depth result to default framebuffer.	*/
 			{
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
-				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferredFramebuffer.framebuffer);
 
 				glViewport(0, 0, width, height);
 
-				glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height, 0, 0,
-								  this->width(), this->height(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+				glBlitFramebuffer(0, 0, this->deferredFramebuffer.attachmentSize[0].x,
+								  this->deferredFramebuffer.attachmentSize[0].y, 0, 0, this->width(), this->height(),
+								  GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
@@ -652,32 +622,34 @@ namespace glsample {
 			this->skybox.Render(this->camera);
 
 			/*	Blit image targets to screen.	*/
+			// TODO: relocate logic.
 			{
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->getDefaultFramebuffer());
-				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferred_framebuffer);
+				glBindFramebuffer(GL_READ_FRAMEBUFFER, this->deferredFramebuffer.framebuffer);
 
 				glViewport(0, 0, width, height);
 
-				glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height, 0, 0,
-								  this->width(), this->height(), GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+				glBlitFramebuffer(0, 0, this->deferredFramebuffer.attachmentSize[0].x,
+								  this->deferredFramebuffer.attachmentSize[0].y, 0, 0, this->width(), this->height(),
+								  GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
 				if (this->deferredSettingComponent->showGBuffers) {
 
 					/*	Transfer each target to default framebuffer.	*/
 					const float halfW = (width / 4.0f);
 					const float halfH = (height / 4.0f);
-					for (size_t i = 0; i < this->deferred_textures.size(); i++) {
+					for (size_t i = 0; i < this->deferredFramebuffer.nrAttachments; i++) {
 						glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
-						glBlitFramebuffer(0, 0, this->deferred_texture_width, this->deferred_texture_height,
-										  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW,
-										  halfH + (i / 2) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+						glBlitFramebuffer(0, 0, this->deferredFramebuffer.attachmentSize[0].x,
+										  this->deferredFramebuffer.attachmentSize[0].y, (i % 2) * (halfW),
+										  (i / 2) * halfH, halfW + ((i % 2) * halfW), halfH + ((i / 2) * halfH),
+										  GL_COLOR_BUFFER_BIT, GL_LINEAR);
 					}
 				}
 			}
 		}
 
 		void update() override {
-
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
 
