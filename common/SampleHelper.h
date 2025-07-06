@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Math3D/LinAlg.h"
 #include "Util/Camera.h"
 #include "Util/CameraController.h"
 #include <Eigen/Eigen>
@@ -122,6 +123,10 @@ namespace glsample {
 		glm::vec4 reflectivity;
 
 		/*	*/
+	};
+
+	using BoundingShapeData = struct bounding_data_t{
+		fragcore::Bound bound;
 	};
 
 	using BlinnPhongMaterialData = struct blinn_phong_material_data_t {};

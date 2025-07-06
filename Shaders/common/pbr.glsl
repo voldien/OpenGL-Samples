@@ -4,6 +4,9 @@
 #include "common.glsl"
 #include "light.glsl"
 
+vec3 fresnelSchlick(const in float cosTheta, const in vec3 f0) {
+	return f0 + (1.0 - f0) * pow(max(1 - cosTheta, 0.0), 5.0);
+}
 
 vec3 fresnelSchlickRoughness(const in float cosTheta, const in vec3 F0, const in float roughness) {
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
@@ -38,6 +41,8 @@ vec3 getNormalFromMap(const in sampler2D normalMap, const in vec2 TexCoords, con
 }
 
 // ----------------------------------------------------------------------------
+// Normal Distributions
+//-----------------------------------------------------------------------------
 float DistributionGGX(const in vec3 N, const in vec3 H, const in float roughness) {
 	float a = roughness * roughness;
 	float a2 = a * a;
@@ -51,7 +56,9 @@ float DistributionGGX(const in vec3 N, const in vec3 H, const in float roughness
 	return nom / denom;
 }
 
-// ----------------------------------------------------------------------------
+// --------------------------------------------------------------------
+//	Geometry Term Functions
+//---------------------------------------------------------------------
 float GeometrySchlickGGX(const in float NdotV, const in float roughness) {
 	float r = (roughness + 1.0);
 	float k = (r * r) / 8.0;
@@ -72,52 +79,56 @@ float GeometrySmith(const in vec3 N, const in vec3 V, const in vec3 L, const in 
 	return ggx1 * ggx2;
 }
 
-
 /***************************************************/
 
 vec4 computePBRPoint(const in PointLight light, const in vec3 normal, const in vec3 vertex, const in float shininess,
 					 const in vec3 specularColor) {
-	// reflectance equation
-	// // reflectance equation
-	// vec3 Lo = vec3(0.0);
-	// for (uint i = 0; i <= 0; ++i) {
-
-	// 	// calculate per-light radiance
-	// 	vec3 L = vec3(0); // normalize(ubo.lightsettings.point_light[i].position - WorldPos);
-	// 	vec3 H = normalize(V + L);
-	// 	float distance = 1; // length(ubo.lightsettings.point_light[i].position - WorldPos);
-	// 	float attenuation = 1.0 / (distance * distance);
-	// 	vec3 radiance = vec3(0); // ubo.lightsettings.point_light[i].color.rgb * attenuation;
-
-	// 	// Cook-Torrance BRDF
-	// 	float NDF = DistributionGGX(N, H, roughness);
-	// 	float G = GeometrySmith(N, V, L, roughness);
-	// 	const vec3 F = vec3(0); // fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-	// 	const vec3 numerator = NDF * G * F;
-	// 	const float denominator =
-	// 		4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
-	// 	vec3 specular = numerator / denominator;
-
-	// 	// kS is equal to Fresnel
-	// 	vec3 kS = F;
-	// 	// for energy conservation, the diffuse and specular light can't
-	// 	// be above 1.0 (unless the surface emits light); to preserve this
-	// 	// relationship the diffuse component (kD) should equal 1.0 - kS.
-	// 	vec3 kD = vec3(1.0) - kS;
-	// 	// multiply kD by the inverse metalness such that only non-metals
-	// 	// have diffuse lighting, or a linear blend if partly metal (pure metals
-	// 	// have no diffuse light).
-	// 	kD *= 1.0 - metallic;
-
-	// 	// scale light by NdotL
-	// 	float NdotL = max(dot(N, L), 0.0);
-
-	// 	// add to outgoing radiance Lo
-	// 	Lo += (kD * albedo / PI + specular) * radiance * NdotL; // note that we already multiplied the BRDF by the
-	// 															// Fresnel (kS) so we won't multiply by kS again
-	// }
 	return vec4(0);
+}
+
+/*	Cook-Torrance specular BRDF	*/
+vec3 computePBRDirectionLight(const in DirectionalLight light, const in vec3 ViewPixelDir, const in vec3 SurfaceNormal,
+							  const in float roughness, const in float metallic, const in vec3 F0,
+							  const in vec3 albedo) {
+
+	const vec3 light_direction = normalize(-light.direction.xyz);
+	const vec3 half_vector = normalize(ViewPixelDir + light_direction);
+
+	const float attenuation = 1;
+	const vec3 radiance = light.lightColor.rgb * attenuation; // aka Li
+
+	// Normal Distribution term (D)
+	float dTerm = DistributionGGX(SurfaceNormal, half_vector, roughness);
+
+	/*	Fresnel term (F)	*/
+	// Determines the ratio of light reflected vs. absorbed
+	vec3 fTerm = FresnelSchlick(half_vector, ViewPixelDir, F0);
+
+	/* Geometry term (G)	*/
+	float gTerm = GeometrySmith(SurfaceNormal, ViewPixelDir, light_direction, roughness);
+
+	vec3 numerator = dTerm * fTerm * gTerm;
+	float denominator =
+		4.0 * max(dot(ViewPixelDir, SurfaceNormal), 0.0) * max(dot(light_direction, SurfaceNormal), 0.0);
+
+	// recall fTerm is the proportion of reflected light, so the result here is the specular
+	vec3 specular = numerator / max(denominator, 0.001);
+
+	vec3 kSpecular = fTerm;
+	vec3 kDiffuse = vec3(1.0) - kSpecular;
+	kDiffuse *= 1.0 - metallic; // metallic materials should have no diffuse component
+
+	// now calculate full Cook-Torrance with both diffuse + specular
+	//
+	// f_r = kd * f_lambert + ks * f_cook-torrance
+	//
+	// where f_lambert = c / pi
+
+	vec3 diffuse = kDiffuse * albedo / PI;
+	vec3 cookTorranceBrdf = diffuse + specular;
+	float nDotL = max(dot(SurfaceNormal, light_direction), 0.0);
+
+	return cookTorranceBrdf * radiance * nDotL;
 }
 
 #endif

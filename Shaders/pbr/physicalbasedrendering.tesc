@@ -16,6 +16,8 @@ layout(location = 1) out vec2 TexCoord_ES_in[3];
 layout(location = 2) out vec3 Normal_ES_in[3];
 layout(location = 3) out vec3 Tangent_ES_in[3];
 
+//layout(location = 8) out float vec2 fAssigns[];
+
 #include "pbr_common.glsl"
 
 // attributes of the output CPs

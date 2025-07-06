@@ -10,6 +10,7 @@ layout(location = 1) in vec2 TexCoord_ES_in[];
 layout(location = 2) in vec3 Normal_ES_in[];
 layout(location = 3) in vec3 Tangent_ES_in[];
 
+
 layout(location = 0) out vec3 WorldPos_FS_in;
 layout(location = 1) out vec2 TexCoord_FS_in;
 layout(location = 2) out vec3 Normal_FS_in;
@@ -48,5 +49,5 @@ void main() {
 					 oPatch.WorldPos_B102 * 3.0 * w * vPow2 + oPatch.WorldPos_B012 * 3.0 * u * vPow2 +
 					 oPatch.WorldPos_B111 * 6.0 * w * u * v;
 
-	gl_Position = ubo.viewProjection * vec4(WorldPos_FS_in, 1.0);
+//	gl_Position = ubo.viewProjection * vec4(WorldPos_FS_in, 1.0);
 }

@@ -25,7 +25,7 @@ void main() {
 		return;
 	}
 
-	/*	LOD downsampled mipmaps.	(Optional)*/
+	/*	LOD downsampled mipmaps.	(Optina)*/
 	const float LOD = clamp(14 - log2(imageSize(targetIrradianceTexture).x), 0, 4);
 
 	/*	*/

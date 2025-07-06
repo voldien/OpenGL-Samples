@@ -74,9 +74,13 @@ namespace glsample {
 			this->default_textures[TextureType::Irradiance] = this->default_textures[TextureType::Diffuse];
 			this->default_textures[TextureType::AmbientOcclusion] = this->default_textures[TextureType::Diffuse];
 			this->default_textures[TextureType::DepthBuffer] = this->default_textures[TextureType::Diffuse];
-			this->default_textures[TextureType::Specular] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureType::Specular_Roughness] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureType::AmbientOcclusion] = this->default_textures[TextureType::Diffuse];
+
 			this->default_textures[TextureType::Displacement] = glsample::CommonUtil::createColorTexture(
 				1, 1, fragcore::Color(black[0] / 255.0f, black[1] / 255.0f, black[2] / 255.0f, black[3] / 255.0f));
+			this->default_textures[TextureType::Metal] = this->default_textures[TextureType::Displacement];
+
 
 			this->default_textures[TextureType::Normal] = glsample::CommonUtil::createColorTexture(
 				1, 1,
@@ -105,7 +109,7 @@ namespace glsample {
 			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockBufferSize);
 
 			/*	*/
-			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(CommonConstantData), minMapBufferSize);
+			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(GlobalSceneState), minMapBufferSize);
 			this->UBOStructure.common_size_total_align =
 				this->UBOStructure.common_size_align * UniformDataStructure::nrUniformBuffer;
 			this->UBOStructure.common_offset = 0;
@@ -151,8 +155,8 @@ namespace glsample {
 																		 GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT |
 																			 GL_MAP_FLUSH_EXPLICIT_BIT);
 
-				this->stageCommonBuffer = (CommonConstantData *)&pdata[0];
-				*this->stageCommonBuffer = CommonConstantData();
+				this->stageCommonBuffer = (GlobalSceneState *)&pdata[0];
+				*this->stageCommonBuffer = GlobalSceneState();
 
 				this->stageNodeData = (NodeData *)&pdata[this->UBOStructure.common_size_total_align];
 				this->stageMaterialData = (MaterialData *)&pdata[this->UBOStructure.common_size_total_align +
@@ -236,7 +240,7 @@ namespace glsample {
 		/*	Frustum Culling.	*/
 		if (this->settings.frustumCulling && frustum) {
 
-			/*	*/ //TODO: multi thread
+			/*	*/ // TODO: multi thread
 			for (size_t node_index = 0; node_index < this->getNodes().size(); node_index++) {
 
 				NodeObject *node = this->getNodes()[node_index];
@@ -281,7 +285,8 @@ namespace glsample {
 		// TODO: fix camera argument.
 		if (camera) {
 			this->stageCommonBuffer->camera = *camera;
-			CameraController *cameraController = dynamic_cast<CameraController *>(camera); //TODO: remove controller once the camera start using the base Node
+			CameraController *cameraController = dynamic_cast<CameraController *>(
+				camera); // TODO: remove controller once the camera start using the base Node
 			this->stageCommonBuffer->camera = *cameraController;
 			/*	*/
 			this->stageCommonBuffer->proj[0] = camera->getProjectionMatrix();
@@ -411,7 +416,8 @@ namespace glsample {
 			this->bindTexture(*material, TextureType::Emission);
 			this->bindTexture(*material, TextureType::AmbientOcclusion);
 			this->bindTexture(*material, TextureType::Displacement);
-			this->bindTexture(*material, TextureType::Specular);
+			this->bindTexture(*material, TextureType::Specular_Roughness);
+			this->bindTexture(*material, TextureType::Metal);
 			// this->bindTexture(material, TextureType::Irradiance); //TODO: enable once material has been binded
 			// with irradiance texture
 			this->bindTexture(*material, TextureType::DepthBuffer);
@@ -464,7 +470,8 @@ namespace glsample {
 	void Scene::renderNode(const NodeObject *node) {
 
 		/*	Update binding offset.	*/
-		if (currentNodeIndex % this->UBOStructure.max_node_per_binding == 0) {
+		if ((currentNodeIndex % this->UBOStructure.max_node_per_binding) == 0) {
+			/*	*/
 			const unsigned int model_block_offset = currentNodeIndex / this->UBOStructure.max_node_per_binding;
 			const size_t model_total_offset =
 				this->UBOStructure.node_offset + (model_block_offset * 65536); // TODO:fix constants.
@@ -473,9 +480,15 @@ namespace glsample {
 							  this->UBOStructure.node_size_align);
 
 			// TODO: fix binding offset.
+			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_buffer_binding,
 							  this->UBOStructure.node_and_common_uniform_buffer, this->UBOStructure.material_offset,
 							  this->UBOStructure.material_align_size);
+
+			/*	*/
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_buffer_binding,
+							  this->UBOStructure.node_and_common_uniform_buffer, this->UBOStructure.light_offset,
+							  this->UBOStructure.light_align_total_size);
 		}
 
 		for (size_t geo_index = 0; geo_index < node->geometryObjectIndex.size(); geo_index++) {
@@ -669,18 +682,31 @@ namespace glsample {
 				ImGui::TreePop();
 			}
 			if (ImGui::CollapsingHeader("Light Settings")) {
-				size_t material_index = 0;
+				size_t light_index = 0;
 
 				ImGui::TextUnformatted("PointLight");
-				for (; material_index < this->stageLightData->pointCount; material_index++) {
-					ImGui::PushID(material_index);
+
+				for (; light_index < this->stageLightData->pointCount; light_index++) {
+					ImGui::PushID(light_index);
 					ImGui::PopID();
 				}
 
 				ImGui::TextUnformatted("DirectionalLight");
-				for (; material_index < this->stageLightData->directionalCount; material_index++) {
-					ImGui::PushID(material_index);
+				for (light_index = 0; light_index < this->stageLightData->directionalCount; light_index++) {
+
+					ImGui::PushID(light_index);
+					ImGui::ColorEdit4("Color", &this->stageLightData->directional[light_index].lightColor[0],
+									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+					ImGui::DragFloat3("Direction", &this->stageLightData->directional[light_index].lightDirection[0]);
 					ImGui::PopID();
+				}
+
+				if (ImGui::Button("Add Direction Light")) {
+					this->stageLightData->directionalCount++;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Add Point Light")) {
+					this->stageLightData->pointCount++;
 				}
 			}
 

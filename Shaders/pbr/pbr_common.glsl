@@ -3,13 +3,7 @@
 #include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-	mat4 modelView;
-	mat4 viewProjection;
-	mat4 modelViewProjection;
-
+ 
 	tessellation_settings tessellation;
 }
 ubo;

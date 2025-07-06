@@ -27,14 +27,19 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 ViewProj;
 	mat4 modelViewProjection;
-
+	/*	*/
 	Camera camera;
+	/*	*/
+	vec4 center;
+	vec4 size;
+	vec4 padding;
 }
 ubo;
 
 struct Result {
 	float area;
 	float averageNormal;
+	vec3 averagePosition;
 };
 
 /*	*/
@@ -55,6 +60,7 @@ layout(constant_id = 2) const int sumSubGroupSize = 16 * 16;
 
 shared float[sumSubGroupSize] localBuff0;
 shared float[sumSubGroupSize] localBuff1;
+shared vec3[sumSubGroupSize] localBuff2;
 
 #endif
 
@@ -66,6 +72,20 @@ float reduction(float[sumSubGroupSize] arr) {
 	return m;
 }
 
+vec3 reduction(vec3[sumSubGroupSize] arr) {
+	vec3 m = vec3(0);
+	for (uint i = 0; i < arr.length(); i++) {
+		m += arr[i];
+	}
+	return m;
+}
+
+vec3 calcViewPosition(const in vec2 coords) {
+	const float fragmentDepth = texture(DepthTexture, coords).r;
+
+	return calcViewPosition(coords, inverse(ubo.proj), fragmentDepth);
+}
+
 void main() {
 
 	const uint id = gl_LocalInvocationIndex;
@@ -75,6 +95,7 @@ void main() {
 	{
 		localBuff1[id] = 0;
 		localBuff0[id] = 0;
+		localBuff2[id] = vec3(0);
 	}
 	memoryBarrierShared();
 
@@ -96,58 +117,73 @@ void main() {
 	/*	Determine front or back face.	*/
 	const float visible_normal_surface_attenuation = dot(-orth_normal, normal.xyz);
 
+	const vec3 viewPos = calcViewPosition(UVCoordinate);
+	const vec3 position = viewPos.xyz;
+
 #if defined(GL_SUBGROUP_FEATURE_BASIC_BIT_KHR) && defined(GL_SUBGROUP_FEATURE_BASIC_BIT_KHR)
 
 	float triangle_visable_area = subgroupAdd(visable_area);
 	float average_drag = subgroupAdd(visible_normal_surface_attenuation);
+	vec3 average_position = subgroupAdd(position);
 
 	/*	Merge all result.	*/
 	if (gl_SubgroupInvocationID == 0) {
 		/*	Sum over the subgroup.	*/
-		sat[gl_SubgroupID] = triangle_visable_area;
-		sat0[gl_SubgroupID] = average_drag;
+		localBuff0[gl_SubgroupID] = triangle_visable_area;
+		localBuff1[gl_SubgroupID] = average_drag;
+		localBuff2[gl_SubgroupID] = average_position;
 	}
 
 	memoryBarrierShared();
+
 	barrier();
 
 	float sum0 = 0;
 	float average_drag0 = 0;
+	vec3 average_drag0 = vec3(0);
 
 	/*	*/
 	if (gl_SubgroupID == 0) { /*	same as subgroupElect, possibly.	*/
 
-		sum0 = gl_SubgroupInvocationID < gl_NumSubgroups ? sat[gl_SubgroupInvocationID] : 0;
+		sum0 = gl_SubgroupInvocationID < gl_NumSubgroups ? localBuff0[gl_SubgroupInvocationID] : 0;
 		sum0 = subgroupAdd(sum0);
 
-		average_drag0 = gl_SubgroupInvocationID < gl_NumSubgroups ? sat0[gl_SubgroupInvocationID] : 0;
+		average_drag0 = gl_SubgroupInvocationID < gl_NumSubgroups ? localBuff1[gl_SubgroupInvocationID] : 0;
 		average_drag0 = subgroupAdd(average_drag);
+
+		average_position0 = gl_SubgroupInvocationID < gl_NumSubgroups ? localBuff2[gl_SubgroupInvocationID] : 0;
+		average_position0 = subgroupAdd(average_position);
 	}
 
 	/*	*/
 	if (gl_LocalInvocationID.x == 0) { /*	*/
-		result.area = sum0;
-		result.averageNormal = average_drag0;
+		result.results[work_index].area = sum0;
+		result.results[work_index].averageNormal = average_drag0;
+		result.results[work_index].averagePosition = average_position0;
 	}
 
 #else
-	// const uint work_index = getWorkIndex();
-
+ 
 	/*	*/
 	localBuff0[id] = visable_area;
 	localBuff1[id] = visible_normal_surface_attenuation;
+	localBuff2[id] = (position - ubo.center.xyz) * visable_area;
 
 	memoryBarrierShared();
+
+	barrier(); /*	*/
 
 	if (id == 0) {
 
 		/*	*/
-		const float minimum0 = reduction(localBuff0);
-		const float minimum1 = reduction(localBuff1);
+		const float sumArea = reduction(localBuff0);
+		const float sumNormalCos = reduction(localBuff1);
+		const vec3 sumPosition = reduction(localBuff2);
 
 		/*	*/
-		result.results[work_index].area = minimum0;
-		result.results[work_index].averageNormal = minimum1;
+		result.results[work_index].area = sumArea;
+		result.results[work_index].averageNormal = sumNormalCos;
+		result.results[work_index].averagePosition = sumPosition;
 	}
 
 #endif

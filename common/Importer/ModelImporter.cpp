@@ -802,6 +802,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 			material_obj->shade_model = model;
 		}
 
+		/*	PBR.	*/
 		if (model < aiShadingMode_PBR_BRDF) {
 
 			if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
@@ -853,6 +854,26 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 			}
 			if (ref_material->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
 			}
+
+			if (ref_material->Get(AI_MATKEY_METALLIC_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_ANISOTROPY_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_GLOSSINESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+
+			if (ref_material->Get(AI_MATKEY_SHEEN_COLOR_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_CLEARCOAT_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			
+
 		} else {
 
 			material_obj->ambient = glm::vec4(1);

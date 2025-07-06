@@ -46,11 +46,11 @@ bool inBounds(const in float value, const in float bounds) { return (value >= -b
 
 void main() {
 
-	const uint indirect_index = 0;
+	const uint indirect_buffer_index = 0;
 	const bool write_thread = gl_WorkGroupID.x == 0 && gl_WorkGroupID.y == 0 && gl_WorkGroupID.z == 0;
 
 	if (write_thread) {
-		instances.instance[indirect_index].instanceCount = 0;
+		instances.instance[indirect_buffer_index].instanceCount = 0;
 	}
 
 	memoryBarrierBuffer(); // Wait till all threads reach this point
@@ -87,7 +87,7 @@ void main() {
 		transform[1][1] = scale; // step(density, 0.5) * density;
 		transform[2][2] = scale; // step(density, 0.5) * density;
 
-		const uint instance_index = atomicAdd(instances.instance[indirect_index].instanceCount, 1);
+		const uint instance_index = atomicAdd(instances.instance[indirect_buffer_index].instanceCount, 1);
 
 		/*	*/
 		/*	Note: Look up table instead perhaps.	*/
@@ -97,9 +97,9 @@ void main() {
 
 	/*	*/
 	if (write_thread) {
-		instances.instance[indirect_index].firstIndex = 0;
-		instances.instance[indirect_index].baseVertex = 0;
-		instances.instance[indirect_index].baseInstance = 0;
-		instances.instance[indirect_index].count = 384;
+		instances.instance[indirect_buffer_index].firstIndex = 0;
+		instances.instance[indirect_buffer_index].baseVertex = 0;
+		instances.instance[indirect_buffer_index].baseInstance = 0;
+		instances.instance[indirect_buffer_index].count = 384;
 	}
 }

@@ -27,7 +27,7 @@ namespace glsample {
 		Diffuse = 0,					 /*	*/
 		Normal = 1,						 /*	*/
 		AlphaMask = 2,					 /*	*/
-		Specular = 3,					 /*	*/
+		Specular_Roughness = 3,			 /*	*/
 		Emission = 4,					 /*	*/
 		Reflection = 5,					 /*	*/
 		AmbientOcclusion = 6,			 /*	*/
@@ -115,7 +115,7 @@ namespace glsample {
 			FogSettings fogSettings;
 			unsigned int FrustumCullingMode = 0;
 		};
-		using CommonConstantData = struct common_constant_data_t {
+		using GlobalSceneState = struct common_constant_data_t {
 			// TODO: keep multi frame camera frustum.
 			CameraInstanceData camera;
 
@@ -150,7 +150,7 @@ namespace glsample {
 		};
 
 		/*	*/
-		CommonConstantData *stageCommonBuffer = nullptr;
+		GlobalSceneState *stageCommonBuffer = nullptr;
 		NodeData *stageNodeData = nullptr;
 		MaterialData *stageMaterialData = nullptr;
 		LightData *stageLightData = nullptr;
@@ -192,7 +192,7 @@ namespace glsample {
 			/*	*/
 			static const size_t nrUniformBuffer = 3;
 			UBOObject uniform_buffer;
-			unsigned int node_and_common_uniform_buffer; //TODO: removed and replace with uniform_buffer;
+			unsigned int node_and_common_uniform_buffer; // TODO: removed and replace with uniform_buffer;
 
 			unsigned int node_offset = 0;
 			unsigned int node_size_align = 0;

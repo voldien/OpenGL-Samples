@@ -169,7 +169,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 			if (gpuDevices.size() > 0) {
 				for (size_t i = 0; i < gpuDevices.size(); i++) {
 					const fragcore::SystemInfo::GPUInformation &gpuDevice = gpuDevices[i];
-					this->sampleRef->getLogger().info("GPU Device: {} - Memory {}", gpuDevice.name,
+					this->sampleRef->getLogger().info("GPU Device: {} - Memory {} MB", gpuDevice.name,
 													  gpuDevice.memorySize / (static_cast<size_t>(1024 * 1024)));
 				}
 			} else {

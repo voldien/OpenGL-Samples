@@ -8,6 +8,7 @@
 #include <ImageImport.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
+#include <cmath>
 #include <cstddef>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/fwd.hpp>
@@ -43,11 +44,14 @@ namespace glsample {
 			glm::mat4 modelViewProjection{};
 
 			CameraInstanceData camera;
+
+			BoundingShapeData bounding{};
 		} uniformData{};
 
 		using ResultBuffer = struct uniform_buffer_result_t {
 			float area;
 			float averageNormal;
+			glm::vec3 averagePosition;
 		};
 
 		/*	*/
@@ -92,48 +96,76 @@ namespace glsample {
 
 			void draw() override {
 
-				const float inv_num_pixels = 1.0f / (float)(this->getRefSample().framebuffer.attachmentSize[0].x *
-															this->getRefSample().framebuffer.attachmentSize[0].y);
+				const float inv_num_pixels =
+					(sqrt(2.0f) * sqrt(2.0f)) / (float)(this->getRefSample().framebuffer.attachmentSize[0].x *
+														this->getRefSample().framebuffer.attachmentSize[0].y);
 
 				const float areaRatio = this->getRefSample().resultStage.area * inv_num_pixels;
 				const float normalRatio =
 					this->getRefSample().resultStage.averageNormal / this->getRefSample().resultStage.area;
 
+				ImGui::TextUnformatted("Orientation and Scale Settings");
 				ImGui::DragFloat3("Volume Size (X,Y,Z)", &bounding_box_size[0]);
 
 				ImGui::DragFloat3("Rotation", &offsetRotation[0]);
 				ImGui::DragFloat3("Offset Position", &offsetPosition[0]);
 				ImGui::DragFloat3("Scale Factor", &scaleFactor[0]);
 
-				const glm::vec3 volume = bounding_box_size * areaRatio;
-				const float sub_area = volume.x * volume.y; // TODO: improve
+				/*	*/
+				const glm::vec3 volume = bounding_box_size;
 
+				const float top_area = volume.x * volume.z;
+				const float front_area = volume.x * volume.y;
+				const float side_area = volume.z * volume.y; // TODO: improve
+
+				const glm::vec3 area_vector(front_area, top_area, side_area);
+				const glm::vec3 view_area = area_vector * glm::abs(this->getRefSample().camera.getLookDirection());
+				const float total_area = Math::sum(&view_area[0], 3) * areaRatio;
+
+				/*	*/
 				const float dragCoeff = Math::lerpClamped(1.0f, normalRatio, drag_influence);
 				const float dynamic_pressure = 0.5f * airPressure * (wind_speed_meter_second * wind_speed_meter_second);
 
 				glm::vec3 force =
-					dragCoeff * sub_area * dynamic_pressure * this->getRefSample().camera.getLookDirection();
+					dragCoeff * total_area * dynamic_pressure * this->getRefSample().camera.getLookDirection();
 
 				ImGui::TextUnformatted("Wind Force Settings");
 				ImGui::DragFloat("Wind Speed", &wind_speed_meter_second);
 				ImGui::DragFloat("Pressure", &airPressure);
 				ImGui::DragFloat("Drag Influence", &drag_influence);
 
-				ImGui::Text("Surface Area : %f", sub_area);
+				ImGui::Text("Surface Area : %f", total_area);
 				ImGui::DragFloat3("Wind Force (Netwon)", &force[0]);
 				ImGui::Text("Force Magnitude %f", glm::length(force));
+
+				Vector3 size = this->getRefSample().boundingBox.getHalfSize();
+				Vector3 center = this->getRefSample().boundingBox.getCenter();
+				ImGui::DragFloat3("Model Max Bounding Box", size.data());
+				ImGui::DragFloat3("Bounding Box Center", center.data());
+
+				glm::vec3 average_position_offset =
+					this->getRefSample().resultStage.averagePosition / this->getRefSample().resultStage.area;
+
+				glm::vec3 torque = glm::cross(average_position_offset, force);
+
+				ImGui::DragFloat3("Average Position", &average_position_offset[0]);
+				ImGui::DragFloat3("Torque", &torque[0]);
 
 				ImGui::TextUnformatted("Debug Setting");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Focus Camera", &this->focusCamera);
-				Vector3 size = this->getRefSample().boundingBox.getHalfSize();
-				ImGui::DragFloat3("Model Max Bounding Box", size.data());
+				if (ImGui::Button("Reset Camera Position")) {
+					this->getRefSample().camera.setPosition(glm::vec3(0, 0, 1) * 10.0f);
+				}
 
-				ImGui::Text("Area: %f", this->getRefSample().resultStage.area);
-				ImGui::Text("Normal: %f", this->getRefSample().resultStage.averageNormal);
+				ImGui::TextUnformatted("Debug Information");
+				ImGui::Text("Area (Pixels): %f", this->getRefSample().resultStage.area);
+				ImGui::Text("Normal (Pixels): %f", this->getRefSample().resultStage.averageNormal);
 
 				ImGui::Text("Area Ratio: %f", areaRatio);
 				ImGui::Text("Normal Ratio: %f", normalRatio);
+
+				ImGui::DragFloat3("Total Position", &this->getRefSample().resultStage.averagePosition[0]);
 			}
 
 			bool showWireFrame = false;
@@ -251,6 +283,7 @@ namespace glsample {
 				/*	*/
 				Vector3 halfSize = this->boundingBox.getHalfSize();
 				halfSize.x() *= sqrt(2.0f);
+				halfSize.y() *= sqrt(2.0f);
 				halfSize.z() *= sqrt(2.0f);
 				this->boundingBox.setHalfSize(halfSize);
 
@@ -328,13 +361,14 @@ namespace glsample {
 
 			this->resultStage.area = 0;
 			this->resultStage.averageNormal = 0;
+			this->resultStage.averagePosition = glm::vec3(0);
 
 			for (size_t i = 0; i < static_cast<size_t>(DispatchX * DispatchY); i++) {
 				this->resultStage.area += resultBuffer[i].area;
 				this->resultStage.averageNormal += resultBuffer[i].averageNormal;
+				this->resultStage.averagePosition += resultBuffer[i].averagePosition;
 			}
 
-			// this->resultStage = *resultBuffer;
 			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
@@ -420,12 +454,21 @@ namespace glsample {
 
 			this->uniformData.camera = this->camera;
 
-			this->uniformData.model = glm::translate(glm::mat4(1.0f), this->windCoeffSettingComponent->offsetPosition);
+			this->uniformData.bounding.bound.aabb.min[0] = this->boundingBox.getCenter().x();
+			this->uniformData.bounding.bound.aabb.min[1] = this->boundingBox.getCenter().y();
+			this->uniformData.bounding.bound.aabb.min[2] = this->boundingBox.getCenter().z();
+			// this->uniformData.bounding.bound.aabb.max = E2GLM(this->boundingBox.getHalfSize());
+
+			/*	*/
+			this->uniformData.model = glm::translate(glm::mat4(1.0f), -E2GLM(this->boundingBox.getCenter()));
+			/*	*/
+			this->uniformData.model =
+				glm::translate(this->uniformData.model, this->windCoeffSettingComponent->offsetPosition);
+
+			/*	*/
 			glm::quat quatRotation = glm::quat(this->windCoeffSettingComponent->offsetRotation);
 			this->uniformData.model = this->uniformData.model * glm::toMat4(quatRotation);
-			this->uniformData.model = glm::scale(
-				this->uniformData.model,
-				this->windCoeffSettingComponent->scaleFactor); // TODO: based on the orthographic and bounding box
+			this->uniformData.model = glm::scale(this->uniformData.model, this->windCoeffSettingComponent->scaleFactor);
 
 			/*	*/
 			this->uniformData.proj = this->camera.getProjectionMatrix();
@@ -434,9 +477,9 @@ namespace glsample {
 			if (windCoeffSettingComponent->focusCamera) {
 				this->camera.setMode(Camera::CameraProjectionMode::Orthographic);
 
-				this->camera.setOrth(-boundingBox.getHalfSize().x(), boundingBox.getHalfSize().x(), 0,
-									 boundingBox.getHalfSize().y() * 2.0f, -boundingBox.getHalfSize().z() * 2,
-									 boundingBox.getHalfSize().z() * 2);
+				this->camera.setOrth(-boundingBox.getHalfSize().x(), boundingBox.getHalfSize().x(),
+									 -boundingBox.getHalfSize().y(), boundingBox.getHalfSize().y(),
+									 -boundingBox.getHalfSize().z() * 2, boundingBox.getHalfSize().z() * 2);
 
 				/*	*/
 				this->camera.setPosition(

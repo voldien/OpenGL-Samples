@@ -4,6 +4,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_ARB_shader_draw_parameters : enable
 
+
 layout(location = 0) in vec3 Vertex;
 layout(location = 1) in vec2 TextureCoord;
 layout(location = 2) in vec3 Normal;
@@ -15,6 +16,8 @@ layout(location = 0) out vec3 vertex;
 layout(location = 1) out vec2 uv;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
+layout(location = 4) out vec4 lightSpace;
+
 /*	*/
 layout(location = 8) flat invariant out ivec2 fAssigns;
 
@@ -22,7 +25,7 @@ layout(location = 8) flat invariant out ivec2 fAssigns;
 
 void main() {
 
-	const mat4 model = getModel();
+	const mat4 model = getModel(vAssigns.y);
 	const mat4 viewProj = getCamera().viewProj;
 
 	/*	*/

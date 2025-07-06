@@ -66,7 +66,7 @@ namespace glsample {
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "AOTexture"),
 					   (int)TextureType::AmbientOcclusion);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "RoughnessTexture"),
-					   (int)TextureType::Specular);
+					   (int)TextureType::Specular_Roughness);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DisplacementTexture"),
 					   (int)TextureType::Displacement);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "EmissionTexture"),

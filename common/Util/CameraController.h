@@ -42,6 +42,7 @@ namespace glsample {
 		const glm::mat4 getRotationMatrix() const noexcept;
 		const glm::mat4 getViewTranslationMatrix() const noexcept;
 
+		/*	Normalized.	*/
 		const glm::vec3 &getLookDirection() const noexcept;
 
 		const glm::vec3 getPosition() const noexcept;

@@ -1,3 +1,4 @@
+#include "GLUIComponent.h"
 #include "SampleHelper.h"
 #include "Scene.h"
 #include "Skybox.h"
@@ -26,7 +27,7 @@ namespace glsample {
 
 			/*	*/
 			this->physicalBasedRenderingSettingComponent =
-				std::make_shared<PhysicalBasedRenderingSettingComponent>(this->uniform_stage_buffer);
+				std::make_shared<PhysicalBasedRenderingSettingComponent>(*this);
 			this->addUIComponent(physicalBasedRenderingSettingComponent);
 
 			/*	Default camera position and orientation.	*/
@@ -37,8 +38,10 @@ namespace glsample {
 		unsigned int reflection_texture;
 
 		/*	*/
-		Scene scene;
+		PBRScene scene;
 		Skybox skybox;
+
+		unsigned int irradiance_texture{};
 
 		unsigned int physical_based_rendering_program;
 		unsigned int simple_physical_based_rendering_program;
@@ -48,24 +51,10 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
-		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t skyboxUniformSize = 0;
 
 		const NodeObject *rootNode;
 		CameraController camera;
-
-		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
-
-			glm::vec4 diffuseColor;
-
-		} uniform_stage_buffer;
-
-		using MaterialUniformBlock = struct MaterialUniformBlock_t {};
 
 		/*	Simple	*/
 		const std::string vertexPBRShaderPath = "Shaders/pbr/simplephysicalbasedrendering.vert.spv";
@@ -77,28 +66,17 @@ namespace glsample {
 		const std::string ControlShaderPath = "Shaders/pbr/physicalbasedrendering.tesc.spv";
 		const std::string EvoluationShaderPath = "Shaders/pbr/physicalbasedrendering.tese.spv";
 
-		class PhysicalBasedRenderingSettingComponent : public nekomimi::UIComponent {
+		class PhysicalBasedRenderingSettingComponent : public GLUIComponent<PhysicalBasedRendering> {
 
 		  public:
-			PhysicalBasedRenderingSettingComponent(struct uniform_buffer_block &uniform) : uniform(uniform) {
-				this->setName("Physical Based Rendering Settings");
-			}
+			PhysicalBasedRenderingSettingComponent(PhysicalBasedRendering &uniform)
+				: GLUIComponent<PhysicalBasedRendering>(uniform, "Physical Based Rendering Settings") {}
 			void draw() override {
-				/*	*/
-				ImGui::TextUnformatted("Skybox");
-				// ImGui::ColorEdit4("Tint", &this->uniform.skybox.tintColor[0],
-				//				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				// ImGui::DragFloat("Exposure", &this->uniform.skybox.exposure);
-				/*	*/
 				ImGui::TextUnformatted("Debug");
-
-				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				this->getRefSample().scene.renderUI();
 			}
-
-			bool showWireFrame = false;
 
 		  private:
-			struct uniform_buffer_block &uniform;
 		};
 
 		std::shared_ptr<PhysicalBasedRenderingSettingComponent> physicalBasedRenderingSettingComponent;
@@ -111,6 +89,7 @@ namespace glsample {
 			const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
 
 			this->setTitle(fmt::format("Physical Based Rendering: {}", modelPath));
+
 			{
 				/*	*/
 				const std::vector<uint32_t> pbr_vertex_binary =
@@ -122,22 +101,22 @@ namespace glsample {
 				const std::vector<uint32_t> pbr_evolution_binary =
 					IOUtil::readFileData<uint32_t>(this->EvoluationShaderPath, this->getFileSystem());
 
-				const std::vector<uint32_t> pbr_base_vertex_binary =
-					IOUtil::readFileData<uint32_t>(vertexPBRShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> pbr_base_fragment_binary =
-					IOUtil::readFileData<uint32_t>(fragmentPBRShaderPath, this->getFileSystem());
+				// const std::vector<uint32_t> pbr_base_vertex_binary =
+				//	IOUtil::readFileData<uint32_t>(vertexPBRShaderPath, this->getFileSystem());
+				// const std::vector<uint32_t> pbr_base_fragment_binary =
+				//	IOUtil::readFileData<uint32_t>(fragmentPBRShaderPath, this->getFileSystem());
 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->physical_based_rendering_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary, nullptr,
-													 &pbr_control_binary, &pbr_evolution_binary);
+				// this->physical_based_rendering_program =
+				// 	ShaderLoader::loadGraphicProgram(compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary, nullptr,
+				// 									 &pbr_control_binary, &pbr_evolution_binary);
 
-				this->simple_physical_based_rendering_program = ShaderLoader::loadGraphicProgram(
-					compilerOptions, &pbr_base_vertex_binary, &pbr_base_fragment_binary);
+				this->physical_based_rendering_program =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary);
 
 				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
 			}
@@ -164,33 +143,26 @@ namespace glsample {
 			glUseProgram(0);
 
 			/*	Setup shader.	*/
-			glUseProgram(this->simple_physical_based_rendering_program);
-			uniform_buffer_index =
-				glGetUniformBlockIndex(this->simple_physical_based_rendering_program, "UniformBufferBlock");
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "DiffuseTexture"),
-						   (int)TextureType::Diffuse);
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "NormalTexture"),
-						   (int)TextureType::Normal);
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "AOTexture"),
-						   (int)TextureType::AmbientOcclusion);
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "DisplacementTexture"),
-						   (int)TextureType::Displacement);
-			glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "IrradianceTexture"),
-						   (int)TextureType::Irradiance);
-			glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
-								  this->uniform_buffer_binding);
-			uniform_buffer_index =
-				glGetUniformBlockIndex(this->simple_physical_based_rendering_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
-								  this->uniform_buffer_binding);
-			glUseProgram(0);
-
-			/*	*/
-			glUseProgram(this->skybox_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "PanoramaTexture"), 0);
-			glUseProgram(0);
+			// glUseProgram(this->simple_physical_based_rendering_program);
+			// uniform_buffer_index =
+			// 	glGetUniformBlockIndex(this->simple_physical_based_rendering_program, "UniformBufferBlock");
+			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "DiffuseTexture"),
+			// 			   (int)TextureType::Diffuse);
+			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "NormalTexture"),
+			// 			   (int)TextureType::Normal);
+			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "AOTexture"),
+			// 			   (int)TextureType::AmbientOcclusion);
+			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program,
+			// "DisplacementTexture"), 			   (int)TextureType::Displacement);
+			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "IrradianceTexture"),
+			// 			   (int)TextureType::Irradiance);
+			// glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
+			// 					  this->uniform_buffer_binding);
+			// uniform_buffer_index =
+			// 	glGetUniformBlockIndex(this->simple_physical_based_rendering_program, "UniformBufferBlock");
+			// glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
+			// 					  this->uniform_buffer_binding);
+			// glUseProgram(0);
 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -198,20 +170,24 @@ namespace glsample {
 			skybox.Init(this->reflection_texture, this->skybox_program);
 
 			/*	*/
-			GLint minMapBufferSize;
-			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize =
-				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			// GLint minMapBufferSize;
+			// glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			// this->uniformAlignBufferSize =
+			// 	fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+
+			// /*	*/
+			// glGenBuffers(1, &this->uniform_buffer);
+			// glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			// glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * nrUniformBuffer, nullptr,
+			// GL_DYNAMIC_DRAW); glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 			/*	*/
-			glGenBuffers(1, &this->uniform_buffer);
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBufferARB(GL_UNIFORM_BUFFER, 0);
-
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = PBRScene::loadFrom(modelLoader);
+			this->scene = PBRScene::loadFrom<PBRScene>(modelLoader);
+
+			MiscProcessingUtil util(this->getFileSystem());
+			util.computeIrradiance(skybox.getTexture(), this->irradiance_texture, 256, 128);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -220,16 +196,19 @@ namespace glsample {
 
 			int width, height;
 			this->getSize(&width, &height);
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
-							  this->uniformAlignBufferSize);
+			// glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+			// 				  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
+			// 				  this->uniformAlignBufferSize);
 
-			glClear(GL_COLOR_BUFFER_BIT);
+			glClear(GL_DEPTH_BUFFER_BIT);
 
 			{
-				glUseProgram(this->physical_based_rendering_program);
+				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
-				scene.render();
+				glUseProgram(this->physical_based_rendering_program);
+				this->scene.render(&this->camera);
+				glUseProgram(0);
 			}
 
 			this->skybox.Render(this->camera);
@@ -237,17 +216,19 @@ namespace glsample {
 
 		void update() override {
 			/*	*/
-			camera.update(getTimer().deltaTime<float>());
+			this->camera.update(getTimer().deltaTime<float>());
+			this->scene.update(this->getTimer().deltaTime<float>());
 
-			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
-			this->uniform_stage_buffer.modelViewProjection = (this->uniform_stage_buffer.proj * camera.getViewMatrix());
+			// this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
+			// this->uniform_stage_buffer.modelViewProjection = (this->uniform_stage_buffer.proj *
+			// camera.getViewMatrix());
 
-			glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->skyboxUniformSize,
-				this->skyboxUniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
-			glUnmapBufferARB(GL_UNIFORM_BUFFER);
+			// glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			// void *uniformPointer = glMapBufferRange(
+			// 	GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->skyboxUniformSize,
+			// 	this->skyboxUniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+			// memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
+			// glUnmapBufferARB(GL_UNIFORM_BUFFER);
 		}
 	};
 
