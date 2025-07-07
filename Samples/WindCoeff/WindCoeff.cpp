@@ -66,10 +66,15 @@ namespace glsample {
 
 		/*	*/
 		MeshObject instanceGeometry;
+		MeshObject boundingMesh;
 		AABB boundingBox;
 
+		unsigned int sample_query{};
+
+		unsigned long int bounding_sample_count = 1;
+
 		/*	*/
-		unsigned int instance_program{};
+		unsigned int shaded_graphic_program{};
 
 		unsigned int compute_program{};
 		int localWorkGroupSize[3]{};
@@ -96,11 +101,10 @@ namespace glsample {
 
 			void draw() override {
 
-				const float inv_num_pixels =
-					(sqrt(2.0f) * sqrt(2.0f)) / (float)(this->getRefSample().framebuffer.attachmentSize[0].x *
-														this->getRefSample().framebuffer.attachmentSize[0].y);
+				const float inv_area_num_pixels =
+					Math::max<float>(1.0f / this->getRefSample().bounding_sample_count, Math::Epsilon);
 
-				const float areaRatio = this->getRefSample().resultStage.area * inv_num_pixels;
+				const float areaRatio = this->getRefSample().resultStage.area * inv_area_num_pixels;
 				const float normalRatio =
 					this->getRefSample().resultStage.averageNormal / this->getRefSample().resultStage.area;
 
@@ -165,6 +169,8 @@ namespace glsample {
 				ImGui::Text("Area Ratio: %f", areaRatio);
 				ImGui::Text("Normal Ratio: %f", normalRatio);
 
+				ImGui::Text("Samples: %lu", this->getRefSample().bounding_sample_count);
+
 				ImGui::DragFloat3("Total Position", &this->getRefSample().resultStage.averagePosition[0]);
 			}
 
@@ -189,7 +195,7 @@ namespace glsample {
 
 		void Release() override {
 			/*	*/
-			glDeleteProgram(this->instance_program);
+			glDeleteProgram(this->shaded_graphic_program);
 
 			glDeleteBuffers(1, &this->uniform_mvp_buffer);
 
@@ -217,18 +223,18 @@ namespace glsample {
 				compilerOptions.glslVersion = this->getShaderVersion();
 
 				/*	Load shader	*/
-				this->instance_program =
+				this->shaded_graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &normal_vertex_binary, &normal_fragment_binary);
 
 				/*	Create compute pipeline.	*/
 				this->compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &area_normal_compute_binary);
 			}
 			/*	Setup instance graphic pipeline.	*/
-			glUseProgram(this->instance_program);
+			glUseProgram(this->shaded_graphic_program);
 
 			/*	*/
-			int uniform_buffer_index = glGetUniformBlockIndex(this->instance_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->instance_program, uniform_buffer_index, this->uniform_buffer_binding);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->shaded_graphic_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->shaded_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	Setup compute pipeline.	*/
@@ -323,6 +329,9 @@ namespace glsample {
 				glBindVertexArray(0);
 			}
 
+			glGenQueries(1, &sample_query);
+			CommonUtil::loadCube(boundingMesh, 1);
+
 			/*	Create multipass framebuffer.	*/
 			CommonUtil::createFrameBuffer(&this->framebuffer, 1);
 			onResize(width(), height());
@@ -389,7 +398,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->windCoeffSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				glUseProgram(this->instance_program);
+				glUseProgram(this->shaded_graphic_program);
 				glDisable(GL_CULL_FACE);
 
 				glEnable(GL_DEPTH_TEST);
@@ -401,6 +410,27 @@ namespace glsample {
 										nullptr, 1);
 
 				glBindVertexArray(0);
+			}
+
+			/*	*/
+			{
+				glBeginQuery(GL_SAMPLES_PASSED, this->sample_query);
+
+				glBindVertexArray(this->boundingMesh.vao);
+
+				glColorMask(0, 0, 0, 0);
+				glDepthMask(GL_FALSE);
+
+				glDrawElementsInstanced(GL_TRIANGLES, this->boundingMesh.nrIndicesElements, GL_UNSIGNED_INT, nullptr,
+										1);
+
+				glColorMask(1, 1, 1, 1);
+				glDepthMask(GL_TRUE);
+
+				glBindVertexArray(0);
+
+				glEndQuery(GL_SAMPLES_PASSED);
+				glGetQueryObjectui64v(sample_query, GL_QUERY_RESULT, &bounding_sample_count);
 			}
 
 			glTextureBarrier();
