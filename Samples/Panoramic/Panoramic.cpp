@@ -286,7 +286,7 @@ namespace glsample {
 			this->skybox.Init(skytexture, this->skybox_program);
 
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(skytexture, this->irradiance_texture, 256, 128);
 
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());

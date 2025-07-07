@@ -90,7 +90,7 @@ namespace glsample {
 		Exp2,	/*	*/
 		Height	/*	*/
 	};
- 
+
 	using GammaCorrectionSettings = struct gamme_correct_settings_t {
 		float exposure = 1.0f;
 		float gamma = 2.2f;
@@ -125,7 +125,7 @@ namespace glsample {
 		/*	*/
 	};
 
-	using BoundingShapeData = struct bounding_data_t{
+	using BoundingShapeData = struct bounding_data_t {
 		fragcore::Bound bound;
 	};
 
@@ -145,6 +145,12 @@ namespace glsample {
 		float constant_attenuation = 1;
 		float linear_attenuation = 0.1f;
 		float quadratic_attenuation = 0.025f;
+
+		/*	*/
+		float bias;
+		float shadowStrength;
+		float padding0;
+		float padding1;
 	};
 
 	using CameraInstanceData = struct camera_instance_data_t {
@@ -164,15 +170,18 @@ namespace glsample {
 			this->near = camera.getNear();
 			this->far = camera.getFar();
 			this->proj = camera.getProjectionMatrix();
-			this->inverseProj = glm::inverse(camera.getProjectionMatrix());
+			this->inverseProj = glm::inverse(this->proj);
 			this->position = glm::vec4(camera.getPosition(), 0);
 
 			this->near = camera.getNear();
 			this->far = camera.getFar();
 			this->viewDir = glm::vec4(camera.getLookDirection(), 0);
 			this->view = camera.getViewMatrix();
+			this->viewInv = glm::inverse(this->view);
+
 			this->viewRot = camera.getRotationMatrix();
 			this->viewProj = this->proj * this->view;
+			this->viewProjInv = glm::inverse(this->viewProj);
 			return *this;
 		}
 
@@ -187,8 +196,10 @@ namespace glsample {
 		glm::uvec4 screen_width_padding = glm::ivec4(1);
 
 		glm::mat4 view = glm::mat4(1);
+		glm::mat4 viewInv = glm::mat4(1);
 		glm::mat4 viewRot = glm::mat4(1);
 		glm::mat4 viewProj = glm::mat4(1);
+		glm::mat4 viewProjInv = glm::mat4(1);
 		glm::mat4 proj = glm::mat4(1);
 		glm::mat4 inverseProj = glm::mat4(1);
 	};

@@ -24,7 +24,7 @@ void main() {
 	/*	Material properties.	*/
 	const vec3 albedo = texture(DiffuseTexture, TexCoords).rgb;
 	const float metallic = texture(MetalicTexture, TexCoords).r;
-	const float roughness = clamp(texture(RoughnessTexture, TexCoords).r * mat.specular_roughness.a * 0.025, 0, 1);
+	const float roughness = clamp(texture(RoughnessTexture, TexCoords).r * mat.specular_roughness.a, 0, 1);
 	const float ao = texture(AOTexture, TexCoords).r;
 	const vec3 emissive = mat.emission.rgb * texture(EmissionTexture, TexCoords).rgb;
 
@@ -46,9 +46,11 @@ void main() {
 
 	/*	Point Lights.	*/
 	for (int i = 0; i < LightUBO.light.pointCount; i++) {
-		Lo += computePBRDirectionLight(LightUBO.light.directional[i], ViewPixelDir, SurfaceNormal, roughness, metallic,
+		Lo += computePBRPoint(LightUBO.light.point[i], WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic,
 									   F0, albedo);
 	}
+	
+	
 
 	/*	ambient lighting (we now use IBL as the ambient term)	*/
 	vec3 kSpecular_F = fresnelSchlickRoughness(max(dot(SurfaceNormal, ViewPixelDir), 0.0), F0, roughness);

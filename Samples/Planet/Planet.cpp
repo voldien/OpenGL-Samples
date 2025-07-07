@@ -271,7 +271,7 @@ namespace glsample {
 			util.computeBump2Normal(this->planet_heightMap, this->planet_normal, 2048, 2048);
 
 			/*	*/
-			util.computeIrradiance(this->skybox.getTexture(), this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(this->skybox.getTexture(), this->irradiance_texture, 256, 128);
 
 			this->color_texture = CommonUtil::createColorTexture(1, 1, fragcore::Color::red());
 

@@ -19,6 +19,10 @@ struct PointLight {
 	float constant_attenuation;
 	float linear_attenuation;
 	float qudratic_attenuation;
+	float bias;
+	float shadowStrength;
+	float padding0;
+	float padding1;
 };
 
 float computeLightContributionFactor(const in vec3 direction, const in vec3 normalInput) {

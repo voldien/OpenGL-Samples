@@ -21,20 +21,7 @@ layout(location = 8) flat invariant out ivec2 fAssigns;
 
 #include "scene.glsl"
 
-struct point_light {
-	vec3 position;
-	float range;
-	vec4 color;
-	float intensity;
-	float constant_attenuation;
-	float linear_attenuation;
-	float qudratic_attenuation;
-	float bias;
-	float shadowStrength;
-
-	float padding0;
-	float padding1;
-};
+ 
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -43,7 +30,6 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 modelView;
 	mat4 ViewProjection[6];
 	mat4 modelViewProjection;
-	Camera camera;
 
 	/*	Light source.	*/
 	vec4 direction;
@@ -51,7 +37,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	vec4 ambientColor;
 	vec4 cameraPosition;
 
-	point_light point_light[4];
+	PointLight point_light[4];
 	vec4 PCFFilters[32];
 	float diskRadius;
 	int samples;

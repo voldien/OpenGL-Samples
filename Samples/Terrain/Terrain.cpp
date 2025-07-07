@@ -308,7 +308,7 @@ namespace glsample {
 			util.computeBump2Normal(this->terrain_heightMap, this->ocean_normal, 2048, 2048);
 
 			/*	*/
-			util.computeIrradiance(this->skybox.getTexture(), this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(this->skybox.getTexture(), this->irradiance_texture, 256, 128);
 
 			this->mistprocessing.initialize(this->getFileSystem());
 

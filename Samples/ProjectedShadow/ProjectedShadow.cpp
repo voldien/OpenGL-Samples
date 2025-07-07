@@ -321,8 +321,8 @@ namespace glsample {
 
 					/*	*/
 					const size_t plane_buffer_offset =
-						(this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize +
-						this->uniformPhongAlignSize * 1;
+						((this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize) +
+						(this->uniformPhongAlignSize * 1);
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 									  plane_buffer_offset, this->uniformPhongAlignSize);
 
@@ -346,8 +346,8 @@ namespace glsample {
 
 					/*	*/
 					const size_t main_object_buffer_offset =
-						(this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize +
-						this->uniformPhongAlignSize * 0;
+						((this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize) +
+						(this->uniformPhongAlignSize * 0);
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 									  main_object_buffer_offset, this->uniformPhongAlignSize);
 					glUseProgram(this->phongblinn_program);
@@ -369,8 +369,8 @@ namespace glsample {
 				{
 					/*	*/
 					const size_t shadow_buffer_offset =
-						(this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize +
-						this->uniformPhongAlignSize * this->uniformStageBuffer.size();
+						((this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize) +
+						(this->uniformPhongAlignSize * this->uniformStageBuffer.size());
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
 									  shadow_buffer_offset, this->uniformProjectShadowAlignSize);
 

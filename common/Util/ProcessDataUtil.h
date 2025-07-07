@@ -28,10 +28,17 @@ namespace glsample {
 		MiscProcessingUtil(fragcore::IFileSystem *filesystem);
 		virtual ~MiscProcessingUtil();
 
-		/**/
-		void computeIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
+		/*	*/
+		void computeDiffuseIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
 							   const unsigned int height);
-		void computeIrradiance(unsigned int env_source, unsigned int irradiance_target);
+		void computeDiffuseIrradiance(unsigned int env_source, unsigned int irradiance_target);
+
+
+		void computeReflectanceIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
+							   const unsigned int height);
+		void computeReflectanceIrradiance(unsigned int env_source, unsigned int irradiance_target);
+
+
 
 		/*	*/
 		void computePerlinNoise(unsigned int *target, const unsigned int width, const unsigned int height,

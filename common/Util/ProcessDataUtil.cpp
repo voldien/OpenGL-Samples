@@ -20,7 +20,7 @@ MiscProcessingUtil::~MiscProcessingUtil() {
 	}
 }
 
-void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int &irradiance_target,
+void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsigned int &irradiance_target,
 										   const unsigned int width, const unsigned int height) {
 
 	glGenTextures(1, &irradiance_target);
@@ -39,10 +39,10 @@ void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	MiscProcessingUtil::computeIrradiance(env_source, irradiance_target);
+	MiscProcessingUtil::computeDiffuseIrradiance(env_source, irradiance_target);
 }
 
-void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int irradiance_target) {
+void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsigned int irradiance_target) {
 
 	const char *irradiance_path = "Shaders/compute/irradiance_env.comp.spv";
 
@@ -106,6 +106,29 @@ void MiscProcessingUtil::computeIrradiance(unsigned int env_source, unsigned int
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
+
+void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source, unsigned int &irradiance_target,
+													  const unsigned int width, const unsigned int height) {
+	glGenTextures(1, &irradiance_target);
+
+	glBindTexture(GL_TEXTURE_2D, irradiance_target);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+
+	/*	*/
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 4);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	MiscProcessingUtil::computeReflectanceIrradiance(env_source, irradiance_target);
+
+													  }
+void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source, unsigned int irradiance_target) {}
 
 void MiscProcessingUtil::computePerlinNoise(unsigned int target_texture, const glm::vec2 &size,
 											const glm::vec2 &tile_offset, const int octaves) {

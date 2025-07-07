@@ -35,7 +35,7 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		unsigned int reflection_texture;
+		unsigned int reflection_texture{};
 
 		/*	*/
 		PBRScene scene;
@@ -43,17 +43,17 @@ namespace glsample {
 
 		unsigned int irradiance_texture{};
 
-		unsigned int physical_based_rendering_program;
-		unsigned int simple_physical_based_rendering_program;
-		unsigned int skybox_program;
+		unsigned int physical_based_rendering_program{};
+		unsigned int simple_physical_based_rendering_program{};
+		unsigned int skybox_program{};
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t skyboxUniformSize = 0;
 
-		const NodeObject *rootNode;
+		const NodeObject *rootNode{};
 		CameraController camera;
 
 		/*	Simple	*/
@@ -142,44 +142,12 @@ namespace glsample {
 								  this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	Setup shader.	*/
-			// glUseProgram(this->simple_physical_based_rendering_program);
-			// uniform_buffer_index =
-			// 	glGetUniformBlockIndex(this->simple_physical_based_rendering_program, "UniformBufferBlock");
-			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "DiffuseTexture"),
-			// 			   (int)TextureType::Diffuse);
-			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "NormalTexture"),
-			// 			   (int)TextureType::Normal);
-			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "AOTexture"),
-			// 			   (int)TextureType::AmbientOcclusion);
-			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program,
-			// "DisplacementTexture"), 			   (int)TextureType::Displacement);
-			// glUniform1iARB(glGetUniformLocation(this->simple_physical_based_rendering_program, "IrradianceTexture"),
-			// 			   (int)TextureType::Irradiance);
-			// glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
-			// 					  this->uniform_buffer_binding);
-			// uniform_buffer_index =
-			// 	glGetUniformBlockIndex(this->simple_physical_based_rendering_program, "UniformBufferBlock");
-			// glUniformBlockBinding(this->simple_physical_based_rendering_program, uniform_buffer_index,
-			// 					  this->uniform_buffer_binding);
-			// glUseProgram(0);
-
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->reflection_texture = textureImporter.loadImage2D(panoramicPath);
 			skybox.Init(this->reflection_texture, this->skybox_program);
 
-			/*	*/
-			// GLint minMapBufferSize;
-			// glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			// this->uniformAlignBufferSize =
-			// 	fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
-
-			// /*	*/
-			// glGenBuffers(1, &this->uniform_buffer);
-			// glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			// glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * nrUniformBuffer, nullptr,
-			// GL_DYNAMIC_DRAW); glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+	 
 
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
@@ -187,18 +155,16 @@ namespace glsample {
 			this->scene = PBRScene::loadFrom<PBRScene>(modelLoader);
 
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeIrradiance(skybox.getTexture(), this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(skybox.getTexture(), this->irradiance_texture, 256, 128);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
 
-			int width, height;
+			int width = 0, height = 0;
 			this->getSize(&width, &height);
-			// glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-			// 				  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
-			// 				  this->uniformAlignBufferSize);
+ 
 
 			glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -218,17 +184,7 @@ namespace glsample {
 			/*	*/
 			this->camera.update(getTimer().deltaTime<float>());
 			this->scene.update(this->getTimer().deltaTime<float>());
-
-			// this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
-			// this->uniform_stage_buffer.modelViewProjection = (this->uniform_stage_buffer.proj *
-			// camera.getViewMatrix());
-
-			// glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			// void *uniformPointer = glMapBufferRange(
-			// 	GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % nrUniformBuffer) * this->skyboxUniformSize,
-			// 	this->skyboxUniformSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
-			// memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(uniform_stage_buffer));
-			// glUnmapBufferARB(GL_UNIFORM_BUFFER);
+ 
 		}
 	};
 

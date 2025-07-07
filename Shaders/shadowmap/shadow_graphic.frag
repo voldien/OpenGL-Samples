@@ -46,8 +46,8 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 		return 1;
 	}
 
-	/*	transform from NDC to Screen Space [0,1] range	*/
-	projCoords = projCoords * 0.5 + 0.5;
+	/*	transform from NDC to Screen Space [0,1] range	*/ // ? z ?? 
+	projCoords.xyz = projCoords.xyz * 0.5 + 0.5;
 
 	const float bias =
 		clamp(0.005 * (1.0 - dot(normalize(normal), normalize(-ubo.directional.direction).xyz)), 0.0005, ubo.bias);
@@ -67,6 +67,7 @@ void main() {
 	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
 
 	const vec3 viewDir = normalize(getCamera().position.xyz - vertex);
+	
 
 	const float shadow = max(1 - ShadowCalculation(lightSpace) * ubo.shadowStrength, 0);
 

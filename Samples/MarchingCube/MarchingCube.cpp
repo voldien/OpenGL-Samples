@@ -359,7 +359,7 @@ namespace glsample {
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
 
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(skytexture, this->irradiance_texture, 256, 128);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }

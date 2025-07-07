@@ -334,7 +334,7 @@ namespace glsample {
 			this->scene = Scene::loadFrom(modelLoader);
 
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(skytexture, this->irradiance_texture, 256, 128);
 
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0.1, 0.1, 1), glm::vec4(0.1, 1, 0.1, 1), glm::vec4(0.1, 0.1, 1, 1),
@@ -462,11 +462,12 @@ namespace glsample {
 				(((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->nrPointLights) *
 					this->uniformAlignBufferSize,
 				this->uniformAlignBufferSize * this->nrPointLights, GL_MAP_WRITE_BIT);
-			glm::mat4 PointView[6];
 
 			/*	*/
-			for (size_t i = 0; i < this->nrPointLights; i++) {
-				const glm::vec3 lightPosition = this->uniformStage.pointLights[i].position;
+			glm::mat4 PointView[6];
+
+			for (size_t light_index = 0; light_index < this->nrPointLights; light_index++) {
+				const glm::vec3 lightPosition = this->uniformStage.pointLights[light_index].position;
 
 				PointView[0] =
 					glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
@@ -484,13 +485,12 @@ namespace glsample {
 				/*	Compute light matrices.	*/
 				const glm::mat4 pointPer =
 					glm::perspective(glm::radians(90.0f), (float)this->shadowWidth / (float)this->shadowHeight, 0.15f,
-									 this->uniformStage.pointLights[i].range);
+									 this->uniformStage.pointLights[light_index].range);
 
-				for (size_t j = 0; j < 6; j++) {
-					this->uniformStage.ViewProjection[j] = pointPer * PointView[j];
+				for (size_t face_index = 0; face_index < 6; face_index++) {
+					this->uniformStage.ViewProjection[face_index] = pointPer * PointView[face_index];
 				}
 
-		 
 				/*	*/
 				this->uniformStage.model = glm::mat4(1.0f);
 				this->uniformStage.proj = this->camera.getProjectionMatrix();
@@ -499,7 +499,7 @@ namespace glsample {
 					this->uniformStage.proj * this->uniformStage.view * this->uniformStage.model;
 				this->uniformStage.lightPosition = glm::vec4(this->camera.getPosition(), 0.0f);
 
-				std::memcpy(&uniformPointer[i * this->uniformAlignBufferSize], &this->uniformStage,
+				std::memcpy(&uniformPointer[light_index * this->uniformAlignBufferSize], &this->uniformStage,
 							sizeof(this->uniformStage));
 			}
 

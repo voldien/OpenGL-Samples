@@ -76,13 +76,15 @@ void VolumetricScatteringPostProcessing::initialize(fragcore::IFileSystem *files
 	/*	Setup graphic Volumetric Scattering RayMarching	pipeline.	*/
 	{
 		glUseProgram(this->volumetric_scattering_raymarching_shadow_depth_program);
-		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "ColorTexture"),
-					   (int)GBuffer::Albedo);
-		glUniform1iARB(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "DepthTexture"),
-					   (int)GBuffer::Depth);
 		glUniform1iARB(
-			glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "DirectionalShadowTexture"),
+			glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "ColorTexture"),
+			(int)GBuffer::Albedo);
+		glUniform1iARB(
+			glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "DepthTexture"),
 			(int)GBuffer::Depth);
+		// glUniform1iARB(
+		//	glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program,
+		//"DirectionalShadowTexture"), 	(int)GBuffer::Depth);
 		glBindFragDataLocation(this->volumetric_scattering_raymarching_shadow_depth_program, 1, "fragColor");
 		glUseProgram(0);
 	}
@@ -119,28 +121,49 @@ void VolumetricScatteringPostProcessing::draw(
 	const unsigned int source_texture = this->getMappedBuffer(GBuffer::Color);
 	const unsigned int target_texture = this->getMappedBuffer(GBuffer::IntermediateTarget);
 
+	/*	*/
 	glBindSampler((int)GBuffer::Albedo, texture_sampler);
 	glBindSampler((int)GBuffer::Depth, texture_sampler);
 
 	{
 		glBindVertexArray(this->vao);
-		glUseProgram(this->volumetric_scattering_legacy_program);
+		if (this->volumetric_mode == 0) {
+			glUseProgram(this->volumetric_scattering_legacy_program);
+			/*	*/
+			glUniform1i(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.numSamples"),
+						this->volumetricScatteringSettings.numSamples);
+			glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Density"),
+						this->volumetricScatteringSettings.Density);
+			glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Decay"),
+						this->volumetricScatteringSettings.Decay);
+			glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Weight"),
+						this->volumetricScatteringSettings.Weight);
+			glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Exposure"),
+						this->volumetricScatteringSettings.Exposure);
+			glUniform3fv(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.lightPosition"), 1,
+						 &this->volumetricScatteringSettings.lightPosition[0]);
+			glUniform4fv(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.color"), 1,
+						 &this->volumetricScatteringSettings.color[0]);
 
-		/*	*/
-		glUniform1i(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.numSamples"),
-					this->volumetricScatteringSettings.numSamples);
-		glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Density"),
-					this->volumetricScatteringSettings.Density);
-		glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Decay"),
-					this->volumetricScatteringSettings.Decay);
-		glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Weight"),
-					this->volumetricScatteringSettings.Weight);
-		glUniform1f(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings._Exposure"),
-					this->volumetricScatteringSettings.Exposure);
-		glUniform2fv(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.lightPosition"), 1,
-					 &this->volumetricScatteringSettings.lightPosition[0]);
-		glUniform4fv(glGetUniformLocation(this->volumetric_scattering_legacy_program, "settings.color"), 1,
-					 &this->volumetricScatteringSettings.color[0]);
+		} else {
+			glUseProgram(this->volumetric_scattering_raymarching_shadow_depth_program);
+
+			/*	*/
+			glUniform1i(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings.numSamples"),
+						this->volumetricScatteringSettings.numSamples);
+			glUniform1f(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Density"),
+						this->volumetricScatteringSettings.Density);
+			glUniform1f(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Decay"),
+						this->volumetricScatteringSettings.Decay);
+			glUniform1f(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Weight"),
+						this->volumetricScatteringSettings.Weight);
+			glUniform1f(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Exposure"),
+						this->volumetricScatteringSettings.Exposure);
+			glUniform3fv(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings.lightPosition"), 1,
+						 &this->volumetricScatteringSettings.lightPosition[0]);
+			glUniform4fv(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings.color"), 1,
+						 &this->volumetricScatteringSettings.color[0]);
+		}
 
 		/*	*/
 		glDisable(GL_CULL_FACE);
@@ -172,14 +195,13 @@ void VolumetricScatteringPostProcessing::renderUI() {
 	ImGui::DragFloat("Density", &volumetricScatteringSettings.Density, 0.1f, 0.0f);
 	ImGui::DragFloat("Exposure", &volumetricScatteringSettings.Exposure, 0.1f, 0.0f);
 	ImGui::DragFloat("Weight", &volumetricScatteringSettings.Weight, 0.1f, 0.0f);
-	ImGui::DragFloat2("Light Position", &volumetricScatteringSettings.lightPosition[0], 0.1f, 0.0f);
+	ImGui::DragFloat3("Light Position", &volumetricScatteringSettings.lightPosition[0], 0.1f, 0.0f);
 	ImGui::ColorEdit4("Color", &this->volumetricScatteringSettings.color[0],
 					  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
-	//ImGui::RadioButton("Legacy", &this->volumetric_mode, 1);
+	ImGui::RadioButton("Legacy", (int *)&this->volumetric_mode, 0);
 	ImGui::SetItemTooltip("I am a tooltip");
 	ImGui::SameLine();
-	//ImGui::Button("Ray Tracing", &this->volumetric_mode, 2);
+	ImGui::RadioButton("Ray Tracing", (int *)&this->volumetric_mode, 1);
 	ImGui::SetItemTooltip("I am a tooltip");
-
 }

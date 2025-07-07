@@ -22,7 +22,7 @@ layout(push_constant) uniform UniformBufferBlock {
 	layout(offset = 8) float _Decay;
 	layout(offset = 12) float _Weight;
 	layout(offset = 16) float _Exposure;
-	layout(offset = 32) vec2 lightPosition;
+	layout(offset = 32) vec3 lightPosition;
 	layout(offset = 48) vec4 color;
 }
 settings;
@@ -30,7 +30,7 @@ settings;
 void main() {
 
 	/*	*/
-	const vec2 _LightScreenPos = settings.lightPosition;
+	const vec2 _LightScreenPos = settings.lightPosition.xy;
 	const vec2 deltascreenUVrd = (screenUV - _LightScreenPos);
 
 	/*	*/

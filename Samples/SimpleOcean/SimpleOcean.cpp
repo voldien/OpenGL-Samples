@@ -250,7 +250,7 @@ namespace glsample {
 
 			/*	*/
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeIrradiance(this->reflection_texture, this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(this->reflection_texture, this->irradiance_texture, 256, 128);
 			/*	*/
 			this->color_texture = CommonUtil::createColorTexture(1, 1, Color(0, 1, 0, 1));
 

@@ -81,9 +81,42 @@ float GeometrySmith(const in vec3 N, const in vec3 V, const in vec3 L, const in 
 
 /***************************************************/
 
-vec4 computePBRPoint(const in PointLight light, const in vec3 normal, const in vec3 vertex, const in float shininess,
-					 const in vec3 specularColor) {
-	return vec4(0);
+vec3 computePBRPoint(const in PointLight light, const in vec3 worldPosition, const in vec3 ViewPixelDir, const in vec3 SurfaceNormal,
+							  const in float roughness, const in float metallic, const in vec3 F0,
+							  const in vec3 albedo) {
+	const vec3 light_direction = normalize(light.position.xyz - worldPosition);
+	const vec3 half_vector = normalize(ViewPixelDir + light_direction);
+
+	const float distance = length(light.position.xyz - worldPosition);
+	const float attenuation = (1 / (distance * distance));
+	const vec3 radiance = light.color.rgb * attenuation * light.range; 
+
+	// Normal Distribution term (D)
+	float dTerm = DistributionGGX(SurfaceNormal, half_vector, roughness);
+
+	/*	Fresnel term (F)	*/
+	// Determines the ratio of light reflected vs. absorbed
+	vec3 fTerm = FresnelSchlick(half_vector, ViewPixelDir, F0);
+
+	/* Geometry term (G)	*/
+	float gTerm = GeometrySmith(SurfaceNormal, ViewPixelDir, light_direction, roughness);
+
+	vec3 numerator = dTerm * fTerm * gTerm;
+	float denominator =
+		4.0 * max(dot(ViewPixelDir, SurfaceNormal), 0.0) * max(dot(light_direction, SurfaceNormal), 0.0);
+
+	// recall fTerm is the proportion of reflected light, so the result here is the specular
+	vec3 specular = numerator / max(denominator, 0.001);
+
+	vec3 kSpecular = fTerm;
+	vec3 kDiffuse = vec3(1.0) - kSpecular;
+	kDiffuse *= 1.0 - metallic; // metallic materials should have no diffuse component
+
+	vec3 diffuse = kDiffuse * albedo / PI;
+	vec3 cookTorranceBrdf = diffuse + specular;
+	float nDotL = max(dot(SurfaceNormal, light_direction), 0.0);
+
+	return cookTorranceBrdf * radiance * nDotL;
 }
 
 /*	Cook-Torrance specular BRDF	*/
@@ -117,12 +150,6 @@ vec3 computePBRDirectionLight(const in DirectionalLight light, const in vec3 Vie
 	vec3 kSpecular = fTerm;
 	vec3 kDiffuse = vec3(1.0) - kSpecular;
 	kDiffuse *= 1.0 - metallic; // metallic materials should have no diffuse component
-
-	// now calculate full Cook-Torrance with both diffuse + specular
-	//
-	// f_r = kd * f_lambert + ks * f_cook-torrance
-	//
-	// where f_lambert = c / pi
 
 	vec3 diffuse = kDiffuse * albedo / PI;
 	vec3 cookTorranceBrdf = diffuse + specular;

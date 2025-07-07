@@ -81,7 +81,6 @@ namespace glsample {
 				1, 1, fragcore::Color(black[0] / 255.0f, black[1] / 255.0f, black[2] / 255.0f, black[3] / 255.0f));
 			this->default_textures[TextureType::Metal] = this->default_textures[TextureType::Displacement];
 
-
 			this->default_textures[TextureType::Normal] = glsample::CommonUtil::createColorTexture(
 				1, 1,
 				fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f, normalForward[2] / 255.0f,
@@ -162,9 +161,11 @@ namespace glsample {
 				this->stageMaterialData = (MaterialData *)&pdata[this->UBOStructure.common_size_total_align +
 																 this->UBOStructure.node_size_total_align];
 
+				/*	*/
 				this->stageLightData = (LightData *)&pdata[this->UBOStructure.common_size_total_align +
 														   this->UBOStructure.node_size_total_align +
 														   this->UBOStructure.material_align_total_size];
+				*this->stageLightData = LightData();	/*	Set Default Values.	*/
 
 			} else {
 				glBufferData(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_DYNAMIC_DRAW);
@@ -688,6 +689,11 @@ namespace glsample {
 
 				for (; light_index < this->stageLightData->pointCount; light_index++) {
 					ImGui::PushID(light_index);
+					ImGui::ColorEdit4("Color", &this->stageLightData->pointLight[light_index].color[0],
+									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+					ImGui::DragFloat3("Position", &this->stageLightData->pointLight[light_index].position[0]);
+					ImGui::DragFloat("Range", &this->stageLightData->pointLight[light_index].range);
+
 					ImGui::PopID();
 				}
 

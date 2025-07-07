@@ -21,21 +21,6 @@ layout(location = 8) flat in ivec2 fAssigns;
 
 layout(binding = 16) uniform samplerCube ShadowTexture[4];
 
-struct point_light {
-	vec3 position;
-	float range;
-	vec4 color;
-	float intensity;
-	float constant_attenuation;
-	float linear_attenuation;
-	float qudratic_attenuation;
-
-	float bias;
-	float shadowStrength;
-	float padding0;
-	float padding1;
-};
-
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
@@ -44,14 +29,13 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 ViewProjection[6];
 	mat4 modelViewProjection;
 
-
 	/*	Light source.	*/
 	vec4 direction;
 	vec4 lightColor;
 	vec4 ambientColor;
 	vec4 cameraPosition;
 
-	point_light point_light[4];
+	PointLight point_light[4];
 	vec4 PCFFilters[32];
 	float diskRadius;
 	int samples;

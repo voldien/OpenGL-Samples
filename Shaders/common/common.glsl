@@ -26,8 +26,10 @@ struct Camera {
 	uvec4 screen_width_padding;
 
 	mat4 view;
+	mat4 viewInv;
 	mat4 viewRot;
 	mat4 viewProj;
+	mat4 viewProjInv;
 	mat4 proj;
 	mat4 inverseProj;
 };

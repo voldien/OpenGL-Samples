@@ -122,7 +122,7 @@ namespace glsample {
 			this->skybox_texture_panoramic = textureImporter.loadImage2D(panoramicPath, ColorSpace::SRGB);
 
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeIrradiance(this->skybox_texture_panoramic, this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(this->skybox_texture_panoramic, this->irradiance_texture, 256, 128);
 
 			skybox.Init(this->skybox_texture_panoramic, Skybox::loadDefaultProgram(this->getFileSystem()));
 

@@ -21,6 +21,7 @@ namespace glsample {
 	class SceneShadow : public Scene {
 	  public:
 		SceneShadow() = default;
+		
 		void bindMaterial(const MaterialObject *material) override {
 			Scene::bindMaterial(material);
 			if (shadowPass) {
@@ -301,7 +302,7 @@ namespace glsample {
 			this->skybox.Init(skytexture, this->skybox_program);
 
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeIrradiance(skytexture, this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(skytexture, this->irradiance_texture, 256, 128);
 		}
 
 		void onResize(int width, int height) override {
