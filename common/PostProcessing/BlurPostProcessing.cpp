@@ -29,9 +29,11 @@ BlurPostProcessing::~BlurPostProcessing() {
 }
 
 void BlurPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
+
 	const char *guassian_vertical_blur_compute_path = "Shaders/postprocessingeffects/guassian_blur_vertical.comp.spv";
 	const char *guassian_horizontal_blur_compute_path =
 		"Shaders/postprocessingeffects/guassian_blur_horizontal.comp.spv";
+
 	const char *box_blur_compute_path = "Shaders/postprocessingeffects/box_blur.comp.spv";
 
 	if (this->guassian_blur_vertical_compute_program == 0) {
@@ -68,19 +70,21 @@ void BlurPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	}
 
 	glUseProgram(this->guassian_blur_vertical_compute_program);
-	glGetProgramiv(this->guassian_blur_vertical_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+	glGetProgramiv(this->guassian_blur_vertical_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
+				   localWorkGroupSize[Blur::GuassianBlur]);
 	glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "ColorTexture"), 0);
 	glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "TargetTexture"), 1);
 	glUseProgram(0);
 
 	glUseProgram(this->guassian_blur_horizontal_compute_program);
-	glGetProgramiv(this->guassian_blur_horizontal_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+	glGetProgramiv(this->guassian_blur_horizontal_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
+				   localWorkGroupSize[Blur::GuassianBlur + 1]);
 	glUniform1i(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "ColorTexture"), 0);
 	glUniform1i(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "TargetTexture"), 1);
 	glUseProgram(0);
 
 	glUseProgram(this->box_blur_compute_program);
-	glGetProgramiv(this->box_blur_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+	glGetProgramiv(this->box_blur_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize[Blur::BoxBlur]);
 	glUniform1i(glGetUniformLocation(this->box_blur_compute_program, "ColorTexture"), 0);
 	glUniform1i(glGetUniformLocation(this->box_blur_compute_program, "TargetTexture"), 1);
 	glUseProgram(0);
@@ -150,8 +154,8 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 	glBindSampler(0, this->texture_sampler);
 
-	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]);
-	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]);
+	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0][0]);
+	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[0][1]);
 
 	switch (this->blurType) {
 	case BoxBlur: {

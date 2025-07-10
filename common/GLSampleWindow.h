@@ -134,8 +134,15 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void updateDefaultFramebuffer();
 	unsigned int getDefaultFramebuffer() const noexcept;
 	glsample::FrameBuffer *getFrameBuffer() { return this->defaultFramebuffer.get(); }
+	const glsample::FrameBuffer *getFrameBuffer() const noexcept { return this->defaultFramebuffer.get(); }
 	glsample::PostProcessingManager *getPostProcessingManager() const noexcept {
 		return this->postprocessingManager.get();
+	}
+	size_t getCurrentFrameBufferWidth() const noexcept { return getFrameBuffer()->attachmentSize[0].x; }
+	size_t getCurrentFrameBufferHeight() const noexcept { return getFrameBuffer()->attachmentSize[0].y; }
+	void getCurrentFrameBufferSize(size_t *width, size_t *height) const noexcept {
+		*width = getCurrentFrameBufferWidth();
+		*height = getCurrentFrameBufferHeight();
 	}
 
 	// TODO: relocate
@@ -184,10 +191,13 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 		size_t time_resolution = static_cast<long>(1000) * 1000;
 	};
 	DebugInfo debugInfo;
-	
-	/*	*/
+
+	/*	SuperSampling Anti-Aliasing */
 	bool useSSAA = false;
 	int SSAASamples = 1;
+
+	/*	*/
+	bool useSampleAccumlation = false;
 
   protected:
 	void displayMenuBar() override;
@@ -218,7 +228,6 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	int preWidth = -1;
 	int preHeight = -1;
-
 
   protected:
 	std::shared_ptr<spdlog::logger> logger;

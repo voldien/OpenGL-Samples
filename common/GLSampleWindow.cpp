@@ -115,10 +115,13 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 					}
 				}
 
-				GLboolean isSuperEnabled = 0;
-				if (ImGui::Checkbox("Super Sampling Anti-Aliasing (SSAA)", (bool *)&isSuperEnabled)) {
+				bool isSuperEnabled = this->getRefSample().useSSAA;
+				if (ImGui::Checkbox("SuperSampling Anti-Aliasing (SSAA)", (bool *)&isSuperEnabled)) {
+					this->getRefSample().useSSAA = isSuperEnabled;
 				}
-				if (ImGui::DragInt("SSAA Samples", &this->getRefSample().SSAASamples)) {
+				if (ImGui::DragInt("SSAA Samples", &this->getRefSample().SSAASamples, 1.0f, 1, 8)) {
+					/*	Resize the framebuffer required.	*/
+					this->getRefSample().updateDefaultFramebuffer();
 				}
 
 				float min_sample = 0;
@@ -536,8 +539,11 @@ void GLSampleWindow::renderUI() {
 
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glViewport(0, 0, this->width(), this->height());
-			glBlitFramebuffer(0, 0, this->width(), this->height(), 0, 0, this->width(), this->height(),
-							  GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			const size_t framebuffer_width = this->defaultFramebuffer->attachmentSize[0].x;
+			const size_t framebuffer_height = this->defaultFramebuffer->attachmentSize[0].y;
+
+			glBlitFramebuffer(0, 0, framebuffer_width, framebuffer_height, 0, 0, this->width(), this->height(),
+							  GL_COLOR_BUFFER_BIT, GL_LINEAR);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
@@ -659,6 +665,9 @@ void GLSampleWindow::captureScreenShot() {
 	/*	*/
 	const int screen_grab_width_size = this->width();
 	const int screen_grab_height_size = this->height();
+
+	if (glFramebufferSampleLocationsfvARB) {
+	}
 
 	/*	Make sure the frame is completed before extracing pixel data.	*/
 	glFinish();
@@ -829,18 +838,21 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 		internal_color_format = GraphicFormat::R16G16B16A16_SFloat;
 	}
 
+	const int framebuffer_Width = this->width() * this->SSAASamples;
+	const int framebuffer_Height = this->height() * this->SSAASamples;
+
 	if (this->MMSAFrameBuffer) {
 		CommonUtil::updateFrameBuffer(this->MMSAFrameBuffer.get(),
 									  {{
-										  .width = this->width(),
-										  .height = this->height(),
+										  .width = framebuffer_Width,
+										  .height = framebuffer_Height,
 										  .graphicFormat = internal_color_format,
 										  .nrSamples = multi_sample_count,
 
 									  }},
 									  {
-										  .width = this->width(),
-										  .height = this->height(),
+										  .width = framebuffer_Width,
+										  .height = framebuffer_Height,
 										  .graphicFormat = internal_depth_format,
 										  .nrSamples = multi_sample_count,
 									  });
@@ -849,31 +861,31 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 	if (this->defaultFramebuffer != nullptr) {
 		CommonUtil::updateFrameBuffer(this->defaultFramebuffer.get(),
 									  {{
-										   .width = this->width(),
-										   .height = this->height(),
+										   .width = framebuffer_Width,
+										   .height = framebuffer_Height,
 										   .depth = 1,
 										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
 
 									   },
 									   {
-										   .width = this->width(),
-										   .height = this->height(),
+										   .width = framebuffer_Width,
+										   .height = framebuffer_Height,
 										   .depth = 1,
 										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
 
 									   },
 									   {
-										   .width = this->width(),
-										   .height = this->height(),
+										   .width = framebuffer_Width,
+										   .height = framebuffer_Height,
 										   .depth = 1,
 										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
 									   }},
 									  {
-										  .width = this->width(),
-										  .height = this->height(),
+										  .width = framebuffer_Width,
+										  .height = framebuffer_Height,
 										  .depth = 1,
 										  .graphicFormat = internal_depth_format,
 										  .nrSamples = 0,

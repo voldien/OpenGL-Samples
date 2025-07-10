@@ -19,7 +19,11 @@
 namespace glsample {
 
 	class FVDECLSPEC BlurPostProcessing : public PostProcessing {
-		enum Blur { BoxBlur, GuassianBlur, MaxBlur };
+		enum Blur {
+			BoxBlur = 0,	  /*	*/
+			GuassianBlur = 1, /*	*/
+			MaxBlur = 2,	  /*	*/
+		};
 
 	  public:
 		BlurPostProcessing();
@@ -61,6 +65,6 @@ namespace glsample {
 
 		BlurSettings blurSettings;
 
-		int localWorkGroupSize[3];
+		int localWorkGroupSize[3][3];
 	};
 } // namespace glsample

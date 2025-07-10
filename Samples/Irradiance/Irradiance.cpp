@@ -44,7 +44,8 @@ namespace glsample {
 
 		unsigned int display_graphic_program{};
 
-		unsigned int irradiance_texture = 0;
+		unsigned int diffuse_irradiance_texture = 0;
+		unsigned int reflectance_irradiance_texture = 0;
 		unsigned int skybox_texture_panoramic = 0;
 
 		CameraController camera;
@@ -69,7 +70,9 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
-				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().irradiance_texture), ImVec2(512, 256),
+				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().diffuse_irradiance_texture), ImVec2(512, 256),
+							 ImVec2(1, 1), ImVec2(0, 0));
+				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().reflectance_irradiance_texture), ImVec2(512, 256),
 							 ImVec2(1, 1), ImVec2(0, 0));
 				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().skybox.getTexture()), ImVec2(512, 256),
 							 ImVec2(1, 1), ImVec2(0, 0));
@@ -85,7 +88,7 @@ namespace glsample {
 		void Release() override {
 			glDeleteProgram(this->display_graphic_program);
 			glDeleteTextures(1, (const GLuint *)&this->skybox_texture_panoramic);
-			glDeleteTextures(1, (const GLuint *)&this->irradiance_texture);
+			glDeleteTextures(1, (const GLuint *)&this->diffuse_irradiance_texture);
 		}
 
 		void Initialize() override {
@@ -122,7 +125,9 @@ namespace glsample {
 			this->skybox_texture_panoramic = textureImporter.loadImage2D(panoramicPath, ColorSpace::SRGB);
 
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeDiffuseIrradiance(this->skybox_texture_panoramic, this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradiance(this->skybox_texture_panoramic, this->diffuse_irradiance_texture, 256, 128);
+			util.computeReflectanceIrradiance(this->skybox_texture_panoramic, this->reflectance_irradiance_texture, 256, 128);
+			
 
 			skybox.Init(this->skybox_texture_panoramic, Skybox::loadDefaultProgram(this->getFileSystem()));
 
@@ -170,7 +175,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+				glBindTexture(GL_TEXTURE_2D, this->diffuse_irradiance_texture);
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->sphere.vao);
