@@ -243,8 +243,8 @@ namespace glsample {
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
 
 		void draw() override {
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			/*	*/
 			glViewport(0, 0, width, height);

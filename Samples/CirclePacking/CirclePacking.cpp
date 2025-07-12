@@ -242,8 +242,8 @@ namespace glsample {
 			size_t read_buffer_index = (this->getFrameCount() + 1) % this->nrParticleBuffers;
 			size_t write_buffer_index = (this->getFrameCount() + 0) % this->nrParticleBuffers;
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 

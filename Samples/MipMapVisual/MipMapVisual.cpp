@@ -213,8 +213,8 @@ namespace glsample {
 
 		void draw() override {
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			glSamplerParameterf(this->mipmap_sampler, GL_TEXTURE_LOD_BIAS, this->mipmapbias);
 

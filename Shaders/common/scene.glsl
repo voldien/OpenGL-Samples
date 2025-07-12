@@ -26,7 +26,7 @@ struct common_data {
 	mat4 proj[3];
 
 	vec4 time;
-	//ivec4 frame;
+	// ivec4 frame;
 };
 
 struct Node {
@@ -61,23 +61,26 @@ layout(set = 2, binding = 5, std140) uniform UniformLightBufferBlock { light_set
 LightUBO;
 
 /*	*/
-layout(binding = 0) uniform sampler2D DiffuseTexture;
-layout(binding = 1) uniform sampler2D NormalTexture;
-layout(binding = 2) uniform sampler2D AlphaMaskedTexture;
+layout(set = 0, binding = 0) uniform sampler2D DiffuseTexture;
+layout(set = 0, binding = 1) uniform sampler2D NormalTexture;
+layout(set = 0, binding = 2) uniform sampler2D AlphaMaskedTexture;
 
 /*	*/
-layout(binding = 3) uniform sampler2D RoughnessTexture;
-layout(binding = 8) uniform sampler2D MetalicTexture;
-layout(binding = 4) uniform sampler2D EmissionTexture;
-layout(binding = 7) uniform sampler2D DisplacementTexture;
-layout(binding = 6) uniform sampler2D AOTexture;
+layout(set = 0, binding = 3) uniform sampler2D RoughnessTexture;
+layout(set = 0, binding = 8) uniform sampler2D MetalicTexture;
+layout(set = 0, binding = 4) uniform sampler2D EmissionTexture;
+layout(set = 0, binding = 7) uniform sampler2D DisplacementTexture;
+layout(set = 0, binding = 6) uniform sampler2D AOTexture;
 
 /*	*/
-layout(binding = 10) uniform sampler2D IrradianceTexture;
-layout(binding = 11) uniform samplerCube prefilterMap;
-layout(binding = 12) uniform sampler2D brdfLUT;
+layout(set = 1,binding = 10) uniform sampler2D IrradianceTexture;
+layout(set = 1,binding = 11) uniform samplerCube prefilterMap;
+layout(set = 1,binding = 12) uniform sampler2D brdfLUT;
 
-layout(binding = 13) uniform sampler2D CameraDepthTexture;
+layout(set = 2, binding = 13) uniform sampler2D CameraDepthTexture;
+
+layout(set = 3, binding = 20) uniform samplerCube PointShadowTexture[4];
+layout(set = 3, binding = 24) uniform sampler2DShadow DirectionalShadowTexture[4];
 
 mat4 getModel(const in int index) { return NodeUBO.node[index].model; }
 mat4 getModel() { return getModel(0); }
@@ -96,8 +99,6 @@ PointLight getPointLight(const in int index) { return LightUBO.light.point[index
 
 /*	*/
 Camera getCamera() { return constantCommon.constant.camera; }
-
-
 
 vec3 world_to_view(const in vec3 x) { return (constantCommon.constant.camera.view * vec4(x, 1)).xyz; }
 

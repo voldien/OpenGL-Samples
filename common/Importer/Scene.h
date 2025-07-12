@@ -212,7 +212,8 @@ namespace glsample {
 			unsigned int common_size_align = 0;
 			unsigned int common_size_total_align = 0;
 
-			/*	*/
+			/*	Buffer Binding Values.	*/
+			unsigned int binding_set = 0;
 			unsigned int common_buffer_binding = 1;
 			unsigned int node_buffer_binding = 2;
 			unsigned int bone_buffer_binding = 3;

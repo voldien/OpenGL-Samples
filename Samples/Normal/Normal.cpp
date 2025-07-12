@@ -191,8 +191,8 @@ namespace glsample {
 
 		void draw() override {
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
@@ -270,8 +270,8 @@ namespace glsample {
 
 		void update() override {
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			/*	Update Camera.	*/
 			const float elapsedTime = this->getTimer().getElapsed<float>();

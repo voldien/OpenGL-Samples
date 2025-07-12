@@ -202,7 +202,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 								   const fragcore::TextureDesc &depthstencil) {
 
 	unsigned int attachment_index = 0;
-	std::array<GLenum, 32> attachments_mapping = {0};
+	std::array<unsigned int, 32> &attachments_mapping = framebuffer->draw_attachments;
 
 	for (const auto *it = desc.begin(); it != desc.end(); it++) {
 		const fragcore::TextureDesc &target_desc = *(it);
@@ -297,7 +297,6 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		}
 
 		framebuffer->attachmentSize[framebuffer->depthIndex] = {width, height, depth};
-
 
 		if (multisamples == 0) {
 

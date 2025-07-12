@@ -50,7 +50,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 	closestDepth *= ubo.point_light[index].range;
 
 	// float bias = ubo.point_light[0].bias;
-	float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(frag2Light).xyz)), ubo.point_light[index].bias);
+	float bias = max(0.05 * (1.0 - dot(normalize(normal), -normalize(frag2Light).xyz)), ubo.point_light[index].lightShadow.shadow.y);
 
 	float currentDepth = length(frag2Light);
 

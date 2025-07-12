@@ -186,8 +186,8 @@ namespace glsample {
 
 		void draw() override {
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			// TODO draw multiple instance with various position and color to show the blending.
 

@@ -1,0 +1,72 @@
+#version 460 core
+#extension GL_ARB_enhanced_layouts : enable
+#extension GL_ARB_shader_image_load_store : enable
+#extension GL_ARB_explicit_attrib_location : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+#extension GL_EXT_shader_16bit_storage : require
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+precision mediump float;
+precision mediump int;
+
+// layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform sampler2D ColorTexture;
+layout(set = 0, binding = 1, rgba16f) uniform coherent image2D TargetTexture;
+
+layout(constant_id = 16) const int MAX_SAMPLES = (9 + 9) + 1;
+
+layout(push_constant) uniform Settings {
+	layout(offset = 0) float blend;
+	layout(offset = 4) float radius;
+	layout(offset = 8) int samples;
+	layout(offset = 12) float kernel[MAX_SAMPLES];
+}
+settings;
+
+#include "postprocessing_base.glsl"
+
+void main(){}
+
+// vec4 blurVertical(const in float radius, const in int half_samples) {
+
+// 	const vec2 resolution = textureSize(ColorTexture, 0);
+
+// 	const vec2 texelSize = 1.0 / resolution;
+// 	const vec2 TexCoord = vec2(gl_GlobalInvocationID.xy) * texelSize;
+
+// 	/*	Middle Sample.	*/
+// 	vec4 color1 = texture(ColorTexture, TexCoord).rgba * vec4(settings.kernel[half_samples].xxx, 1.0);
+
+// 	for (uint x = 1; x < half_samples; x++) {
+// 		const vec2 uvP = TexCoord + vec2(texelSize.x * x, 0) * radius;
+// 		const vec2 uvN = TexCoord + vec2(-texelSize.x * x, 0) * radius;
+
+// 		const uint guassPIndex = clamp(half_samples + x, 0, MAX_SAMPLES - 1);
+// 		const uint guassNIndex = clamp(half_samples - x, 0, MAX_SAMPLES - 1);
+
+// 		const float guasP = settings.kernel[guassPIndex];
+// 		const float guasN = settings.kernel[guassNIndex];
+
+// 		color1 += texture(ColorTexture, uvP).rgba * vec4(guasP.xxx, 1.0);
+// 		color1 += texture(ColorTexture, uvN).rgba * vec4(guasN.xxx, 1.0);
+// 	}
+
+// 	return color1;
+// }
+
+// void main() {
+
+// 	/*	*/
+// 	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(TargetTexture)))) {
+// 		return;
+// 	}
+
+// 	const uint samples = min(settings.samples, MAX_SAMPLES);
+// 	const ivec2 TexCoord = ivec2(gl_GlobalInvocationID.xy);
+
+// 	/*	Vertical Blur.	*/
+// 	const vec4 verticalBlur = blurVertical(settings.radius, settings.samples / 2);
+// 	imageStore(TargetTexture, TexCoord, vec4(verticalBlur.rgb, 1.0));
+// }

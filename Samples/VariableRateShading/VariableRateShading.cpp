@@ -190,8 +190,8 @@ namespace glsample {
 			}
 
 			/*	*/
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			/*	Bind and Compute variable rate look up table Program.	*/
 			glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
@@ -208,7 +208,7 @@ namespace glsample {
 
 				/*	Previous game of life state.	*/
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->attachments[0]);
+				glBindTexture(GL_TEXTURE_2D, this->getDefaultFrameBufferObj()->attachments[0]);
 				/*	The resulting game of life state.	*/
 				glBindImageTexture(1, this->variable_rate_lut_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8UI);
 

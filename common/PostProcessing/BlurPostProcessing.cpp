@@ -125,6 +125,7 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
+	/*	Update parameters.	*/
 	switch (this->blurType) {
 	case BoxBlur:
 		glUseProgram(this->box_blur_compute_program);

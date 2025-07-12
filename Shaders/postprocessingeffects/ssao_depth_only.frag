@@ -82,7 +82,7 @@ void main() {
 	// we will devide the accmulated occlusion by the number of samples to get the average occlusion value.
 	const float average_occlusion_factor = occlusion_factor / samples;
 
-	float visibility_factor = 1.0 - average_occlusion_factor * ubo.intensity;
+	float visibility_factor = max(0, 1.0 - average_occlusion_factor * ubo.intensity);
 
 	visibility_factor = pow(visibility_factor, 2.0);
 

@@ -147,8 +147,6 @@ namespace glsample {
 			this->reflection_texture = textureImporter.loadImage2D(panoramicPath);
 			skybox.Init(this->reflection_texture, this->skybox_program);
 
-	 
-
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
@@ -162,9 +160,11 @@ namespace glsample {
 
 		void draw() override {
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
- 
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
+
+			/*	Set render viewport size in pixels.	*/
+			glViewport(0, 0, width, height);
 
 			glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -184,7 +184,6 @@ namespace glsample {
 			/*	*/
 			this->camera.update(getTimer().deltaTime<float>());
 			this->scene.update(this->getTimer().deltaTime<float>());
- 
 		}
 	};
 

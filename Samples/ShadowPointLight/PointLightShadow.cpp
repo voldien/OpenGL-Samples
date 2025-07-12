@@ -1,3 +1,4 @@
+#include "SampleHelper.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include <GL/glew.h>
@@ -28,22 +29,6 @@ namespace glsample {
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
-		using PointLight = struct alignas(16) point_light_t {
-			glm::vec3 position{};
-			float range{};
-			glm::vec4 color{};
-			float intensity{};
-			float constant_attenuation{};
-			float linear_attenuation{};
-			float qudratic_attenuation{};
-
-			/*	Shadow.	*/
-			float bias = 0.01f;
-			float shadowStrength = 1.0f;
-			float padding0{};
-			float padding1{};
-		};
-
 		static constexpr size_t nrPointLights = 4;
 		struct alignas(16) uniform_buffer_block {
 			glm::mat4 model{};
@@ -60,7 +45,7 @@ namespace glsample {
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
 			glm::vec4 lightPosition{};
 
-			PointLight pointLights[nrPointLights];
+			PointLightInstance pointLights[nrPointLights];
 
 			/*	*/
 			glm::vec4 pcfFilters[32]{};
@@ -122,9 +107,10 @@ namespace glsample {
 						ImGui::DragFloat3("Attenuation", &this->uniform.pointLights[i].constant_attenuation);
 						ImGui::DragFloat("Light Range", &this->uniform.pointLights[i].range);
 						ImGui::DragFloat("Intensity", &this->uniform.pointLights[i].intensity);
-						ImGui::DragFloat("Shadow Strength", &this->uniform.pointLights[i].shadowStrength, 1, 0.0f,
+						ImGui::DragFloat("Shadow Strength", &this->uniform.pointLights[i].lightShadow.shadow[0], 1,
+										 0.0f, 1.0f);
+						ImGui::DragFloat("Shadow Bias", &this->uniform.pointLights[i].lightShadow.shadow[1], 1, 0.0f,
 										 1.0f);
-						ImGui::DragFloat("Shadow Bias", &this->uniform.pointLights[i].bias, 1, 0.0f, 1.0f);
 					}
 					ImGui::PopID();
 				}
@@ -346,10 +332,10 @@ namespace glsample {
 				this->uniformStage.pointLights[i].color = colors[i];
 				this->uniformStage.pointLights[i].constant_attenuation = 1.7f;
 				this->uniformStage.pointLights[i].linear_attenuation = 1.5f;
-				this->uniformStage.pointLights[i].qudratic_attenuation = 0.19f;
+				this->uniformStage.pointLights[i].quadratic_attenuation = 0.19f;
 				this->uniformStage.pointLights[i].intensity = 1.0f;
-				this->uniformStage.pointLights[i].shadowStrength = 1.0f;
-				this->uniformStage.pointLights[i].bias = 0.01f;
+				this->uniformStage.pointLights[i].lightShadow.shadow[0] = 1.0f;
+				this->uniformStage.pointLights[i].lightShadow.shadow[1] = 0.01f;
 			}
 
 			/*	Copy PCF Filters	*/
@@ -366,8 +352,8 @@ namespace glsample {
 
 		void draw() override {
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			/*	Draw each point light shadow.	*/
 			{

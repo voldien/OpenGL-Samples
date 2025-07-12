@@ -31,28 +31,41 @@ namespace glsample {
 
 		void draw(glsample::FrameBuffer *framebuffer,
 				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
+		void renderUI() override;
 
 	  public:
 		void render(unsigned int texture);
 
 	  private:
-		unsigned int guassian_blur_variable_compute_program = 0;
+		void updateGuassianKernel();
+
+		unsigned int guassian_blur_variable_horizontal_compute_program = 0;
+		unsigned int guassian_blur_variable_vertical_compute_program = 0;
+
+
 		unsigned int guassian_blur_fixed_compute_program;
 		unsigned int indirect_guassian_dispatch_compute_program = 0;
 
 		unsigned int texture_sampler = 0;
 		unsigned int vao = 0;
 
+		/*	Settings.	*/
 		using DepthOfFieldSettings = struct depth_of_field_settings_t {
 			float aperature;
 			float Foc;
+			int nrIterations = 1;
+			float radius = 2;
+			float variance = 1;
+			float mean = 0;
+			int samples = 11;
+			static const int maxSamples = 9 + 9 + 1;
+			std::array<float, maxSamples> guassian;
 		};
 
-		/*	*/
-		float variance;
-		int samples;
-		float radius;
+		DepthOfFieldSettings blurSettings;
 
-		int localWorkGroupSize[3][3];
+		int depthOfFieldType;
+
+		int localWorkGroupSize[5][3];
 	};
 } // namespace glsample

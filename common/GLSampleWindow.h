@@ -133,13 +133,14 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void createDefaultFrameBuffer();
 	void updateDefaultFramebuffer();
 	unsigned int getDefaultFramebuffer() const noexcept;
-	glsample::FrameBuffer *getFrameBuffer() { return this->defaultFramebuffer.get(); }
-	const glsample::FrameBuffer *getFrameBuffer() const noexcept { return this->defaultFramebuffer.get(); }
+	glsample::FrameBuffer *getDefaultFrameBufferObj() { return this->defaultFramebuffer.get(); }
+	const glsample::FrameBuffer *getDefaultFrameBufferObj() const noexcept { return this->defaultFramebuffer.get(); }
 	glsample::PostProcessingManager *getPostProcessingManager() const noexcept {
 		return this->postprocessingManager.get();
 	}
-	size_t getCurrentFrameBufferWidth() const noexcept { return getFrameBuffer()->attachmentSize[0].x; }
-	size_t getCurrentFrameBufferHeight() const noexcept { return getFrameBuffer()->attachmentSize[0].y; }
+
+	size_t getCurrentFrameBufferWidth() const noexcept { return getDefaultFrameBufferObj()->attachmentSize[0].x; }
+	size_t getCurrentFrameBufferHeight() const noexcept { return getDefaultFrameBufferObj()->attachmentSize[0].y; }
 	void getCurrentFrameBufferSize(size_t *width, size_t *height) const noexcept {
 		*width = getCurrentFrameBufferWidth();
 		*height = getCurrentFrameBufferHeight();
@@ -195,6 +196,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	/*	SuperSampling Anti-Aliasing */
 	bool useSSAA = false;
 	int SSAASamples = 1;
+	 int getSizeSSAFactor() const noexcept { return useSSAA ? SSAASamples : 1; }
 
 	/*	*/
 	bool useSampleAccumlation = false;

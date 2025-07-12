@@ -283,8 +283,8 @@ namespace glsample {
 
 		void draw() override {
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			/*	*/
 			glViewport(0, 0, width, height);
@@ -336,7 +336,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::DepthBuffer);
-				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->attachments[this->getFrameBuffer()->depthIndex]);
+				glBindTexture(GL_TEXTURE_2D, this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);

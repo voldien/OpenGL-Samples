@@ -214,6 +214,7 @@ namespace glsample {
 		}
 
 		glBindBuffer(GL_UNIFORM_BUFFER, this->UBOStructure.node_and_common_uniform_buffer);
+		/*	*/
 		if (glBufferStorage) {
 			/*	Update constant data.	*/
 			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.common_offset,
@@ -688,7 +689,7 @@ namespace glsample {
 				ImGui::TextUnformatted("PointLight");
 
 				for (; light_index < this->stageLightData->pointCount; light_index++) {
-					ImGui::PushID(light_index);
+					ImGui::PushID(light_index + 1000);
 					ImGui::ColorEdit4("Color", &this->stageLightData->pointLight[light_index].color[0],
 									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 					ImGui::DragFloat3("Position", &this->stageLightData->pointLight[light_index].position[0]);

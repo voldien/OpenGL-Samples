@@ -3,15 +3,17 @@
 
 struct ShadowLight {
 	mat4 lightSpaceMatrix;
-	vec4 shadow;
+	vec4 shadow;	/*	Shadow, bias*/
 };
 
 struct DirectionalLight {
+	ShadowLight lightShadow;
 	vec4 direction;
 	vec4 lightColor;
 };
 
 struct PointLight {
+	ShadowLight lightShadow;
 	vec3 position;
 	float range;
 	vec4 color;
@@ -19,10 +21,6 @@ struct PointLight {
 	float constant_attenuation;
 	float linear_attenuation;
 	float qudratic_attenuation;
-	float bias;
-	float shadowStrength;
-	float padding0;
-	float padding1;
 };
 
 float computeLightContributionFactor(const in vec3 direction, const in vec3 normalInput) {

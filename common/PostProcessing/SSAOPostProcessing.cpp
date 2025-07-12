@@ -8,11 +8,13 @@
 #include <GL/glew.h>
 #include <IOUtil.h>
 #include <random>
+#include <utility>
 
 using namespace glsample;
 
 SSAOPostProcessing::SSAOPostProcessing() {
 	this->setName("Screen Space Ambient Occlusion");
+	this->addRequireBuffer(GBuffer::IntermediateTarget);
 	this->addRequireBuffer(GBuffer::Color);
 	this->addRequireBuffer(GBuffer::Depth);
 	this->addRequireBuffer(GBuffer::Normal);
@@ -171,8 +173,8 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glSamplerParameterf(this->texture_sampler, GL_TEXTURE_LOD_BIAS, 0.0f);
 	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAX_LOD, 0);
 	glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_LOD, 0);
@@ -201,6 +203,24 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 	/*	*/
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
+	/*	Viewport	*/
+	float scaleFactor = 1;
+	if (this->downScale) {
+		scaleFactor = 0.5f;
+		glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	} else {
+		glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	}
+
+	int framebuffer_base_width = framebuffer->attachmentSize[0].x;
+	int framebuffer_base_height = framebuffer->attachmentSize[0].y;
+
+	int ssao_viewport_width = framebuffer_base_width * scaleFactor;
+	int ssao_viewport_height = framebuffer_base_height * scaleFactor;
+	glViewport(0, 0, ssao_viewport_width, ssao_viewport_height);
 
 	/*	Draw Ambient Occlusion.	*/
 	{
@@ -231,7 +251,9 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 		glUseProgram(0);
 
+		/*	*/
 		glBindSampler((int)GBuffer::Depth, 0);
+		glBindSampler((int)GBuffer::TextureCoordinate, 0);
 
 		glActiveTexture(GL_TEXTURE0 + (int)GBuffer::TextureCoordinate);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -240,17 +262,45 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 	/*	*/
 	glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 
+	int ssao_target_index = 1; // TODO: Fix
+
+	/*	Blit upscale bilinar.	*/
+	if (scaleFactor < 1) {
+		ssao_target_index = 2;
+
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer->framebuffer);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->framebuffer);
+
+		/*	Override the read and draw attachments.	*/
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + 1);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0 + ssao_target_index);
+
+		glBlitFramebuffer(0, 0, ssao_viewport_width, ssao_viewport_height, 0, 0, framebuffer_base_width,
+						  framebuffer_base_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+		/*	*/
+		glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
+		/*	Reset Draw Attachment.	*/
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glDrawBuffers(framebuffer->nrAttachments, framebuffer->draw_attachments.data());
+	}
+
+	glViewport(0, 0, framebuffer_base_width, framebuffer_base_height);
+
 	/*	Overlay with the orignal color framebuffer.	*/
 	{
 		glBindVertexArray(this->vao);
 		glUseProgram(this->overlay_program);
 
+		//glBindSampler(ssao_target_index, this->texture_sampler);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[1]);
+		glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[ssao_target_index]);
 
 		/*	Draw overlay.	*/
 		glEnable(GL_BLEND);
 		glBlendEquation(GL_FUNC_ADD);
+		// glBlendColor
 		glBlendFunc(GL_DST_COLOR, GL_ZERO);
 
 		/*	*/

@@ -291,8 +291,8 @@ namespace glsample {
 
 		void draw() override {
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 			/*	*/
 			glViewport(0, 0, width, height);
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -340,7 +340,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Depth);
-				glBindTexture(GL_TEXTURE_2D, this->getFrameBuffer()->attachments[this->getFrameBuffer()->depthIndex]);
+				glBindTexture(GL_TEXTURE_2D, this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 
 				glCullFace(GL_FRONT);
 				glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -376,8 +376,8 @@ namespace glsample {
 
 			/*	Post processing.	*/
 			if (this->simpleOceanSettingComponent->useMistFogPost) {
-				this->mistprocessing.render(this->irradiance_texture, this->getFrameBuffer()->attachments[0],
-											this->getFrameBuffer()->attachments[this->getFrameBuffer()->depthIndex]);
+				this->mistprocessing.render(this->irradiance_texture, this->getDefaultFrameBufferObj()->attachments[0],
+											this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 			}
 		}
 

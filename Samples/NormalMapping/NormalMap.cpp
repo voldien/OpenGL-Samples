@@ -161,8 +161,8 @@ namespace glsample {
 
 		void draw() override {
 
-			int width = 0, height = 0;
-			this->getSize(&width, &height);
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
 			/*	*/
 			this->uniformStageBuffer.proj = this->camera.getProjectionMatrix();

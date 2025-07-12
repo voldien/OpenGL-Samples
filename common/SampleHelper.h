@@ -131,12 +131,19 @@ namespace glsample {
 
 	using BlinnPhongMaterialData = struct blinn_phong_material_data_t {};
 
+	using LightShadow = struct light_shadow_t {
+		glm::mat4 lightSpaceMatrix;
+		glm::vec4 shadow;
+	};
+
 	using DirectionalLight = struct directional_light_t {
+		LightShadow lightShadow;
 		glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	};
 
 	using PointLightInstance = struct point_light_instance_t {
+		LightShadow lightShadow;
 		glm::vec3 position = glm::vec3(0);
 		float range = 5;
 		glm::vec4 color = glm::vec4(1);
@@ -145,12 +152,7 @@ namespace glsample {
 		float constant_attenuation = 1;
 		float linear_attenuation = 0.1f;
 		float quadratic_attenuation = 0.025f;
-
-		/*	*/
-		float bias;
-		float shadowStrength;
-		float padding0;
-		float padding1;
+ 
 	};
 
 	using CameraInstanceData = struct camera_instance_data_t {
@@ -231,8 +233,9 @@ namespace glsample {
 
 	using FrameBuffer = struct framebuffer_t {
 		unsigned int framebuffer = 0;
-		std::array<unsigned int, 16> attachments{}; /*	last */
-		std::array<glm::ivec3, 16> attachmentSize{};
+		std::array<unsigned int, 32> attachments{}; /*	last */
+		std::array<glm::ivec3, 32> attachmentSize{};
+		std::array<unsigned int, 32> draw_attachments{}; /*	Store the draw attachment for */
 		unsigned int nrAttachments = 0;
 		unsigned int depthIndex = 15;
 	};
