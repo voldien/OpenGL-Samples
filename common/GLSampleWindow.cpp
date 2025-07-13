@@ -141,7 +141,8 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 					glMinSampleShading(min_sample);
 				}
 
-				ImGui::Text("FrameBuffer Size: %zu:%zu", this->getRefSample().getCurrentFrameBufferWidth(), this->getRefSample().getCurrentFrameBufferHeight());
+				ImGui::Text("FrameBuffer Size: %zu:%zu", this->getRefSample().getCurrentFrameBufferWidth(),
+							this->getRefSample().getCurrentFrameBufferHeight());
 			}
 			ImGui::EndDisabled();
 
@@ -847,7 +848,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 	GraphicFormat internal_color_format = GraphicFormat::R16G16B16A16_SFloat;
 	GraphicFormat internal_depth_format = GraphicFormat::Depth_32Bit;
 
-	/*	Override the default color format.	*/
+	/*	Override the default texture color format.	*/
 	if (dynamicRange == "ldr") {
 		internal_color_format = GraphicFormat::B8G8R8A8_UNorm;
 	} else if (dynamicRange == "hdr" || dynamicRange == "hdr32") {
@@ -884,7 +885,6 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .depth = 1,
 										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
-
 									   },
 									   {
 										   .width = framebuffer_Width,

@@ -211,7 +211,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		const unsigned int height = target_desc.height;
 		const unsigned int depth = target_desc.depth;
 		const unsigned int multisamples = target_desc.nrSamples;
-		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(target_desc.graphicFormat); // GL_RGBA16F;
+		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(target_desc.graphicFormat);
 
 		GLenum texture_type = GL_TEXTURE_2D;
 		if (depth > 1) {
@@ -298,6 +298,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 
 		framebuffer->attachmentSize[framebuffer->depthIndex] = {width, height, depth};
 
+		/*	*/
 		if (multisamples == 0) {
 
 			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

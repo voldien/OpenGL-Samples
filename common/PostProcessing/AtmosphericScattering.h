@@ -43,7 +43,11 @@ namespace glsample {
 	  private:
 		int atmospheric_scattering_graphic_program = -1;
 		int overlay_program = -1;
-		UBORange bufferRange;
+
+
+		unsigned int buffer_binding = 1;
+		std::array<UBORange, 2> buffers;
+		unsigned int buffer_use_index = 0;
 
 		unsigned int texture_sampler = 0;
 

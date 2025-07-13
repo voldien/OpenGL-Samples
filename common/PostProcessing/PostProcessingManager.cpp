@@ -1,10 +1,28 @@
 #include "PostProcessing/PostProcessingManager.h"
+#include "DataStructure/MemoryAddress.h"
 #include "PostProcessing/PostProcessing.h"
 #include <GL/glew.h>
 
 using namespace glsample;
 
+PostProcessingManager::PostProcessingManager() {
+
+	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, (GLint *)&this->ubo_pool.buffer.alignment);
+	this->ubo_pool.buffer.size = 1024 * 1024 * 2;
+	this->ubo_pool.buffer.totalSize =
+		fragcore::Math::align<size_t>(this->ubo_pool.buffer.size, (size_t)this->ubo_pool.buffer.alignment);
+	this->ubo_pool.addresser = MemoryAddress(this->ubo_pool.buffer.totalSize, 0);
+
+	/*	*/
+	glGenBuffers(1, &this->ubo_pool.buffer.buffer);
+	glBindBuffer(GL_UNIFORM_BUFFER, this->ubo_pool.buffer.buffer);
+	glBufferData(GL_UNIFORM_BUFFER, this->ubo_pool.buffer.totalSize, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
 void PostProcessingManager::addPostProcessing(const std::shared_ptr<PostProcessing> &postProcessing) {
+	/*	*/
+	postProcessing->setManager(*this);
 	this->postProcessings.push_back(postProcessing);
 	this->post_enabled.push_back(false);
 }
@@ -22,7 +40,7 @@ void PostProcessingManager::enablePostProcessing(const size_t index, const bool 
 
 void PostProcessingManager::render(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) { /*	*/
+	const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) { /*	*/
 
 	/*	Bind Common Data.	*/
 

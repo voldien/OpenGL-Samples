@@ -19,6 +19,7 @@
 
 namespace glsample {
 
+	/*	Screen Space Shadowing - Contact Shadows.	*/
 	class FVDECLSPEC SSSPostProcessing : public PostProcessing {
 
 	  public:
@@ -29,10 +30,8 @@ namespace glsample {
 
 		void setIntensity(const float intensity) override;
 
-
 		void draw(glsample::FrameBuffer *framebuffer,
 				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
-
 
 		void renderUI() override;
 
@@ -42,7 +41,7 @@ namespace glsample {
 
 		using ScreenSpaceSettings = struct screen_space_settings_t {
 			float blend = 1;
-			uint32_t max_steps = 32;			   // Max ray steps, affects quality and performance.
+			uint32_t max_steps = 32;	   // Max ray steps, affects quality and performance.
 			float ray_max_distance = 0.5f; // Max shadow length, longer shadows are less accurate.
 			float thickness = 0.05f;	   // Depth testing thickness.
 			float step_length = ray_max_distance / float(max_steps);

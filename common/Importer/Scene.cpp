@@ -165,7 +165,7 @@ namespace glsample {
 				this->stageLightData = (LightData *)&pdata[this->UBOStructure.common_size_total_align +
 														   this->UBOStructure.node_size_total_align +
 														   this->UBOStructure.material_align_total_size];
-				*this->stageLightData = LightData();	/*	Set Default Values.	*/
+				*this->stageLightData = LightData(); /*	Set Default Values.	*/
 
 			} else {
 				glBufferData(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_DYNAMIC_DRAW);

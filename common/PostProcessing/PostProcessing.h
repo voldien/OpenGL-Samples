@@ -15,9 +15,12 @@
  */
 #pragma once
 #include "IO/IFileSystem.h"
+#include "PostProcessing/PostProcessingManager.h"
 #include "SampleHelper.h"
 
 namespace glsample {
+
+	class PostProcessingManager;
 
 	class FVDECLSPEC PostProcessing : public fragcore::Object {
 	  public:
@@ -39,6 +42,8 @@ namespace glsample {
 
 		virtual float getIntensity() const noexcept;
 		virtual void setIntensity(const float intensity);
+
+		virtual void setManager(PostProcessingManager &manager) {}
 
 		bool isBufferRequired(const GBuffer required_data_buffer) const noexcept;
 

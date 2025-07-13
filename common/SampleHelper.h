@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "DataStructure/MemoryAddress.h"
 #include "Math3D/LinAlg.h"
 #include "Util/Camera.h"
 #include "Util/CameraController.h"
@@ -38,7 +39,7 @@ namespace glsample {
 
 	template <typename T, int m>
 	inline glm::vec<m, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, 1> &em) noexcept {
-		glm::vec<m, float, glm::precision::highp> v;
+		glm::vec<m, float, glm::precision::highp> v{};
 		for (unsigned int i = 0; i < m; ++i) {
 			v[i] = em(i);
 		}
@@ -152,7 +153,6 @@ namespace glsample {
 		float constant_attenuation = 1;
 		float linear_attenuation = 0.1f;
 		float quadratic_attenuation = 0.025f;
- 
 	};
 
 	using CameraInstanceData = struct camera_instance_data_t {
@@ -207,7 +207,7 @@ namespace glsample {
 	};
 
 	using FrustumInstance = struct frustum_instance_t {
-		frustum_instance_t() {}
+		frustum_instance_t() = default;
 		frustum_instance_t(const Frustum &frustum) {
 
 			for (unsigned int i = 0; i < 6; i++) {
@@ -225,8 +225,13 @@ namespace glsample {
 		unsigned int alignment; /*	*/
 	};
 
+	using UBOPool = struct uniform_buffer_pool_object_t {
+		UBOObject buffer{};
+		MemoryAddress addresser;
+	};
+
 	using UBORange = struct uniform_buffer_range_t {
-		UBOObject *reference; /*	*/
+		UBOObject *referenceBuffer; /*	*/
 		size_t offset;		  /*	*/
 		size_t size;		  /*	*/
 	};
@@ -237,7 +242,7 @@ namespace glsample {
 		std::array<glm::ivec3, 32> attachmentSize{};
 		std::array<unsigned int, 32> draw_attachments{}; /*	Store the draw attachment for */
 		unsigned int nrAttachments = 0;
-		unsigned int depthIndex = 15;
+		unsigned int depthIndex = 31;	/*	Last attachment reserved for the depth/stencil.	*/
 	};
 
 } // namespace glsample

@@ -34,9 +34,9 @@ SSAOPostProcessing::~SSAOPostProcessing() {
 		glDeleteProgram(this->downsample_compute_program);
 	}
 
-	if (glIsBuffer(this->uniform_ssao_buffer)) {
-		glDeleteBuffers(1, &this->uniform_ssao_buffer);
-	}
+	// if (glIsBuffer(this->uniform_ssao_buffer)) {
+	// 	glDeleteBuffers(1, &this->uniform_ssao_buffer);
+	// }
 
 	if (glIsTexture(this->random_texture)) {
 		glDeleteTextures(1, &this->random_texture);
@@ -104,8 +104,8 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	GLint minMapBufferSize = 0;
 	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 
-	this->uniformSSAOBufferAlignSize =
-		fragcore::Math::align<size_t>(this->uniformSSAOBufferAlignSize, (size_t)minMapBufferSize);
+	// this->uniformSSAOBufferAlignSize =
+	// 	fragcore::Math::align<size_t>(this->uniformSSAOBufferAlignSize, (size_t)minMapBufferSize);
 
 	/*	FIXME: improve vectors.		*/
 	{
@@ -129,11 +129,11 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		}
 
 		/*	*/
-		glGenBuffers(1, &this->uniform_ssao_buffer);
-		glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
-		glBufferData(GL_UNIFORM_BUFFER, this->uniformSSAOBufferAlignSize * 1, &this->uniformStageBlockSSAO,
-					 GL_DYNAMIC_DRAW);
-		glBindBufferARB(GL_UNIFORM_BUFFER, 0);
+		// glGenBuffers(1, &this->uniform_ssao_buffer);
+		// glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
+		// glBufferData(GL_UNIFORM_BUFFER, this->uniformSSAOBufferAlignSize * 1, &this->uniformStageBlockSSAO,
+		// 			 GL_DYNAMIC_DRAW);
+		// glBindBufferARB(GL_UNIFORM_BUFFER, 0);
 
 		/*	Create white texture.	*/
 		this->white_texture = glsample::CommonUtil::createColorTexture(1, 1, Color::white());
@@ -195,8 +195,8 @@ void SSAOPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int depth_texture,
 								unsigned int world_texture, unsigned int normal_texture) {
 
-	glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
-	void *uniformPointer = glMapBufferRange(GL_UNIFORM_BUFFER, 0, this->uniformSSAOBufferAlignSize,
+	glBindBuffer(GL_UNIFORM_BUFFER, this->buffers[0].referenceBuffer->buffer);
+	void *uniformPointer = glMapBufferRange(GL_UNIFORM_BUFFER, this->buffers[0].offset, this->buffers[0].size,
 											GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 	memcpy(uniformPointer, &this->uniformStageBlockSSAO, sizeof(uniformStageBlockSSAO));
 	glUnmapBuffer(GL_UNIFORM_BUFFER);
@@ -224,8 +224,8 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 	/*	Draw Ambient Occlusion.	*/
 	{
-		glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_binding, this->uniform_ssao_buffer, 0,
-						  this->uniformSSAOBufferAlignSize);
+		glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer_binding,
+						  this->buffers[0].referenceBuffer->buffer, this->buffers[0].offset, this->buffers[0].size);
 
 		glActiveTexture(GL_TEXTURE0 + (int)GBuffer::TextureCoordinate);
 		glBindTexture(GL_TEXTURE_2D, this->random_texture);
@@ -293,7 +293,7 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 		glBindVertexArray(this->vao);
 		glUseProgram(this->overlay_program);
 
-		//glBindSampler(ssao_target_index, this->texture_sampler);
+		// glBindSampler(ssao_target_index, this->texture_sampler);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[ssao_target_index]);
 

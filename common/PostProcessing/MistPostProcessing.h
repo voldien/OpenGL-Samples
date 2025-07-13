@@ -72,5 +72,8 @@ namespace glsample {
 		unsigned int uniform_buffer = 0;
 		unsigned int uniform_buffer_binding = 1;
 		size_t uniformAlignSize = sizeof(MistUniformBuffer);
+
+		std::array<UBORange, 2> buffers;
+		unsigned int buffer_use_index = 0;
 	};
 } // namespace glsample
