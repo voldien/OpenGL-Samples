@@ -59,6 +59,7 @@ namespace glsample {
 		int overlay_program = -1;
 		int downsample_compute_program = -1;
 
+		/*	*/
 		int uniform_ssao_buffer_binding = 0;
 		std::array<UBORange, 2> buffers;
 		unsigned int buffer_use_index = 0;
@@ -76,9 +77,6 @@ namespace glsample {
 
 			glm::vec4 kernel[maxKernels]{};
 		} uniformStageBlockSSAO;
-
-		// size_t uniformSSAOBufferAlignSize = sizeof(UniformSSAOBufferBlock);
-		// unsigned int uniform_ssao_buffer = 0;
 
 		/*	Random direction texture.	*/
 		unsigned int random_texture = 0;

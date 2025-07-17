@@ -70,9 +70,11 @@ namespace glsample {
 		MistType mistType = MistType::SimpleFog;
 
 		unsigned int uniform_buffer = 0;
-		unsigned int uniform_buffer_binding = 1;
+
 		size_t uniformAlignSize = sizeof(MistUniformBuffer);
 
+		/*	*/
+		unsigned int uniform_buffer_binding = 1;
 		std::array<UBORange, 2> buffers;
 		unsigned int buffer_use_index = 0;
 	};

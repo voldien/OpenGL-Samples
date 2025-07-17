@@ -65,6 +65,11 @@ namespace glsample {
 
 		BlurSettings blurSettings;
 
+		/*	*/
+		int uniform_ssao_buffer_binding = 0;
+		std::array<UBORange, 2> buffers;
+		unsigned int buffer_use_index = 0;
+
 		int localWorkGroupSize[3][3];
 	};
 } // namespace glsample
