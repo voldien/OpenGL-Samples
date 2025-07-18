@@ -103,6 +103,10 @@ namespace glsample {
 		const std::vector<MeshObject> &getMeshes() const noexcept { return this->refGeometry; }
 		std::vector<MeshObject> &getMeshes() noexcept { return this->refGeometry; }
 
+		DirectionalLight *getDirectionalLight(const size_t index = 0) noexcept {
+			return &this->stageLightData->directional[index];
+		}
+
 	  protected:
 		void bindTexture(const MaterialObject &material, const TextureType texture_type);
 		int computeMaterialPriority(const MaterialObject &material) const noexcept;

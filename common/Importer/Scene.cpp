@@ -706,6 +706,8 @@ namespace glsample {
 									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 					ImGui::DragFloat3("Direction", &this->stageLightData->directional[light_index].lightDirection[0]);
 					ImGui::PopID();
+					ImGui::DragFloat("Shadow Strength", &this->stageLightData->directional[light_index].lightShadow.shadow[0], 1, 0.0f, 1.0f);
+					ImGui::DragFloat("Shadow Bias", &this->stageLightData->directional[light_index].lightShadow.shadow[1], 1, 0.0f, 1.0f, "%.5f");
 				}
 
 				if (ImGui::Button("Add Direction Light")) {

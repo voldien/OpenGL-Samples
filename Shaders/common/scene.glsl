@@ -100,6 +100,7 @@ PointLight getPointLight(const in int index) { return LightUBO.light.point[index
 /*	*/
 Camera getCamera() { return constantCommon.constant.camera; }
 
-vec3 world_to_view(const in vec3 x) { return (constantCommon.constant.camera.view * vec4(x, 1)).xyz; }
+//TODO: use transform functions here
+vec3 scene_world_to_view(const in vec3 x) { return (constantCommon.constant.camera.view * vec4(x, 1)).xyz; }
 
 #endif

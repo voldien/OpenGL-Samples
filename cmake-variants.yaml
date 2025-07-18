@@ -79,11 +79,11 @@ buildType:
 linkage:
   default: static
   choices:
-    static:
-      short: Static
-      long: Create static libraries
-      linkage: static
     shared:
       short: Shared
       long: Create shared libraries/DLLs
       linkage: shared
+    static:
+      short: Static
+      long: Create static libraries
+      linkage: static

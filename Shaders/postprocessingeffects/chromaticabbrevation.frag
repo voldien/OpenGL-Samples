@@ -21,8 +21,7 @@ layout(push_constant) uniform Settings {
 	layout(offset = 8) float greenOffset;
 	layout(offset = 12) float blueOffset;
 	layout(offset = 16) vec2 direction_center;
-}
-settings;
+} settings;
 
 void main() {
 

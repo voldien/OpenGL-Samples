@@ -25,10 +25,8 @@ layout(location = 8) flat invariant out ivec2 fAssigns;
 #include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 lightSpaceMatrix;
 
 	/*	Light source.	*/
-	DirectionalLight directional;
 	float bias;
 	float shadowStrength;
 	float radius;
@@ -43,7 +41,7 @@ void main() {
 	vertex = (model * vec4(Vertex, 1.0)).xyz;
 	normal = (model * vec4(Normal, 0.0)).xyz;
 	tangent = (model * vec4(Tangent, 0.0)).xyz;
-	lightSpace = ubo.lightSpaceMatrix * (model * vec4(Vertex, 1.0));
+	lightSpace = LightUBO.light.directional[0].lightShadow.lightSpaceMatrix * (model * vec4(Vertex, 1.0));
 	UV = TextureCoord;
 
 	/*	*/

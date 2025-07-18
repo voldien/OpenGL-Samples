@@ -1,4 +1,4 @@
-# !/usr/bin/env python3
+#!/usr/bin/env python3
 
 import os
 import pathlib
@@ -10,6 +10,8 @@ print(executable_dir)
 all_files = os.listdir(executable_dir)
 
 for program_exec_path in all_files:
-    print(program_exec_path)
-    command = [program_exec_path, "--time", "10", "--fullscreen", "--vsync"]
-    subprocess.run(command, shell=True, cwd=current_dir)
+    program_absolute_path = os.path.join(executable_dir, program_exec_path)
+    print(program_absolute_path)
+    cwd = os.path.join(executable_dir, "../")
+    command = [program_absolute_path, "--time", "10", "--fullscreen", "--vsync"]
+    subprocess.run(command, shell=True, cwd=cwd)

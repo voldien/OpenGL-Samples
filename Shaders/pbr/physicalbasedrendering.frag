@@ -39,18 +39,16 @@ void main() {
 
 	/*	Directional Light.	*/
 	vec3 Lo = vec3(0.0);
-	for (int i = 0; i < LightUBO.light.directionalCount; i++) {
-		Lo += computePBRDirectionLight(LightUBO.light.directional[i], ViewPixelDir, SurfaceNormal, roughness, metallic,
+	for (int i = 0; i < getDirectionalLightCount(); i++) {
+		Lo += computePBRDirectionLight(getDirectional(i), ViewPixelDir, SurfaceNormal, roughness, metallic,
 									   F0, albedo);
 	}
 
 	/*	Point Lights.	*/
-	for (int i = 0; i < LightUBO.light.pointCount; i++) {
-		Lo += computePBRPoint(LightUBO.light.point[i], WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic,
+	for (int i = 0; i < getPointLightCount(); i++) {
+		Lo += computePBRPoint(getPointLight(i), WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic,
 									   F0, albedo);
 	}
-	
-	
 
 	/*	ambient lighting (we now use IBL as the ambient term)	*/
 	vec3 kSpecular_F = fresnelSchlickRoughness(max(dot(SurfaceNormal, ViewPixelDir), 0.0), F0, roughness);

@@ -27,10 +27,7 @@ layout(binding = 9) uniform sampler2DShadow ShadowTexture;
 #include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 lightSpaceMatrix;
-
 	/*	Light source.	*/
-	DirectionalLight directional;
 	float bias;
 	float shadowStrength;
 	float radius;
@@ -50,7 +47,7 @@ float ShadowCalculation(const in vec4 fragPosLightSpace) {
 	projCoords.xyz = projCoords.xyz * 0.5 + 0.5;
 
 	const float bias =
-		clamp(0.005 * (1.0 - dot(normalize(normal), normalize(-ubo.directional.direction).xyz)), 0.0005, ubo.bias);
+		clamp(0.005 * (1.0 - dot(normalize(normal), normalize(-LightUBO.light.directional[0].direction).xyz)), 0.0005, ubo.bias);
 	projCoords.z *= (1 - bias);
 
 	/*	*/
@@ -74,7 +71,7 @@ void main() {
 	/*	*/
 	const vec4 SpecularColor = vec4(mat.specular_roughness.rgb, 1) * texture(RoughnessTexture, UV).r;
 	vec4 lightColor =
-		computeBlinnDirectional(ubo.directional, NewNormal, viewDir, mat.specular_roughness.a, SpecularColor.rgb);
+		computeBlinnDirectional(LightUBO.light.directional[0], NewNormal, viewDir, mat.specular_roughness.a, SpecularColor.rgb);
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));

@@ -29,11 +29,10 @@ const float vPow2 = pow(v, 2);
 const float wPow2 = pow(w, 2);
 
 const vec3 WorldPos_FS_in = oPatch.WorldPos_B300 * wPow3 + oPatch.WorldPos_B030 * uPow3 +
-                            oPatch.WorldPos_B003 * vPow3 + oPatch.WorldPos_B210 * 3.0 * wPow2 * u +
-                            oPatch.WorldPos_B120 * 3.0 * w * uPow2 + oPatch.WorldPos_B201 * 3.0 * wPow2 * v +
-                            oPatch.WorldPos_B021 * 3.0 * uPow2 * v + oPatch.WorldPos_B102 * 3.0 * w * vPow2 +
-                            oPatch.WorldPos_B012 * 3.0 * u * vPow2 + oPatch.WorldPos_B111 * 6.0 * w * u * v;
-
+	oPatch.WorldPos_B003 * vPow3 + oPatch.WorldPos_B210 * 3.0 * wPow2 * u +
+	oPatch.WorldPos_B120 * 3.0 * w * uPow2 + oPatch.WorldPos_B201 * 3.0 * wPow2 * v +
+	oPatch.WorldPos_B021 * 3.0 * uPow2 * v + oPatch.WorldPos_B102 * 3.0 * w * vPow2 +
+	oPatch.WorldPos_B012 * 3.0 * u * vPow2 + oPatch.WorldPos_B111 * 6.0 * w * u * v;
 
 void CalcPositions(OutputPatch oPatch) {
 	// The original vertices stay the same
@@ -65,10 +64,9 @@ void CalcPositions(OutputPatch oPatch) {
 	// Handle the center
 	vec3 Center = (oPatch.WorldPos_B003 + oPatch.WorldPos_B030 + oPatch.WorldPos_B300) / 3.0;
 	oPatch.WorldPos_B111 = (oPatch.WorldPos_B021 + oPatch.WorldPos_B012 + oPatch.WorldPos_B102 + oPatch.WorldPos_B201 +
-							oPatch.WorldPos_B210 + oPatch.WorldPos_B120) /
-						   6.0;
+		oPatch.WorldPos_B210 + oPatch.WorldPos_B120) /
+		6.0;
 	oPatch.WorldPos_B111 += (oPatch.WorldPos_B111 - Center) / 2.0;
 }
-
 
 #endif

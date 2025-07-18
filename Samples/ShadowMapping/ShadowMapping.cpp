@@ -21,7 +21,12 @@ namespace glsample {
 	class SceneShadow : public Scene {
 	  public:
 		SceneShadow() = default;
-		
+
+		void init() override {
+			Scene::init();
+			this->stageLightData->directionalCount = 1;
+		}
+
 		void bindMaterial(const MaterialObject *material) override {
 			Scene::bindMaterial(material);
 			if (shadowPass) {
@@ -51,11 +56,6 @@ namespace glsample {
 		}
 
 		struct alignas(32) uniform_buffer_block {
-
-			glm::mat4 lightModelProject{};
-
-			/*	light source.	*/
-			DirectionalLight directional;
 
 			float bias = 0.00050f;
 			float shadowStrength = 1.0f;
@@ -101,9 +101,9 @@ namespace glsample {
 				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f, "%.5f");
 				ImGui::DragFloat("PCF Radius", &this->uniform.pcfRadius, 1, 0.0f, 100.0f);
-				ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
-								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-				ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
+				// ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
+				// 				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+				// ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
 
 				ImGui::DragFloat("Distance", &this->distance);
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
@@ -317,7 +317,6 @@ namespace glsample {
 			this->getCurrentFrameBufferSize(&width, &height);
 
 			{
-
 				/*	Compute light matrix.	*/
 				const float near_plane = -(this->shadowSettingComponent->distance / 2.0f) * 2;
 				const float far_plane = (this->shadowSettingComponent->distance / 2.0f) * 2;
@@ -326,14 +325,14 @@ namespace glsample {
 							   -this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
 							   near_plane, far_plane);
 				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
-												  glm::vec3(this->uniformStageBuffer.directional.lightDirection.x,
-															this->uniformStageBuffer.directional.lightDirection.y,
-															this->uniformStageBuffer.directional.lightDirection.z),
+												  glm::vec3(this->scene.getDirectionalLight()->lightDirection.x,
+															this->scene.getDirectionalLight()->lightDirection.y,
+															this->scene.getDirectionalLight()->lightDirection.z),
 												  glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
 				glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
-				this->uniformStageBuffer.lightModelProject = lightSpaceMatrix;
+				this->scene.getDirectionalLight()->lightShadow.lightSpaceMatrix = lightSpaceMatrix;
 
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_shadow_buffer_binding, this->uniform_buffer,

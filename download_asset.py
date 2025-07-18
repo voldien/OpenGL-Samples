@@ -66,5 +66,5 @@ for url in download_asset_directly:
 	filepath = pathlib.Path(url).name
 	full_path = os.path.join(output, filepath)
 
-	with open(full_path) as file:
+	with open(full_path, 'w') as file:
 		file.write(resp.read())

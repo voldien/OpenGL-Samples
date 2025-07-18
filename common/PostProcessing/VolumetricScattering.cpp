@@ -149,20 +149,27 @@ void VolumetricScatteringPostProcessing::draw(
 			glUseProgram(this->volumetric_scattering_raymarching_shadow_depth_program);
 
 			/*	*/
-			glUniform1i(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings.numSamples"),
+			glUniform1i(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program,
+											 "settings.numSamples"),
 						this->volumetricScatteringSettings.numSamples);
-			glUniform1f(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Density"),
-						this->volumetricScatteringSettings.Density);
-			glUniform1f(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Decay"),
-						this->volumetricScatteringSettings.Decay);
-			glUniform1f(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Weight"),
-						this->volumetricScatteringSettings.Weight);
-			glUniform1f(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Exposure"),
+			glUniform1f(
+				glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Density"),
+				this->volumetricScatteringSettings.Density);
+			glUniform1f(
+				glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Decay"),
+				this->volumetricScatteringSettings.Decay);
+			glUniform1f(
+				glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings._Weight"),
+				this->volumetricScatteringSettings.Weight);
+			glUniform1f(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program,
+											 "settings._Exposure"),
 						this->volumetricScatteringSettings.Exposure);
-			glUniform3fv(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings.lightPosition"), 1,
-						 &this->volumetricScatteringSettings.lightPosition[0]);
-			glUniform4fv(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings.color"), 1,
-						 &this->volumetricScatteringSettings.color[0]);
+			glUniform3fv(glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program,
+											  "settings.lightPosition"),
+						 1, &this->volumetricScatteringSettings.lightPosition[0]);
+			glUniform4fv(
+				glGetUniformLocation(this->volumetric_scattering_raymarching_shadow_depth_program, "settings.color"), 1,
+				&this->volumetricScatteringSettings.color[0]);
 		}
 
 		/*	*/
@@ -173,7 +180,6 @@ void VolumetricScatteringPostProcessing::draw(
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 		glUseProgram(0);
-
 		glBindVertexArray(0);
 
 		glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);

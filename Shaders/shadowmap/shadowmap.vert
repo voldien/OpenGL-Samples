@@ -16,10 +16,8 @@ layout(location = 0) out vec2 UV;
 #include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
-	mat4 lightSpaceMatrix;
 
 	/*	Light source.	*/
-	DirectionalLight directional;
 	float bias;
 	float shadowStrength;
 	float radius;
@@ -29,6 +27,6 @@ ubo;
 void main() {
 	const mat4 model = getModel(vAssigns.y);
 
-	gl_Position = ubo.lightSpaceMatrix * model * vec4(Vertex, 1.0);
+	gl_Position = LightUBO.light.directional[0].lightShadow.lightSpaceMatrix * model * vec4(Vertex, 1.0);
 	UV = TextureCoord;
 }

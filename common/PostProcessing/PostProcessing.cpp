@@ -65,6 +65,8 @@ int PostProcessing::createVAO() {
 	static unsigned int vao = 0;
 	if (!glIsVertexArray(vao)) {
 		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+		glBindVertexArray(0);
 	}
 
 	return vao;

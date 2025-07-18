@@ -1,6 +1,8 @@
 #include "colorspace.glsl"
 #include "common.glsl"
 #include "transformation.glsl"
+#include"light.glsl"
+//#include"scene.glsl"
 
 // TODO: remove
 struct global_rendering_settings {
@@ -20,6 +22,17 @@ struct common_data {
 	vec4 time;
 	//ivec4 frame;
 };
+
+struct light_settings {
+	DirectionalLight directional[16];
+	PointLight point[64];
+	uint directionalCount;
+	uint pointCount;
+};
+
+/*	*/
+layout(set = 2, binding = 5, std140) uniform UniformLightBufferBlock { light_settings light; }
+LightUBO;
 
 struct BaseSettings {
 	float blend;

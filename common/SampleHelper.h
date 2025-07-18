@@ -134,7 +134,7 @@ namespace glsample {
 
 	using LightShadow = struct light_shadow_t {
 		glm::mat4 lightSpaceMatrix;
-		glm::vec4 shadow;
+		glm::vec4 shadow;	/*	Shadow, Bias,	*/
 	};
 
 	using DirectionalLight = struct directional_light_t {

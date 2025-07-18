@@ -24,7 +24,9 @@ vec3 filmic(const in vec3 x) {
 	return pow(result, vec3(2.2));
 }
 
-float RGB2Luminance(const in vec3 rgb) { return dot(vec3(0.2126, 0.7152, 0.0722), rgb); }
+float RGB2Luminance(const in vec3 rgb) {
+	return dot(vec3(0.2126, 0.7152, 0.0722), rgb);
+}
 
 // Input color is non-negative and resides in the Linear Rec. 709 color space.
 // Output color is also Linear Rec. 709, but in the [0, 1] range.
@@ -38,7 +40,7 @@ vec3 PBRNeutralToneMapping(in vec3 color) {
 	color -= offset;
 
 	float peak = max(color.r, max(color.g, color.b));
-	if (peak < startCompression) {
+	if(peak < startCompression) {
 		return color;
 	}
 
