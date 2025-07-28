@@ -1,5 +1,6 @@
 #include "GLUIComponent.h"
 #include "SampleHelper.h"
+#include "SceneHelper.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -236,7 +237,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader(this->getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(modelLoader);
+			this->scene = SceneHelper::loadFrom(modelLoader);
 			this->skeleton = modelLoader.getSkeletons()[0];
 		}
 

@@ -1,9 +1,11 @@
 #include "SampleHelper.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
+
 #include <ImportHelper.h>
 #include <ModelImporter.h>
 #include <Scene.h>
@@ -131,7 +133,7 @@ namespace glsample {
 			/*	*/
 			modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(*modelLoader);
+			this->scene = SceneHelper::loadFrom(*modelLoader);
 
 			/*	Create multipass framebuffer.	*/
 			glGenFramebuffers(1, &this->multipass_framebuffer);
@@ -264,8 +266,8 @@ namespace glsample {
 				glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
 
 				/*	*/
-				const size_t dest_width = sub_view_width + (index % widthDivior) * sub_view_width;
-				const size_t dest_height = sub_view_height + (index / heightDivior) * sub_view_height;
+				const size_t dest_width = sub_view_width + ((index % widthDivior) * sub_view_width);
+				const size_t dest_height = sub_view_height + ((index / heightDivior) * sub_view_height);
 
 				glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
 								  (index % widthDivior) * (sub_view_width), (index / heightDivior) * sub_view_height,

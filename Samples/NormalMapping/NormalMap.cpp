@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "SceneHelper.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -154,7 +155,7 @@ namespace glsample {
 			/*	Load scene from model importer.	*/
 			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(modelLoader);
+			this->scene = SceneHelper::loadFrom(modelLoader);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }

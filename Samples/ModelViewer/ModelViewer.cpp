@@ -1,6 +1,7 @@
 #include "ModelViewer.h"
 #include "ImageImport.h"
 #include "ModelImporter.h"
+#include "SceneHelper.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include <GL/glew.h>
@@ -88,7 +89,7 @@ namespace glsample {
 		/*	*/
 		ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
 		modelLoader->loadContent(modelPath, 0);
-		this->scene = Scene::loadFrom(*modelLoader);
+		this->scene = SceneHelper::loadFrom(*modelLoader);
 
 		/*	Align uniform buffer in respect to driver requirement.	*/
 		GLint minMapBufferSize = 0;

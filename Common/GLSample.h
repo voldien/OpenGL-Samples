@@ -21,7 +21,7 @@
 #include "GLUIComponent.h"
 #include "IO/FileSystem.h"
 #include "IO/IFileSystem.h"
-#include "IOUtil.h"
+#include <IO/IOUtil.h>
 #include "Util/CameraController.h"
 #include "Util/ProcessDataUtil.h"
 #include "magic_enum.hpp"
@@ -120,16 +120,14 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		this->schedular = std::make_shared<fragcore::TaskScheduler>(2);
 
 		/*	Create filesystem that the asset will be read from.	*/
-		this->activeFileSystem =
-			std::shared_ptr<fragcore::FileSystem>(fragcore::FileSystem::createFileSystem(this->schedular));
+		this->activeFileSystem = fragcore::FileSystem::createFileSystem(this->schedular);
 		const std::string filesystemPath = result["filesystem"].as<std::string>();
 		if (!this->activeFileSystem->isDirectory(filesystemPath.c_str())) {
 
 			const std::string extension = this->activeFileSystem->getFileExtension(filesystemPath.c_str());
 			if (extension == ".zip") {
 				std::cout << "Found Zip File System: " << filesystemPath << std::endl;
-				this->activeFileSystem = std::shared_ptr<fragcore::IFileSystem>(
-					fragcore::ZipFileSystem::createZipFileObject(filesystemPath.c_str()));
+				this->activeFileSystem = fragcore::ZipFileSystem::createZipFileObject(filesystemPath.c_str());
 			}
 		}
 
@@ -202,7 +200,7 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 		fragcore::resetErrorFlag();
 
 		/*	Internal initialize.	*/
-		this->sampleRef->setFileSystem(activeFileSystem.get());
+		this->sampleRef->setFileSystem(activeFileSystem);
 
 		this->sampleRef->setCommandResult(result);
 

@@ -1,4 +1,5 @@
 #include "SampleHelper.h"
+#include "SceneHelper.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include <GL/glew.h>
@@ -317,7 +318,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(modelLoader);
+			this->scene = SceneHelper::loadFrom(modelLoader);
 
 			MiscProcessingUtil util(this->getFileSystem());
 			util.computeDiffuseIrradiance(skytexture, this->irradiance_texture, 256, 128);

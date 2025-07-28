@@ -1,6 +1,7 @@
 #include "GLUIComponent.h"
 #include "SampleHelper.h"
 #include "Scene.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -150,7 +151,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = PBRScene::loadFrom<PBRScene>(modelLoader);
+			this->scene = SceneHelper::loadFrom<PBRScene>(modelLoader);
 
 			MiscProcessingUtil util(this->getFileSystem());
 			util.computeDiffuseIrradiance(skybox.getTexture(), this->irradiance_texture, 256, 128);

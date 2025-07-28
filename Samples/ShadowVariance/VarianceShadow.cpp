@@ -229,7 +229,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(*modelLoader);
+			this->scene = SceneHelper::loadFrom(*modelLoader);
 
 			ImportHelper::loadModelBuffer(modelLoader, refObj);
 		}

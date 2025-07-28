@@ -1,5 +1,7 @@
 #include "Scene.h"
+#include "SceneHelper.h"
 #include "imgui.h"
+
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -203,7 +205,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom<MipMapScene>(modelLoader);
+			this->scene = SceneHelper::loadFrom<MipMapScene>(modelLoader);
 		}
 
 		void onResize(int width, int height) override {

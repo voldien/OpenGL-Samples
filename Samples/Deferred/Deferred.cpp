@@ -2,6 +2,7 @@
 #include "GLUIComponent.h"
 #include "SampleHelper.h"
 #include "Scene.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>
@@ -324,7 +325,7 @@ namespace glsample {
 			/*	Load scene from model importer.	*/
 			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(modelLoader);
+			this->scene = SceneHelper::loadFrom(modelLoader);
 
 			/*	Load Light geometry and combine.	*/
 			{

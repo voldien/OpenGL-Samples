@@ -1,6 +1,7 @@
 #include "Math/Math.h"
 #include "SampleHelper.h"
 #include "Scene.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include "Util/ProcessDataUtil.h"
 #include "imgui.h"
@@ -12,6 +13,7 @@
 #include <ModelImporter.h>
 #include <ModelViewer.h>
 #include <ShaderLoader.h>
+
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
@@ -291,7 +293,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader(FileSystem::getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(modelLoader);
+			this->scene = SceneHelper::loadFrom(modelLoader);
 
 			/*	Load geometry.	*/
 			CommonUtil::loadPlan(this->plan, 1, 1, 1);

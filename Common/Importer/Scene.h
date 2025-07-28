@@ -14,9 +14,9 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Common.h"
 #include "Core/UIDObject.h"
 #include "GLSampleSession.h"
-#include "ImportHelper.h"
 #include "ModelImporter.h"
 #include "SampleHelper.h"
 #include <deque>
@@ -71,6 +71,8 @@ namespace glsample {
 	 *
 	 */
 	class Scene : public fragcore::UIDObject {
+		friend class SceneHelper;
+
 	  public:
 		Scene();
 		virtual ~Scene();
@@ -119,6 +121,7 @@ namespace glsample {
 			FogSettings fogSettings;
 			unsigned int FrustumCullingMode = 0;
 		};
+
 		using GlobalSceneState = struct common_constant_data_t {
 			// TODO: keep multi frame camera frustum.
 			CameraInstanceData camera;
@@ -229,18 +232,5 @@ namespace glsample {
 
 		int frameIndex = 0;
 		static const unsigned int frameChainCount = 3;
-
-	  public:
-		template <typename T = Scene> static T loadFrom(ModelImporter &importer) {
-			T scene;
-
-			/*	*/
-			scene.nodes = importer.getNodes();
-			ImportHelper::loadModelBuffer(importer, scene.refGeometry);
-			ImportHelper::loadTextures(importer, scene.refTexture);
-			scene.materials = importer.getMaterials();
-
-			return scene;
-		}
 	};
 } // namespace glsample

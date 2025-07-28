@@ -1,4 +1,5 @@
 #include "GLUIComponent.h"
+#include "SceneHelper.h"
 #include "Scene.h"
 #include "Skybox.h"
 #include "imgui.h"
@@ -320,7 +321,7 @@ namespace glsample {
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
 			skybox.Init(skytexture, Skybox::loadDefaultProgram(this->getFileSystem()));
 
-			this->scene = Scene::loadFrom(modelLoader);
+			this->scene = SceneHelper::loadFrom(modelLoader);
 
 			/*	Load geometry.	*/
 			CommonUtil::loadPlan(this->plan, 1, 1, 1);

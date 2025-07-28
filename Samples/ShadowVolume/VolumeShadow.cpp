@@ -1,4 +1,5 @@
 #include "GLSampleSession.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -264,7 +265,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(*modelLoader);
+			this->scene = SceneHelper::loadFrom(*modelLoader);
 
 			// TODO, fix geometry topology
 			for (size_t i = 0; i < scene.getMeshes().size(); i++) {

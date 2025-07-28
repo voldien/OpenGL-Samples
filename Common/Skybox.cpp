@@ -1,8 +1,8 @@
 #include "Skybox.h"
 #include "Common.h"
-#include "IOUtil.h"
 #include "imgui.h"
 #include <GL/glew.h>
+#include <IO/IOUtil.h>
 #include <ProceduralGeometry.h>
 #include <ShaderLoader.h>
 #include <Util/CameraController.h>

@@ -5,7 +5,7 @@
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include <GL/glew.h>
-#include <IOUtil.h>
+#include <IO/IOUtil.h>
 #include <limits>
 
 using namespace glsample;

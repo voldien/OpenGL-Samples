@@ -4,7 +4,7 @@
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include "imgui.h"
-#include <IOUtil.h>
+#include <IO/IOUtil.h>
 
 using namespace glsample;
 
@@ -30,7 +30,8 @@ void AtmosphericScattering::initialize(fragcore::IFileSystem *filesystem) {
 
 	if (this->atmospheric_scattering_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
+		const std::vector<uint32_t> post_vertex_binary =
+			IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
 		const std::vector<uint32_t> glow_fragment_binary = IOUtil::readFileData<uint32_t>(glow_frag_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;

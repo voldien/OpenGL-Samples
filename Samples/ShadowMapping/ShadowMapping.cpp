@@ -1,4 +1,5 @@
 #include "SampleHelper.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -294,7 +295,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom<SceneShadow>(*modelLoader);
+			this->scene = SceneHelper::loadFrom<SceneShadow>(*modelLoader);
 
 			/*	load Skybox Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());

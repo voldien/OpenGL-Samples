@@ -2,7 +2,7 @@
 #include "GLSampleSession.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
-#include <IOUtil.h>
+#include <IO/IOUtil.h>
 #include <algorithm>
 
 using namespace glsample;

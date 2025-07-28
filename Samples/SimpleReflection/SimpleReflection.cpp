@@ -1,5 +1,6 @@
 #include "ModelImporter.h"
 #include "Scene.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -188,7 +189,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(modelLoader);
+			this->scene = SceneHelper::loadFrom(modelLoader);
 
 			/*	Plan.	*/
 			CommonUtil::loadPlan(this->plan, 1);

@@ -33,11 +33,11 @@ namespace glsample {
 		virtual void customOptions(cxxopts::OptionAdder &options) {}
 
 		/*	*/
-		fragcore::IFileSystem *getFileSystem() const noexcept { return this->activeFileSystem.get(); }
-		fragcore::IScheduler *getSchedular() const  noexcept { return this->schedular.get(); }
+		fragcore::IFileSystem *getFileSystem() const noexcept { return this->activeFileSystem; }
+		fragcore::IScheduler *getSchedular() const noexcept { return this->schedular.get(); }
 
 	  protected:
-		std::shared_ptr<fragcore::IFileSystem> activeFileSystem = nullptr;
+		fragcore::IFileSystem *activeFileSystem = nullptr;
 		std::shared_ptr<fragcore::IScheduler> schedular = nullptr;
 	};
 } // namespace glsample

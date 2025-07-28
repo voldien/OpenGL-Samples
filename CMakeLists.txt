@@ -90,7 +90,7 @@ ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/mod
 # ##################################################
 # Backend common logic for all OpenGL Samples
 # ###################################################
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/common)
+ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Common)
 
 # ###################################
 # OpenGL Samples

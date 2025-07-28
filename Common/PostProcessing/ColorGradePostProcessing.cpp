@@ -3,7 +3,7 @@
 #include "PostProcessing/PostProcessing.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
-#include <IOUtil.h>
+#include <IO/IOUtil.h>
 
 using namespace glsample;
 

@@ -4,7 +4,7 @@
 #include "ShaderLoader.h"
 #include "imgui.h"
 #include <GL/glew.h>
-#include <IOUtil.h>
+#include <IO/IOUtil.h>
 #include <SDL_opengl.h>
 
 using namespace glsample;

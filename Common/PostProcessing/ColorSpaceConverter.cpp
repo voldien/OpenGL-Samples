@@ -2,7 +2,7 @@
 #include "Common.h"
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
-#include <IOUtil.h>
+#include <IO/IOUtil.h>
 
 using namespace glsample;
 

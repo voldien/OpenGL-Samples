@@ -1,4 +1,5 @@
 #include "ModelImporter.h"
+#include "SceneHelper.h"
 #include "Scene.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -196,7 +197,7 @@ namespace glsample {
 			/*	Load scene from model importer.	*/
 			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom(modelLoader);
+			this->scene = SceneHelper::loadFrom(modelLoader);
 
 			/*  Init lights.    */
 			const glm::vec4 colors[] = {glm::vec4(1, 0.1, 0.1, 1), glm::vec4(0.1, 1, 0.1, 1), glm::vec4(0.1, 0.1, 1, 1),

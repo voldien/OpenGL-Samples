@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "GLSampleSession.h"
 #include "GeometryUtil.h"
+#include "SceneHelper.h"
 #include "Math/Math.h"
 #include "Math3D/BoundingSphere.h"
 #include "Math3D/Math3D.h"
@@ -277,7 +278,7 @@ namespace glsample {
 			/*	*/
 			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
 			modelLoader.loadContent(modelPath, 0);
-			this->scene = Scene::loadFrom<SceneFrustum>(modelLoader);
+			this->scene = SceneHelper::loadFrom<SceneFrustum>(modelLoader);
 
 			/*	load Skybox Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
