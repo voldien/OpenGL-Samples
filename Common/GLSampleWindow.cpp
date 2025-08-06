@@ -6,6 +6,7 @@
 #include "GLUIComponent.h"
 
 #include "GraphicFormat.h"
+#include "IO/FileSystem.h"
 #include "PostProcessing/BloomPostProcessing.h"
 #include "PostProcessing/BlurPostProcessing.h"
 #include "PostProcessing/ChromaticAberrationPostProcessing.h"
@@ -502,12 +503,12 @@ void GLSampleWindow::renderUI() {
 		/*	Transfer Multisampled texture to FBO.	*/
 		if (this->MMSAFrameBuffer && this->MMSAFrameBuffer->framebuffer == this->getDefaultFramebuffer()) {
 			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("MultiSampling to FBO"), "MultiSampling to FBO");
+
 			/*	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->MMSAFrameBuffer->framebuffer);
 
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
-			// glViewport(0, 0, this->width(), this->height());
 
 			const size_t source_framebuffer_width = this->MMSAFrameBuffer->attachmentSize[0].x;
 			const size_t source_framebuffer_height = this->MMSAFrameBuffer->attachmentSize[0].y;
@@ -518,7 +519,7 @@ void GLSampleWindow::renderUI() {
 			/*	*/
 			glBlitFramebuffer(0, 0, source_framebuffer_width, source_framebuffer_height, 0, 0, target_framebuffer_width,
 							  target_framebuffer_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-			/*	*/
+			/*	Filter Nearest since image sizes are the same.	*/
 			glBlitFramebuffer(0, 0, this->width(), this->height(), 0, 0, this->width(), this->height(),
 							  GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -527,7 +528,8 @@ void GLSampleWindow::renderUI() {
 
 		/*	*/
 		if (this->postprocessingManager) {
-			const std::string postStage = "post processing";
+
+			const std::string postStage = "Post Processing";
 			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, postStage.size(), postStage.data());
 			/*	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
@@ -584,16 +586,19 @@ void GLSampleWindow::renderUI() {
 		glEndQuery(GL_GEOMETRY_SHADER_INVOCATIONS);
 
 		//	glGetQueryObjectui64v
-		glGetQueryObjectui64v(this->queries[0], GL_QUERY_RESULT, &debugInfo.time_elapsed);
-		glGetQueryObjectui64v(this->queries[1], GL_QUERY_RESULT, &debugInfo.nrSamples);
-		glGetQueryObjectui64v(this->queries[2], GL_QUERY_RESULT, &debugInfo.nrPrimitives);
-		glGetQueryObjectui64v(this->queries[3], GL_QUERY_RESULT, &this->debugInfo.debug_prev_frame_cs_invocation_count);
-		glGetQueryObjectui64v(this->queries[4], GL_QUERY_RESULT,
-							  &this->debugInfo.debug_prev_frame_frag_invocation_count);
-		glGetQueryObjectui64v(this->queries[5], GL_QUERY_RESULT,
-							  &this->debugInfo.debug_prev_frame_vertex_invocation_count);
-		glGetQueryObjectui64v(this->queries[6], GL_QUERY_RESULT,
-							  &this->debugInfo.debug_prev_frame_geometry_invocation_count);
+		if (glGetQueryObjectui64v) {
+			glGetQueryObjectui64v(this->queries[0], GL_QUERY_RESULT, &debugInfo.time_elapsed);
+			glGetQueryObjectui64v(this->queries[1], GL_QUERY_RESULT, &debugInfo.nrSamples);
+			glGetQueryObjectui64v(this->queries[2], GL_QUERY_RESULT, &debugInfo.nrPrimitives);
+			glGetQueryObjectui64v(this->queries[3], GL_QUERY_RESULT,
+								  &this->debugInfo.debug_prev_frame_cs_invocation_count);
+			glGetQueryObjectui64v(this->queries[4], GL_QUERY_RESULT,
+								  &this->debugInfo.debug_prev_frame_frag_invocation_count);
+			glGetQueryObjectui64v(this->queries[5], GL_QUERY_RESULT,
+								  &this->debugInfo.debug_prev_frame_vertex_invocation_count);
+			glGetQueryObjectui64v(this->queries[6], GL_QUERY_RESULT,
+								  &this->debugInfo.debug_prev_frame_geometry_invocation_count);
+		}
 
 		this->debugInfo.debug_prev_frame_sample_count = debugInfo.nrSamples;
 		this->debugInfo.debug_prev_frame_primitive_count = debugInfo.nrPrimitives;
@@ -740,7 +745,8 @@ void GLSampleWindow::captureScreenShot() {
 
 				fragcore::ImageLoader loader;
 				const std::string filename = fragcore::SystemInfo::getApplicationName() + "-screenshot-" + str + ".jpg";
-				loader.saveImage(filename, image, fragcore::ImageLoader::FileFormat::Jpeg);
+				FileSystem *filesystem = FileSystem::getFileSystem();
+				loader.saveImage(filename, image, filesystem, fragcore::ImageLoader::FileFormat::Jpeg);
 
 			} catch (const std::exception &ex) {
 				this->getLogger().error("Failed to create ScreenShot {}", ex.what());

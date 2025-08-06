@@ -44,7 +44,7 @@ namespace glsample {
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
 
 			/*	Fog.	*/
-			glm::vec4 fogColor = glm::vec4(1, 0, 0, 1);
+			glm::vec4 fogColor = glm::vec4(1, 0.05, 0.05, 1);
 			float cameraNear = 0.15f;
 			float cameraFar = 1000.0f;
 			float fogStart = 100;

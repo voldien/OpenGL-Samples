@@ -41,24 +41,28 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	~GLSampleWindow() override;
 
 	/**
-	 * @brief
-	 *
+	 * @brief Invoked during initialization of the sample.
 	 */
 	virtual void Initialize() = 0;
 
 	/**
-	 * @brief
-	 *
+	 * @brief Invoked when requesting to release resources.
 	 */
 	virtual void Release() = 0;
 
 	/**
-	 * @brief
-	 *
+	 * @brief invoked for when start doing rendering.
 	 */
 	virtual void draw() = 0;
+
+	/**
+	 * @brief invoked after the draw.
+	 */
 	virtual void postDraw() {}
 
+	/**
+	 * @brief Invoked before render
+	 */
 	virtual void update() = 0;
 
   public:
@@ -139,6 +143,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 		return this->postprocessingManager.get();
 	}
 
+	/*	*/
 	size_t getCurrentFrameBufferWidth() const noexcept { return getDefaultFrameBufferObj()->attachmentSize[0].x; }
 	size_t getCurrentFrameBufferHeight() const noexcept { return getDefaultFrameBufferObj()->attachmentSize[0].y; }
 	void getCurrentFrameBufferSize(size_t *width, size_t *height) const noexcept {
@@ -160,7 +165,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 		const float sub_view_width = (int)(width / widthDivior);
 		const float sub_view_height = (int)(height / heightDivior);
 
-		// TODO: make its function for resue it with other samples
+		// TODO: make its function for reuse it with other samples
 		for (size_t index = 0; index < framebuffer->nrAttachments; index++) {
 
 			glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
@@ -196,7 +201,8 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	/*	SuperSampling Anti-Aliasing */
 	bool useSSAA = false;
 	int SSAASamples = 1;
-	 int getSizeSSAFactor() const noexcept { return useSSAA ? SSAASamples : 1; }
+
+	int getSizeSSAFactor() const noexcept { return this->useSSAA ? this->SSAASamples : 1; }
 
 	/*	*/
 	bool useSampleAccumlation = false;
@@ -218,6 +224,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	std::shared_ptr<glsample::PostProcessingManager> postprocessingManager = nullptr;
 	std::shared_ptr<glsample::ColorSpaceConverter> colorSpace;
 
+	/*	Framebuffers.	*/
 	std::shared_ptr<glsample::FrameBuffer> defaultFramebuffer = nullptr;
 	std::shared_ptr<glsample::FrameBuffer> MMSAFrameBuffer = nullptr;
 

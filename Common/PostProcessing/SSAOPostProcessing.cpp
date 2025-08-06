@@ -209,7 +209,7 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 	if (this->downScale) {
 		scaleFactor = 0.5f;
 		glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	} else {
 		glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glSamplerParameteri(this->texture_sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -288,12 +288,12 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 	glViewport(0, 0, framebuffer_base_width, framebuffer_base_height);
 
-	/*	Overlay with the orignal color framebuffer.	*/
+	/*	Overlay with the original color framebuffer.	*/
 	{
 		glBindVertexArray(this->vao);
 		glUseProgram(this->overlay_program);
 
-		// glBindSampler(ssao_target_index, this->texture_sampler);
+		glBindSampler(0, 0);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, framebuffer->attachments[ssao_target_index]);
 
