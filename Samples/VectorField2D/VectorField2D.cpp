@@ -37,20 +37,20 @@ namespace glsample {
 		MeshObject particles;
 
 		/*	*/
-		unsigned int particle_texture;
-		int localWorkGroupSize[3];
+		unsigned int particle_texture{};
+		int localWorkGroupSize[3]{};
 
 		/*	Shader pipeline programs.	*/
-		unsigned int particle_graphic_program;
-		unsigned int particle_compute_program;
-		unsigned int particle_init_compute_program;
-		unsigned int particle_motion_force_compute_program;
-		unsigned int vector_field_graphic_program;
+		unsigned int particle_graphic_program{};
+		unsigned int particle_compute_program{};
+		unsigned int particle_init_compute_program{};
+		unsigned int particle_motion_force_compute_program{};
+		unsigned int vector_field_graphic_program{};
 
 		using Motion = struct motion_t {
-			glm::vec2 normalizedPos; /*  Position in pixel space.    */
-			glm::vec2 velocity;		 /*  direction and magnitude of mouse movement.  */
-			float radius = 10.0f;	 /*  Radius of incluense, also the pressure of input.    */
+			glm::vec2 normalizedPos{}; /*  Position in pixel space.    */
+			glm::vec2 velocity{};	   /*  direction and magnitude of mouse movement.  */
+			float radius = 10.0f;	   /*  Radius of incluense, also the pressure of input.    */
 			float amplitude = 1.0;
 			float noise = 0;
 			float pad2 = 0;
@@ -106,7 +106,7 @@ namespace glsample {
 
 		/*	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 

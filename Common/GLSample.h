@@ -21,12 +21,12 @@
 #include "GLUIComponent.h"
 #include "IO/FileSystem.h"
 #include "IO/IFileSystem.h"
-#include <IO/IOUtil.h>
 #include "Util/CameraController.h"
 #include "Util/ProcessDataUtil.h"
 #include "magic_enum.hpp"
 #include <GLHelper.h>
 #include <GeometryUtil.h>
+#include <IO/IOUtil.h>
 #include <ProceduralGeometry.h>
 #include <SDLDisplay.h>
 #include <TaskScheduler.h>
@@ -76,7 +76,6 @@ template <typename T = GLSampleWindow> class GLSample : public glsample::GLSampl
 				"g,opengl-version", "OpenGL Version", cxxopts::value<int>()->default_value("-1"))(
 				"F,filesystem", "FileSystem", cxxopts::value<std::string>()->default_value("."))(
 				"r,renderdoc", "Enable RenderDoc", cxxopts::value<bool>()->default_value("false"))(
-				"G,gamma-correction", "Enable Gamma Correction", cxxopts::value<bool>()->default_value("false"))(
 				"W,width", "Set Window Width", cxxopts::value<int>()->default_value("-1"))(
 				"H,height", "Set Window Height", cxxopts::value<int>()->default_value("-1"))(
 				"D,display", "Display", cxxopts::value<int>()->default_value("-1"))(

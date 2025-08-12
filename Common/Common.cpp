@@ -244,7 +244,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 
 		if (multisamples == 0) {
 
-			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 			/*	Border clamped to max value, it makes the outside area.	*/
@@ -255,6 +255,8 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0));
 			FVALIDATE_GL_CALL(glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f));
 			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_BASE_LEVEL, 0));
+
+			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_MAX_LEVEL, 0));
 		}
 
 		glBindTexture(texture_type, 0);
@@ -301,8 +303,9 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		/*	*/
 		if (multisamples == 0) {
 
-			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 			glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 			glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 			glTexParameteri(texture_type, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);

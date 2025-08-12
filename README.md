@@ -14,21 +14,25 @@ Usage:
   OpenGL Sample: GLSample [OPTION...]
 
  GLSample options:
-  -h, --help                helper information.
-  -d, --debug               Enable Debug View. (default: true)
-  -t, --time arg            How long to run sample (default: 0)
-  -f, --fullscreen          Run in FullScreen Mode
-  -v, --vsync               Vertical Blank Sync
-  -g, --opengl-version arg  OpenGL Version (default: -1)
-  -F, --filesystem arg      FileSystem (default: .)
-  -r, --renderdoc           Enable RenderDoc
-  -G, --gamma-correction    Enable Gamma Correction
-  -W, --width arg           Set Window Width (default: -1)
-  -H, --height arg          Set Window Height (default: -1)
-  -D, --display arg         Display (default: -1)
-  -m, --multi-sample arg    Set MSAA (default: 0)
-  -p, --use-postprocessing  Use Post Processing (default: true)
-  -s, --glsl-version arg    Override glsl version from system 
+  -h, --help                   helper information.
+  -d, --debug                  Enable Debug View. (default: true)
+  -t, --time arg               How long to run sample (default: 0)
+  -f, --fullscreen             Run in FullScreen Mode
+  -v, --vsync                  Vertical Blank Sync
+  -g, --opengl-version arg     OpenGL Version (default: -1)
+  -F, --filesystem arg         FileSystem (default: .)
+  -r, --renderdoc              Enable RenderDoc
+  -W, --width arg              Set Window Width (default: -1)
+  -H, --height arg             Set Window Height (default: -1)
+  -D, --display arg            Display (default: -1)
+  -R, --dynamic-range arg      Set Dynamic Range ldr,hdr16,hdr32 (default: 
+                               hdr16)
+  -m, --multi-sample arg       Set MSAA (MultiSampling) (default: 0)
+      --super-multisample arg  Set Super MultiSampling MSAA (default: 0)
+  -p, --use-postprocessing     Use Post Processing (default: true)
+  -C, --disable-colorspace     Use Color Space Convertion
+  -s, --glsl-version arg       Override glsl version from system 
+                               (110,120,130,140,150,330...) (default: -1)
 ```
 
 ## Graphic Based Samples
@@ -89,7 +93,6 @@ Usage:
 ### [**FrustumCulling**](Samples/Frustum/)
 
 ![FrustumCulling](https://github.com/user-attachments/assets/41275f2f-9a65-4e56-81ac-956e758b62bd)
-
 
 ### [**Shadow Map**](Samples/ShadowMapping/)
 
@@ -224,7 +227,7 @@ make DownloadAsset
 
 ## License
 
-This project is licensed under the GPL+3 License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 Models downloaded from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)
 
@@ -245,4 +248,24 @@ MESA_DEBUG=1
 MESA_GLSL=source
 MESA_SHADER_DUMP_PATH=dump
 INTEL_DEBUG=perf
+```
+
+### Export Build to Target Directory
+
+Build Asset File
+
+```bash
+tar
+```
+
+Setup Build.
+
+```bash
+cmake .. -DCMAKE_INSTALL_PREFIX=/target -DCMAKE_BUILD_TYPE=Release
+```
+
+Install
+
+```bash
+cmake --build . --parallel $(nproc --all) --target install ;
 ```
