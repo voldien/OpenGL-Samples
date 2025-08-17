@@ -28,8 +28,13 @@ namespace glsample {
 			this->addUIComponent(this->marchingCubeSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(15.5f));
+			this->camera.setFar(4000.0f);
+			this->camera.setPosition(glm::vec3(105.5f));
 			this->camera.lookAt(glm::vec3(0.f));
+
+			/*	*/
+			this->uniformStageBuffer.fogSettings.fogColor = glm::vec4(0.2f, 0.325f, 0.48f, 1);
+			this->uniformStageBuffer.fogSettings.fogIntensity = 2.0f;
 		}
 
 		using DomainChunk = struct domain_chunk_t {};
@@ -62,8 +67,8 @@ namespace glsample {
 
 		using MarchingCubeSettings = struct marching_cube_settings_t {
 			float voxel_size = 75;
-			float threshold = 0.01f;
-			float mag = 0.15f;
+			float threshold = 0.1f;
+			float mag = 1.50f;
 			float scale = 0.029f;
 			glm::vec4 position_offset = glm::vec4(0);
 			glm::vec4 random_offset = glm::vec4(0);

@@ -3,6 +3,7 @@
 
 /*	*/
 struct material {
+	ivec4 info;				 /*	*/
 	vec4 ambientColor;		 /*	*/
 	vec4 diffuseColor;		 /*	*/
 	vec4 transparency;		 /*	*/

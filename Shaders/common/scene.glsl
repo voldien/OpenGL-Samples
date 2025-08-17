@@ -30,7 +30,7 @@ struct common_data {
 };
 
 struct Node {
-	mat4 model;
+	mat4 model;		/*	*/
 };
 
 struct light_settings {
@@ -45,15 +45,19 @@ layout(set = 1, binding = 1, std140) uniform UniformCommonBufferBlock { common_d
 constantCommon;
 
 /*	*/
-layout(set = 1, binding = 2, std140) uniform UniformNodeBufferBlock { Node node[1024]; }
+layout(set = 1, binding = 2, std140) uniform UniformNodeBufferBlock { Node node[512]; }
 NodeUBO;
+
+/*	*/
+layout(set = 1, binding = 6, std140) uniform UniformPrevNodeBufferBlock { Node node[512]; }
+NodePrevUBO;
 
 /*	*/
 layout(set = 1, binding = 3, std140) uniform UniformSkeletonBufferBlock { mat4 gBones[1024]; }
 skeletonUBO;
 
 /*	*/
-layout(set = 1, binding = 4, std140) uniform UniformMaterialBufferBlock { material materials[650]; }
+layout(set = 1, binding = 4, std140) uniform UniformMaterialBufferBlock { material materials[512]; }
 MaterialUBO;
 
 /*	*/
@@ -73,9 +77,9 @@ layout(set = 0, binding = 7) uniform sampler2D DisplacementTexture;
 layout(set = 0, binding = 6) uniform sampler2D AOTexture;
 
 /*	*/
-layout(set = 1,binding = 10) uniform sampler2D IrradianceTexture;
-layout(set = 1,binding = 11) uniform samplerCube prefilterMap;
-layout(set = 1,binding = 12) uniform sampler2D brdfLUT;
+layout(set = 1, binding = 10) uniform sampler2D IrradianceTexture;
+layout(set = 1, binding = 11) uniform samplerCube prefilterMap;
+layout(set = 1, binding = 12) uniform sampler2D brdfLUT;
 
 layout(set = 2, binding = 13) uniform sampler2D CameraDepthTexture;
 
@@ -100,7 +104,7 @@ PointLight getPointLight(const in int index) { return LightUBO.light.point[index
 /*	*/
 Camera getCamera() { return constantCommon.constant.camera; }
 
-//TODO: use transform functions here
+// TODO: use transform functions here
 vec3 scene_world_to_view(const in vec3 x) { return (constantCommon.constant.camera.view * vec4(x, 1)).xyz; }
 
 #endif

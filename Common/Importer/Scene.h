@@ -104,6 +104,7 @@ namespace glsample {
 
 		const std::vector<MeshObject> &getMeshes() const noexcept { return this->refGeometry; }
 		std::vector<MeshObject> &getMeshes() noexcept { return this->refGeometry; }
+		std::vector<MaterialObject> &getMaterials() noexcept { return this->materials; }
 
 		DirectionalLight *getDirectionalLight(const size_t index = 0) noexcept {
 			return &this->stageLightData->directional[index];
@@ -136,8 +137,8 @@ namespace glsample {
 
 			glm::vec4 time; /*	elapsed, delta,	*/
 		};
+
 		using NodeData = struct _node_data_t {
-			// glm::mat4 prevmodel; // For velocity data.
 			glm::mat4 model;
 		};
 
@@ -147,18 +148,21 @@ namespace glsample {
 			unsigned int directionalCount = 0;
 			unsigned int pointCount = 0;
 		};
+
 		using MaterialData = struct _material_data_t {
-			glm::vec4 ambientColor;
-			glm::vec4 diffuseColor;
-			glm::vec4 transparency;
-			glm::vec4 specular_roughness;
-			glm::vec4 emission;
-			glm::vec4 clip_ = glm::vec4(0.8);
+			glm::ivec4 info;				  /*	*/
+			glm::vec4 ambientColor;			  /*	*/
+			glm::vec4 diffuseColor;			  /*	*/
+			glm::vec4 transparency;			  /*	*/
+			glm::vec4 specular_roughness;	  /*	*/
+			glm::vec4 emission;				  /*	*/
+			glm::vec4 clip_ = glm::vec4(0.8); /*	*/
 		};
 
 		/*	*/
 		GlobalSceneState *stageCommonBuffer = nullptr;
 		NodeData *stageNodeData = nullptr;
+		NodeData *stagPrevNodeData = nullptr;
 		MaterialData *stageMaterialData = nullptr;
 		LightData *stageLightData = nullptr;
 

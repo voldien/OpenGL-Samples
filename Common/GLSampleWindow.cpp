@@ -534,6 +534,7 @@ void GLSampleWindow::renderUI() {
 			/*	*/
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
 
+			glViewport(0, 0, this->getCurrentFrameBufferWidth(), this->getCurrentFrameBufferHeight());
 			this->postprocessingManager->render(
 				this->defaultFramebuffer.get(),
 				/*	Setup References.	*/
@@ -551,15 +552,18 @@ void GLSampleWindow::renderUI() {
 				const std::string ColorSpaceConverterStage = "Color Space Conversion";
 				glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, ColorSpaceConverterStage.length(),
 								 ColorSpaceConverterStage.c_str());
+				glViewport(0, 0, this->getCurrentFrameBufferWidth(), this->getCurrentFrameBufferHeight());
 				this->colorSpace->render(this->defaultFramebuffer->attachments[0]);
 				glPopDebugGroup();
 			}
+
+			/*TODO:	Loop for each SSAA scale, to make use of interpolation correctly.	*/
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, this->defaultFramebuffer->framebuffer);
 
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
-			// glViewport(0, 0, this->width(), this->height());
+
 			const size_t framebuffer_width = this->defaultFramebuffer->attachmentSize[0].x;
 			const size_t framebuffer_height = this->defaultFramebuffer->attachmentSize[0].y;
 
@@ -567,11 +571,12 @@ void GLSampleWindow::renderUI() {
 							  GL_COLOR_BUFFER_BIT, GL_LINEAR);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
-
-		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("Post Draw"), "Post Draw");
-		this->postDraw();
-		glPopDebugGroup();
 	}
+
+	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, sizeof("Post Draw"), "Post Draw");
+	glViewport(0, 0, this->width(), this->height());
+	this->postDraw();
+	glPopDebugGroup();
 
 	/*	Extract debugging information.	*/
 	if (this->debugGL) {

@@ -35,8 +35,6 @@ namespace glsample {
 		return mat;
 	}
 
-	// template <typename A, class T...> struct align_uniform {};
-
 	template <typename T, int m>
 	inline glm::vec<m, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, 1> &em) noexcept {
 		glm::vec<m, float, glm::precision::highp> v{};
@@ -134,7 +132,7 @@ namespace glsample {
 
 	using LightShadow = struct light_shadow_t {
 		glm::mat4 lightSpaceMatrix;
-		glm::vec4 shadow;	/*	Shadow, Bias,	*/
+		glm::vec4 shadow; /*	Shadow, Bias,	*/
 	};
 
 	using DirectionalLight = struct directional_light_t {
@@ -232,8 +230,8 @@ namespace glsample {
 
 	using UBORange = struct uniform_buffer_range_t {
 		UBOObject *referenceBuffer; /*	*/
-		size_t offset;		  /*	*/
-		size_t size;		  /*	*/
+		size_t offset;				/*	*/
+		size_t size;				/*	*/
 	};
 
 	using FrameBuffer = struct framebuffer_t {
@@ -242,7 +240,7 @@ namespace glsample {
 		std::array<glm::ivec3, 32> attachmentSize{};
 		std::array<unsigned int, 32> draw_attachments{}; /*	Store the draw attachment for */
 		unsigned int nrAttachments = 0;
-		unsigned int depthIndex = 31;	/*	Last attachment reserved for the depth/stencil.	*/
+		unsigned int depthIndex = 31; /*	Last attachment reserved for the depth/stencil.	*/
 	};
 
 } // namespace glsample

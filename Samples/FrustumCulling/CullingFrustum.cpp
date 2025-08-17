@@ -1,11 +1,11 @@
 #include "Common.h"
 #include "GLSampleSession.h"
 #include "GeometryUtil.h"
-#include "SceneHelper.h"
 #include "Math/Math.h"
 #include "Math3D/BoundingSphere.h"
 #include "Math3D/Math3D.h"
 #include "Scene.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include "Util/CameraController.h"
 #include "Util/Frustum.h"
@@ -83,6 +83,11 @@ namespace glsample {
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1.0f);
 		};
 
+		struct InstanceData {
+			glm::mat4 model;
+			glm::vec4 color;
+		};
+
 		UniformBufferBlock uniformStageBuffer;
 
 		/*	*/
@@ -157,7 +162,7 @@ namespace glsample {
 
 			bool useFrustumCulling = true;
 			bool showFrustum = true;
-			bool showBoundIn2Camera = true;
+			bool showBoundIn2Camera = false;
 			bool showBoundsInMainView = true;
 			bool showSecondCameraView = true;
 			bool useSphereCulling = false;
@@ -240,7 +245,8 @@ namespace glsample {
 			/*	Setup graphic program.	*/
 			glUseProgram(this->bounding_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->bounding_program, "UniformBufferBlock");
-			int uniform_instance_buffer_index = glGetUniformBlockIndex(this->bounding_program, "UniformInstanceBlock");
+			const int uniform_instance_buffer_index =
+				glGetUniformBlockIndex(this->bounding_program, "UniformInstanceBlock");
 			glUniformBlockBinding(this->bounding_program, uniform_buffer_index, uniform_buffer_binding);
 			glUniformBlockBinding(this->bounding_program, uniform_instance_buffer_index,
 								  uniform_instance_buffer_binding);
@@ -264,10 +270,10 @@ namespace glsample {
 				/*	*/
 				GLint uniformMaxSize = 0;
 				glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniformMaxSize);
-				this->instanceBatch = std::min<size_t>(uniformMaxSize / sizeof(glm::mat4), 512);
+				this->instanceBatch = std::min<size_t>(uniformMaxSize / sizeof(InstanceData), 512);
 
 				this->uniformInstanceSize =
-					fragcore::Math::align<size_t>(this->instanceBatch * sizeof(glm::mat4), (size_t)minMapBufferSize);
+					fragcore::Math::align<size_t>(this->instanceBatch * sizeof(InstanceData), (size_t)minMapBufferSize);
 				glGenBuffers(1, &this->uniform_instance_buffer);
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_instance_buffer);
 				glBufferData(GL_UNIFORM_BUFFER, this->uniformInstanceSize * this->nrUniformBuffers, nullptr,
@@ -301,9 +307,6 @@ namespace glsample {
 			/*	Update camera aspect	*/
 			this->camera.setAspect((float)width / (float)height);
 			this->camera_observe_frustum.setAspect((float)width / (float)height);
-
-			this->camera.setFar(2000.0f);
-			this->camera_observe_frustum.setFar(2000.0f);
 
 			/*	Update frustum geometry.	*/
 			const Matrix4x4 proj = GLM2E(camera.getProjectionMatrix());
@@ -341,6 +344,7 @@ namespace glsample {
 
 				if (this->frustumCullingSettingComponent->showBoundsInMainView) {
 					auto copyNode = this->secondCameraNodeQueue;
+
 					glUseProgram(this->bounding_program);
 					this->renderBoundingBox(this->camera, copyNode);
 					glUseProgram(0);
@@ -348,11 +352,11 @@ namespace glsample {
 			}
 
 			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  (((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize *
-									  this->nrCameras) +
-								  this->uniformAlignBufferSize,
-							  this->uniformAlignBufferSize);
+			glBindBufferRange(
+				GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
+				(((this->getFrameCount() % nrUniformBuffers)) * this->uniformAlignBufferSize * this->nrCameras) +
+					this->uniformAlignBufferSize,
+				this->uniformAlignBufferSize);
 
 			if (this->frustumCullingSettingComponent->showSecondCameraView) {
 
@@ -393,6 +397,7 @@ namespace glsample {
 					glDisable(GL_SCISSOR_TEST);
 				}
 			}
+			
 		}
 
 		void update() override {
@@ -418,6 +423,7 @@ namespace glsample {
 				copy.modelViewProjection = copy.proj * copy.view * copy.model;
 
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+
 				uint8_t *uniformPointer = (uint8_t *)glMapBufferRange(
 					GL_UNIFORM_BUFFER,
 					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformAlignBufferSize *
@@ -493,7 +499,7 @@ namespace glsample {
 		void renderBoundingBox(const CameraController &camera, std::queue<const NodeObject *> &queue) {
 
 			// TODO: fix if more than buffer size.
-			std::vector<glm::mat4> instance_model_matrices;
+			std::vector<InstanceData> instance_model_matrices;
 
 			while (!queue.empty()) {
 
@@ -516,8 +522,11 @@ namespace glsample {
 					localBoundMatrix = glm::scale(localBoundMatrix, E2GLM<float, 3>(aabb.getHalfSize()));
 
 					const glm::mat4 model = node->modelGlobalTransform * localBoundMatrix;
+					const glm::vec4 color =
+						glm::vec4(node->materialIndex[0] * 0.1f + 0.2, 1, 1 * (node->materialIndex[0] / 3.0f), 0.035f);
+					const InstanceData data = {model, color};
 
-					instance_model_matrices.push_back(model);
+					instance_model_matrices.push_back(data);
 				}
 			}
 
@@ -537,7 +546,7 @@ namespace glsample {
 
 			glBindVertexArray(this->boundingBox.vao);
 
-			/*	*/
+			/*	Rendering mode.	*/
 			glDisable(GL_CULL_FACE);
 			glEnable(GL_DEPTH_TEST);
 			glDepthMask(GL_FALSE);

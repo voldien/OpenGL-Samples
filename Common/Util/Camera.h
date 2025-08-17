@@ -126,7 +126,7 @@ namespace glsample {
 		float top = 10;
 		float bottom = -10;
 		float near = 0.45f;
-		float far = 1650.0f;
+		float far = 2550.0f;
 		glm::mat4 proj{};
 		CameraProjectionMode mode = CameraProjectionMode::Perspective;
 	};

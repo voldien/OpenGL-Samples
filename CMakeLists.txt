@@ -1,5 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9...3.22)
-PROJECT(OpenGLSamples) 
+PROJECT(OpenGLSamples)
 
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin CACHE INTERNAL "" FORCE)
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib CACHE INTERNAL "" FORCE)
@@ -207,14 +207,14 @@ FOREACH(GLSL ${GLSL_SOURCE_FILES})
 	SET(SPIRV "${FILE_NAME}.spv")
 	IF(GLSLLANGVALIDATOR)
 		IF(CMAKE_BUILD_TYPE STREQUAL "Release")
-			SET(SPIRV_BUILD_SETTINGS -g0)
+			SET(SPIRV_BUILD_SETTINGS)
 		ELSE()
 			SET(SPIRV_BUILD_SETTINGS -g -gVS -Od)
 		ENDIF()
 		ADD_CUSTOM_COMMAND(
 			OUTPUT ${SPIRV}
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
-			COMMAND ${GLSLLANGVALIDATOR} --define-macro gl_InstanceID=gl_InstanceIndex --define-macro gl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-env vulkan1.1 ${SPIRV_BUILD_SETTINGS} -o ${SPIRV} ${GLSL} 
+			COMMAND ${GLSLLANGVALIDATOR} --define-macro gl_InstanceID=gl_InstanceIndex --define-macro gl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-env vulkan1.1 ${SPIRV_BUILD_SETTINGS} -o ${SPIRV} ${GLSL}
 			DEPENDS ${GLSL})
 	ELSEIF(GLSLC)
 		IF(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -226,7 +226,7 @@ FOREACH(GLSL ${GLSL_SOURCE_FILES})
 		ADD_CUSTOM_COMMAND(
 			OUTPUT ${SPIRV}
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${EXECUTABLE_OUTPUT_PATH}/Shaders/"
-			COMMAND ${GLSLC} -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-spv=spv1.3 -x glsl ${SPIRV_BUILD_SETTINGS} -Werror --target-env=vulkan1.1 -o ${SPIRV} ${GLSL} 
+			COMMAND ${GLSLC} -Dgl_InstanceID=gl_InstanceIndex -Dgl_VertexID=gl_VertexIndex  -I${CMAKE_CURRENT_SOURCE_DIR}/Shaders/common --target-spv=spv1.3 -x glsl ${SPIRV_BUILD_SETTINGS} -Werror --target-env=vulkan1.1 -o ${SPIRV} ${GLSL}
 			DEPENDS ${GLSL})
 	ENDIF()
 

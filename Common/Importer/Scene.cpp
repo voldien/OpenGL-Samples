@@ -193,24 +193,27 @@ namespace glsample {
 	void Scene::updateBuffers() {
 
 		/*	*/
+		NodeData *baseNodeData = this->stageNodeData;
 		size_t node_index = 0;
 		auto copyQueue = renderQueue;
 		for (const NodeObject *node : copyQueue) {
-			this->stageNodeData[node_index++].model = node->modelGlobalTransform;
+			baseNodeData[node_index++].model = node->modelGlobalTransform;
 		}
 
 		/*	Update Materials.	*/
+		MaterialData *materialBase = this->stageMaterialData;
 		size_t material_index = 0;
 		for (; material_index < this->materials.size(); material_index++) {
 
-			this->stageMaterialData[material_index].ambientColor = this->materials[material_index].ambient;
-			this->stageMaterialData[material_index].diffuseColor = this->materials[material_index].diffuse;
-			this->stageMaterialData[material_index].specular_roughness = glm::vec4(
+			materialBase[material_index].info.x = material_index;
+			materialBase[material_index].ambientColor = this->materials[material_index].ambient;
+			materialBase[material_index].diffuseColor = this->materials[material_index].diffuse;
+			materialBase[material_index].specular_roughness = glm::vec4(
 				glm::vec3(this->materials[material_index].specular), this->materials[material_index].shinininess);
-			this->stageMaterialData[material_index].emission = this->materials[material_index].emission;
-			this->stageMaterialData[material_index].transparency = this->materials[material_index].transparent;
-			this->stageMaterialData[material_index].clip_[0] = this->materials[material_index].clipping;
-			this->stageMaterialData[material_index].clip_[1] = this->materials[material_index].bumpiness;
+			materialBase[material_index].emission = this->materials[material_index].emission;
+			materialBase[material_index].transparency = this->materials[material_index].transparent;
+			materialBase[material_index].clip_[0] = this->materials[material_index].clipping;
+			materialBase[material_index].clip_[1] = this->materials[material_index].bumpiness;
 		}
 
 		glBindBuffer(GL_UNIFORM_BUFFER, this->UBOStructure.node_and_common_uniform_buffer);
@@ -706,8 +709,12 @@ namespace glsample {
 									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 					ImGui::DragFloat3("Direction", &this->stageLightData->directional[light_index].lightDirection[0]);
 					ImGui::PopID();
-					ImGui::DragFloat("Shadow Strength", &this->stageLightData->directional[light_index].lightShadow.shadow[0], 1, 0.0f, 1.0f);
-					ImGui::DragFloat("Shadow Bias", &this->stageLightData->directional[light_index].lightShadow.shadow[1], 1, 0.0f, 1.0f, "%.5f");
+					ImGui::DragFloat("Shadow Strength",
+									 &this->stageLightData->directional[light_index].lightShadow.shadow[0], 1, 0.0f,
+									 1.0f);
+					ImGui::DragFloat("Shadow Bias",
+									 &this->stageLightData->directional[light_index].lightShadow.shadow[1], 1, 0.0f,
+									 1.0f, "%.5f");
 				}
 
 				if (ImGui::Button("Add Direction Light")) {

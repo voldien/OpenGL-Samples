@@ -308,7 +308,6 @@ namespace glsample {
 
 		void onResize(int width, int height) override {
 			/*	*/
-			this->camera.setFar(2000.0f);
 			this->camera.setAspect((float)width / (float)height);
 		}
 
