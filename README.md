@@ -68,6 +68,8 @@ Usage:
 
 ### [**Irradiance**](Samples/Irradiance/)
 
+![Irradiance](https://github.com/user-attachments/assets/288bd202-ef64-4acb-a8dc-1ab65e9dc3df)
+
 ### [**Instance**](Samples/Instance)
 
 ![Instance](https://github.com/voldien/OpenGL-Samples/assets/9608088/8fb4adca-cd99-45c9-9811-38e727b6685b)
@@ -106,6 +108,7 @@ Usage:
 ### [**Point Shadow Light**](Samples/ShadowPointLight/)
 
 ![PointLightShadow](https://github.com/user-attachments/assets/daaf91b3-b0ee-4b55-a182-ad326b0e2634)
+![PointLightShadow](https://github.com/user-attachments/assets/db68c736-2fea-4ade-9c6e-3842b4cddf7a)
 
 ### [**Shadow Projection**](Samples/ProjectedShadow/)
 
@@ -174,6 +177,7 @@ Usage:
 ### [**Marching Cube**](Samples/MarchingCube/)
 
 ![MarchingCube](https://github.com/user-attachments/assets/f748e312-737c-4106-877b-93b59a9778d5)
+![MarchingCube](https://github.com/user-attachments/assets/1d7010b2-f060-4f34-82ae-87ab5e3d09bc)
 
 ### [**Rigidbody**](Samples/Rigidbody/)
 
@@ -192,6 +196,8 @@ Usage:
 - **Mist Fog**
 
 - **Volumetric Scattering**
+
+![Volumetric](https://github.com/user-attachments/assets/f9be5d9b-46be-4a74-a2e0-6386be0606e1)
 
 ![Volumetric](https://github.com/user-attachments/assets/a899f5da-8a9c-46eb-82e3-990f96ff7028)
 
