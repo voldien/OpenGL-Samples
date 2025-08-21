@@ -11,7 +11,7 @@
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
-#include <ModelViewer.h>
+#include <ModelBase.h>
 #include <ShaderLoader.h>
 
 #include <glm/ext/matrix_transform.hpp>
@@ -49,7 +49,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection{};
 
 			/*	Light source.	*/
-			DirectionalLight directional;
+			DirectionalLightData directional;
 			CameraInstanceData camera;
 
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);

@@ -44,7 +44,7 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		std::vector<PointLightInstance> pointLights;
-		std::vector<DirectionalLight> directionalLights;
+		std::vector<DirectionalLightData> directionalLights;
 
 		/*	*/
 		MeshObject plan;   /*	Directional light.	*/

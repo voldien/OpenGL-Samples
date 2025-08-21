@@ -1,5 +1,6 @@
 #include "common.glsl"
 #include "phongblinn.glsl"
+#include "scene.glsl"
 
 struct Terrain {
 	ivec2 size;

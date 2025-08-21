@@ -8,6 +8,7 @@ IF(NOT TARGET assimp)
 	FetchContent_GetProperties(assimp_source)
 
 	IF(NOT assimp_source)
+
 		FetchContent_Populate(assimp_source)
 
 		OPTION(ASSIMP_BUILD_TESTS OFF)
@@ -21,6 +22,7 @@ IF(NOT TARGET assimp)
 		OPTION(ASSIMP_DOUBLE_PRECISION OFF)
 
 		ADD_SUBDIRECTORY(${assimp_source_SOURCE_DIR} ${assimp_source_BINARY_DIR} EXCLUDE_FROM_ALL)
+
 
 	ELSE()
 		MESSAGE(WARNING "Could not find assimp source code")

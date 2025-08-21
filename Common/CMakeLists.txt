@@ -7,11 +7,10 @@ FILE(GLOB HEADER_OPENGL_COMMON_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h
 SOURCE_GROUP(Common FILES ${HEADER_OPENGL_COMMON_FILES} ${SOURCE_OPENGL_COMMON_FILES})
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" )
-INCLUDE(assimp)
 INCLUDE(libcxxopts)
 
 ADD_LIBRARY(glCommon SHARED ${SOURCE_OPENGL_COMMON_FILES} ${HEADER_OPENGL_COMMON_FILES})
-TARGET_LINK_LIBRARIES(glCommon PUBLIC fragcore nekomimi-window fragcore-rgl fragcore-shader-compiler cxxopts fragcore-geometry-util fragcore-window-sdl fragcore-imageloader glew fragcore-scheduler-tasksch ${OPENGL_LIBRARIES} ${SDL2_LINK_LIBRARIES})
+TARGET_LINK_LIBRARIES(glCommon PUBLIC fragcore nekomimi-window fragcore-rgl fragcore-shader-compiler cxxopts fragcore-geometry-util fragcore-window-sdl fragcore-imageloader glew fragcore-scheduler-tasksch ${OPENGL_LIBRARIES} ${SDL2_LINK_LIBRARIES} assimp)
 
 IF(JEMALLOC_LIBRARIES)
 	TARGET_LINK_LIBRARIES(glCommon PUBLIC ${JEMALLOC_LIBRARIES})
@@ -23,22 +22,14 @@ ADD_DEPENDENCIES(glCommon fragcore nekomimi-window fragcore-rgl fragcore-shader-
 
 TARGET_COMPILE_DEFINITIONS(glCommon PRIVATE FLYTHROUGH_CAMERA_IMPLEMENTATION=1)
 
-#
+# Make use of modern features with GLM.
 TARGET_COMPILE_DEFINITIONS(glCommon PUBLIC GLM_FORCE_CXX17 GLM_FORCE_INTRINSICS)
 
-
+#
 IF(OpenMP_FOUND AND OpenMP_CXX_FOUND)
 	TARGET_LINK_LIBRARIES(glCommon PRIVATE m pthread PUBLIC OpenMP::OpenMP_CXX)
 	TARGET_COMPILE_OPTIONS(glCommon PUBLIC ${OpenMP_CXX_FLAGS} -fopenmp-simd)
 ENDIF()
-
-
-
-# #
-# IF((CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX) AND NOT CMAKE_COMPILER_IS_MINGW)
-# 	TARGET_COMPILE_OPTIONS(glCommon PUBLIC -pedantic)
-# 	TARGET_COMPILE_OPTIONS(glCommon PUBLIC -Wall)
-# ENDIF()
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Importer)
 

@@ -36,7 +36,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection{};
 
 			/*	light source.	*/
-			DirectionalLight directional;
+			DirectionalLightData directional;
 			glm::vec4 specularColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			glm::vec4 ambientColor = glm::vec4(0.2, 0.2, 0.2, 1);
 			glm::vec4 shininess = glm::vec4(8, 0, 0, 0);

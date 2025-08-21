@@ -3,6 +3,7 @@
 #include "Math3D/Color.h"
 #include "ModelImporter.h"
 #include "RenderDesc.h"
+#include "SampleHelper.h"
 #include "UIComponent.h"
 #include "Util/CameraController.h"
 #include "Util/Frustum.h"
@@ -101,6 +102,7 @@ namespace glsample {
 
 		/*	Create all buffers.	*/
 		{
+
 			/*	Align the uniform buffer size to hardware specific.	*/
 			GLint minMapBufferSize = 0;
 			GLint maxUniformBlockBufferSize = 0;
@@ -110,8 +112,8 @@ namespace glsample {
 			/*	*/
 			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(GlobalSceneState), minMapBufferSize);
 			this->UBOStructure.common_size_total_align =
-				this->UBOStructure.common_size_align * UniformDataStructure::nrUniformBuffer;
-			this->UBOStructure.common_offset = 0;
+				this->UBOStructure.common_size_align * UniformDataStructure::bufferRoundRobinSize;
+			this->UBOStructure.common_base_offset = 0;
 
 			/*	*/
 			this->UBOStructure.max_node_per_binding = 1024; // maxUniformBufferSize / sizeof(NodeData);
@@ -120,54 +122,78 @@ namespace glsample {
 				max_nodes * sizeof(NodeData); // TODO: change number based on the max bininded uniform size.
 			this->UBOStructure.node_size_align = Math::align<size_t>(NrNodes, minMapBufferSize);
 			this->UBOStructure.node_size_total_align =
-				this->UBOStructure.node_size_align * UniformDataStructure::nrUniformBuffer;
+				this->UBOStructure.node_size_align * UniformDataStructure::bufferRoundRobinSize;
 
 			/*	*/
 			const size_t max_bindable_materials = 4096;
 			this->UBOStructure.material_align_size =
 				Math::align<size_t>(max_bindable_materials * sizeof(MaterialData), minMapBufferSize);
 			this->UBOStructure.material_align_total_size =
-				this->UBOStructure.material_align_size * UniformDataStructure::nrUniformBuffer;
+				this->UBOStructure.material_align_size * UniformDataStructure::bufferRoundRobinSize;
 
 			/*	*/
 			this->UBOStructure.light_align_size = Math::align<size_t>(sizeof(LightData), minMapBufferSize);
 			this->UBOStructure.light_align_total_size =
-				this->UBOStructure.light_align_size * UniformDataStructure::nrUniformBuffer;
+				this->UBOStructure.light_align_size * UniformDataStructure::bufferRoundRobinSize;
 
 			const size_t total_ubo_size =
 				this->UBOStructure.node_size_total_align + this->UBOStructure.common_size_total_align +
 				this->UBOStructure.material_align_total_size + this->UBOStructure.light_align_total_size;
 
-			this->UBOStructure.node_offset = this->UBOStructure.common_size_total_align;
-			this->UBOStructure.material_offset =
+			this->UBOStructure.node_base_offset = this->UBOStructure.common_size_total_align;
+			this->UBOStructure.material_base_offset =
 				this->UBOStructure.common_size_total_align + this->UBOStructure.node_size_total_align;
-			this->UBOStructure.light_offset = this->UBOStructure.common_size_total_align +
-											  this->UBOStructure.node_size_total_align +
-											  this->UBOStructure.material_align_total_size;
+			this->UBOStructure.light_base_offset = this->UBOStructure.common_size_total_align +
+												   this->UBOStructure.node_size_total_align +
+												   this->UBOStructure.material_align_total_size;
 
 			/*	*/
 			glGenBuffers(1, &this->UBOStructure.node_and_common_uniform_buffer);
 			glBindBuffer(GL_UNIFORM_BUFFER, this->UBOStructure.node_and_common_uniform_buffer);
-			if (glBufferStorage) {
-				glBufferStorage(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
-				unsigned char *pdata = (unsigned char *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, total_ubo_size,
-																		 GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT |
-																			 GL_MAP_FLUSH_EXPLICIT_BIT);
 
-				this->stageCommonBuffer = (GlobalSceneState *)&pdata[0];
-				*this->stageCommonBuffer = GlobalSceneState();
+			if (glBufferStorage) {
+
+				/*	*/
+				this->useCoherent = true;
+
+				/*	*/
+				glBufferStorage(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
+				uint8_t *pdata = (unsigned char *)glMapBufferRange(
+					GL_UNIFORM_BUFFER, 0, total_ubo_size,
+					GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+
+				/*	*/
+				this->stageCommonBufferBase = (GlobalSceneState *)&pdata[0];
+				for (size_t index = 0; index < stageCommonRobin.size(); index++) {
+					this->stageCommonRobin[index] =
+						(GlobalSceneState *)&pdata[this->UBOStructure.common_size_align * index];
+					*this->stageCommonRobin[index] = GlobalSceneState();
+				}
 
 				this->stageNodeData = (NodeData *)&pdata[this->UBOStructure.common_size_total_align];
 				this->stageMaterialData = (MaterialData *)&pdata[this->UBOStructure.common_size_total_align +
 																 this->UBOStructure.node_size_total_align];
 
-				/*	*/
-				this->stageLightData = (LightData *)&pdata[this->UBOStructure.common_size_total_align +
-														   this->UBOStructure.node_size_total_align +
-														   this->UBOStructure.material_align_total_size];
-				*this->stageLightData = LightData(); /*	Set Default Values.	*/
+				/*	Setup Light Data Structure.	*/
+				{
+					uint8_t *baseLight =
+						&pdata[this->UBOStructure.common_size_total_align + this->UBOStructure.node_size_total_align +
+							   this->UBOStructure.material_align_total_size];
+
+					for (size_t index = 0; index < stageCommonRobin.size(); index++) {
+						/*	*/
+						this->UBOStructure.light_offsets[index] =
+							this->UBOStructure.light_base_offset + this->UBOStructure.light_align_size * index;
+						/*	*/
+						this->stageLightData.buffers[index] =
+							(LightData *)&baseLight[this->UBOStructure.light_align_size * index];
+						*this->stageLightData.buffers[index] = LightData();
+					}
+				}
 
 			} else {
+				/*	*/
+
 				glBufferData(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_DYNAMIC_DRAW);
 				/*	TODO: create buffer on heap for staging.	*/
 			}
@@ -186,16 +212,22 @@ namespace glsample {
 		}
 
 		/*	*/
-		this->stageCommonBuffer->time[0] = deltaTime;
+		this->stageCommonBufferBase->time[0] = deltaTime;
 		this->updateBuffers();
 	}
 
 	void Scene::updateBuffers() {
 
+		const size_t common_offset =
+			this->UBOStructure.common_base_offset + getRoundRobinIndex() * this->UBOStructure.common_size_align;
+		const size_t node_offset = 0;
+		const size_t materail_offset = 0;
+		const size_t light_offset = this->UBOStructure.light_offsets[getRoundRobinIndex()];
+
 		/*	*/
-		NodeData *baseNodeData = this->stageNodeData;
+		NodeData *baseNodeData = &this->stageNodeData[0];
 		size_t node_index = 0;
-		auto copyQueue = renderQueue;
+		auto copyQueue = renderQueue; // TODO: fix performance
 		for (const NodeObject *node : copyQueue) {
 			baseNodeData[node_index++].model = node->modelGlobalTransform;
 		}
@@ -216,22 +248,46 @@ namespace glsample {
 			materialBase[material_index].clip_[1] = this->materials[material_index].bumpiness;
 		}
 
+		/*	Update Lights.	*/
+		LightData *stageLightBase = this->stageLightData.buffers[getRoundRobinIndex()];
+		stageLightBase->directionalCount = 0;
+		stageLightBase->pointCount = 0;
+		for (size_t i = 0; i < getLights().size(); i++) {
+			const Light *light = getLights()[i];
+
+			switch (light->lightType) {
+
+			case Light::LightType::Directional: {
+				DirectionalLightData *lightData = &stageLightBase->directional[stageLightBase->directionalCount];
+				lightData->lightColor = light->color;
+				// stageLightBase->directional[stageLightBase->directionalCount].lightDirection = (light->getRotation()
+				// * glm::vec3(0,0,1));
+				stageLightBase->directionalCount++;
+			} break;
+			case Light::LightType::Point:
+				stageLightBase->pointCount++;
+				break;
+			}
+		}
+
 		glBindBuffer(GL_UNIFORM_BUFFER, this->UBOStructure.node_and_common_uniform_buffer);
+
 		/*	*/
-		if (glBufferStorage) {
+		if (useCoherent) {
+
 			/*	Update constant data.	*/
-			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.common_offset,
-									 this->UBOStructure.common_size_align);
+			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, common_offset, this->UBOStructure.common_size_align);
 
 			/*	Update Node Data.	*/
-			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_offset, node_index * sizeof(NodeData));
+			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_base_offset,
+									 node_index * sizeof(NodeData));
 
 			/*	Update Material.	*/
-			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_offset,
+			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_base_offset,
 									 material_index * sizeof(MaterialData));
 
 			/*	Update Lights.	*/
-			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_offset,
+			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_base_offset,
 									 this->UBOStructure.light_align_size);
 		} else {
 			// TODO: add
@@ -289,12 +345,13 @@ namespace glsample {
 
 		// TODO: fix camera argument.
 		if (camera) {
-			this->stageCommonBuffer->camera = *camera;
+			GlobalSceneState *globalScene = this->stageCommonRobin[getRoundRobinIndex()];
+			globalScene->camera = *camera;
 			CameraController *cameraController = dynamic_cast<CameraController *>(
 				camera); // TODO: remove controller once the camera start using the base Node
-			this->stageCommonBuffer->camera = *cameraController;
+			globalScene->camera = *cameraController;
 			/*	*/
-			this->stageCommonBuffer->proj[0] = camera->getProjectionMatrix();
+			globalScene->proj[0] = camera->getProjectionMatrix();
 		}
 
 		/*	*/
@@ -318,9 +375,18 @@ namespace glsample {
 		/*	Iterate through each node.	*/
 
 		/*	Bind common data for all drawcall.	*/
+		const size_t common_offset =
+			this->UBOStructure.common_base_offset + getRoundRobinIndex() * this->UBOStructure.common_size_align;
+		const size_t light_offset =
+			this->UBOStructure.light_base_offset + getRoundRobinIndex() * this->UBOStructure.light_align_size;
 		glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.common_buffer_binding,
-						  this->UBOStructure.node_and_common_uniform_buffer, this->UBOStructure.common_offset,
+						  this->UBOStructure.node_and_common_uniform_buffer, common_offset,
 						  this->UBOStructure.common_size_align);
+
+		/*	*/
+		glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_buffer_binding,
+						  this->UBOStructure.node_and_common_uniform_buffer, light_offset,
+						  this->UBOStructure.light_align_total_size);
 
 		const std::vector<RenderQueue> order = {RenderQueue::Background,  RenderQueue::Geometry,
 												RenderQueue::AlphaTest,	  RenderQueue::GeometryLast,
@@ -364,6 +430,8 @@ namespace glsample {
 		glEnable(GL_CULL_FACE);
 		glDepthFunc(GL_LEQUAL);
 		glCullFace(GL_BACK);
+
+		this->frameIndex++;
 	}
 
 	void Scene::bindTexture(const MaterialObject &material, const TextureType texture_type) {
@@ -476,10 +544,11 @@ namespace glsample {
 
 		/*	Update binding offset.	*/
 		if ((currentNodeIndex % this->UBOStructure.max_node_per_binding) == 0) {
+
 			/*	*/
 			const unsigned int model_block_offset = currentNodeIndex / this->UBOStructure.max_node_per_binding;
 			const size_t model_total_offset =
-				this->UBOStructure.node_offset + (model_block_offset * 65536); // TODO:fix constants.
+				this->UBOStructure.node_base_offset + (model_block_offset * 65536); // TODO:fix constants.
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_buffer_binding,
 							  this->UBOStructure.node_and_common_uniform_buffer, model_total_offset,
 							  this->UBOStructure.node_size_align);
@@ -487,15 +556,11 @@ namespace glsample {
 			// TODO: fix binding offset.
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_buffer_binding,
-							  this->UBOStructure.node_and_common_uniform_buffer, this->UBOStructure.material_offset,
-							  this->UBOStructure.material_align_size);
-
-			/*	*/
-			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_buffer_binding,
-							  this->UBOStructure.node_and_common_uniform_buffer, this->UBOStructure.light_offset,
-							  this->UBOStructure.light_align_total_size);
+							  this->UBOStructure.node_and_common_uniform_buffer,
+							  this->UBOStructure.material_base_offset, this->UBOStructure.material_align_size);
 		}
 
+		/*	*/
 		for (size_t geo_index = 0; geo_index < node->geometryObjectIndex.size(); geo_index++) {
 
 			/*	Setup material.	*/
@@ -625,16 +690,17 @@ namespace glsample {
 
 			/*	*/
 			if (ImGui::CollapsingHeader("Global Rendering Settings")) {
-				ImGui::ColorEdit4("Global Ambient Color", &this->stageCommonBuffer->renderSettings.ambientColor[0],
+				ImGui::ColorEdit4("Global Ambient Color", &this->stageCommonBufferBase->renderSettings.ambientColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 				ImGui::TextUnformatted("Global Fog");
-				ImGui::DragInt("Fog Type", (int *)&this->stageCommonBuffer->renderSettings.fogSettings.fogType);
-				ImGui::ColorEdit4("Fog Color", &this->stageCommonBuffer->renderSettings.fogSettings.fogColor[0],
+				ImGui::DragInt("Fog Type", (int *)&this->stageCommonBufferBase->renderSettings.fogSettings.fogType);
+				ImGui::ColorEdit4("Fog Color", &this->stageCommonBufferBase->renderSettings.fogSettings.fogColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::DragFloat("Fog Density", &this->stageCommonBuffer->renderSettings.fogSettings.fogDensity);
-				ImGui::DragFloat("Fog Intensity", &this->stageCommonBuffer->renderSettings.fogSettings.fogIntensity);
-				ImGui::DragFloat("Fog Start", &this->stageCommonBuffer->renderSettings.fogSettings.fogStart);
-				ImGui::DragFloat("Fog End", &this->stageCommonBuffer->renderSettings.fogSettings.fogEnd);
+				ImGui::DragFloat("Fog Density", &this->stageCommonBufferBase->renderSettings.fogSettings.fogDensity);
+				ImGui::DragFloat("Fog Intensity",
+								 &this->stageCommonBufferBase->renderSettings.fogSettings.fogIntensity);
+				ImGui::DragFloat("Fog Start", &this->stageCommonBufferBase->renderSettings.fogSettings.fogStart);
+				ImGui::DragFloat("Fog End", &this->stageCommonBufferBase->renderSettings.fogSettings.fogEnd);
 			}
 
 			/*	*/
@@ -691,38 +757,39 @@ namespace glsample {
 
 				ImGui::TextUnformatted("PointLight");
 
-				for (; light_index < this->stageLightData->pointCount; light_index++) {
+				for (; light_index < this->stageLightData.getBase()->pointCount; light_index++) {
 					ImGui::PushID(light_index + 1000);
-					ImGui::ColorEdit4("Color", &this->stageLightData->pointLight[light_index].color[0],
+					ImGui::ColorEdit4("Color", &this->stageLightData.getBase()->pointLight[light_index].color[0],
 									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-					ImGui::DragFloat3("Position", &this->stageLightData->pointLight[light_index].position[0]);
-					ImGui::DragFloat("Range", &this->stageLightData->pointLight[light_index].range);
+					ImGui::DragFloat3("Position", &this->stageLightData.getBase()->pointLight[light_index].position[0]);
+					ImGui::DragFloat("Range", &this->stageLightData.getBase()->pointLight[light_index].range);
 
 					ImGui::PopID();
 				}
 
 				ImGui::TextUnformatted("DirectionalLight");
-				for (light_index = 0; light_index < this->stageLightData->directionalCount; light_index++) {
+				for (light_index = 0; light_index < this->stageLightData.getBase()->directionalCount; light_index++) {
 
 					ImGui::PushID(light_index);
-					ImGui::ColorEdit4("Color", &this->stageLightData->directional[light_index].lightColor[0],
+					ImGui::ColorEdit4("Color", &this->stageLightData.getBase()->directional[light_index].lightColor[0],
 									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-					ImGui::DragFloat3("Direction", &this->stageLightData->directional[light_index].lightDirection[0]);
+					ImGui::DragFloat3("Direction",
+									  &this->stageLightData.getBase()->directional[light_index].lightDirection[0]);
 					ImGui::PopID();
 					ImGui::DragFloat("Shadow Strength",
-									 &this->stageLightData->directional[light_index].lightShadow.shadow[0], 1, 0.0f,
-									 1.0f);
+									 &this->stageLightData.getBase()->directional[light_index].lightShadow.shadow[0], 1,
+									 0.0f, 1.0f);
 					ImGui::DragFloat("Shadow Bias",
-									 &this->stageLightData->directional[light_index].lightShadow.shadow[1], 1, 0.0f,
-									 1.0f, "%.5f");
+									 &this->stageLightData.getBase()->directional[light_index].lightShadow.shadow[1], 1,
+									 0.0f, 1.0f, "%.5f");
 				}
 
 				if (ImGui::Button("Add Direction Light")) {
-					this->stageLightData->directionalCount++;
+					this->stageLightData.getBase()->directionalCount++;
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Add Point Light")) {
-					this->stageLightData->pointCount++;
+					this->stageLightData.getBase()->pointCount++;
 				}
 			}
 

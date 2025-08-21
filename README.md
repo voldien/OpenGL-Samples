@@ -216,9 +216,8 @@ Usage:
 ## Required Packages
 
 ```bash
-apt-get install pkg-config libsdl2-dev libfreeimage-dev libfmt-dev libglm-dev libgtest-dev googletest mesa-common-dev mesa-utils libopenal-dev libalut-dev
-apt-get install glslang-tools libassimp-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev binutils-dev libeigen3-dev libglu1-mesa-dev libbz2-dev \
-libzip-dev libogg-dev libopus-dev libvorbis-dev
+sudo apt-get install pkg-config libsdl2-dev libfreeimage-dev libfmt-dev libglm-dev libgtest-dev googletest mesa-common-dev mesa-utils libopenal-dev libalut-dev
+sudo apt-get install glslang-tools libavcodec-dev libavformat-dev libswscale-dev libavutil-dev binutils-dev libeigen3-dev libglu1-mesa-dev libbz2-dev libzip-dev libogg-dev libopus-dev libvorbis-dev libssl-dev
 ```
 
 ## Build Instruction

@@ -30,7 +30,7 @@ struct common_data {
 };
 
 struct Node {
-	mat4 model;		/*	*/
+	mat4 model; /*	*/
 };
 
 struct light_settings {
@@ -57,7 +57,10 @@ layout(set = 1, binding = 3, std140) uniform UniformSkeletonBufferBlock { mat4 g
 skeletonUBO;
 
 /*	*/
-layout(set = 1, binding = 4, std140) uniform UniformMaterialBufferBlock { material materials[512]; }
+layout(set = 1, binding = 4, std140) uniform UniformMaterialBufferBlock {
+	material materials[256];
+	tessellation_settings tessellation[256];
+}
 MaterialUBO;
 
 /*	*/

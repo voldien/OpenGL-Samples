@@ -20,6 +20,13 @@
 #include "RenderDesc.h"
 #include <IO/IFileSystem.h>
 #include <Math3D/AABB.h>
+
+#include <cassert>
+#include <cstddef>
+#include <glm/fwd.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 #include <assimp/Importer.hpp>
 #include <assimp/anim.h>
 #include <assimp/camera.h>
@@ -33,11 +40,6 @@
 #include <assimp/texture.h>
 #include <assimp/types.h>
 #include <assimp/vector3.h>
-#include <cassert>
-#include <cstddef>
-#include <glm/fwd.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
 
 namespace glsample {}
 
@@ -190,11 +192,10 @@ using ModelSystemObject = struct model_system_object : public AssetObject {
 	bool processed = false;
 };
 
-using CameraData = struct camera_data_t : public AssetObject{
+using CameraData = struct camera_data_t : public AssetObject {
 	glm::vec3 position;
 	glm::vec3 up;
 	glm::vec3 lookAt;
-
 };
 
 using Bone = struct alignas(16) bone_t : public AssetObject {

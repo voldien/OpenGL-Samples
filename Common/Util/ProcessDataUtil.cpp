@@ -98,7 +98,7 @@ void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsig
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	/*	Wait in till image has been written.	*/
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 	glUseProgram(0);
 
@@ -184,7 +184,7 @@ void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source, u
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	/*	Wait in till image has been written.	*/
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 	glUseProgram(0);
 
@@ -239,8 +239,9 @@ void MiscProcessingUtil::computePerlinNoise(unsigned int target_texture, const g
 	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]);
 
 	glDispatchCompute(WorkGroupX, WorkGroupY, 1);
+
 	/*	Wait in till image has been written.	*/
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 	glBindTexture(GL_TEXTURE_2D, target_texture);
 	glGenerateMipmap(GL_TEXTURE_2D);
@@ -334,7 +335,7 @@ void MiscProcessingUtil::computeBump2Normal(unsigned int bump_source, unsigned i
 	glDispatchCompute(WorkGroupX, WorkGroupY, 1);
 
 	/*	Wait in till image has been written.	*/
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 	glBindTexture(GL_TEXTURE_2D, normal_target);
 	glGenerateMipmap(GL_TEXTURE_2D);
@@ -358,6 +359,7 @@ void MiscProcessingUtil::computeColor2HeightMap(unsigned int color_source, unsig
 	glBindTexture(GL_TEXTURE_2D, 0);
 	MiscProcessingUtil::computeColor2HeightMap(color_source, color_source);
 }
+
 void MiscProcessingUtil::computeColor2HeightMap(unsigned int color_source, unsigned int height_target) {
 	const char *irradiance_path = "Shaders/compute/bump2normal.comp.spv";
 
@@ -404,11 +406,12 @@ void MiscProcessingUtil::computeColor2HeightMap(unsigned int color_source, unsig
 
 	glDispatchCompute(WorkGroupX, WorkGroupY, 1);
 
+	glUseProgram(0);
+
 	/*	Wait in till image has been written.	*/
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 	glBindTexture(GL_TEXTURE_2D, height_target);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glUseProgram(0);
 }

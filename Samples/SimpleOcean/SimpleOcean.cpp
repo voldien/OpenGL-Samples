@@ -50,7 +50,7 @@ namespace glsample {
 			glm::mat4 modelViewProjection{};
 
 			/*	light source.	*/
-			DirectionalLight directional;
+			DirectionalLightData directional;
 			CameraInstanceData camera;
 
 			/*	*/

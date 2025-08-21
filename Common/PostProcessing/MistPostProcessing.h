@@ -37,7 +37,7 @@ namespace glsample {
 			float betaR;   // Rayleigh scattering coefficient
 			float betaM;   // Mie scattering coefficient
 			float g;	   // Mie phase function parameter
-			DirectionalLight sunLight;
+			DirectionalLightData sunLight;
 		};
 
 		void initialize(fragcore::IFileSystem *filesystem) override;

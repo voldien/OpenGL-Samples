@@ -25,7 +25,8 @@ namespace glsample {
 
 		void init() override {
 			Scene::init();
-			this->stageLightData->directionalCount = 1;
+			this->getLights().push_back(new DirectionalLight());
+			this->stageLightData.getBase()->directionalCount = 1;
 		}
 
 		void bindMaterial(const MaterialObject *material) override {

@@ -1,10 +1,10 @@
-#include "ModelViewer.h"
+#include "ModelBase.h"
 
 using namespace glsample;
 
-class ModelViewerGLSample : public GLSample<ModelViewer> {
+class ModelViewerGLSample : public GLSample<ModelBase> {
   public:
-	ModelViewerGLSample() : GLSample<ModelViewer>() {}
+	ModelViewerGLSample() : GLSample<ModelBase>() {}
 
 	void customOptions(cxxopts::OptionAdder &options) override {
 		options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(

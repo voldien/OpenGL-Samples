@@ -62,6 +62,12 @@ namespace glsample {
 		return mat;
 	}
 
+
+	template <typename T, unsigned int n> struct StageBuffer {
+		std::array<T, n> buffers;
+		T getBase() const noexcept { return this->buffers[0]; }
+	};
+
 	enum class GBuffer : unsigned int {
 		Albedo = 0,				 /*	*/
 		Color = 0,				 /*	Color, Alpha	*/
@@ -130,24 +136,24 @@ namespace glsample {
 
 	using BlinnPhongMaterialData = struct blinn_phong_material_data_t {};
 
-	using LightShadow = struct light_shadow_t {
+	using LightShadowData = struct light_shadow_t {
 		glm::mat4 lightSpaceMatrix;
 		glm::vec4 shadow; /*	Shadow, Bias,	*/
 	};
 
-	using DirectionalLight = struct directional_light_t {
-		LightShadow lightShadow;
+	using DirectionalLightData = struct directional_light_t {
+		LightShadowData lightShadow;
 		glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	};
 
 	using PointLightInstance = struct point_light_instance_t {
-		LightShadow lightShadow;
+		LightShadowData lightShadow;
 		glm::vec3 position = glm::vec3(0);
 		float range = 5;
 		glm::vec4 color = glm::vec4(1);
 		/*	*/
-		float intensity = 1;
+		float intensity = 1;	//TODO: remove
 		float constant_attenuation = 1;
 		float linear_attenuation = 0.1f;
 		float quadratic_attenuation = 0.025f;

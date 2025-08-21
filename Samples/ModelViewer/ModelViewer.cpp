@@ -1,166 +1,156 @@
 #include "ModelViewer.h"
-#include "ImageImport.h"
-#include "ModelImporter.h"
-#include "SceneHelper.h"
+#include "SampleHelper.h"
 #include "Scene.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
+#include <ImageImport.h>
+#include <ModelImporter.h>
 #include <ShaderLoader.h>
+#include <glm/glm.hpp>
+#include <iostream>
 
 namespace glsample {
 
-	/**
-	 * @brief
-	 */
-	ModelViewer::ModelViewer() {
-		this->setTitle("Model Viewer");
+	ModelViewer::ModelViewer() : GLSampleWindow() {
 
+		/*	*/
 		this->modelviewerSettingComponent = std::make_shared<ModelViewerSettingComponent>(*this);
-		this->addUIComponent(this->modelviewerSettingComponent);
+		this->addUIComponent(modelviewerSettingComponent);
 
 		/*	Default camera position and orientation.	*/
-		this->cameraController.setPosition(glm::vec3(20.5f));
-		this->cameraController.lookAt(glm::vec3(0.f));
+		this->camera.setPosition(glm::vec3(50.5f));
+		this->camera.lookAt(glm::vec3(0.f));
 	}
 
-	void ModelViewer::Release() {}
+	void ModelViewer::Release() { glDeleteProgram(this->physical_based_rendering_program); }
 
 	void ModelViewer::Initialize() {
-		/*	*/
+
 		const std::string modelPath = this->getResult()["model"].as<std::string>();
-		const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
+		const std::string panoramicPath = this->getResult()["skybox-texture"].as<std::string>();
+
+		this->setTitle(fmt::format("Physical Based Rendering: {}", modelPath));
 
 		{
 			/*	*/
 			const std::vector<uint32_t> pbr_vertex_binary =
-				IOUtil::readFileData<uint32_t>(this->PBRvertexShaderPath, this->getFileSystem());
+				IOUtil::readFileData<uint32_t>(this->vertexShaderPath, this->getFileSystem());
 			const std::vector<uint32_t> pbr_fragment_binary =
-				IOUtil::readFileData<uint32_t>(this->PBRfragmentShaderPath, this->getFileSystem());
+				IOUtil::readFileData<uint32_t>(this->fragmentShaderPath, this->getFileSystem());
 			const std::vector<uint32_t> pbr_control_binary =
-				IOUtil::readFileData<uint32_t>(this->PBRControlShaderPath, this->getFileSystem());
+				IOUtil::readFileData<uint32_t>(this->ControlShaderPath, this->getFileSystem());
 			const std::vector<uint32_t> pbr_evolution_binary =
-				IOUtil::readFileData<uint32_t>(this->PBREvoluationShaderPath, this->getFileSystem());
+				IOUtil::readFileData<uint32_t>(this->EvoluationShaderPath, this->getFileSystem());
 
-			/*	Setup compiler convert options.	*/
+			// const std::vector<uint32_t> pbr_base_vertex_binary =
+			//	IOUtil::readFileData<uint32_t>(vertexPBRShaderPath, this->getFileSystem());
+			// const std::vector<uint32_t> pbr_base_fragment_binary =
+			//	IOUtil::readFileData<uint32_t>(fragmentPBRShaderPath, this->getFileSystem());
+
 			fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 			compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 			compilerOptions.glslVersion = this->getShaderVersion();
 
 			/*	Load shader	*/
-			this->physical_based_rendering_program = ShaderLoader::loadGraphicProgram(
-				compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary, nullptr, nullptr, nullptr);
+			// this->physical_based_rendering_program =
+			// 	ShaderLoader::loadGraphicProgram(compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary, nullptr,
+			// 									 &pbr_control_binary, &pbr_evolution_binary);
 
-			/*	Create skybox graphic pipeline program.	*/
+			this->physical_based_rendering_program =
+				ShaderLoader::loadGraphicProgram(compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary);
+
 			this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
 		}
 
-		/*	Setup graphic pipeline.	*/
+		/*	Setup shader.	*/
 		glUseProgram(this->physical_based_rendering_program);
 		int uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
-
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DiffuseTexture"),
 					   (int)TextureType::Diffuse);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "NormalTexture"),
 					   (int)TextureType::Normal);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "AOTexture"),
 					   (int)TextureType::AmbientOcclusion);
-		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "RoughnessTexture"),
-					   (int)TextureType::Specular_Roughness);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DisplacementTexture"),
 					   (int)TextureType::Displacement);
-		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "EmissionTexture"),
-					   (int)TextureType::Emission);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"),
 					   (int)TextureType::Irradiance);
-		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index, 0);
-
+		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
+							  this->uniform_buffer_binding);
+		uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
+		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
+							  this->uniform_buffer_binding);
 		glUseProgram(0);
 
 		/*	load Textures	*/
 		TextureImporter textureImporter(this->getFileSystem());
-		unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
-		this->skybox.Init(skytexture, this->skybox_program);
-
-		MiscProcessingUtil util(this->getFileSystem());
-		util.computeDiffuseIrradiance(skytexture, this->irradiance_texture, 256, 128);
+		this->reflection_texture = textureImporter.loadImage2D(panoramicPath);
+		skybox.Init(this->reflection_texture, this->skybox_program);
 
 		/*	*/
-		ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
-		modelLoader->loadContent(modelPath, 0);
-		this->scene = SceneHelper::loadFrom(*modelLoader);
+		ModelImporter modelLoader(FileSystem::getFileSystem());
+		modelLoader.loadContent(modelPath, 0);
+		this->scene = SceneHelper::loadFrom<PBRScene>(modelLoader);
 
-		/*	Align uniform buffer in respect to driver requirement.	*/
-		GLint minMapBufferSize = 0;
-		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-		this->uniformAlignBufferSize =
-			fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
-
-		/*	Create uniform buffer.	*/
-		glGenBuffers(1, &this->uniform_buffer);
-		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-		glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		/*	*/
+		MiscProcessingUtil util(this->getFileSystem());
+		util.computeDiffuseIrradiance(skybox.getTexture(), this->irradiance_texture, 256, 128);
 	}
+
+	void ModelViewer::onResize(int width, int height) { this->camera.setAspect((float)width / (float)height); }
 
 	void ModelViewer::draw() {
 
-		int width = 0, height = 0;
-		this->getSize(&width, &height);
-
-		/*	*/
-		glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-						  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
-						  this->uniformAlignBufferSize);
+		size_t width = 0, height = 0;
+		this->getCurrentFrameBufferSize(&width, &height);
 
 		/*	Set render viewport size in pixels.	*/
 		glViewport(0, 0, width, height);
-		/*	Clear default framebuffer color attachment.	*/
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		{
 			glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
 			glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
-			glCullFace(GL_BACK);
-
-			/*	Bind shader pipeline.	*/
 			glUseProgram(this->physical_based_rendering_program);
-			this->scene.render(&this->cameraController);
+			this->scene.render(&this->camera);
 			glUseProgram(0);
 		}
 
-		this->skybox.Render(this->cameraController);
+		this->skybox.Render(this->camera);
 	}
 
 	void ModelViewer::update() {
-		/*	Update Camera.	*/
-		this->cameraController.update(this->getTimer().deltaTime<float>());
+		/*	*/
+		this->camera.update(getTimer().deltaTime<float>());
 		this->scene.update(this->getTimer().deltaTime<float>());
-
-		/*	*/
-		{
-			this->uniformStageBuffer.model = glm::mat4(1.0f);
-			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(1.0f));
-
-			this->uniformStageBuffer.view = this->cameraController.getViewMatrix();
-			this->uniformStageBuffer.proj = this->cameraController.getProjectionMatrix();
-			this->uniformStageBuffer.viewProjection = this->uniformStageBuffer.proj * this->uniformStageBuffer.view;
-			this->uniformStageBuffer.modelViewProjection =
-				this->uniformStageBuffer.proj * this->uniformStageBuffer.view * this->uniformStageBuffer.model;
-		}
-
-		/*	*/
-		{
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-				this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
-			glUnmapBuffer(GL_UNIFORM_BUFFER);
-		}
 	}
 
+	class PhysicalBasedRenderingGLSample : public GLSample<ModelViewer> {
+	  public:
+		PhysicalBasedRenderingGLSample() : GLSample<ModelViewer>() {}
+		void customOptions(cxxopts::OptionAdder &options) override {
+			options("M,model", "Model Path", cxxopts::value<std::string>()->default_value("asset/sponza/sponza.obj"))(
+				"T,skybox-texture", "Skybox Texture Path",
+				cxxopts::value<std::string>()->default_value("asset/snowy_forest_4k.exr"));
+		}
+	};
 } // namespace glsample
+
+int main(int argc, const char **argv) {
+	try {
+		glsample::PhysicalBasedRenderingGLSample sample;
+
+		sample.run(argc, argv);
+
+	} catch (const std::exception &ex) {
+
+		std::cerr << cxxexcept::getStackMessage(ex) << std::endl;
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+}

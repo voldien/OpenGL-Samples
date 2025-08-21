@@ -5,7 +5,7 @@
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
-#include <ModelViewer.h>
+#include <ModelBase.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -14,9 +14,9 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class VariableRateShading : public ModelViewer {
+	class VariableRateShading : public ModelBase {
 	  public:
-		VariableRateShading() : ModelViewer() {
+		VariableRateShading() : ModelBase() {
 			this->setTitle("Variable Rate Shading (VRS)");
 
 			this->variableRateSettingComponent = std::make_shared<VariableRateShadingSettingComponent>(*this);
@@ -58,14 +58,14 @@ namespace glsample {
 		std::shared_ptr<VariableRateShadingSettingComponent> variableRateSettingComponent;
 
 		void Release() override {
-			ModelViewer::Release();
+			ModelBase::Release();
 
 			glDeleteProgram(this->variable_rate_color_program);
 		}
 
 		void Initialize() override {
 
-			ModelViewer::Initialize();
+			ModelBase::Initialize();
 
 			{
 				/*	Load shader binaries.	*/
@@ -109,7 +109,7 @@ namespace glsample {
 		}
 
 		void onResize(int width, int height) override {
-			ModelViewer::onResize(width, height);
+			ModelBase::onResize(width, height);
 
 			/*	Setup and configure shading rate palette.	*/
 			{
@@ -182,7 +182,7 @@ namespace glsample {
 					glEnable(GL_SHADING_RATE_IMAGE_NV);
 				}
 
-				ModelViewer::draw();
+				ModelBase::draw();
 
 				glDisable(GL_SHADING_RATE_IMAGE_NV);
 
@@ -230,7 +230,7 @@ namespace glsample {
 			}
 		}
 
-		void update() override { ModelViewer::update(); }
+		void update() override { ModelBase::update(); }
 	};
 
 	class VariableRateShadingGLSample : public GLSample<VariableRateShading> {

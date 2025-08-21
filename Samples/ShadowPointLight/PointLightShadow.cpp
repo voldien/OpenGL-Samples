@@ -1,6 +1,6 @@
 #include "SampleHelper.h"
-#include "SceneHelper.h"
 #include "Scene.h"
+#include "SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -162,6 +162,7 @@ namespace glsample {
 
 			const std::string modelPath = this->getResult()["model"].as<std::string>();
 			const std::string skyboxPath = this->getResult()["skybox"].as<std::string>();
+			
 			{
 				/*	*/
 				const std::vector<uint32_t> vertex_binary =

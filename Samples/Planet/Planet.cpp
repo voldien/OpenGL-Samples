@@ -61,7 +61,7 @@ namespace glsample {
 			glm::vec4 shinines = glm::vec4(8, 1, 1, 1);
 
 			/*	light source.	*/
-			DirectionalLight directional;
+			DirectionalLightData directional;
 
 			/*	Tessellation Settings.	*/
 			float gDisplace = 1.0f;
