@@ -14,9 +14,9 @@ layout(location = 4) in vec3 bitangent;
 #include "fog_frag.glsl"
 #include "terrain_base.glsl"
 
-layout(binding = 1) uniform sampler2D DiffuseTexture;
-layout(binding = 2) uniform sampler2D NormalTexture;
-layout(binding = 6) uniform sampler2D IrradianceTexture;
+//layout(binding = 1) uniform sampler2D DiffuseTexture;
+//layout(binding = 2) uniform sampler2D NormalTexture;
+//layout(binding = 6) uniform sampler2D IrradianceTexture;
 
 void main() {
 

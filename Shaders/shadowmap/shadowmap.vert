@@ -27,6 +27,8 @@ ubo;
 void main() {
 	const mat4 model = getModel(vAssigns.y);
 
-	gl_Position = LightUBO.light.directional[0].lightShadow.lightSpaceMatrix * model * vec4(Vertex, 1.0);
+	const DirectionalLight directionLight = getDirectional(0);
+
+	gl_Position = directionLight.lightShadow.lightSpaceMatrix * model * vec4(Vertex, 1.0);
 	UV = TextureCoord;
 }

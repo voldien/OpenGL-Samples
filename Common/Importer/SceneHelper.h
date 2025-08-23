@@ -26,6 +26,7 @@ namespace glsample {
 	class FVDECLSPEC SceneHelper {
 	  public:
 		template <typename T = glsample::Scene> static T loadFrom(ModelImporter &importer) {
+
 			T scene;
 
 			/*	*/
@@ -38,7 +39,39 @@ namespace glsample {
 
 			scene.materials = importer.getMaterials();
 
+			convertLightSystem(scene, importer);
+
 			return scene;
+		}
+
+		static void convertLightSystem(Scene &scene, const ModelImporter &importer) {
+
+			/*	*/
+			const std::vector<LightObject> &lights = importer.getLights();
+
+			for (size_t i = 0; i < lights.size(); i++) {
+
+				switch (lights[i].type) {
+
+				case 2: {
+					PointLight *point = new PointLight();
+					point->setPosition(lights[i].position);
+
+					scene.getLights().push_back(point);
+				} break;
+				default:
+				case 1: {
+					DirectionalLight *direction = new DirectionalLight();
+					direction->setPosition(lights[i].position);
+					// direction->setRotation(GLM2E((lights[i].direction * glm::vec3(0,0,1)) ));
+					scene.getLights().push_back(direction);
+				} break;
+
+					break;
+				}
+
+				// lights[i].
+			}
 		}
 
 		static void convertNodeSystem(Scene &scene, ModelImporter &importer) {

@@ -1,5 +1,5 @@
 #include "ModelViewer.h"
-#include "SampleHelper.h"
+#include "PBRScene.h"
 #include "Scene.h"
 #include "SceneHelper.h"
 #include "Skybox.h"
@@ -98,30 +98,37 @@ namespace glsample {
 		/*	*/
 		MiscProcessingUtil util(this->getFileSystem());
 		util.computeDiffuseIrradiance(skybox.getTexture(), this->irradiance_texture, 256, 128);
+		util.computeReflectanceIrradiance(skybox.getTexture(), this->specular_texture, 256, 128);
 	}
 
 	void ModelViewer::onResize(int width, int height) { this->camera.setAspect((float)width / (float)height); }
 
 	void ModelViewer::draw() {
 
-		size_t width = 0, height = 0;
-		this->getCurrentFrameBufferSize(&width, &height);
-
-		/*	Set render viewport size in pixels.	*/
-		glViewport(0, 0, width, height);
-
-		glClear(GL_DEPTH_BUFFER_BIT);
+		glUseProgram(this->physical_based_rendering_program);
+		{ this->scene.shadowPass(); }
 
 		{
-			glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
-			glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
+			size_t width = 0, height = 0;
+			this->getCurrentFrameBufferSize(&width, &height);
 
-			glUseProgram(this->physical_based_rendering_program);
-			this->scene.render(&this->camera);
-			glUseProgram(0);
+			/*	Set render viewport size in pixels.	*/
+			glViewport(0, 0, width, height);
+
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+			{
+				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+
+				glUseProgram(this->physical_based_rendering_program);
+				this->scene.render(&this->camera);
+				glUseProgram(0);
+			}
+
+			this->skybox.Render(this->camera);
 		}
-
-		this->skybox.Render(this->camera);
 	}
 
 	void ModelViewer::update() {

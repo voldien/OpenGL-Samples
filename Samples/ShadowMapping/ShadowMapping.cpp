@@ -1,4 +1,3 @@
-#include "SampleHelper.h"
 #include "SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
@@ -23,14 +22,13 @@ namespace glsample {
 	  public:
 		SceneShadow() = default;
 
-		void init() override {
-			Scene::init();
-			this->getLights().push_back(new DirectionalLight());
-			this->stageLightData.getBase()->directionalCount = 1;
-		}
+		void init() override { Scene::init(); }
 
 		void bindMaterial(const MaterialObject *material) override {
-			Scene::bindMaterial(material);
+			if (!shadowPass) {
+				Scene::bindMaterial(material);
+			}
+
 			if (shadowPass) {
 				/*	*/
 				glCullFace(GL_FRONT);
@@ -67,8 +65,8 @@ namespace glsample {
 		/*	*/
 		unsigned int shadowFramebuffer{};
 		unsigned int shadowTexture{};
-		size_t shadowWidth = static_cast<long>(4096) * 2 * 2;
-		size_t shadowHeight = static_cast<long>(4096) * 2 * 2;
+		size_t shadowWidth = static_cast<long>(4096) * 2;
+		size_t shadowHeight = static_cast<long>(4096) * 2;
 
 		SceneShadow scene;
 		Skybox skybox;
@@ -100,17 +98,19 @@ namespace glsample {
 
 			void draw() override {
 
-				ImGui::DragFloat("Shadow Strength", &this->uniform.shadowStrength, 1, 0.0f, 1.0f);
-				ImGui::DragFloat("Shadow Bias", &this->uniform.bias, 1, 0.0f, 1.0f, "%.5f");
+				ImGui::DragFloat("Shadow Strength", &this->getRefSample().scene.getLights()[0]->shadow, 1, 0.0f, 1.0f);
+				ImGui::DragFloat("Shadow Bias", &this->getRefSample().scene.getLights()[0]->bias, 1, 0.0f, 1.0f,
+								 "%.5f");
 				ImGui::DragFloat("PCF Radius", &this->uniform.pcfRadius, 1, 0.0f, 100.0f);
 				// ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
 				// 				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				// ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
 
-				ImGui::DragFloat("Distance", &this->distance);
-				ImGui::Checkbox("WireFrame", &this->showWireFrame);
+				ImGui::DragFloat("Distance", &this->getRefSample().scene.getLights()[0]->shadowDistance);
+
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
 				ImGui::Checkbox("Shadow Alpha Clipping", &this->useShadowClip);
+
 				ImGui::TextUnformatted("Depth Texture");
 				ImGui::Image(static_cast<ImTextureID>(this->depth), ImVec2(512, 512), ImVec2(1, 1), ImVec2(0, 0));
 
@@ -119,7 +119,6 @@ namespace glsample {
 
 			float distance = 50.0;
 			unsigned int &depth;
-			bool showWireFrame = false;
 			bool use_pcf = false;
 			bool useShadowClip = false;
 
@@ -297,6 +296,7 @@ namespace glsample {
 			ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
 			this->scene = SceneHelper::loadFrom<SceneShadow>(*modelLoader);
+			this->scene.getLights().push_back(new DirectionalLight());
 
 			/*	load Skybox Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -317,44 +317,32 @@ namespace glsample {
 			size_t width = 0, height = 0;
 			this->getCurrentFrameBufferSize(&width, &height);
 
+			/*	Shadow Pass.	*/
 			{
-				/*	Compute light matrix.	*/
-				const float near_plane = -(this->shadowSettingComponent->distance / 2.0f) * 2;
-				const float far_plane = (this->shadowSettingComponent->distance / 2.0f) * 2;
-				glm::mat4 lightProjection =
-					glm::ortho(-this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
-							   -this->shadowSettingComponent->distance, this->shadowSettingComponent->distance,
-							   near_plane, far_plane);
-				glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
-												  glm::vec3(this->scene.getDirectionalLight()->lightDirection.x,
-															this->scene.getDirectionalLight()->lightDirection.y,
-															this->scene.getDirectionalLight()->lightDirection.z),
-												  glm::vec3(0.0f, 1.0f, 0.0f));
-				glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+				Light *lightSource = this->scene.getLights()[0];
+				if (lightSource->getShadowStrength() > 0) {
+					/*	*/
+					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_shadow_buffer_binding, this->uniform_buffer,
+									  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+									  this->uniformAlignBufferSize);
 
-				glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
-				this->scene.getDirectionalLight()->lightShadow.lightSpaceMatrix = lightSpaceMatrix;
+					glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
 
-				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_shadow_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-								  this->uniformAlignBufferSize);
+					glClear(GL_DEPTH_BUFFER_BIT);
+					glViewport(0, 0, shadowWidth, shadowHeight);
+					if (this->shadowSettingComponent->useShadowClip) {
+						glUseProgram(this->shadow_alpha_clip_program);
+					} else {
+						glUseProgram(this->shadow_program);
+					}
 
-				glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
+					/*	Render shadow.	*/
 
-				glClear(GL_DEPTH_BUFFER_BIT);
-				glViewport(0, 0, shadowWidth, shadowHeight);
-				if (this->shadowSettingComponent->useShadowClip) {
-					glUseProgram(this->shadow_alpha_clip_program);
-				} else {
-					glUseProgram(this->shadow_program);
+					this->scene.shadowPass = true;
+					this->scene.render(this->scene.getLights()[0]);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 				}
-
-				/*	Render shadow.	*/
-				this->scene.shadowPass = true;
-				this->scene.render(nullptr);
-
-				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			}
 
 			/*	Render Graphic.	*/

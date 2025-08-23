@@ -1,11 +1,9 @@
 #include "common.glsl"
 #include "light.glsl"
 #include "scene.glsl"
+#include "shadow.glsl"
 
-layout(binding = 0, std140) uniform UniformBufferBlock {
- 
-	tessellation_settings tessellation;
-}
+layout(binding = 0, std140) uniform UniformBufferBlock { tessellation_settings tessellation; }
 ubo;
 
 struct OutputPatch {

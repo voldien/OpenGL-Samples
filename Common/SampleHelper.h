@@ -68,6 +68,7 @@ namespace glsample {
 		T getBase() const noexcept { return this->buffers[0]; }
 	};
 
+
 	enum class GBuffer : unsigned int {
 		Albedo = 0,				 /*	*/
 		Color = 0,				 /*	Color, Alpha	*/
@@ -145,6 +146,7 @@ namespace glsample {
 		LightShadowData lightShadow;
 		glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
 	};
 
 	using PointLightInstance = struct point_light_instance_t {

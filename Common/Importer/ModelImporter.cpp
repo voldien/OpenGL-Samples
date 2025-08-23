@@ -105,6 +105,12 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 		throw RuntimeException("Failed to load file: {} - Error: {}", path, importer.GetErrorString());
 	}
 
+	std::cout << std::endl;
+	std::cout << "Number Lights: " << this->sceneRef->mNumLights << std::endl;
+	std::cout << "Number Cameras: " << this->sceneRef->mNumCameras << std::endl;
+	std::cout << "Number Materials: " << this->sceneRef->mNumMaterials << std::endl;
+	std::cout << "Number Textures: " << this->sceneRef->mNumTextures << std::endl;
+
 	this->globalNodeTransform = aiMatrix4x4ToGlm(&this->sceneRef->mRootNode->mTransformation);
 
 	this->initScene(this->sceneRef);
@@ -219,8 +225,9 @@ void ModelImporter::initScene(const aiScene *scene) {
 		if (scene->HasLights()) {
 			this->lights.resize(scene->mNumLights);
 			const size_t nrLights = scene->mNumLights;
-			for (unsigned int x = 0; x < nrLights; x++) {
-				this->initLight(scene->mLights[x], x);
+
+			for (unsigned int index = 0; index < nrLights; index++) {
+				this->initLight(scene->mLights[index], index);
 			}
 		}
 
@@ -802,8 +809,8 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 			material_obj->shade_model = model;
 		}
 
-		/*	PBR.	*/
-		if (model < aiShadingMode_PBR_BRDF) {
+		/*	If not Physical based rendering material .	*/
+		if (model < aiShadingMode_CookTorrance) {
 
 			if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
 				if (color[0] > 0.5f) {
@@ -815,8 +822,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 				material_obj->diffuse = color;
 				material_obj->diffuse[3] = 1;
 			}
-			if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) { // TODO:
-																									   // determine
+			if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
 				material_obj->emission = color;
 				material_obj->emission[3] = 1;
 			}
@@ -847,32 +853,8 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 				material_obj->transparent[3] = 1;
 			}
 			if (ref_material->Get(AI_MATKEY_TRANSPARENCYFACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->shinininess *= tmp;
+				material_obj->transparent.a *= tmp;
 			}
-
-			if (ref_material->Get(AI_MATKEY_REFRACTI, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_REFLECTIVITY, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-
-			if (ref_material->Get(AI_MATKEY_METALLIC_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_ANISOTROPY_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_GLOSSINESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-
-			if (ref_material->Get(AI_MATKEY_SHEEN_COLOR_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_CLEARCOAT_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			
 
 		} else {
 
@@ -891,6 +873,31 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 			if (ref_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
 				material_obj->emission = color;
 				material_obj->emission[3] = 1;
+			}
+
+			float tmp;
+			if (ref_material->Get(AI_MATKEY_REFRACTI, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+
+			if (ref_material->Get(AI_MATKEY_METALLIC_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+				material_obj->metalic = tmp;
+			}
+			if (ref_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+				material_obj->shinininess = tmp;
+			}
+			if (ref_material->Get(AI_MATKEY_ANISOTROPY_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_GLOSSINESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+
+			if (ref_material->Get(AI_MATKEY_SHEEN_COLOR_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_CLEARCOAT_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			}
+			if (ref_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+				material_obj->emission *= tmp;
 			}
 		}
 
@@ -917,7 +924,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 		}
 	}
 
-	material_obj->shinininess = fragcore::Math::max(material_obj->shinininess, 1.0f);
+	material_obj->shinininess = fragcore::Math::max(material_obj->shinininess, 0.0f);
 
 	return material_obj;
 }
@@ -1040,15 +1047,19 @@ AnimationObject *ModelImporter::initAnimation(const aiAnimation *pAnimation, uns
 }
 
 LightObject *ModelImporter::initLight(const aiLight *light, unsigned int index) {
+
 	LightObject *lightOb = &this->lights[index];
 
 	lightOb->name = light->mName.C_Str();
 
+	/*	*/
 	lightOb->position = glm::vec3(light->mPosition.x, light->mPosition.y, light->mPosition.z);
 	lightOb->direction = glm::vec3(light->mDirection.x, light->mDirection.y, light->mDirection.z);
 	lightOb->mUp = glm::vec3(light->mUp.x, light->mUp.y, light->mUp.z);
 
 	lightOb->mColorDiffuse = glm::vec4(light->mColorDiffuse.r, light->mColorDiffuse.g, light->mColorDiffuse.b, 1);
+
+	lightOb->type = light->mType;
 
 	return lightOb;
 }

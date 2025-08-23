@@ -15,7 +15,7 @@
 
 using namespace glsample;
 
-CameraController::CameraController() : input(new SDLInput()) {  }
+CameraController::CameraController() : input(new SDLInput()) {}
 
 void CameraController::update(const float deltaTime) noexcept {
 

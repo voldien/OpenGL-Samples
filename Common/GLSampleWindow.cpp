@@ -876,6 +876,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 									  {{
 										  .width = framebuffer_Width,
 										  .height = framebuffer_Height,
+										  .depth = 1,
 										  .graphicFormat = internal_color_format,
 										  .nrSamples = multi_sample_count,
 
@@ -883,6 +884,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 									  {
 										  .width = framebuffer_Width,
 										  .height = framebuffer_Height,
+										  .depth = 1,
 										  .graphicFormat = internal_depth_format,
 										  .nrSamples = multi_sample_count,
 									  });

@@ -38,7 +38,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
-float ShadowCalculationPCF(const in vec4 fragPosLightSpace) {
+float ShadowCalculationPCF(const DirectionalLight directionLight, const in vec4 fragPosLightSpace) {
 
 	// perform perspective divide
 	vec4 projCoords = fragPosLightSpace.xyzw / fragPosLightSpace.w;
@@ -50,10 +50,10 @@ float ShadowCalculationPCF(const in vec4 fragPosLightSpace) {
 	// transform NDC to [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
 
+	const float light_shadow_bias = directionLight.lightShadow.shadow[1];
 	const float bias =
-		clamp(0.005 * (1.0 - dot(normalize(normal), normalize(-LightUBO.light.directional[0].direction).xyz)), 0.0005, ubo.bias);
+		clamp(light_shadow_bias * (1.0 - dot(normalize(normal), normalize(-directionLight.direction).xyz)), 0.0000, 1);
 	projCoords.z *= (1 - bias);
-
 
 	float shadowFactor = 0;
 	const ivec2 gMapSize = textureSize(ShadowTexture, 0);
@@ -86,12 +86,14 @@ void main() {
 
 	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
 
-	const float shadow = max(1 - ShadowCalculationPCF(lightSpace) * ubo.shadowStrength, 0);
+	const DirectionalLight directionLight = getDirectional(0);
+
+	const float shadow = max(1 - ShadowCalculationPCF(directionLight, lightSpace) * directionLight.lightShadow.shadow[0], 0);
 
 	/*	*/
 	const vec4 SpecularColor = vec4(mat.specular_roughness.rgb, 1) * texture(RoughnessTexture, UV);
-	const vec4 lightColor = computeBlinnDirectional(LightUBO.light.directional[0], NewNormal, viewDir, mat.specular_roughness.a,
-													SpecularColor.rgb);
+	const vec4 lightColor = computeBlinnDirectional(LightUBO.light.directional[0], NewNormal, viewDir,
+													mat.specular_roughness.a, SpecularColor.rgb);
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));

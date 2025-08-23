@@ -18,7 +18,7 @@
 #include "Core/Object.h"
 #include "DataStructure/ITree.h"
 #include "Importer/ModelImporter.h"
-#include <Math3D/Transform.h>
+#include "Scene/Transform.h"
 
 namespace glsample {
 
@@ -26,15 +26,26 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class FVDECLSPEC Node : public fragcore::Transform,
+	class FVDECLSPEC Node : public glsample::TransformGLM,
 							public fragcore::ITree<Node>,
 							public fragcore::Object,
-							public NodeObject {
+							public NodeObject /*	TODO: remove*/ {
 	  public:
 		Node() = default;
 		Node(const NodeObject *node);
 		~Node() override = default;
 
+	  public:
+
+		glm::vec3 getLocalPosition() const noexcept;
+		glm::vec3 getLocalScale() const noexcept;
+		glm::quat getLocalRotation() const noexcept;
+
+		glm::mat4 getViewMatrix() const noexcept;
+		glm::mat4 getRotationMatrix() const noexcept;
+		glm::mat4 getViewTranslationMatrix() const noexcept;
+
+	  public:
 		/*	*/
 		fragcore::Bound bound{};
 

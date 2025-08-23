@@ -16,7 +16,7 @@ layout(location = 4) out vec3 BiTangent_FS_in;
 
 layout(location = 4) in patch OutputPatch oPatch;
 
-layout(binding = 2) uniform sampler2D DisplacementTexture;
+//layout(binding = 2) uniform sampler2D DisplacementTexture;
 
 vec2 interpolate2D(vec2 v0, vec2 v1, vec2 v2) {
 	return vec2(gl_TessCoord.x) * v0 + vec2(gl_TessCoord.y) * v1 + vec2(gl_TessCoord.z) * v2;

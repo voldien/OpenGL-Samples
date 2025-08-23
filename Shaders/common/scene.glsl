@@ -58,8 +58,8 @@ skeletonUBO;
 
 /*	*/
 layout(set = 1, binding = 4, std140) uniform UniformMaterialBufferBlock {
-	material materials[256];
-	tessellation_settings tessellation[256];
+	material materials[128];
+	tessellation_settings tessellation[128];
 }
 MaterialUBO;
 

@@ -20,35 +20,10 @@
 #include "GLSampleSession.h"
 #include "ModelImporter.h"
 #include "SampleHelper.h"
+#include "Scene/Light.h"
 #include <deque>
 
 namespace glsample {
-
-	class Light : public Node {
-	  public:
-		enum class LightType {
-			Directional,
-			Point,
-		};
-		LightType lightType;
-		glm::vec4 color = glm::vec4(1);
-	};
-
-	class DirectionalLight : public Light {
-	  public:
-		DirectionalLight() { this->lightType = LightType::Directional; }
-	};
-
-	class PointLight : public Light {
-	  public:
-		PointLight() { this->lightType = LightType::Point; }
-
-		float intensity = 1;
-		float range = 5;
-		float constant_attenuation = 1;
-		float linear_attenuation = 0.1f;
-		float quadratic_attenuation = 0.025f;
-	};
 
 	enum TextureType : unsigned int {
 		Diffuse = 0,					 /*	*/
@@ -65,7 +40,7 @@ namespace glsample {
 		PreFilter = 11,					 /*	*/
 		BRDFLUT = 12,					 /*	*/
 		DepthBuffer = 13,				 /*	*/
-		DirectionalLightDepthBuffer = 14 /*	*/
+		DirectionalLightDepthBuffer = 24 /*	*/
 	};
 
 	/*	The higher the later the will be rendered in the rendering queue.	*/
@@ -86,6 +61,7 @@ namespace glsample {
 
 	class AnimationPlayer {
 	  public:
+		AnimationPlayer() = default;
 		AnimationPlayer(AnimationObject &animation) {}
 
 		float time{};
@@ -110,29 +86,34 @@ namespace glsample {
 
 		virtual void update(const float deltaTime);
 
-		virtual void updateBuffers();
-
-		virtual void culling(Frustum *frustum); // TODO: add
-
 		virtual void render(Camera *camera);
+		virtual void render(Light *light);
 		virtual void render();
-
-		virtual void bindMaterial(const MaterialObject *material);
-		virtual void renderNode(const NodeObject *node);
-
-		virtual void sortRenderQueue();
 
 		virtual void renderUI();
 
 	  public: /*	*/
 			  //	void enableDebug();
+
+	  protected: /*	Internal backend methods.	*/
+		virtual void bindMaterial(const MaterialObject *material);
+		virtual void renderNode(const NodeObject *node);
+
+		virtual void sortRenderQueue();
+
+		virtual void updateBuffers();
+
+		virtual void culling(Frustum *frustum); // TODO: add
+
 	  public:
 		const std::vector<NodeObject *> &getNodes() const noexcept { return this->nodes; }
 
 		const std::vector<MeshObject> &getMeshes() const noexcept { return this->refGeometry; }
 		std::vector<MeshObject> &getMeshes() noexcept { return this->refGeometry; }
 		std::vector<MaterialObject> &getMaterials() noexcept { return this->materials; }
-		std::vector<Light *> getLights() noexcept { return this->lights; }
+
+		std::vector<Light *> &getLights() noexcept { return this->lights; }
+		// std::vector<DirectionalLight *> getDirectionalLight() noexcept { return {}; }
 
 		DirectionalLightData *getDirectionalLight(const size_t index = 0) noexcept {
 			return &this->stageLightData.getBase()->directional[index];
@@ -161,8 +142,11 @@ namespace glsample {
 		std::vector<MaterialObject> materials;
 		std::vector<AnimationObject> animations;
 		std::vector<Light *> lights;
-		PoolAllocator<DirectionalLight> DirLightPool;
-		PoolAllocator<PointLight> PointLightPool;
+
+		// PoolAllocator<DirectionalLight> DirLightPool;
+		// PoolAllocator<PointLight> PointLightPool;
+		// fragcore::PoolAllocator<Node> nodePool;
+		// fragcore::PoolAllocator<AnimationPlayer> animationss;
 
 		using GlobalRenderSettings = struct _global_rendering_settings_t {
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
@@ -207,16 +191,6 @@ namespace glsample {
 			glm::vec4 clip_ = glm::vec4(0.8); /*	*/
 		};
 
-		/*	*/
-		bool useCoherent = true;
-
-		GlobalSceneState *stageCommonBufferBase = nullptr;
-		std::array<GlobalSceneState *, 3> stageCommonRobin;
-		NodeData *stageNodeData = nullptr;
-		NodeData *stagPrevNodeData = nullptr;
-		MaterialData *stageMaterialData = nullptr;
-		StageBuffer<LightData *, 3> stageLightData;
-
 	  protected: /*	Default texture if texture from material is missing.*/
 		std::array<unsigned int, 16> default_textures;
 		std::array<unsigned int, 16> samplers;
@@ -225,19 +199,31 @@ namespace glsample {
 			DebugMode debugMode;
 		};
 
+		using LightSettings = struct light_settings_t {};
+
 		using RenderingSettings = struct rendering_settings_t {
 			DebugMode debugMode = DebugMode::None;
 			bool frustumCulling = false;
+			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
+			FogSettings fogSettings;
+			LightSettings lightSettings;
 		};
-
-		RenderingSettings settings;
 
 		DebugMode debugMode = DebugMode::None;
 		bool frustumCulling = false;
 		size_t currentNodeIndex = 0;
+		RenderingSettings settings;
 
-		template<unsigned int bufferRoundRobinSize>
-		struct uniform_buffer_collection {
+		/*	*/
+		bool useCoherent = true;
+
+		StageBuffer<GlobalSceneState *, 3> stageCommonRobin;
+		StageBuffer<NodeData *, 3> stageNodeDataRobin;
+		StageBuffer<NodeData *, 3> stagePreNodeDataRobin;
+		StageBuffer<MaterialData *, 3> stageMaterialDataRobin;
+		StageBuffer<LightData *, 3> stageLightData;
+
+		template <unsigned int bufferRoundRobinSize> struct uniform_buffer_collection {
 			unsigned int base_offset = 0;
 			std::array<unsigned int, bufferRoundRobinSize> node_offsets;
 			unsigned int size_align = 0;
@@ -245,30 +231,35 @@ namespace glsample {
 			unsigned int max_item_per_binding = 0;
 		};
 
+		UBOPool UniformPool;
+
 		using UniformDataStructure = struct uniform_data_structure {
 			/*	*/
 			static const size_t bufferRoundRobinSize = 3;
-			UBOObject uniform_buffer;
-			unsigned int node_and_common_uniform_buffer; // TODO: removed and replace with uniform_buffer;
+			UBOObject uniform_buffer{};
+
+			unsigned int node_and_common_uniform_buffer{}; // TODO: removed and replace with uniform_buffer;
 
 			unsigned int node_base_offset = 0;
-			std::array<unsigned int, bufferRoundRobinSize> node_offsets;
+			std::array<unsigned int, bufferRoundRobinSize> node_offsets{};
+			std::array<unsigned int, bufferRoundRobinSize> node_prev_offsets{};
 			unsigned int node_size_align = 0;
 			unsigned int node_size_total_align = 0;
 			unsigned int max_node_per_binding = 0;
 
 			unsigned int material_base_offset = 0;
-			std::array<unsigned int, bufferRoundRobinSize> mateiral_offsets;
+			std::array<unsigned int, bufferRoundRobinSize> mateiral_offsets{};
 			unsigned int material_align_size = 0;
 			unsigned int material_align_total_size = 0;
 			unsigned int max_material_per_block = 0;
 
 			unsigned int light_base_offset = 0;
-			std::array<unsigned int, bufferRoundRobinSize> light_offsets;
+			std::array<unsigned int, bufferRoundRobinSize> light_offsets{};
 			unsigned int light_align_size = 0;
 			unsigned int light_align_total_size = 0;
 			unsigned int max_light_per_binding = 0;
 
+			std::array<unsigned int, bufferRoundRobinSize> common_offsets{};
 			unsigned int common_base_offset = 0;
 			unsigned int common_size_align = 0;
 			unsigned int common_size_total_align = 0;
@@ -277,6 +268,7 @@ namespace glsample {
 			unsigned int binding_set = 0;
 			unsigned int common_buffer_binding = 1;
 			unsigned int node_buffer_binding = 2;
+			unsigned int node_prev_buffer_binding = 6;
 			unsigned int bone_buffer_binding = 3;
 			unsigned int material_buffer_binding = 4;
 			unsigned int light_buffer_binding = 5;

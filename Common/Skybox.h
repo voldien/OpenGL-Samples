@@ -70,11 +70,13 @@ namespace glsample {
 
 		unsigned int skybox_texture_panoramic;
 		unsigned int skybox_sampler;
+
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignSize = sizeof(uniform_buffer_block);
+
 		glm::vec3 rotation;
 		bool isEnabled = true;
 

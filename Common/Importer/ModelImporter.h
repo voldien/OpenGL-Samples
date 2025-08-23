@@ -78,6 +78,7 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	float shinininess = 1;
 	float bumpiness = 1;
 	float opacity = 1;
+	float metalic = 0;
 	int blend_func_mode = 0; /*	aiBlendMode*/
 	int wireframe_mode = 0;
 	bool culling_both_side_mode = false;
@@ -244,6 +245,8 @@ using LightObject = struct alignas(32) light_object_t : public AssetObject {
 	glm::vec3 direction;
 	glm::vec3 mUp;
 
+	unsigned int type;
+
 	float mAttenuationConstant;
 
 	float mAttenuationLinear;
@@ -313,6 +316,8 @@ class FVDECLSPEC ModelImporter {
 	std::vector<MaterialObject> &getMaterials() noexcept { return this->materials; }
 
 	std::vector<MaterialObject *> getMaterials(const size_t texture_index) noexcept;
+
+	const std::vector<LightObject> &getLights() const noexcept { return this->lights; }
 
 	/*	*/
 	const std::vector<TextureAssetObject> &getTextures() const noexcept { return this->textures; }

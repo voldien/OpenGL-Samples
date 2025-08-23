@@ -23,7 +23,7 @@ void main() {
 
 	/*	Material properties.	*/
 	const vec3 albedo = texture(DiffuseTexture, TexCoords).rgb;
-	const float metallic = texture(MetalicTexture, TexCoords).r;
+	const float metallic = texture(MetalicTexture, TexCoords).r * mat.clip_.z;
 	const float roughness = clamp(texture(RoughnessTexture, TexCoords).r * mat.specular_roughness.a, 0, 1);
 	const float ao = texture(AOTexture, TexCoords).r;
 	const vec3 emissive = mat.emission.rgb * texture(EmissionTexture, TexCoords).rgb;
@@ -40,14 +40,22 @@ void main() {
 	/*	Directional Light.	*/
 	vec3 Lo = vec3(0.0);
 	for (int i = 0; i < getDirectionalLightCount(); i++) {
-		Lo += computePBRDirectionLight(getDirectional(i), ViewPixelDir, SurfaceNormal, roughness, metallic,
-									   F0, albedo);
+
+		/*	*/
+		const vec3 lightSource =
+			computePBRDirectionLight(getDirectional(i), ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo);
+
+		/*	Shadow.	*/
+		const vec4 LightSpaceVertex = getDirectional(i).lightShadow.lightSpaceMatrix * vec4(WorldPos, 1);
+		float shadow =
+			ShadowCalculation(getDirectional(i), DirectionalShadowTexture[i], SurfaceNormal, LightSpaceVertex);
+
+		Lo += lightSource * shadow;
 	}
 
 	/*	Point Lights.	*/
 	for (int i = 0; i < getPointLightCount(); i++) {
-		Lo += computePBRPoint(getPointLight(i), WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic,
-									   F0, albedo);
+		Lo += computePBRPoint(getPointLight(i), WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo);
 	}
 
 	/*	ambient lighting (we now use IBL as the ambient term)	*/

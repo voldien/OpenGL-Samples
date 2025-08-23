@@ -68,7 +68,7 @@ namespace glsample {
 		/*	Update uniform values.	*/
 		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 		void *uniformPointer =
-			glMapBufferRange(GL_UNIFORM_BUFFER, ((frameIndex + 1) % this->nrUniformBuffer) * this->uniformAlignSize,
+			glMapBufferRange(GL_UNIFORM_BUFFER, ((frameIndex + 0) % this->nrUniformBuffer) * this->uniformAlignSize,
 							 this->uniformAlignSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 		memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
 		glUnmapBuffer(GL_UNIFORM_BUFFER);

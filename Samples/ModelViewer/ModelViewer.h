@@ -1,5 +1,20 @@
-#include "SampleHelper.h"
-#include "Scene.h"
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2025 Valdemar Lindberg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+#pragma once
+#include "PBRScene.h"
 #include "Skybox.h"
 #include "Util/CameraController.h"
 #include <GL/glew.h>
@@ -9,30 +24,7 @@
 
 namespace glsample {
 
-	class PBRScene : public Scene {
-	  public:
-		PBRScene() = default;
 
-		void init() override;
-		void bindMaterial(const MaterialObject *material) override;
-
-	  protected:
-		bool shadowPass = false;
-
-	  public:
-		/*	Shadow shader paths.	*/
-		// const std::string vertexShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.vert.spv";
-		// const std::string geomtryShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.geom.spv";
-		// const std::string fragmentShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.frag.spv";
-		// const std::string fragmentShadowAlphaClipShaderPath =
-		//	"Shaders/shadowpointlight/pointlightshadow_alphaclip.frag.spv";
-
-		/*	*/
-		//  const std::string vertexDirectionalShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
-		//  const std::string fragmentDirectionalShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
-		//  const std::string fragmentDirectionalClippingShadowShaderPath =
-		//	"Shaders/shadowmap/shadowmap_alpha.frag.spv";
-	};
 
 	/**
 	 * @brief
@@ -65,6 +57,7 @@ namespace glsample {
 		Skybox skybox;
 
 		unsigned int irradiance_texture{};
+		unsigned int specular_texture{};
 
 		unsigned int physical_based_rendering_program{};
 		unsigned int simple_physical_based_rendering_program{};

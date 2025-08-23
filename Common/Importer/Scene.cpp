@@ -2,6 +2,7 @@
 #include "../Common.h"
 #include "Math3D/Color.h"
 #include "ModelImporter.h"
+#include "Node.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 #include "UIComponent.h"
@@ -11,9 +12,12 @@
 #include "magic_enum.hpp"
 #include <GL/glew.h>
 #include <cstdint>
+#include <glm/common.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <iostream>
+#include <omp.h>
 #include <ostream>
 #include <sys/types.h>
 
@@ -62,6 +66,13 @@ namespace glsample {
 
 	void Scene::init() {
 
+		/*	Create Internal shaders.	*/
+
+		/*	*/
+		// this->DirLightPool.resize(64);
+		// this->PointLightPool.resize(64);
+		this->visableNodes.reserve(2048);
+
 		/*	Create default textures.	*/
 		{
 			const unsigned char normalForward[] = {127, 127, 255, 255};
@@ -80,7 +91,7 @@ namespace glsample {
 
 			this->default_textures[TextureType::Displacement] = glsample::CommonUtil::createColorTexture(
 				1, 1, fragcore::Color(black[0] / 255.0f, black[1] / 255.0f, black[2] / 255.0f, black[3] / 255.0f));
-			this->default_textures[TextureType::Metal] = this->default_textures[TextureType::Displacement];
+			this->default_textures[TextureType::Metal] = this->default_textures[TextureType::Diffuse];
 
 			this->default_textures[TextureType::Normal] = glsample::CommonUtil::createColorTexture(
 				1, 1,
@@ -163,24 +174,55 @@ namespace glsample {
 					GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
 
 				/*	*/
-				this->stageCommonBufferBase = (GlobalSceneState *)&pdata[0];
-				for (size_t index = 0; index < stageCommonRobin.size(); index++) {
-					this->stageCommonRobin[index] =
-						(GlobalSceneState *)&pdata[this->UBOStructure.common_size_align * index];
-					*this->stageCommonRobin[index] = GlobalSceneState();
+				{
+					// this->stageCommonBufferBase = (GlobalSceneState *)&pdata[0];
+					for (size_t index = 0; index < stageCommonRobin.buffers.size(); index++) {
+
+						this->UBOStructure.common_offsets[index] =
+							this->UBOStructure.common_base_offset + this->UBOStructure.common_size_align * index;
+						this->stageCommonRobin.buffers[index] =
+							(GlobalSceneState *)&pdata[this->UBOStructure.common_size_align * index];
+
+						*this->stageCommonRobin.buffers[index] = GlobalSceneState();
+					}
 				}
 
-				this->stageNodeData = (NodeData *)&pdata[this->UBOStructure.common_size_total_align];
-				this->stageMaterialData = (MaterialData *)&pdata[this->UBOStructure.common_size_total_align +
-																 this->UBOStructure.node_size_total_align];
+				/*	*/
+				{
+					uint8_t *baseNode = &pdata[this->UBOStructure.node_base_offset];
+
+					for (size_t index = 0; index < stageNodeDataRobin.buffers.size(); index++) {
+
+						this->UBOStructure.node_offsets[index] =
+							this->UBOStructure.node_base_offset + this->UBOStructure.node_size_align * index;
+
+						this->UBOStructure.node_prev_offsets[index] =
+							this->UBOStructure.node_base_offset +
+							this->UBOStructure.node_size_align * ((index + 2) % stageCommonRobin.buffers.size());
+
+						this->stageNodeDataRobin.buffers[index] =
+							(NodeData *)&baseNode[index * this->UBOStructure.node_size_align];
+					}
+				}
+
+				/*	*/
+				{
+					uint8_t *baseMaterial = &pdata[this->UBOStructure.material_base_offset];
+
+					for (size_t index = 0; index < stageCommonRobin.buffers.size(); index++) {
+
+						this->UBOStructure.mateiral_offsets[index] =
+							this->UBOStructure.material_base_offset + this->UBOStructure.material_align_size * index;
+						this->stageMaterialDataRobin.buffers[index] =
+							(MaterialData *)&baseMaterial[index * this->UBOStructure.material_align_size];
+					}
+				}
 
 				/*	Setup Light Data Structure.	*/
 				{
-					uint8_t *baseLight =
-						&pdata[this->UBOStructure.common_size_total_align + this->UBOStructure.node_size_total_align +
-							   this->UBOStructure.material_align_total_size];
+					uint8_t *baseLight = &pdata[this->UBOStructure.light_base_offset];
 
-					for (size_t index = 0; index < stageCommonRobin.size(); index++) {
+					for (size_t index = 0; index < stageLightData.buffers.size(); index++) {
 						/*	*/
 						this->UBOStructure.light_offsets[index] =
 							this->UBOStructure.light_base_offset + this->UBOStructure.light_align_size * index;
@@ -212,20 +254,24 @@ namespace glsample {
 		}
 
 		/*	*/
-		this->stageCommonBufferBase->time[0] = deltaTime;
+		this->stageCommonRobin.buffers[getRoundRobinIndex()]->time[0] = deltaTime;
 		this->updateBuffers();
 	}
 
 	void Scene::updateBuffers() {
 
-		const size_t common_offset =
-			this->UBOStructure.common_base_offset + getRoundRobinIndex() * this->UBOStructure.common_size_align;
-		const size_t node_offset = 0;
-		const size_t materail_offset = 0;
-		const size_t light_offset = this->UBOStructure.light_offsets[getRoundRobinIndex()];
+		const size_t common_offset = this->UBOStructure.node_offsets[this->getRoundRobinIndex()];
+		const size_t node_offset = this->UBOStructure.node_offsets[this->getRoundRobinIndex()];
+		const size_t materail_offset = this->UBOStructure.mateiral_offsets[this->getRoundRobinIndex()];
+		const size_t light_offset = this->UBOStructure.light_offsets[this->getRoundRobinIndex()];
+
+		/*	Update global scene.	*/
+		GlobalSceneState *globalSceneState = this->stageCommonRobin.buffers[getRoundRobinIndex()];
+		globalSceneState->renderSettings.fogSettings = this->settings.fogSettings;
+		globalSceneState->renderSettings.ambientColor = this->settings.ambientColor;
 
 		/*	*/
-		NodeData *baseNodeData = &this->stageNodeData[0];
+		NodeData *baseNodeData = this->stageNodeDataRobin.buffers[getRoundRobinIndex()];
 		size_t node_index = 0;
 		auto copyQueue = renderQueue; // TODO: fix performance
 		for (const NodeObject *node : copyQueue) {
@@ -233,7 +279,7 @@ namespace glsample {
 		}
 
 		/*	Update Materials.	*/
-		MaterialData *materialBase = this->stageMaterialData;
+		MaterialData *materialBase = this->stageMaterialDataRobin.buffers[this->getRoundRobinIndex()];
 		size_t material_index = 0;
 		for (; material_index < this->materials.size(); material_index++) {
 
@@ -246,26 +292,65 @@ namespace glsample {
 			materialBase[material_index].transparency = this->materials[material_index].transparent;
 			materialBase[material_index].clip_[0] = this->materials[material_index].clipping;
 			materialBase[material_index].clip_[1] = this->materials[material_index].bumpiness;
+			materialBase[material_index].clip_[2] = this->materials[material_index].metalic;
 		}
 
 		/*	Update Lights.	*/
 		LightData *stageLightBase = this->stageLightData.buffers[getRoundRobinIndex()];
+
 		stageLightBase->directionalCount = 0;
 		stageLightBase->pointCount = 0;
-		for (size_t i = 0; i < getLights().size(); i++) {
-			const Light *light = getLights()[i];
+		size_t light_count = 0;
+		for (light_count = 0; light_count < getLights().size(); light_count++) {
+			const Light *light = getLights()[light_count];
 
 			switch (light->lightType) {
 
 			case Light::LightType::Directional: {
+
+				DirectionalLight *dirLight = (DirectionalLight *)light;
 				DirectionalLightData *lightData = &stageLightBase->directional[stageLightBase->directionalCount];
+
+				const glm::vec3 light_direction = dirLight->getDirectionalLight();
+
 				lightData->lightColor = light->color;
-				// stageLightBase->directional[stageLightBase->directionalCount].lightDirection = (light->getRotation()
-				// * glm::vec3(0,0,1));
+				lightData->lightDirection = glm::vec4(light_direction, 1);
+
+				/*	Shadow Setup.	*/
+				lightData->lightShadow.shadow[0] = light->shadow;
+				lightData->lightShadow.shadow[1] = light->bias;
+
+				if (light->shadow > 0) {
+					// TODO: frustum.
+					const float near_plane = -(dirLight->shadowDistance / 2.0f) * 2;
+					const float far_plane = (dirLight->shadowDistance / 2.0f) * 2;
+					const glm::mat4 lightProjection =
+						glm::ortho(-dirLight->shadowDistance, dirLight->shadowDistance, -dirLight->shadowDistance,
+								   dirLight->shadowDistance, near_plane, far_plane);
+
+					const glm::mat4 lightView = glm::lookAt(
+						dirLight->getPosition(), dirLight->getPosition() + light_direction * 100.0f, dirLight->up());
+					const glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+					const glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5,
+											   0.5, 1.0);
+					lightData->lightShadow.lightSpaceMatrix = lightSpaceMatrix;
+				}
+
 				stageLightBase->directionalCount++;
 			} break;
-			case Light::LightType::Point:
+			case Light::LightType::Point: {
+				PointLight *dirLight = (PointLight *)light;
+				PointLightInstance *lightData = &stageLightBase->pointLight[stageLightBase->pointCount];
+
+				lightData->color = light->color;
+
+				if (light->shadow > 0) {
+				}
+
 				stageLightBase->pointCount++;
+			} break;
+			case Light::LightType::Spot:
 				break;
 			}
 		}
@@ -279,16 +364,14 @@ namespace glsample {
 			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, common_offset, this->UBOStructure.common_size_align);
 
 			/*	Update Node Data.	*/
-			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_base_offset,
-									 node_index * sizeof(NodeData));
+			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, node_offset, node_index * sizeof(NodeData));
 
 			/*	Update Material.	*/
-			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_base_offset,
-									 material_index * sizeof(MaterialData));
+			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, materail_offset, material_index * sizeof(MaterialData));
 
 			/*	Update Lights.	*/
-			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_base_offset,
-									 this->UBOStructure.light_align_size);
+			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, light_offset, this->UBOStructure.light_align_size);
+
 		} else {
 			// TODO: add
 		}
@@ -296,45 +379,70 @@ namespace glsample {
 
 	void Scene::culling(Frustum *frustum) {
 
+		/*	*/
 		this->visableNodes.clear();
 
 		/*	Frustum Culling.	*/
 		if (this->settings.frustumCulling && frustum) {
 
-			/*	*/ // TODO: multi thread
+			/*	*/
+			// TODO: multi thread
+			const size_t num_threads = 6;
+			static std::vector<std::vector<NodeObject *>> objects(num_threads, std::vector<NodeObject *>());
+			for (size_t i = 0; i < objects.size(); i++) {
+				objects[i].clear();
+				objects[i].reserve(1024);
+			}
+
+#pragma omp parallel for collapse(1) num_threads(num_threads)
 			for (size_t node_index = 0; node_index < this->getNodes().size(); node_index++) {
 
 				NodeObject *node = this->getNodes()[node_index];
 
-				/*	*/
+				/*	Check if any of the meshes are visable. */
 				for (size_t mesh_index = 0; mesh_index < node->geometryObjectIndex.size(); mesh_index++) {
 
-					/*	Compute world space AABB.	*/
-					const AABB aabb = GeometryUtility::computeBoundingBox(
-						fragcore::AABB::createMinMax(
-							Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
-							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
-						GLM2E<float, 4, 4>(node->modelGlobalTransform));
-
 					if (true) {
-						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), aabb.getHalfSize().norm());
 
-						if (frustum->intersectionSphere(sphere) == Frustum::In) {
+						const AABB aabb = fragcore::AABB::createMinMax(
+							Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
+							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2]));
+
+						const Vector3 sphere_world_position =
+							(GLM2E<float, 4, 4>(node->modelGlobalTransform) *
+							 Vector4(aabb.getCenter().x(), aabb.getCenter().y(), aabb.getCenter().z(), 1.0f))
+								.head(3);
+
+						BoundingSphere sphere = BoundingSphere(sphere_world_position, aabb.getHalfSize().norm());
+
+						if (frustum->intersectionSphere(sphere) != Frustum::Out) {
 							/*	*/
-							visableNodes.push_back(node);
+							objects[omp_get_thread_num()].push_back(node);
 							break;
 						}
 
 					} else {
 
-						if (frustum->intersectionAABB(aabb) == Frustum::In) {
+						/*	Compute world space AABB.	*/
+						const AABB aabb = GeometryUtility::computeBoundingBox(
+							fragcore::AABB::createMinMax(
+								Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
+								Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
+							GLM2E<float, 4, 4>(node->modelGlobalTransform));
+
+						if (frustum->intersectionAABB(aabb) != Frustum::Out) {
 							/*	*/
-							visableNodes.push_back(node);
+							objects[omp_get_thread_num()].push_back(node);
 							break;
 						}
 					}
 				}
 			}
+
+			for (size_t i = 0; i < objects.size(); i++) {
+				visableNodes.insert(visableNodes.end(), objects[i].begin(), objects[i].end());
+			}
+
 		} else {
 			visableNodes = this->getNodes();
 		}
@@ -345,17 +453,38 @@ namespace glsample {
 
 		// TODO: fix camera argument.
 		if (camera) {
-			GlobalSceneState *globalScene = this->stageCommonRobin[getRoundRobinIndex()];
+			GlobalSceneState *globalScene = this->stageCommonRobin.buffers[getRoundRobinIndex()];
 			globalScene->camera = *camera;
 			CameraController *cameraController = dynamic_cast<CameraController *>(
 				camera); // TODO: remove controller once the camera start using the base Node
 			globalScene->camera = *cameraController;
+
 			/*	*/
 			globalScene->proj[0] = camera->getProjectionMatrix();
 		}
 
 		/*	*/
 		this->culling(camera);
+
+		/*	*/
+		this->render();
+	}
+
+	void Scene::render(Light *light) {
+
+		if (light) {
+			GlobalSceneState *globalScene = this->stageCommonRobin.buffers[getRoundRobinIndex()];
+
+			globalScene->camera.proj = light->getProjectionMatrix();
+			globalScene->camera.view = light->getViewMatrix();
+			globalScene->camera.viewProj = (globalScene->camera.proj * globalScene->camera.view);
+
+			/*	*/
+			globalScene->proj[0] = light->getProjectionMatrix();
+		}
+
+		/*	*/
+		this->culling(light);
 
 		/*	*/
 		this->render();
@@ -375,18 +504,19 @@ namespace glsample {
 		/*	Iterate through each node.	*/
 
 		/*	Bind common data for all drawcall.	*/
-		const size_t common_offset =
-			this->UBOStructure.common_base_offset + getRoundRobinIndex() * this->UBOStructure.common_size_align;
-		const size_t light_offset =
-			this->UBOStructure.light_base_offset + getRoundRobinIndex() * this->UBOStructure.light_align_size;
-		glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.common_buffer_binding,
-						  this->UBOStructure.node_and_common_uniform_buffer, common_offset,
-						  this->UBOStructure.common_size_align);
+		{
+			const size_t common_offset = this->UBOStructure.common_offsets[this->getRoundRobinIndex()];
+			const size_t light_offset = this->UBOStructure.light_offsets[this->getRoundRobinIndex()];
 
-		/*	*/
-		glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_buffer_binding,
-						  this->UBOStructure.node_and_common_uniform_buffer, light_offset,
-						  this->UBOStructure.light_align_total_size);
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.common_buffer_binding,
+							  this->UBOStructure.node_and_common_uniform_buffer, common_offset,
+							  this->UBOStructure.common_size_align);
+
+			/*	*/
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_buffer_binding,
+							  this->UBOStructure.node_and_common_uniform_buffer, light_offset,
+							  this->UBOStructure.light_align_total_size);
+		}
 
 		const std::vector<RenderQueue> order = {RenderQueue::Background,  RenderQueue::Geometry,
 												RenderQueue::AlphaTest,	  RenderQueue::GeometryLast,
@@ -398,7 +528,7 @@ namespace glsample {
 			std::deque<const NodeObject *> nodeQueue = this->renderBucketQueue[(*it)];
 
 			/*	*/
-			const std::string domain = fmt::format("{}", (int)(*it)); // magic_enum::enum_name((*it));
+			const std::string domain = fmt::format("{}", (int)(*it));
 
 			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, domain.size(), domain.data());
 			for (auto itQ = nodeQueue.begin(); itQ != nodeQueue.end(); itQ++) {
@@ -481,6 +611,7 @@ namespace glsample {
 
 	void Scene::bindMaterial(const MaterialObject *material) {
 
+		/*	Only bind if different material the current material binded.	*/
 		if (this->currentBindedMaterial != material) {
 
 			this->bindTexture(*material, TextureType::Diffuse);
@@ -546,18 +677,26 @@ namespace glsample {
 		if ((currentNodeIndex % this->UBOStructure.max_node_per_binding) == 0) {
 
 			/*	*/
-			const unsigned int model_block_offset = currentNodeIndex / this->UBOStructure.max_node_per_binding;
-			const size_t model_total_offset =
-				this->UBOStructure.node_base_offset + (model_block_offset * 65536); // TODO:fix constants.
+			const unsigned int node_block_offset_base = currentNodeIndex / this->UBOStructure.max_node_per_binding;
+			const size_t node_total_offset = this->UBOStructure.node_offsets[this->getRoundRobinIndex()] +
+											 (node_block_offset_base * 65536); // TODO:fix constants.
+
+			const size_t node_prev_total_offset = this->UBOStructure.node_prev_offsets[this->getRoundRobinIndex()] +
+												  (node_block_offset_base * 65536); // TODO:fix constants.
+
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_buffer_binding,
-							  this->UBOStructure.node_and_common_uniform_buffer, model_total_offset,
+							  this->UBOStructure.node_and_common_uniform_buffer, node_total_offset,
 							  this->UBOStructure.node_size_align);
 
-			// TODO: fix binding offset.
+			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_prev_buffer_binding,
+							  this->UBOStructure.node_and_common_uniform_buffer, node_prev_total_offset,
+							  this->UBOStructure.node_size_align);
+
 			/*	*/
+			const size_t material_offset = this->UBOStructure.mateiral_offsets[this->getRoundRobinIndex()];
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_buffer_binding,
-							  this->UBOStructure.node_and_common_uniform_buffer,
-							  this->UBOStructure.material_base_offset, this->UBOStructure.material_align_size);
+							  this->UBOStructure.node_and_common_uniform_buffer, material_offset,
+							  this->UBOStructure.material_align_size);
 		}
 
 		/*	*/
@@ -573,6 +712,7 @@ namespace glsample {
 
 			const MeshObject &refMesh = this->refGeometry[node->geometryObjectIndex[geo_index]];
 			glBindVertexArray(refMesh.vao);
+
 			/*	Material, model matrix.	*/
 			glVertexAttribI2i(8, material_index, currentNodeIndex % this->UBOStructure.max_node_per_binding);
 			/*	*/
@@ -690,17 +830,22 @@ namespace glsample {
 
 			/*	*/
 			if (ImGui::CollapsingHeader("Global Rendering Settings")) {
-				ImGui::ColorEdit4("Global Ambient Color", &this->stageCommonBufferBase->renderSettings.ambientColor[0],
+
+				ImGui::ColorEdit4("Global Ambient Color", &this->settings.ambientColor[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::TextUnformatted("Global Fog");
-				ImGui::DragInt("Fog Type", (int *)&this->stageCommonBufferBase->renderSettings.fogSettings.fogType);
-				ImGui::ColorEdit4("Fog Color", &this->stageCommonBufferBase->renderSettings.fogSettings.fogColor[0],
-								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::DragFloat("Fog Density", &this->stageCommonBufferBase->renderSettings.fogSettings.fogDensity);
-				ImGui::DragFloat("Fog Intensity",
-								 &this->stageCommonBufferBase->renderSettings.fogSettings.fogIntensity);
-				ImGui::DragFloat("Fog Start", &this->stageCommonBufferBase->renderSettings.fogSettings.fogStart);
-				ImGui::DragFloat("Fog End", &this->stageCommonBufferBase->renderSettings.fogSettings.fogEnd);
+
+				{
+					ImGui::TextUnformatted("Global Fog");
+
+					// ImGui::Checkbox("Use Fog", &this->settings.fogSettings.fogType);
+					ImGui::DragInt("Fog Type", (int *)&this->settings.fogSettings.fogType);
+					ImGui::ColorEdit4("Fog Color", &this->settings.fogSettings.fogColor[0],
+									  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+					ImGui::DragFloat("Fog Density", &this->settings.fogSettings.fogDensity);
+					ImGui::DragFloat("Fog Intensity", &this->settings.fogSettings.fogIntensity);
+					ImGui::DragFloat("Fog Start", &this->settings.fogSettings.fogStart);
+					ImGui::DragFloat("Fog End", &this->settings.fogSettings.fogEnd);
+				}
 			}
 
 			/*	*/
@@ -755,41 +900,65 @@ namespace glsample {
 			if (ImGui::CollapsingHeader("Light Settings")) {
 				size_t light_index = 0;
 
-				ImGui::TextUnformatted("PointLight");
+				ImGui::TextUnformatted("Light Sources");
 
-				for (; light_index < this->stageLightData.getBase()->pointCount; light_index++) {
+				for (; light_index < this->getLights().size(); light_index++) {
 					ImGui::PushID(light_index + 1000);
-					ImGui::ColorEdit4("Color", &this->stageLightData.getBase()->pointLight[light_index].color[0],
-									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-					ImGui::DragFloat3("Position", &this->stageLightData.getBase()->pointLight[light_index].position[0]);
-					ImGui::DragFloat("Range", &this->stageLightData.getBase()->pointLight[light_index].range);
 
+					Light *light = this->getLights()[light_index];
+
+					ImGui::ColorEdit4("Color", &light->color[0], ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+
+					glm::vec3 position = light->getPosition();
+					if (ImGui::DragFloat3("Position", &position[0])) {
+						light->setPosition(position);
+					}
+
+					switch (light->lightType) {
+					case Light::LightType::Directional: {
+						DirectionalLight *dirLight = (DirectionalLight *)light;
+						glm::vec3 rotation_eular = dirLight->getRotationEular();
+						if (ImGui::DragFloat3("Rotation", &rotation_eular[0])) {
+							dirLight->setRotationEular(rotation_eular);
+						}
+					} break;
+					case Light::LightType::Point: {
+						PointLight *pointLight = (PointLight *)light;
+
+						ImGui::DragFloat("Range", &pointLight->range);
+					} break;
+					default:
+						break;
+					}
+
+					glm::ivec3 size = light->getSize();
+					if (ImGui::DragInt2("Size", &size[0])) {
+						size = glm::max(size, glm::ivec3(128));
+						light->setSize(size);
+					}
+
+					FrameBuffer *framebuffer = light->getFrameBuffer();
+					  if (framebuffer) {
+					 	 ImGui::Image(static_cast<ImTextureID>(framebuffer->attachments[framebuffer->depthIndex]),
+					 				  ImVec2(512, 512), ImVec2(1, 1), ImVec2(0, 0));
+					  }
+
+					ImGui::DragFloat("Shadow Strength", &light->shadow, 1, 0.0f, 1.0f);
+					ImGui::DragFloat("Shadow Bias", &light->bias, 1, 0.0f, 1.0f, "%.5f");
+
+					float shadowDistance = light->getShadowDistance();
+					if (ImGui::DragFloat("Shadow Distance", &shadowDistance, 1, 0.0f, 10000000.0f, "%.5f")) {
+						light->setShadowDistance(shadowDistance);
+					}
 					ImGui::PopID();
-				}
-
-				ImGui::TextUnformatted("DirectionalLight");
-				for (light_index = 0; light_index < this->stageLightData.getBase()->directionalCount; light_index++) {
-
-					ImGui::PushID(light_index);
-					ImGui::ColorEdit4("Color", &this->stageLightData.getBase()->directional[light_index].lightColor[0],
-									  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
-					ImGui::DragFloat3("Direction",
-									  &this->stageLightData.getBase()->directional[light_index].lightDirection[0]);
-					ImGui::PopID();
-					ImGui::DragFloat("Shadow Strength",
-									 &this->stageLightData.getBase()->directional[light_index].lightShadow.shadow[0], 1,
-									 0.0f, 1.0f);
-					ImGui::DragFloat("Shadow Bias",
-									 &this->stageLightData.getBase()->directional[light_index].lightShadow.shadow[1], 1,
-									 0.0f, 1.0f, "%.5f");
 				}
 
 				if (ImGui::Button("Add Direction Light")) {
-					this->stageLightData.getBase()->directionalCount++;
+					this->getLights().push_back(new DirectionalLight());
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Add Point Light")) {
-					this->stageLightData.getBase()->pointCount++;
+					this->getLights().push_back(new PointLight());
 				}
 			}
 
@@ -818,6 +987,7 @@ namespace glsample {
 					ImGui::DragFloat("Clipping", &mat.clipping, 1, 0, 1);
 					ImGui::DragFloat("Shinininess", &mat.shinininess, 1, 0, 128);
 					ImGui::DragFloat("Bumpiness", &mat.bumpiness, 1, 0, 128);
+					ImGui::DragFloat("Metalic", &mat.metalic, 1, 0, 1);
 
 					/*	Textures.	*/
 					for (size_t mat_tex_index = 0; mat_tex_index < mat.texture_index.size(); mat_tex_index++) {

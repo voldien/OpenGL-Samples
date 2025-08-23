@@ -189,11 +189,15 @@ void CommonUtil::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAtta
 	glGenFramebuffers(1, &framebuffer->framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->framebuffer);
 
-	framebuffer->depthIndex = 15;
+	framebuffer->depthIndex = 31;
 
-	glGenTextures(nrAttachments, framebuffer->attachments.data());		  /*	Color attachment textures.	*/
-	glGenTextures(1, &framebuffer->attachments[framebuffer->depthIndex]); /*	Depth/Stencil attachment textures.	*/
+	if (nrAttachments > 0) {
+		glGenTextures(nrAttachments, framebuffer->attachments.data()); /*	Color attachment textures.	*/
+	}
 	framebuffer->nrAttachments = nrAttachments;
+
+	// TODO: make depth optional
+	glGenTextures(1, &framebuffer->attachments[framebuffer->depthIndex]); /*	Depth/Stencil attachment textures.	*/
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -230,7 +234,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		glObjectLabel(GL_TEXTURE, framebuffer->attachments[attachment_index], texture_attachment_name.size(),
 					  texture_attachment_name.data());
 
-		if (multisamples > 0) {
+		if (multisamples > 1) {
 			glTexImage2DMultisample(texture_type, multisamples, internal_format, width, height, GL_TRUE);
 		} else {
 			if (depth > 1) {
@@ -274,15 +278,14 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		attachment_index++;
 	}
 
-	glDrawBuffers(framebuffer->nrAttachments, attachments_mapping.data());
-
 	/*	Depth/stencil buffer.	*/
 	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer->framebuffer);
 
 		const unsigned int multisamples = depthstencil.nrSamples;
-		const unsigned int width = depthstencil.width;
-		const unsigned int height = depthstencil.height;
-		const unsigned int depth = depthstencil.depth;
+		const unsigned int depth_width = depthstencil.width;
+		const unsigned int depth_height = depthstencil.height;
+		const unsigned int depth_depth = depthstencil.depth;
 		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(depthstencil.graphicFormat);
 
 		GLenum texture_type = GL_TEXTURE_2D;
@@ -293,15 +296,19 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		/*	*/
 		glBindTexture(texture_type, framebuffer->attachments[framebuffer->depthIndex]);
 		if (multisamples > 0) {
-			glTexImage2DMultisample(texture_type, multisamples, internal_format, width, height, GL_TRUE);
+			glTexImage2DMultisample(texture_type, multisamples, internal_format, depth_width, depth_height, GL_TRUE);
 		} else {
-			glTexImage2D(texture_type, 0, internal_format, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+			glTexImage2D(texture_type, 0, internal_format, depth_width, depth_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+						 nullptr);
 		}
 
-		framebuffer->attachmentSize[framebuffer->depthIndex] = {width, height, depth};
+		framebuffer->attachmentSize[framebuffer->depthIndex] = {depth_width, depth_height, depth_depth};
 
 		/*	*/
-		if (multisamples == 0) {
+		if (multisamples > 1) {
+
+			const float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+			glTexParameterfv(texture_type, GL_TEXTURE_BORDER_COLOR, borderColor);
 
 			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -313,6 +320,9 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 			glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0);
 			glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f);
 			glTexParameteri(texture_type, GL_TEXTURE_BASE_LEVEL, 0);
+
+			glTexParameteri(texture_type, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+			glTexParameteri(texture_type, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 		}
 
 		glBindTexture(texture_type, 0);
@@ -326,6 +336,15 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 	if (frameStatus != GL_FRAMEBUFFER_COMPLETE) {
 		throw RuntimeException("Failed to create framebuffer, {}", frameStatus);
 	}
+
+	/*	*/
+	if (attachment_index > 0) {
+		glDrawBuffers(framebuffer->nrAttachments, attachments_mapping.data());
+	} else {
+		glDrawBuffer(GL_NONE);
+		glReadBuffer(GL_NONE);
+	}
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 

@@ -25,10 +25,10 @@ namespace glsample {
 	Frustum::Intersection Frustum::intersectionAABB(const AABB &bounds) const noexcept {
 		Frustum::Intersection result = Frustum::In;
 
-		for (unsigned int i = 0; i < FrustumPlane::NPLANES; i++) {
+		for (unsigned int index_plane = 0; index_plane < FrustumPlane::NPLANES; index_plane++) {
 
-			if (!fragcore::GeometryUtility::testPlanesAABB(this->planes[i], bounds)) {
-				return Intersection::Out;
+			if (!fragcore::GeometryUtility::testPlanesAABB(this->planes[index_plane], bounds)) {
+				return Intersection::Out; //index_plane > 0 ? Intersection::Intersect : Intersection::Out;
 			}
 		}
 
@@ -47,9 +47,10 @@ namespace glsample {
 
 	Frustum::Intersection Frustum::intersectionSphere(const BoundingSphere &sphere) const noexcept {
 
-		for (unsigned int i = 0; i < (unsigned int)FrustumPlane::NPLANES; i++) {
-			if (!fragcore::GeometryUtility::testPlanesSphere(this->planes[i], sphere)) {
-				return Intersection::Out;
+		for (unsigned int index_plane = 0; index_plane < (unsigned int)FrustumPlane::NPLANES; index_plane++) {
+
+			if (!fragcore::GeometryUtility::testPlanesSphere(this->planes[index_plane], sphere)) {
+				return Intersection::Out; //index_plane > 0 ? Intersection::Intersect : Intersection::Out;
 			}
 		}
 		return Intersection::In;
