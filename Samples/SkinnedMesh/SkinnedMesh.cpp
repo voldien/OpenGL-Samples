@@ -173,8 +173,8 @@ namespace glsample {
 			int uniform_buffer_index = glGetUniformBlockIndex(this->skinned_graphic_program, "UniformBufferBlock");
 			int uniform_skeleton_buffer_index =
 				glGetUniformBlockIndex(this->skinned_graphic_program, "UniformSkeletonBufferBlock");
-			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "DiffuseTexture"), TextureType::Diffuse);
-			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "NormalTexture"), TextureType::Normal);
+			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
+			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "NormalTexture"), TextureTypeBinding::Normal);
 			glUniformBlockBinding(this->skinned_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUniformBlockBinding(this->skinned_graphic_program, uniform_skeleton_buffer_index,
 								  this->uniform_skeleton_buffer_binding);

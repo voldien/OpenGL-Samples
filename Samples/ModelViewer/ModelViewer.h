@@ -24,8 +24,6 @@
 
 namespace glsample {
 
-
-
 	/**
 	 * @brief
 	 */
@@ -73,14 +71,14 @@ namespace glsample {
 		CameraController camera;
 
 		/*	Simple	*/
-		const std::string vertexPBRShaderPath = "Shaders/pbr/simplephysicalbasedrendering.vert.spv";
-		const std::string fragmentPBRShaderPath = "Shaders/pbr/simplephysicalbasedrendering.frag.spv";
+		const std::string vertexPBRShaderPath = "Shaders/modelviewer/PBR/simplephysicalbasedrendering.vert.spv";
+		const std::string fragmentPBRShaderPath = "Shaders/modelviewer/PBR/simplephysicalbasedrendering.frag.spv";
 
 		/*	Advanced.	*/
-		const std::string vertexShaderPath = "Shaders/pbr/physicalbasedrendering.vert.spv";
-		const std::string fragmentShaderPath = "Shaders/pbr/physicalbasedrendering.frag.spv";
-		const std::string ControlShaderPath = "Shaders/pbr/physicalbasedrendering.tesc.spv";
-		const std::string EvoluationShaderPath = "Shaders/pbr/physicalbasedrendering.tese.spv";
+		const std::string vertexShaderPath = "Shaders/modelviewer/PBR/physicalbasedrendering.vert.spv";
+		const std::string fragmentShaderPath = "Shaders/modelviewer/PBR/physicalbasedrendering.frag.spv";
+		const std::string ControlShaderPath = "Shaders/modelviewer/PBR/physicalbasedrendering.tesc.spv";
+		const std::string EvoluationShaderPath = "Shaders/modelviewer/PBR/physicalbasedrendering.tese.spv";
 
 		class ModelViewerSettingComponent : public GLUIComponent<ModelViewer> {
 

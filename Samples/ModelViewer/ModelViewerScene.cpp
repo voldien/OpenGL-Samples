@@ -16,11 +16,48 @@
 #include "PBRScene.h"
 #include "SampleHelper.h"
 #include "Scene/Light.h"
+#include <IO/IOUtil.h>
+#include <ShaderLoader.h>
 #include <glm/fwd.hpp>
 
 using namespace glsample;
 
 // PBRScene::PBRScene() { /*  */ }
+
+void PBRScene::init(IFileSystem *filesystem) {
+
+	const std::string vertexShadowShaderPath = "Shaders/scene/shadow/pointlightshadow.vert.spv";
+	const std::string geomtryShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.geom.spv";
+	const std::string fragmentShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.frag.spv";
+	const std::string fragmentShadowAlphaClipShaderPath =
+		"Shaders/shadowpointlight/pointlightshadow_alphaclip.frag.spv";
+
+	/*	*/
+	const std::string vertexDirectionalShadowShaderPath = "Shaders/scene/shadow/scene_directional_shadow.vert.spv";
+	const std::string fragmentDirectionalShadowShaderPath = "Shaders/scene/shadow/scene_directional_shadow.frag.spv";
+
+	/*	*/
+	const std::vector<uint32_t> vertex_shadow_binary =
+		fragcore::IOUtil::readFileData<uint32_t>(vertexDirectionalShadowShaderPath, filesystem);
+	const std::vector<uint32_t> fragment_shadow_binary =
+		fragcore::IOUtil::readFileData<uint32_t>(fragmentDirectionalShadowShaderPath, filesystem);
+	// const std::vector<uint32_t> fragment_shadow_alpha_binary =
+	// 	IOUtil::readFileData<uint32_t>(this->fragmentClippingShadowShaderPath, filesystem);
+
+	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+	compilerOptions.glslVersion = 420;
+
+	/*	Load shaders	*/
+	// this->graphic_program =
+	//	ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary, &fragment_graphic_binary);
+	// this->graphic_pfc_program =
+	//	ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary, &fragment_graphic_pfc_binary);
+	this->shadow_directional =
+		ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary, &fragment_shadow_binary);
+	// this->shadow_alpha_clip_program =
+	//	ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary, &fragment_shadow_alpha_binary);
+}
 
 void PBRScene::init() {
 	Scene::init();
@@ -30,7 +67,9 @@ void PBRScene::init() {
 }
 
 void PBRScene::shadowPass() {
+
 	UseShadowPass = true;
+	glUseProgram(this->shadow_directional);
 	for (size_t i = 0; i < this->getLights().size(); i++) {
 		Light *light = getLights()[i];
 
@@ -44,10 +83,9 @@ void PBRScene::shadowPass() {
 			glClear(GL_DEPTH_BUFFER_BIT);
 			glViewport(0, 0, size[0], size[1]);
 			Scene::render(light);
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	UseShadowPass = false;
 }
 
@@ -59,8 +97,8 @@ void PBRScene::render() {
 
 		if (frame) {
 
-			 	glActiveTexture(GL_TEXTURE0 + DirectionalLightDepthBuffer + i);
-			 	glBindTexture(GL_TEXTURE_2D, frame->attachments[frame->depthIndex]);
+			glActiveTexture(GL_TEXTURE0 + DirectionalLightDepthBuffer + i);
+			glBindTexture(GL_TEXTURE_2D, frame->attachments[frame->depthIndex]);
 		}
 	}
 

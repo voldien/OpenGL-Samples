@@ -101,8 +101,8 @@ uint getDirectionalLightCount() { return LightUBO.light.directionalCount; }
 uint getPointLightCount() { return LightUBO.light.pointCount; }
 
 /*	*/
-DirectionalLight getDirectional(const in int index) { return LightUBO.light.directional[index]; }
-PointLight getPointLight(const in int index) { return LightUBO.light.point[index]; }
+DirectionalLight getDirectional(const in uint index) { return LightUBO.light.directional[index]; }
+PointLight getPointLight(const in uint index) { return LightUBO.light.point[index]; }
 
 /*	*/
 Camera getCamera() { return constantCommon.constant.camera; }

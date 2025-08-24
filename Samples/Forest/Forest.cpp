@@ -252,19 +252,19 @@ namespace glsample {
 			/*	Create Terrain Shader.	*/
 			glUseProgram(this->terrain_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->terrain_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->terrain_program, "DiffuseTexture"), TextureType::Diffuse);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "NormalTexture"), TextureType::Normal);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "DisplacementTexture"), TextureType::Displacement);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "IrradianceTexture"), TextureType::Irradiance);
+			glUniform1i(glGetUniformLocation(this->terrain_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
+			glUniform1i(glGetUniformLocation(this->terrain_program, "NormalTexture"), TextureTypeBinding::Normal);
+			glUniform1i(glGetUniformLocation(this->terrain_program, "DisplacementTexture"), TextureTypeBinding::Displacement);
+			glUniform1i(glGetUniformLocation(this->terrain_program, "IrradianceTexture"), TextureTypeBinding::Irradiance);
 			glUniformBlockBinding(this->terrain_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
 			glUseProgram(this->simple_ocean_program);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "DepthTexture"), TextureType::DepthBuffer);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "NormalTexture"), TextureType::Normal);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "IrradianceTexture"), TextureType::Irradiance);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "ReflectionTexture"), TextureType::Reflection);
+			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "DepthTexture"), TextureTypeBinding::DepthBuffer);
+			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "NormalTexture"), TextureTypeBinding::Normal);
+			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "IrradianceTexture"), TextureTypeBinding::Irradiance);
+			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "ReflectionTexture"), TextureTypeBinding::Reflection);
 
 			uniform_buffer_index = glGetUniformBlockIndex(this->simple_ocean_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->simple_ocean_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -362,27 +362,27 @@ namespace glsample {
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Diffuse);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Diffuse);
 				glBindTexture(GL_TEXTURE_2D, this->terrain_diffuse_texture);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Normal);
 				glBindTexture(GL_TEXTURE_2D, this->ocean_normal);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Displacement);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Displacement);
 				glBindTexture(GL_TEXTURE_2D, this->terrain_heightMap);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::DepthBuffer);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::DepthBuffer);
 				glBindTexture(GL_TEXTURE_2D, this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Reflection);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Reflection);
 				glBindTexture(GL_TEXTURE_2D, this->skybox.getTexture());
 
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -433,15 +433,15 @@ namespace glsample {
 				glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::DepthBuffer);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::DepthBuffer);
 				glBindTexture(GL_TEXTURE_2D, this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Normal);
 				glBindTexture(GL_TEXTURE_2D, this->ocean_normal);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Reflection);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Reflection);
 				glBindTexture(GL_TEXTURE_2D, this->skybox.getTexture());
 
 				glUseProgram(this->simple_ocean_program);

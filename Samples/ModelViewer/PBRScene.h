@@ -1,7 +1,7 @@
 #pragma once
 #include "FragDef.h"
+#include "IO/FileSystem.h"
 #include "Scene.h"
-
 
 namespace glsample {
 
@@ -9,11 +9,10 @@ namespace glsample {
 	  public:
 		PBRScene() = default;
 
-
 		void shadowPass();
+		void init(IFileSystem *filesystem);
 
-		public:
-
+	  public:
 		void init() override;
 		void bindMaterial(const MaterialObject *material) override;
 
@@ -25,16 +24,9 @@ namespace glsample {
 
 	  public:
 		/*	Shadow shader paths.	*/
-		// const std::string vertexShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.vert.spv";
-		// const std::string geomtryShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.geom.spv";
-		// const std::string fragmentShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.frag.spv";
-		// const std::string fragmentShadowAlphaClipShaderPath =
-		//	"Shaders/shadowpointlight/pointlightshadow_alphaclip.frag.spv";
 
-		/*	*/
-		//  const std::string vertexDirectionalShadowShaderPath = "Shaders/shadowmap/shadowmap.vert.spv";
-		//  const std::string fragmentDirectionalShadowShaderPath = "Shaders/shadowmap/shadowmap.frag.spv";
-		//  const std::string fragmentDirectionalClippingShadowShaderPath =
-		//	"Shaders/shadowmap/shadowmap_alpha.frag.spv";
+		//const std::string fragmentDirectionalClippingShadowShaderPath =  "Shaders/scene/shadow/scene_directional_shadow.vert.spv";
+
+		unsigned int shadow_directional;
 	};
 } // namespace glsample

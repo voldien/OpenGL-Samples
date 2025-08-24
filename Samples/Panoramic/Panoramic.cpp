@@ -321,7 +321,7 @@ namespace glsample {
 
 				glUseProgram(this->panoramic_program);
 
-				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				this->scene.render(&this->camera);

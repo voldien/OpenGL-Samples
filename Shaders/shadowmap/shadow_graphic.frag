@@ -36,8 +36,6 @@ ubo;
 
 float ShadowCalculation(const DirectionalLight directionLight, const in vec4 fragPosLightSpace) {
 
-
-
 	// perform perspective divide
 	vec4 projCoords = fragPosLightSpace.xyzw / fragPosLightSpace.w;
 

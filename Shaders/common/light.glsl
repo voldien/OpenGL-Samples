@@ -3,7 +3,7 @@
 
 struct ShadowLight {
 	mat4 lightSpaceMatrix;
-	vec4 shadow;	/*	Shadow, bias*/
+	vec4 shadow; /*	Shadow, bias, filtering radius,	*/
 };
 
 struct DirectionalLight {
@@ -27,32 +27,5 @@ float computeLightContributionFactor(const in vec3 direction, const in vec3 norm
 	/*	*/
 	return max(0.0, dot(-direction, normalInput));
 }
-
-vec4 computePoint(
-	const in PointLight light,
-	const in vec3 normal,
-	const in vec3 vertex,
-	const in float shininess,
-	const in vec3 specularColor
-) {
-
-	/*	*/
-	vec3 diffVertex = (light.position - vertex);
-
-	/*	*/
-	float dist = length(diffVertex);
-
-	/*	*/
-	float attenuation = 1.0 / (light.constant_attenuation + light.linear_attenuation * dist +
-		light.qudratic_attenuation * (dist * dist));
-
-	float contribution = max(dot(normal, normalize(diffVertex)), 0.0);
-
-	/*	*/
-	vec4 pointLightColors = (attenuation * light.color * contribution * light.range * light.intensity);
-
-	return vec4(pointLightColors.rgb, 1);
-}
-
 
 #endif

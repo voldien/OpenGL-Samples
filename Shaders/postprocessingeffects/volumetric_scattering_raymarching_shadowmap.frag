@@ -13,7 +13,8 @@ layout(location = 0) in vec2 screenUV;
 /*  */
 layout(binding = 0) uniform sampler2D ColorTexture;
 layout(binding = 2) uniform sampler2D DepthTexture;
-layout(binding = 15) uniform sampler2D DirectionalLightShadowMap;
+
+layout(binding = 24) uniform sampler2D DirectionalLightShadowMap;
 
 #include "light.glsl"
 #include "postprocessing_base.glsl"
@@ -26,8 +27,8 @@ layout(push_constant) uniform UniformBufferBlock {
 	layout(offset = 16) float _Exposure;
 	layout(offset = 32) vec3 lightPosition;
 	layout(offset = 48) vec4 color;
-} settings;
-
+}
+settings;
 
 vec3 calcViewPosition(const in vec2 coords) {
 	const float fragmentDepth = texture(DepthTexture, coords).r;
@@ -49,7 +50,7 @@ float ShadowAtten(const in vec3 worldPosition) {
 	vec4 projCoords = fragPosLightSpace.xyzw / fragPosLightSpace.w;
 
 	/*	*/
-	if(fragPosLightSpace.w > 1.0) {
+	if (fragPosLightSpace.w > 1.0) {
 		return 0;
 	}
 
@@ -73,17 +74,11 @@ float ComputeScattering(float lightDotView) {
 }
 
 // standart hash
-float random(vec2 p) {
-	return fract(sin(dot(p, vec2(41, 289))) * 45758.5453) - 0.5;
-}
-float random01(vec2 p) {
-	return fract(sin(dot(p, vec2(41, 289))) * 45758.5453);
-}
+float random(vec2 p) { return fract(sin(dot(p, vec2(41, 289))) * 45758.5453) - 0.5; }
+float random01(vec2 p) { return fract(sin(dot(p, vec2(41, 289))) * 45758.5453); }
 
 // from Ronja https://www.ronja-tutorials.com/post/047-invlerp_remap/
-float invLerp(float from, float to, float value) {
-	return (value - from) / (to - from);
-}
+float invLerp(float from, float to, float value) { return (value - from) / (to - from); }
 float remap(float origFrom, float origTo, float targetFrom, float targetTo, float value) {
 	float rel = invLerp(origFrom, origTo, value);
 	return mix(targetFrom, targetTo, rel);
@@ -113,13 +108,14 @@ void main() {
 	vec3 currentPosition = startPosition + rayStartOffset * rayDirection;
 
 	float accumScattering = 0;
-	for(float j = 0; j < settings.numSamples; j++) {
+	for (float j = 0; j < settings.numSamples; j++) {
 
 		float shadowMapValue = ShadowAtten(currentPosition) * settings._Exposure;
 
 		// if it is in light
-		if(shadowMapValue > 0) {
-			float kernelColor = ComputeScattering(dot(rayDirection, -normalize(LightUBO.light.directional[0].direction.xyz)));
+		if (shadowMapValue > 0) {
+			float kernelColor =
+				ComputeScattering(dot(rayDirection, -normalize(LightUBO.light.directional[0].direction.xyz)));
 			accumScattering += kernelColor;
 		}
 

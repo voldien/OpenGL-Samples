@@ -220,7 +220,7 @@ namespace glsample {
 			/*	*/
 			glUseProgram(this->graphic_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), TextureType::Diffuse);
+			glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
 			const int shadowUnits[4] = {16, 17, 18, 19};
 			glUniform1iv(glGetUniformLocation(this->graphic_program, "ShadowTexture"), 4, shadowUnits);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -229,7 +229,7 @@ namespace glsample {
 			/*	*/
 			glUseProgram(this->graphic_pfc_program);
 			uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), TextureType::Diffuse);
+			glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
 			glUniform1iv(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), 4, shadowUnits);
 			glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
@@ -418,7 +418,7 @@ namespace glsample {
 					glBindTexture(GL_TEXTURE_CUBE_MAP, this->pointShadowTextures[j]);
 				}
 
-				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				this->scene.render(&this->camera);

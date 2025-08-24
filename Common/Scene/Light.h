@@ -67,7 +67,7 @@ namespace glsample {
 		DirectionalLight() {
 			this->lightType = LightType::Directional;
 			this->setShadowDistance(50.0f);
-			this->rotateTowards(glm::vec3(-1));
+			this->rotateTowards(glm::vec3(1));
 		}
 
 		void setSize(const glm::ivec3 &size) override {
@@ -96,8 +96,8 @@ namespace glsample {
 		void setShadowDistance(float distance) override {
 			Light::setShadowDistance(distance);
 
-			const float near_plane = -(getShadowDistance() / 2.0f) * 2;
-			const float far_plane = (getShadowDistance() / 2.0f) * 2;
+			const float near_plane = -(getShadowDistance());
+			const float far_plane = (getShadowDistance());
 			const glm::mat4 lightProjection =
 				glm::ortho(-getShadowDistance(), getShadowDistance(), -getShadowDistance(), getShadowDistance(),
 						   near_plane, far_plane);
@@ -116,6 +116,7 @@ namespace glsample {
 
 		void calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
 							   const Vector3 &right) override {
+
 			const float distance = this->getShadowDistance();
 
 			this->planes[NEAR_PLANE] = {position - distance * look_forward, look_forward};

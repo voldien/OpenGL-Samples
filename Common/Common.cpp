@@ -215,6 +215,8 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		const unsigned int height = target_desc.height;
 		const unsigned int depth = target_desc.depth;
 		const unsigned int multisamples = target_desc.nrSamples;
+		const bool useMultiSampling = multisamples > 1;
+
 		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(target_desc.graphicFormat);
 
 		GLenum texture_type = GL_TEXTURE_2D;
@@ -222,7 +224,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 			texture_type = GL_TEXTURE_2D_ARRAY;
 		}
 
-		if (multisamples > 0) {
+		if (useMultiSampling) {
 			texture_type = GL_TEXTURE_2D_MULTISAMPLE;
 		}
 
@@ -234,7 +236,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		glObjectLabel(GL_TEXTURE, framebuffer->attachments[attachment_index], texture_attachment_name.size(),
 					  texture_attachment_name.data());
 
-		if (multisamples > 1) {
+		if (useMultiSampling) {
 			glTexImage2DMultisample(texture_type, multisamples, internal_format, width, height, GL_TRUE);
 		} else {
 			if (depth > 1) {
@@ -246,7 +248,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		}
 		framebuffer->attachmentSize[attachment_index] = {width, height, depth};
 
-		if (multisamples == 0) {
+		if (!useMultiSampling) {
 
 			glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -289,7 +291,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(depthstencil.graphicFormat);
 
 		GLenum texture_type = GL_TEXTURE_2D;
-		if (multisamples > 0) {
+		if (multisamples > 1) {
 			texture_type = GL_TEXTURE_2D_MULTISAMPLE;
 		}
 
@@ -305,7 +307,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		framebuffer->attachmentSize[framebuffer->depthIndex] = {depth_width, depth_height, depth_depth};
 
 		/*	*/
-		if (multisamples > 1) {
+		if (multisamples <= 1) {
 
 			const float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 			glTexParameterfv(texture_type, GL_TEXTURE_BORDER_COLOR, borderColor);

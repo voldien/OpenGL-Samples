@@ -103,9 +103,9 @@ namespace glsample {
 			/*	Setup graphic pipeline.	*/
 			glUseProgram(this->multipass_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->multipass_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), TextureType::Diffuse);
-			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), TextureType::Normal);
-			glUniform1i(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), TextureType::AlphaMask);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "NormalTexture"), TextureTypeBinding::Normal);
+			glUniform1i(glGetUniformLocation(this->multipass_program, "AlphaMaskedTexture"), TextureTypeBinding::AlphaMask);
 
 			glBindFragDataLocation(this->multipass_program, (int)GBuffer::Albedo, "Diffuse");
 			glBindFragDataLocation(this->multipass_program, (int)GBuffer::WorldSpace, "WorldSpace");

@@ -79,21 +79,26 @@ namespace glsample {
 			const unsigned char white[] = {255, 255, 255, 255};
 			const unsigned char black[] = {0, 0, 0, 255};
 
-			this->default_textures[TextureType::Diffuse] = glsample::CommonUtil::createColorTexture(
+			this->default_textures[TextureTypeBinding::Diffuse] = glsample::CommonUtil::createColorTexture(
 				1, 1, fragcore::Color(white[0] / 255.0f, white[1] / 255.0f, white[2] / 255.0f, white[3] / 255.0f));
-			this->default_textures[TextureType::AlphaMask] = this->default_textures[TextureType::Diffuse];
-			this->default_textures[TextureType::Emission] = this->default_textures[TextureType::Diffuse];
-			this->default_textures[TextureType::Irradiance] = this->default_textures[TextureType::Diffuse];
-			this->default_textures[TextureType::AmbientOcclusion] = this->default_textures[TextureType::Diffuse];
-			this->default_textures[TextureType::DepthBuffer] = this->default_textures[TextureType::Diffuse];
-			this->default_textures[TextureType::Specular_Roughness] = this->default_textures[TextureType::Diffuse];
-			this->default_textures[TextureType::AmbientOcclusion] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureTypeBinding::AlphaMask] = this->default_textures[TextureTypeBinding::Diffuse];
+			this->default_textures[TextureTypeBinding::Emission] = this->default_textures[TextureTypeBinding::Diffuse];
+			this->default_textures[TextureTypeBinding::Irradiance] =
+				this->default_textures[TextureTypeBinding::Diffuse];
+			this->default_textures[TextureTypeBinding::AmbientOcclusion] =
+				this->default_textures[TextureTypeBinding::Diffuse];
+			this->default_textures[TextureTypeBinding::DepthBuffer] =
+				this->default_textures[TextureTypeBinding::Diffuse];
+			this->default_textures[TextureTypeBinding::Specular_Roughness] =
+				this->default_textures[TextureTypeBinding::Diffuse];
+			this->default_textures[TextureTypeBinding::AmbientOcclusion] =
+				this->default_textures[TextureTypeBinding::Diffuse];
 
-			this->default_textures[TextureType::Displacement] = glsample::CommonUtil::createColorTexture(
+			this->default_textures[TextureTypeBinding::Displacement] = glsample::CommonUtil::createColorTexture(
 				1, 1, fragcore::Color(black[0] / 255.0f, black[1] / 255.0f, black[2] / 255.0f, black[3] / 255.0f));
-			this->default_textures[TextureType::Metal] = this->default_textures[TextureType::Diffuse];
+			this->default_textures[TextureTypeBinding::Metal] = this->default_textures[TextureTypeBinding::Diffuse];
 
-			this->default_textures[TextureType::Normal] = glsample::CommonUtil::createColorTexture(
+			this->default_textures[TextureTypeBinding::Normal] = glsample::CommonUtil::createColorTexture(
 				1, 1,
 				fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f, normalForward[2] / 255.0f,
 								normalForward[3] / 255.0f));
@@ -302,9 +307,9 @@ namespace glsample {
 		stageLightBase->pointCount = 0;
 		size_t light_count = 0;
 		for (light_count = 0; light_count < getLights().size(); light_count++) {
-			const Light *light = getLights()[light_count];
+			Light *light = getLights()[light_count];
 
-			switch (light->lightType) {
+			switch (light->getLightType()) {
 
 			case Light::LightType::Directional: {
 
@@ -317,23 +322,23 @@ namespace glsample {
 				lightData->lightDirection = glm::vec4(light_direction, 1);
 
 				/*	Shadow Setup.	*/
-				lightData->lightShadow.shadow[0] = light->shadow;
+				lightData->lightShadow.shadow[0] = light->getShadowStrength();
 				lightData->lightShadow.shadow[1] = light->bias;
 
-				if (light->shadow > 0) {
-					// TODO: frustum.
-					const float near_plane = -(dirLight->shadowDistance / 2.0f) * 2;
-					const float far_plane = (dirLight->shadowDistance / 2.0f) * 2;
-					const glm::mat4 lightProjection =
-						glm::ortho(-dirLight->shadowDistance, dirLight->shadowDistance, -dirLight->shadowDistance,
-								   dirLight->shadowDistance, near_plane, far_plane);
+				if (light->getShadowStrength() > 0) {
+
+					const float near_plane = -(dirLight->getShadowDistance());
+					const float far_plane = (dirLight->getShadowDistance());
+
+					const glm::mat4 lightProjection = glm::ortho(
+						-dirLight->getShadowDistance(), dirLight->getShadowDistance(), -dirLight->getShadowDistance(),
+						dirLight->getShadowDistance(), near_plane, far_plane);
 
 					const glm::mat4 lightView = glm::lookAt(
 						dirLight->getPosition(), dirLight->getPosition() + light_direction * 100.0f, dirLight->up());
 					const glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
-					const glm::mat4 biasMatrix(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5,
-											   0.5, 1.0);
+					light->shadowData.lightSpaceMatrix = lightSpaceMatrix;
 					lightData->lightShadow.lightSpaceMatrix = lightSpaceMatrix;
 				}
 
@@ -350,6 +355,7 @@ namespace glsample {
 
 				stageLightBase->pointCount++;
 			} break;
+			default:
 			case Light::LightType::Spot:
 				break;
 			}
@@ -475,12 +481,19 @@ namespace glsample {
 		if (light) {
 			GlobalSceneState *globalScene = this->stageCommonRobin.buffers[getRoundRobinIndex()];
 
+			/*	*/
+			globalScene->camera.far = light->getShadowDistance();
+			globalScene->camera.near = 0;
+			globalScene->camera.position = glm::vec4(light->getPosition(), 1.0f);
 			globalScene->camera.proj = light->getProjectionMatrix();
 			globalScene->camera.view = light->getViewMatrix();
-			globalScene->camera.viewProj = (globalScene->camera.proj * globalScene->camera.view);
+			globalScene->camera.viewProj =
+				light->shadowData.lightSpaceMatrix; // (globalScene->camera.proj * globalScene->camera.view);
 
 			/*	*/
 			globalScene->proj[0] = light->getProjectionMatrix();
+
+			this->updateBuffers(); // TODO: update only camera
 		}
 
 		/*	*/
@@ -561,10 +574,10 @@ namespace glsample {
 		glDepthFunc(GL_LEQUAL);
 		glCullFace(GL_BACK);
 
-		this->frameIndex++;
+		this->renderPassFrameIndex++;
 	}
 
-	void Scene::bindTexture(const MaterialObject &material, const TextureType texture_type) {
+	void Scene::bindTexture(const MaterialObject &material, const TextureTypeBinding texture_type) {
 
 		/*	*/
 		const unsigned int textureMapIndex = texture_type;
@@ -614,17 +627,17 @@ namespace glsample {
 		/*	Only bind if different material the current material binded.	*/
 		if (this->currentBindedMaterial != material) {
 
-			this->bindTexture(*material, TextureType::Diffuse);
-			this->bindTexture(*material, TextureType::Normal);
-			this->bindTexture(*material, TextureType::AlphaMask);
-			this->bindTexture(*material, TextureType::Emission);
-			this->bindTexture(*material, TextureType::AmbientOcclusion);
-			this->bindTexture(*material, TextureType::Displacement);
-			this->bindTexture(*material, TextureType::Specular_Roughness);
-			this->bindTexture(*material, TextureType::Metal);
+			this->bindTexture(*material, TextureTypeBinding::Diffuse);
+			this->bindTexture(*material, TextureTypeBinding::Normal);
+			this->bindTexture(*material, TextureTypeBinding::AlphaMask);
+			this->bindTexture(*material, TextureTypeBinding::Emission);
+			this->bindTexture(*material, TextureTypeBinding::AmbientOcclusion);
+			this->bindTexture(*material, TextureTypeBinding::Displacement);
+			this->bindTexture(*material, TextureTypeBinding::Specular_Roughness);
+			this->bindTexture(*material, TextureTypeBinding::Metal);
 			// this->bindTexture(material, TextureType::Irradiance); //TODO: enable once material has been binded
 			// with irradiance texture
-			this->bindTexture(*material, TextureType::DepthBuffer);
+			this->bindTexture(*material, TextureTypeBinding::DepthBuffer);
 
 			/*	*/
 			const RenderQueue domain = getQueueDomain(*material);
@@ -787,7 +800,7 @@ namespace glsample {
 	RenderQueue Scene::getQueueDomain(const MaterialObject &material) const noexcept {
 		const bool useGeometryAlpha = material.clipping < 1;
 		const bool useBlending = material.transparent[3] < 1.0f ||
-								 (material.texture_index[TextureType::AlphaMask] >= 0 && !useGeometryAlpha);
+								 (material.texture_index[TextureTypeBinding::AlphaMask] >= 0 && !useGeometryAlpha);
 		const bool useWireframe = material.wireframe_mode;
 
 		if (useWireframe) {
@@ -932,16 +945,16 @@ namespace glsample {
 					}
 
 					glm::ivec3 size = light->getSize();
-					if (ImGui::DragInt2("Size", &size[0])) {
+					if (ImGui::DragInt2("Size", &size[0], 1.0f, 0, 0, "%d")) {
 						size = glm::max(size, glm::ivec3(128));
 						light->setSize(size);
 					}
 
 					FrameBuffer *framebuffer = light->getFrameBuffer();
-					  if (framebuffer) {
-					 	 ImGui::Image(static_cast<ImTextureID>(framebuffer->attachments[framebuffer->depthIndex]),
-					 				  ImVec2(512, 512), ImVec2(1, 1), ImVec2(0, 0));
-					  }
+					if (framebuffer) {
+						ImGui::Image(static_cast<ImTextureID>(framebuffer->attachments[framebuffer->depthIndex]),
+									 ImVec2(512, 512), ImVec2(1, 1), ImVec2(0, 0));
+					}
 
 					ImGui::DragFloat("Shadow Strength", &light->shadow, 1, 0.0f, 1.0f);
 					ImGui::DragFloat("Shadow Bias", &light->bias, 1, 0.0f, 1.0f, "%.5f");
@@ -1004,7 +1017,8 @@ namespace glsample {
 							ImGui::PushID(mat_tex_index);
 
 							/*	*/
-							const std::string texType = std::string(magic_enum::enum_name((TextureType)mat_tex_index));
+							const std::string texType =
+								std::string(magic_enum::enum_name((TextureTypeBinding)mat_tex_index));
 							ImGui::Image(tex, ImVec2(96, 96), ImVec2(1, 1), ImVec2(0, 0));
 							ImGui::SameLine();
 							ImGui::Text("%s (%ld)", texType.c_str(), mat_tex_index);

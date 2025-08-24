@@ -61,19 +61,19 @@ namespace glsample {
 		int uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
 
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DiffuseTexture"),
-					   (int)TextureType::Diffuse);
+					   (int)TextureTypeBinding::Diffuse);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "NormalTexture"),
-					   (int)TextureType::Normal);
+					   (int)TextureTypeBinding::Normal);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "AOTexture"),
-					   (int)TextureType::AmbientOcclusion);
+					   (int)TextureTypeBinding::AmbientOcclusion);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "RoughnessTexture"),
-					   (int)TextureType::Specular_Roughness);
+					   (int)TextureTypeBinding::Specular_Roughness);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DisplacementTexture"),
-					   (int)TextureType::Displacement);
+					   (int)TextureTypeBinding::Displacement);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "EmissionTexture"),
-					   (int)TextureType::Emission);
+					   (int)TextureTypeBinding::Emission);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"),
-					   (int)TextureType::Irradiance);
+					   (int)TextureTypeBinding::Irradiance);
 		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index, 0);
 
 		glUseProgram(0);
@@ -121,7 +121,7 @@ namespace glsample {
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		{
-			glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+			glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 			glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 			glCullFace(GL_BACK);

@@ -38,24 +38,24 @@ void main() {
 	F0 = mix(F0, albedo, metallic);
 
 	/*	Directional Light.	*/
-	vec3 Lo = vec3(0.0);
-	for (int i = 0; i < getDirectionalLightCount(); i++) {
+	vec3 DirectLight = vec3(0.0);
+	for (uint light_index = 0; light_index < getDirectionalLightCount(); light_index++) {
 
-		/*	*/
-		const vec3 lightSource =
-			computePBRDirectionLight(getDirectional(i), ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo);
+		/*	Calculate light color.	*/
+		const vec3 lightSource = computePBRDirectionLight(getDirectional(light_index), ViewPixelDir, SurfaceNormal,
+														  roughness, metallic, F0, albedo);
 
 		/*	Shadow.	*/
-		const vec4 LightSpaceVertex = getDirectional(i).lightShadow.lightSpaceMatrix * vec4(WorldPos, 1);
-		float shadow =
-			ShadowCalculation(getDirectional(i), DirectionalShadowTexture[i], SurfaceNormal, LightSpaceVertex);
+		const vec4 LightSpaceVertex = getDirectional(light_index).lightShadow.lightSpaceMatrix * vec4(WorldPos, 1);
+		const float shadow = ShadowCalculation(getDirectional(light_index), DirectionalShadowTexture[light_index],
+											   SurfaceNormal, LightSpaceVertex);
 
-		Lo += lightSource * shadow;
+		DirectLight += lightSource * shadow;
 	}
 
 	/*	Point Lights.	*/
-	for (int i = 0; i < getPointLightCount(); i++) {
-		Lo += computePBRPoint(getPointLight(i), WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo);
+	for (uint i = 0; i < getPointLightCount(); i++) {
+		DirectLight += computePBRPoint(getPointLight(i), WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo);
 	}
 
 	/*	ambient lighting (we now use IBL as the ambient term)	*/
@@ -68,8 +68,9 @@ void main() {
 	/*	Diffuse.	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(SurfaceNormal));
 	const vec4 diffuse_irradiance_color = vec4(texture(IrradianceTexture, irradiance_uv).rgb, 1);
-	const vec3 diffuse = (glob_settings.ambientColor.rgb * diffuse_irradiance_color.rgb * mat.ambientColor.rgb) *
-						 albedo * mat.diffuseColor.rgb;
+	const vec3 diffuse_irradiance_color_contr =
+		glob_settings.ambientColor.rgb * diffuse_irradiance_color.rgb * mat.ambientColor.rgb;
+	const vec3 diffuse = diffuse_irradiance_color_contr * (albedo * mat.diffuseColor.rgb);
 
 	// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to
 	// get the IBL specular part.
@@ -80,13 +81,15 @@ void main() {
 	vec3 specular = vec3(0); // prefilteredColor * (F * brdf.x + brdf.y);
 	specular *= mat.specular_roughness.rgb;
 
-	const vec3 ambient = (kDiffuse * diffuse + specular) * ao;
+	const vec3 indirectLight = (kDiffuse * diffuse + specular) * ao;
 
-	const vec3 color = emissive + ambient + Lo;
+	const vec3 color = emissive + indirectLight + DirectLight;
 
 	fragColor = vec4(color, 1.0);
 	fragColor.a *= texture(AlphaMaskedTexture, TexCoords).r;
 	fragColor *= mat.transparency.rgba;
+
+	//fragColor = vec4(DirectLight, 1);
 
 	if (fragColor.a < mat.clip_.x) {
 		discard;

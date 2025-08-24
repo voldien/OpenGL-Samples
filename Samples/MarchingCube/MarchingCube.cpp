@@ -489,7 +489,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->marchingCubeSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				/*	Draw Items.	*/

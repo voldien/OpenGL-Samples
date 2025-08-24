@@ -25,7 +25,7 @@
 
 namespace glsample {
 
-	enum TextureType : unsigned int {
+	enum TextureTypeBinding : unsigned int {
 		Diffuse = 0,					 /*	*/
 		Normal = 1,						 /*	*/
 		AlphaMask = 2,					 /*	*/
@@ -120,11 +120,11 @@ namespace glsample {
 		}
 
 	  protected:
-		void bindTexture(const MaterialObject &material, const TextureType texture_type);
+		void bindTexture(const MaterialObject &material, const TextureTypeBinding texture_type);
 		int computeMaterialPriority(const MaterialObject &material) const noexcept;
 		RenderQueue getQueueDomain(const MaterialObject &material) const noexcept;
 		size_t getRoundRobinIndex() const noexcept {
-			return this->frameIndex % UniformDataStructure::bufferRoundRobinSize;
+			return this->renderPassFrameIndex % UniformDataStructure::bufferRoundRobinSize;
 		}
 
 	  protected:
@@ -276,7 +276,7 @@ namespace glsample {
 
 		UniformDataStructure UBOStructure;
 
-		unsigned int frameIndex = 0;
+		unsigned int renderPassFrameIndex = 0;
 		static const unsigned int frameChainCount = 3;
 	};
 } // namespace glsample

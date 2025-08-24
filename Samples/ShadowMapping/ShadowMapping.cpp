@@ -86,7 +86,7 @@ namespace glsample {
 		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
-		const int shadowBinding = 15;
+		const int shadowBinding = TextureTypeBinding::DirectionalLightDepthBuffer;
 
 		CameraController camera;
 
@@ -196,9 +196,9 @@ namespace glsample {
 
 				glUseProgram(this->shadow_alpha_clip_program);
 				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "DiffuseTexture"),
-							TextureType::Diffuse);
+							TextureTypeBinding::Diffuse);
 				glUniform1i(glGetUniformLocation(this->shadow_alpha_clip_program, "AlphaMaskedTexture"),
-							TextureType::AlphaMask);
+							TextureTypeBinding::AlphaMask);
 				uniform_buffer_shadow_index =
 					glGetUniformBlockIndex(this->shadow_alpha_clip_program, "UniformBufferBlock");
 				glUniformBlockBinding(this->shadow_alpha_clip_program, uniform_buffer_shadow_index,
@@ -208,10 +208,10 @@ namespace glsample {
 				/*	Setup graphic pipeline.	*/
 				glUseProgram(this->graphic_program);
 				int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
-				glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), TextureType::Diffuse);
-				glUniform1i(glGetUniformLocation(this->graphic_program, "AlphaMaskedTexture"), TextureType::AlphaMask);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "AlphaMaskedTexture"), TextureTypeBinding::AlphaMask);
 				glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), shadowBinding);
-				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureType::Irradiance);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureTypeBinding::Irradiance);
 
 				glUniformBlockBinding(this->graphic_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
@@ -220,11 +220,11 @@ namespace glsample {
 				/*	Setup graphic pipeline.	*/
 				glUseProgram(this->graphic_pfc_program);
 				uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
-				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), TextureType::Diffuse);
+				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "AlphaMaskedTexture"),
-							TextureType::AlphaMask);
+							TextureTypeBinding::AlphaMask);
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), shadowBinding);
-				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureType::Irradiance);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureTypeBinding::Irradiance);
 				glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
 				glUseProgram(0);
@@ -370,7 +370,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + shadowBinding);
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
-				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				this->scene.shadowPass = false;

@@ -69,15 +69,15 @@ namespace glsample {
 		glUseProgram(this->physical_based_rendering_program);
 		int uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DiffuseTexture"),
-					   (int)TextureType::Diffuse);
+					   (int)TextureTypeBinding::Diffuse);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "NormalTexture"),
-					   (int)TextureType::Normal);
+					   (int)TextureTypeBinding::Normal);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "AOTexture"),
-					   (int)TextureType::AmbientOcclusion);
+					   (int)TextureTypeBinding::AmbientOcclusion);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DisplacementTexture"),
-					   (int)TextureType::Displacement);
+					   (int)TextureTypeBinding::Displacement);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"),
-					   (int)TextureType::Irradiance);
+					   (int)TextureTypeBinding::Irradiance);
 		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
 							  this->uniform_buffer_binding);
 		uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
@@ -94,6 +94,7 @@ namespace glsample {
 		ModelImporter modelLoader(FileSystem::getFileSystem());
 		modelLoader.loadContent(modelPath, 0);
 		this->scene = SceneHelper::loadFrom<PBRScene>(modelLoader);
+		this->scene.init(this->getFileSystem());
 
 		/*	*/
 		MiscProcessingUtil util(this->getFileSystem());
@@ -108,6 +109,7 @@ namespace glsample {
 		glUseProgram(this->physical_based_rendering_program);
 		{ this->scene.shadowPass(); }
 
+		this->scene.update(this->getTimer().deltaTime<float>());
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			size_t width = 0, height = 0;
@@ -119,7 +121,7 @@ namespace glsample {
 			glClear(GL_DEPTH_BUFFER_BIT);
 
 			{
-				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				glUseProgram(this->physical_based_rendering_program);
@@ -134,7 +136,6 @@ namespace glsample {
 	void ModelViewer::update() {
 		/*	*/
 		this->camera.update(getTimer().deltaTime<float>());
-		this->scene.update(this->getTimer().deltaTime<float>());
 	}
 
 	class PhysicalBasedRenderingGLSample : public GLSample<ModelViewer> {

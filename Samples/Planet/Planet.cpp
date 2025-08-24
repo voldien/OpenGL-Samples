@@ -224,10 +224,10 @@ namespace glsample {
 			/*	Create Planet Shader.	*/
 			glUseProgram(this->planet_program);
 			int uniform_buffer_index = glGetUniformBlockIndex(this->planet_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->planet_program, "DiffuseTexture"), TextureType::Diffuse);
-			glUniform1i(glGetUniformLocation(this->planet_program, "NormalTexture"), TextureType::Normal);
-			glUniform1i(glGetUniformLocation(this->planet_program, "DisplacementTexture"), TextureType::Displacement);
-			glUniform1i(glGetUniformLocation(this->planet_program, "IrradianceTexture"), TextureType::Irradiance);
+			glUniform1i(glGetUniformLocation(this->planet_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
+			glUniform1i(glGetUniformLocation(this->planet_program, "NormalTexture"), TextureTypeBinding::Normal);
+			glUniform1i(glGetUniformLocation(this->planet_program, "DisplacementTexture"), TextureTypeBinding::Displacement);
+			glUniform1i(glGetUniformLocation(this->planet_program, "IrradianceTexture"), TextureTypeBinding::Irradiance);
 			glUniformBlockBinding(this->planet_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
@@ -323,27 +323,27 @@ namespace glsample {
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Diffuse);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Diffuse);
 				glBindTexture(GL_TEXTURE_2D, this->planet_diffuse_texture);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Normal);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Normal);
 				glBindTexture(GL_TEXTURE_2D, this->planet_normal);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Displacement);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Displacement);
 				glBindTexture(GL_TEXTURE_2D, this->planet_heightMap);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::DepthBuffer);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::DepthBuffer);
 				glBindTexture(GL_TEXTURE_2D, this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Irradiance);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
 				/*	*/
-				glActiveTexture(GL_TEXTURE0 + TextureType::Reflection);
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Reflection);
 				glBindTexture(GL_TEXTURE_2D, this->skybox.getTexture());
 
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

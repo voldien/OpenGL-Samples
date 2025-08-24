@@ -2,9 +2,8 @@
 #include "light.glsl"
 #include "scene.glsl"
 #include "shadow.glsl"
-
-layout(binding = 0, std140) uniform UniformBufferBlock { tessellation_settings tessellation; }
-ubo;
+ layout(binding = 0, std140) uniform UniformBufferBlock { tessellation_settings tessellation; }
+ ubo;
 
 struct OutputPatch {
 	vec3 WorldPos_B030;

@@ -1,5 +1,6 @@
 #include "Scene/Transform.h"
 #include <glm/ext/matrix_float3x3.hpp>
+#include <glm/geometric.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 using namespace glsample;
@@ -82,6 +83,6 @@ template <> glm::quat TransformGLM::operator*(const glm::quat &quat) const noexc
 	return this->getRotation() * quat;
 }
 
-template <> glm::vec3 TransformGLM::up() const noexcept { return this->quat * glm::vec3(0, 1, 0); }
-template <> glm::vec3 TransformGLM::right() const noexcept { return this->quat * glm::vec3(1, 0, 0); }
-template <> glm::vec3 TransformGLM::forward() const noexcept { return this->quat * glm::vec3(0, 0, 1); }
+template <> glm::vec3 TransformGLM::up() const noexcept { return glm::normalize(this->quat * glm::vec3(0, 1, 0)); }
+template <> glm::vec3 TransformGLM::right() const noexcept { return glm::normalize(this->quat * glm::vec3(1, 0, 0)); }
+template <> glm::vec3 TransformGLM::forward() const noexcept { return glm::normalize(this->quat * glm::vec3(0, 0, 1)); }
