@@ -45,26 +45,27 @@ unsigned int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpac
 
 	this->getFormat(image, format, type, internalformat, colorSpace, compression);
 
+	/*	*/
 	const size_t power_of_2 = std::floor(std::log(Math::max(image.width(), image.height())) / std::log(2));
 	const size_t max_mipmap = Math::clamp<size_t>(power_of_2 - 4, 0, std::numeric_limits<size_t>::max());
 
+	/*	*/
 	GLuint currentPBO = this->pbos[current_pbo++];
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, currentPBO);
 	glBufferData(GL_PIXEL_UNPACK_BUFFER, image.getSize(), nullptr, GL_STREAM_COPY);
-	void *ptr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, 0, image.getSize(),
-								 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	void *ptr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER_ARB, 0, image.getSize(), GL_MAP_WRITE_BIT);
 	memcpy(ptr, image.getPixelData(), image.getSize());
 	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 
+	/*	*/
 	FVALIDATE_GL_CALL(glGenTextures(1, &texture));
-
 	FVALIDATE_GL_CALL(glBindTexture(target, texture));
 
 	/*	Offload with PBO buffer.	*/
 
 	/*	Alignment.	*/
 	FVALIDATE_GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-	FVALIDATE_GL_CALL(glPixelStorei(GL_PACK_ALIGNMENT, 4));
+	FVALIDATE_GL_CALL(glPixelStorei(GL_PACK_ALIGNMENT, 1));
 
 	/*	wrap and filter.	*/
 	FVALIDATE_GL_CALL(glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT));
@@ -100,7 +101,7 @@ unsigned int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpac
 
 	FVALIDATE_GL_CALL(glBindTexture(target, 0));
 
-	current_pbo = (current_pbo + 1) % pbos.size();
+	this->current_pbo = (this->current_pbo + 1) % pbos.size();
 
 	return texture;
 }

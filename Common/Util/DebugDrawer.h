@@ -30,10 +30,10 @@ namespace glsample {
 		~DebugDrawManager() override = default;
 
 		// TODO reduce argument.
-		void draw(FrameBuffer *frame);
-
-		//	void setViewport(int width, int height ) override;
+		void draw(Camera *camera, FrameBuffer *frame);
 		//	RenderQueue getSupportedQueue() const override; /*  Render as overlay only. */
+
+		virtual void reset() {}
 
 		virtual void addLine(const glm::vec3 &start, const glm::vec3 &end, const Color &color, float lineWidth = 1.0f,
 							 float duration = 0.0f, bool depthEnabled = true);
@@ -120,6 +120,6 @@ namespace glsample {
 		MaterialObject material;
 
 		StageBuffer<DebugData, 3> StageBuffers;
-		UBOObject uniform;
+		UBOPool ubo_pool;
 	};
 } // namespace glsample

@@ -7,6 +7,7 @@
 
 layout(location = 0) in vec4 FragVertex;
 layout(location = 1) in flat int FIndex;
+layout(location = 2) in vec2 TextureCoord;
 
 #include "scene.glsl"
 
@@ -20,5 +21,10 @@ void main() {
 	/*	map to [0;1].	*/
 	lightDistance = lightDistance / pointLight.range;
 
-	gl_FragDepth = lightDistance;
+	const float alpha = texture(DiffuseTexture, TextureCoord).a * texture(AlphaMaskedTexture, TextureCoord).r;
+	if (alpha < 0.5) {
+		discard;
+	} else {
+		gl_FragDepth = lightDistance;
+	}
 }

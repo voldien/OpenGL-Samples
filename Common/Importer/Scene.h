@@ -18,9 +18,11 @@
 #include "Core/UIDObject.h"
 #include "DataStructure/PoolAllocator.h"
 #include "GLSampleSession.h"
+#include "IO/IFileSystem.h"
 #include "ModelImporter.h"
 #include "SampleHelper.h"
 #include "Scene/Light.h"
+#include "Util/DebugDrawer.h"
 #include <deque>
 
 namespace glsample {
@@ -80,7 +82,7 @@ namespace glsample {
 		Scene();
 		virtual ~Scene();
 
-		virtual void init();
+		virtual void init(IFileSystem *filesystem = nullptr);
 
 		virtual void release();
 
@@ -105,6 +107,8 @@ namespace glsample {
 
 		virtual void culling(Frustum *frustum); // TODO: add
 
+		bool useDebug() const noexcept { return this->debugMode > DebugMode::None; }
+
 	  public:
 		const std::vector<NodeObject *> &getNodes() const noexcept { return this->nodes; }
 
@@ -128,6 +132,7 @@ namespace glsample {
 		}
 
 	  protected:
+		DebugDrawManager *debugDrawer = nullptr;
 		/*	*/
 		MaterialObject *currentBindedMaterial = nullptr;
 
@@ -202,7 +207,7 @@ namespace glsample {
 		using LightSettings = struct light_settings_t {};
 
 		using RenderingSettings = struct rendering_settings_t {
-			DebugMode debugMode = DebugMode::None;
+			unsigned int debugMode = DebugMode::None;
 			bool frustumCulling = false;
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
 			FogSettings fogSettings;

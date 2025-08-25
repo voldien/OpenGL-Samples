@@ -13,6 +13,7 @@
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  */
+#include "ModelImporter.h"
 #include "PBRScene.h"
 #include "SampleHelper.h"
 #include "Scene/Light.h"
@@ -25,45 +26,66 @@ using namespace glsample;
 // PBRScene::PBRScene() { /*  */ }
 
 void PBRScene::init(IFileSystem *filesystem) {
-
-	const std::string vertexShadowShaderPath = "Shaders/scene/shadow/pointlightshadow.vert.spv";
-	const std::string geomtryShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.geom.spv";
-	const std::string fragmentShadowShaderPath = "Shaders/shadowpointlight/pointlightshadow.frag.spv";
-	const std::string fragmentShadowAlphaClipShaderPath =
-		"Shaders/shadowpointlight/pointlightshadow_alphaclip.frag.spv";
+	Scene::init(filesystem);
 
 	/*	*/
+	DirectionalLight* dirLight = new DirectionalLight();
+	dirLight->setSize( glm::ivec3(1024, 1024, 1));
+	this->getLights().push_back(dirLight);
+
+	/*	Point Light.	*/
+	const std::string vertexPointShadowShaderPath = "Shaders/scene/shadow/scene_point_shadow.vert.spv";
+	const std::string geomtryPointShadowShaderPath = "Shaders/scene/shadow/scene_point_shadow.geom.spv";
+	const std::string fragmentPointShadowShaderPath = "Shaders/scene/shadow/scene_point_shadow.frag.spv";
+	const std::string fragmentPointShadowAlphaClipShaderPath = "Shaders/scene/shadow/scene_point_shadow_alpha.frag.spv";
+
+	/*	Directional Light */
 	const std::string vertexDirectionalShadowShaderPath = "Shaders/scene/shadow/scene_directional_shadow.vert.spv";
 	const std::string fragmentDirectionalShadowShaderPath = "Shaders/scene/shadow/scene_directional_shadow.frag.spv";
+	const std::string fragmentDirectionalShadowAlphaShaderPath =
+		"Shaders/scene/shadow/scene_directional_shadow_alpha.frag.spv";
 
 	/*	*/
-	const std::vector<uint32_t> vertex_shadow_binary =
+	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+	compilerOptions.glslVersion = 430;
+
+	/*	*/
+	const std::vector<uint32_t> vertex_point_shadow_binary =
+		IOUtil::readFileData<uint32_t>(vertexPointShadowShaderPath, filesystem);
+	const std::vector<uint32_t> geometry_point_shadow_binary =
+		IOUtil::readFileData<uint32_t>(geomtryPointShadowShaderPath, filesystem);
+	const std::vector<uint32_t> fragment_point_shadow_binary =
+		IOUtil::readFileData<uint32_t>(fragmentPointShadowShaderPath, filesystem);
+	const std::vector<uint32_t> fragment_point_shadow_alpha_clip_binary =
+		IOUtil::readFileData<uint32_t>(fragmentPointShadowAlphaClipShaderPath, filesystem);
+
+	this->shadow_point = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_point_shadow_binary,
+														  &fragment_point_shadow_binary, &geometry_point_shadow_binary);
+	this->shadow_point_alpha =
+		ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_point_shadow_binary,
+										 &fragment_point_shadow_alpha_clip_binary, &geometry_point_shadow_binary);
+
+	/*	*/
+	const std::vector<uint32_t> vertex_directional_shadow_binary =
 		fragcore::IOUtil::readFileData<uint32_t>(vertexDirectionalShadowShaderPath, filesystem);
 	const std::vector<uint32_t> fragment_shadow_binary =
 		fragcore::IOUtil::readFileData<uint32_t>(fragmentDirectionalShadowShaderPath, filesystem);
-	// const std::vector<uint32_t> fragment_shadow_alpha_binary =
-	// 	IOUtil::readFileData<uint32_t>(this->fragmentClippingShadowShaderPath, filesystem);
+	const std::vector<uint32_t> fragment_shadow_alpha_binary =
+		fragcore::IOUtil::readFileData<uint32_t>(fragmentDirectionalShadowAlphaShaderPath, filesystem);
 
-	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
-	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-	compilerOptions.glslVersion = 420;
-
-	/*	Load shaders	*/
-	// this->graphic_program =
-	//	ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary, &fragment_graphic_binary);
-	// this->graphic_pfc_program =
-	//	ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_graphic_binary, &fragment_graphic_pfc_binary);
 	this->shadow_directional =
-		ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary, &fragment_shadow_binary);
-	// this->shadow_alpha_clip_program =
-	//	ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary, &fragment_shadow_alpha_binary);
-}
+		ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_directional_shadow_binary, &fragment_shadow_binary);
+	this->shadow_directional_alpha = ShaderLoader::loadGraphicProgram(
+		compilerOptions, &vertex_directional_shadow_binary, &fragment_shadow_alpha_binary);
 
-void PBRScene::init() {
-	Scene::init();
-
-	/*	*/
-	this->getLights().push_back(new DirectionalLight());
+	/*	Convert material to be more PBR ready.	*/
+	for (size_t i = 0; i < getMaterials().size(); i++) {
+		MaterialObject *mat = &getMaterials()[i];
+		if (mat->shinininess > 1) {
+			mat->shinininess *= (1.0f / 256.0f);
+		}
+	}
 }
 
 void PBRScene::shadowPass() {

@@ -5,7 +5,9 @@
 #include "TaskScheduler/IScheduler.h"
 #include "assimp/Importer.hpp"
 #include "assimp/ProgressHandler.hpp"
+#include "assimp/camera.h"
 #include "assimp/config.h"
+#include "assimp/matrix4x4.h"
 #include "assimp/scene.h"
 #include <IO/IOUtil.h>
 #include <assimp/material.h>
@@ -118,11 +120,7 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 
 void ModelImporter::clear() noexcept {
 
-	for (size_t i = 0; i < this->textures.size(); i++) {
-		if (this->textures[i].data) {
-			free(this->textures[i].data);
-		}
-	}
+	this->TexturePoolData.clear();
 
 	this->nodePool.clean();
 	this->nodes.clear();
@@ -146,6 +144,15 @@ void ModelImporter::initScene(const aiScene *scene) {
 		if (scene->HasTextures()) {
 
 			this->textures.resize(scene->mNumTextures);
+
+			/*	Calculate the size of all textures.	*/
+			size_t total_texture_data = 0;
+			for (size_t i = 0; i < scene->mNumTextures; i++) {
+				total_texture_data += getTextureRequiredSize(scene->mTextures[i]);
+			}
+
+			this->TexturePoolData.allocateAligned(total_texture_data, 4);
+			this->TexturePoolData.clear();
 
 			for (size_t i = 0; i < scene->mNumTextures; i++) {
 				std::cout << scene->mTextures[i]->mFilename.C_Str() << std::endl;
@@ -216,12 +223,14 @@ void ModelImporter::initScene(const aiScene *scene) {
 
 	/*	*/
 	std::thread process_animation_light_camera_thread([&]() {
+		/*	*/
 		if (scene->HasAnimations()) {
 			for (size_t x = 0; x < scene->mNumAnimations; x++) {
 				this->initAnimation(scene->mAnimations[x], x);
 			}
 		}
 
+		/*	*/
 		if (scene->HasLights()) {
 			this->lights.resize(scene->mNumLights);
 			const size_t nrLights = scene->mNumLights;
@@ -231,18 +240,28 @@ void ModelImporter::initScene(const aiScene *scene) {
 			}
 		}
 
+		/*	*/
 		if (scene->HasCameras()) {
 			cameras.resize(scene->mNumCameras);
 
-			for (unsigned int x = 0; x < scene->mNumCameras; x++) {
-				CameraData &cameraData = cameras[x];
+			for (unsigned int camera_index = 0; camera_index < scene->mNumCameras; camera_index++) {
+				CameraData &cameraData = cameras[camera_index];
+				const aiCamera *AiCamera = scene->mCameras[camera_index];
 
-				cameraData.name = scene->mCameras[x]->mName.C_Str();
-				// scene->mCameras[x]->mPosition;
+				cameraData.name = AiCamera->mName.C_Str();
+				cameraData.position.x = AiCamera->mPosition.x;
+				cameraData.position.y = AiCamera->mPosition.y;
+				cameraData.position.z = AiCamera->mPosition.z;
+
+				aiMatrix4x4 cameraMatrix;
+				AiCamera->GetCameraMatrix(cameraMatrix);
+
+				cameraData.near = AiCamera->mClipPlaneNear;
+				cameraData.far = AiCamera->mClipPlaneFar;
 			}
 		}
 
-		// TODO: compute
+		/*	*/
 		nodePool.resize(2048);
 	});
 	// process_animation_light_camera_thread.detach();
@@ -810,98 +829,99 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 		}
 
 		/*	If not Physical based rendering material .	*/
-		if (model < aiShadingMode_CookTorrance) {
+		// if (model < aiShadingMode_CookTorrance) {
 
-			if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				if (color[0] > 0.5f) {
-					material_obj->ambient = color;
-					material_obj->ambient[3] = 1;
-				}
-			}
-			if (ref_material->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->diffuse = color;
-				material_obj->diffuse[3] = 1;
-			}
-			if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->emission = color;
-				material_obj->emission[3] = 1;
-			}
-			if (ref_material->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->specular = color;
-				material_obj->specular[3] = 0;
-			}
-			if (ref_material->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->transparent = color;
-			}
-			if (ref_material->Get(AI_MATKEY_COLOR_REFLECTIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->reflectivity = color;
-				material_obj->reflectivity[3] = 1;
-			}
-			if (ref_material->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->shinininess = shininessStrength;
-			}
-
-			float tmp = NAN;
-			if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->shinininess *= tmp;
-			}
-
-			if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->opacity = tmp;
-				material_obj->transparent[3] = tmp;
-			} else {
-				material_obj->transparent[3] = 1;
-			}
-			if (ref_material->Get(AI_MATKEY_TRANSPARENCYFACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->transparent.a *= tmp;
-			}
-
-		} else {
-
-			material_obj->ambient = glm::vec4(1);
-
-			if (ref_material->Get(AI_MATKEY_BASE_COLOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->diffuse = color;
-				material_obj->diffuse[3] = 1;
-			}
-
-			/*	*/
-			if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->transparent *= color;
-			}
-
-			if (ref_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->emission = color;
-				material_obj->emission[3] = 1;
-			}
-
-			float tmp;
-			if (ref_material->Get(AI_MATKEY_REFRACTI, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-
-			if (ref_material->Get(AI_MATKEY_METALLIC_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->metalic = tmp;
-			}
-			if (ref_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->shinininess = tmp;
-			}
-			if (ref_material->Get(AI_MATKEY_ANISOTROPY_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_GLOSSINESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-
-			if (ref_material->Get(AI_MATKEY_SHEEN_COLOR_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_CLEARCOAT_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
-			}
-			if (ref_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, tmp) == aiReturn::aiReturn_SUCCESS) {
-				material_obj->emission *= tmp;
+		if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			if (color[0] > 0.5f) {
+				material_obj->ambient = color;
+				material_obj->ambient[3] = 1;
 			}
 		}
+		if (ref_material->Get(AI_MATKEY_COLOR_DIFFUSE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->diffuse = color;
+			material_obj->diffuse[3] = 1;
+		}
+		if (ref_material->Get(AI_MATKEY_COLOR_EMISSIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->emission = color;
+			material_obj->emission[3] = 1;
+		}
+		if (ref_material->Get(AI_MATKEY_COLOR_SPECULAR, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->specular = color;
+			material_obj->specular[3] = 0;
+		}
+		if (ref_material->Get(AI_MATKEY_COLOR_TRANSPARENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->transparent = color;
+		}
+		if (ref_material->Get(AI_MATKEY_COLOR_REFLECTIVE, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->reflectivity = color;
+			material_obj->reflectivity[3] = 1;
+		}
 
+		if (ref_material->Get(AI_MATKEY_SHININESS, shininessStrength) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->shinininess = shininessStrength;
+		}
 		float tmp = NAN;
+		if (ref_material->Get(AI_MATKEY_SHININESS_STRENGTH, tmp) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->shinininess *= tmp;
+		}
+
+		if (ref_material->Get(AI_MATKEY_OPACITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->opacity = tmp;
+			material_obj->transparent[3] = tmp;
+		} else {
+			material_obj->transparent[3] = 1;
+		}
+
+		if (ref_material->Get(AI_MATKEY_TRANSPARENCYFACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->transparent.a *= tmp;
+		}
+
+		//} else {
+
+		// material_obj->ambient = glm::vec4(1);
+
+		if (ref_material->Get(AI_MATKEY_BASE_COLOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->diffuse = color;
+			material_obj->diffuse[3] = 1;
+		}
+
+		/*	*/
+		if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->transparent *= color;
+		}
+
+		if (ref_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, color[0]) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->emission = color;
+			material_obj->emission[3] = 1;
+		}
+
+		// float tmp;
+		if (ref_material->Get(AI_MATKEY_REFRACTI, tmp) == aiReturn::aiReturn_SUCCESS) {
+		}
+
+		if (ref_material->Get(AI_MATKEY_METALLIC_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->metalic = tmp;
+		}
+		if (ref_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->shinininess = tmp;
+		}
+		if (ref_material->Get(AI_MATKEY_ANISOTROPY_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+		}
+		if (ref_material->Get(AI_MATKEY_GLOSSINESS_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+		}
+
+		if (ref_material->Get(AI_MATKEY_SHEEN_COLOR_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+		}
+		if (ref_material->Get(AI_MATKEY_CLEARCOAT_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+		}
+		if (ref_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
+		}
+		if (ref_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, tmp) == aiReturn::aiReturn_SUCCESS) {
+			material_obj->emission *= tmp;
+		}
+		//}
+
+		// float tmp = NAN;
 		if (ref_material->Get(AI_MATKEY_BUMPSCALING, tmp) == aiReturn::aiReturn_SUCCESS) {
 			material_obj->bumpiness = tmp;
 		}
@@ -1070,18 +1090,35 @@ TextureAssetObject *ModelImporter::initTexture(aiTexture *texture, unsigned int 
 	mTexture->width = texture->mWidth;
 	mTexture->height = texture->mHeight;
 
-	if (mTexture->height == 0) {
-		mTexture->dataSize = texture->mWidth;
-	} else if (texture->pcData != nullptr) {
-		mTexture->dataSize = static_cast<size_t>(texture->mWidth * texture->mHeight) * 4;
-	}
+	mTexture->dataSize = getTextureRequiredSize(texture);
+
 	mTexture->filepath = texture->mFilename.C_Str();
 
 	if (texture->pcData != nullptr) {
-		mTexture->data = (char *)malloc(mTexture->dataSize);
+		mTexture->data = (char *)this->TexturePoolData.fetch(mTexture->dataSize);
 		memcpy(mTexture->data, texture->pcData, mTexture->dataSize);
 	}
 	return mTexture;
+}
+
+size_t ModelImporter::getTextureRequiredSize(aiTexture *texture) const noexcept {
+
+	size_t colorChannelSize = 8;
+	size_t numChannels = 4;
+	if (std::strcmp(texture->achFormatHint, "rgba8888") == 0) {
+		numChannels = 4;
+	}
+	if (std::strcmp(texture->achFormatHint, "rgba8888") == 0) {
+		numChannels = 4;
+	}
+
+	if (texture->mHeight == 0) {
+		return texture->mWidth;
+	}
+	if (texture->pcData != nullptr) {
+		return static_cast<size_t>(texture->mWidth * texture->mHeight) * 4;
+	}
+	return 0;
 }
 
 struct Face {

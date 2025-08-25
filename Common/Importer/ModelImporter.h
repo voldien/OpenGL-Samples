@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "DataStructure/PoolAllocator.h"
+#include "DataStructure/StackAllactor.h"
 #include "FragDef.h"
 #include "Math3D/LinAlg.h"
 #include "RenderDesc.h"
@@ -194,6 +195,8 @@ using ModelSystemObject = struct model_system_object : public AssetObject {
 };
 
 using CameraData = struct camera_data_t : public AssetObject {
+	float near;
+	float far;
 	glm::vec3 position;
 	glm::vec3 up;
 	glm::vec3 lookAt;
@@ -294,6 +297,7 @@ class FVDECLSPEC ModelImporter {
 	SkeletonSystem *initBoneSkeleton(const aiMesh *mesh, unsigned int index);
 
 	TextureAssetObject *initTexture(aiTexture *texture, unsigned int index);
+	size_t getTextureRequiredSize(aiTexture *texture) const noexcept;
 
 	AnimationObject *initAnimation(const aiAnimation *animation, unsigned int index);
 	//
@@ -339,6 +343,7 @@ class FVDECLSPEC ModelImporter {
 	std::vector<ModelSystemObject> models;
 	std::vector<MaterialObject> materials;
 	/*	*/
+	fragcore::StackAllocator TexturePoolData;
 	std::vector<TextureAssetObject> textures;
 	std::map<std::string, TextureAssetObject *> textureMapping;
 	std::map<std::string, unsigned int> textureIndexMapping;

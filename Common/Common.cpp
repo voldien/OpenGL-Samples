@@ -290,7 +290,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		const unsigned int depth_depth = depthstencil.depth;
 		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(depthstencil.graphicFormat);
 
-		GLenum texture_type = GL_TEXTURE_2D;
+		GLenum texture_type = fragcore::GLHelper::getTextureTarget(depthstencil.target);
 		if (multisamples > 1) {
 			texture_type = GL_TEXTURE_2D_MULTISAMPLE;
 		}
@@ -300,8 +300,20 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		if (multisamples > 0) {
 			glTexImage2DMultisample(texture_type, multisamples, internal_format, depth_width, depth_height, GL_TRUE);
 		} else {
-			glTexImage2D(texture_type, 0, internal_format, depth_width, depth_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
-						 nullptr);
+			switch (texture_type) {
+			case GL_TEXTURE_2D:
+				glTexImage2D(texture_type, 0, internal_format, depth_width, depth_height, 0, GL_DEPTH_COMPONENT,
+							 GL_FLOAT, nullptr);
+				break;
+			case GL_TEXTURE_CUBE_MAP:
+				for (unsigned int i = 0; i < 6; i++) {
+					glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internal_format, depth_width, depth_height, 0,
+								 GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+				}
+				break;
+			default:
+				break;
+			}
 		}
 
 		framebuffer->attachmentSize[framebuffer->depthIndex] = {depth_width, depth_height, depth_depth};
@@ -328,9 +340,15 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		}
 
 		glBindTexture(texture_type, 0);
-
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_type,
-							   framebuffer->attachments[framebuffer->depthIndex], 0);
+		switch (texture_type) {
+		case GL_TEXTURE_2D:
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_type,
+								   framebuffer->attachments[framebuffer->depthIndex], 0);
+			break;
+		case GL_TEXTURE_CUBE_MAP:
+					glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, framebuffer->attachments[framebuffer->depthIndex], 0);
+			break;
+		}
 	}
 
 	/*  Validate if created properly.*/

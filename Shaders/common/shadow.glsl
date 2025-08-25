@@ -2,7 +2,7 @@
 #define _COMMON_LIGHT_SHADOW_H_ 1
 #include "light.glsl"
 
-//TODO: rename
+// TODO: rename
 float ShadowCalculation(const in DirectionalLight directionLight, const in sampler2DShadow ShadowTexture,
 						const in vec3 surfaceNormal, const in vec4 VertexLightSpace) {
 
@@ -26,11 +26,11 @@ float ShadowCalculation(const in DirectionalLight directionLight, const in sampl
 		light_shadow_bias * (1.0 - dot(normalize(surfaceNormal), normalize(-directionLight.direction).xyz)), 0.0000, 1);
 	projCoords.z *= (1 - bias);
 
-	/*	shadow == 1 => */
-	const float shadow = textureProj(ShadowTexture, projCoords).r;
+	/*	shadow == 1 => Shadow, shadow == 0 => light.	*/
+	const float shadow = 1 - textureProj(ShadowTexture, projCoords).r;
 
 	const float shadowStrength = directionLight.lightShadow.shadow[0];
-	return max(shadow * shadowStrength, 0);
+	return 1 - shadow * shadowStrength;
 }
 
 float ShadowCalculationPCF(const DirectionalLight directionLight, const in sampler2DShadow ShadowTexture,

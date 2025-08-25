@@ -10,10 +10,9 @@ namespace glsample {
 		PBRScene() = default;
 
 		void shadowPass();
-		void init(IFileSystem *filesystem);
 
 	  public:
-		void init() override;
+		void init(IFileSystem *filesystem) override;
 		void bindMaterial(const MaterialObject *material) override;
 
 		void render(Camera *camera) override;
@@ -25,8 +24,13 @@ namespace glsample {
 	  public:
 		/*	Shadow shader paths.	*/
 
-		//const std::string fragmentDirectionalClippingShadowShaderPath =  "Shaders/scene/shadow/scene_directional_shadow.vert.spv";
+		// const std::string fragmentDirectionalClippingShadowShaderPath =
+		// "Shaders/scene/shadow/scene_directional_shadow.vert.spv";
 
 		unsigned int shadow_directional;
+		unsigned int shadow_directional_alpha;
+
+		unsigned int shadow_point;
+		unsigned int shadow_point_alpha;
 	};
 } // namespace glsample

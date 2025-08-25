@@ -62,6 +62,7 @@ namespace glsample {
 		FrameBuffer *shadowFrameBuffer = nullptr;
 	};
 
+
 	class DirectionalLight : public Light {
 	  public:
 		DirectionalLight() {
@@ -76,6 +77,7 @@ namespace glsample {
 
 				GraphicFormat internal_depth_format = GraphicFormat::Depth_32Bit;
 				fragcore::TextureDesc desc;
+				desc.target = fragcore::TextureDesc::TextureTarget::Texture2D;
 				desc.width = size[0];
 				desc.height = size[1];
 				desc.depth = 1;
@@ -137,6 +139,30 @@ namespace glsample {
 			this->setShadowDistance(50.0f);
 		}
 
+		void setSize(const glm::ivec3 &size) override {
+
+			if (size[0] > 0 && size[1] > 0) {
+
+				GraphicFormat internal_depth_format = GraphicFormat::Depth_16Bit;
+				fragcore::TextureDesc desc;
+				desc.target = fragcore::TextureDesc::TextureTarget::CubeMap;
+				desc.width = size[0];
+				desc.height = size[1];
+				desc.depth = 1;
+				desc.graphicFormat = internal_depth_format;
+				desc.nrSamples = 0;
+
+				if (!this->getFrameBuffer()) {
+					shadowFrameBuffer = new FrameBuffer();
+					CommonUtil::createFrameBuffer(shadowFrameBuffer, 0);
+				}
+
+				if (this->getFrameBuffer()) {
+					CommonUtil::updateFrameBuffer(getFrameBuffer(), {}, desc);
+				}
+			}
+		}
+
 		void setShadowDistance(float distance) override {
 			Light::setShadowDistance(distance);
 
@@ -172,6 +198,8 @@ namespace glsample {
 			this->planes[TOP_PLANE] = {position - distance * up, up};
 			this->planes[BOTTOM_PLANE] = {position + distance * up, -up};
 		}
+
+		float getRange() const noexcept { return this->range; }
 
 		float intensity = 1;
 		float range = 5;

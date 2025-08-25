@@ -1,12 +1,13 @@
 #include "Scene.h"
 #include "../Common.h"
+#include "IO/IFileSystem.h"
 #include "Math3D/Color.h"
 #include "ModelImporter.h"
-#include "Node.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 #include "UIComponent.h"
 #include "Util/CameraController.h"
+#include "Util/DebugDrawer.h"
 #include "Util/Frustum.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
@@ -64,8 +65,17 @@ namespace glsample {
 		}
 	}
 
-	void Scene::init() {
+	void Scene::init(IFileSystem *filesystem) {
 
+		const bool hasInit = this->default_textures[TextureTypeBinding::Diffuse] > 0;
+
+		if (hasInit) {
+			return;
+		}
+
+		if (filesystem) {
+			this->debugDrawer = new DebugDrawManager(filesystem);
+		}
 		/*	Create Internal shaders.	*/
 
 		/*	*/
@@ -313,7 +323,7 @@ namespace glsample {
 
 			case Light::LightType::Directional: {
 
-				DirectionalLight *dirLight = (DirectionalLight *)light;
+				DirectionalLight *dirLight = dynamic_cast<DirectionalLight *>(light);
 				DirectionalLightData *lightData = &stageLightBase->directional[stageLightBase->directionalCount];
 
 				const glm::vec3 light_direction = dirLight->getDirectionalLight();
@@ -345,10 +355,12 @@ namespace glsample {
 				stageLightBase->directionalCount++;
 			} break;
 			case Light::LightType::Point: {
-				PointLight *dirLight = (PointLight *)light;
+				PointLight *pointLight = dynamic_cast<PointLight *>(light);
 				PointLightInstance *lightData = &stageLightBase->pointLight[stageLightBase->pointCount];
 
 				lightData->color = light->color;
+				lightData->position = pointLight->getPosition();
+				lightData->range = pointLight->getRange();
 
 				if (light->shadow > 0) {
 				}
@@ -474,6 +486,11 @@ namespace glsample {
 
 		/*	*/
 		this->render();
+
+		/*	*/
+		if (useDebug()) {
+			this->debugDrawer->draw(camera, nullptr);
+		}
 	}
 
 	void Scene::render(Light *light) {
@@ -824,16 +841,35 @@ namespace glsample {
 
 			if (ImGui::CollapsingHeader("Rendering Settings")) {
 
+				/*	*/
 				if (ImGui::Checkbox("Use Frustum Culling", &this->settings.frustumCulling)) {
 				}
 
-				bool showWireFrame = settings.debugMode & DebugMode::Wireframe;
+				bool showWireFrame = (settings.debugMode & DebugMode::Wireframe) == DebugMode::Wireframe;
 				if (ImGui::Checkbox("Show Wireframe", &showWireFrame)) {
-					// this->settings.debugMode &= ~(showWireFrame ? DebugMode::Wireframe : DebugMode::None);
+					if (showWireFrame) {
+						this->settings.debugMode =
+							Math::addFlag<unsigned int>(this->settings.debugMode, DebugMode::Wireframe);
+					} else {
+						this->settings.debugMode =
+							Math::removeFlag<unsigned int>(this->settings.debugMode, DebugMode::Wireframe);
+					}
 				}
-				bool showBoundingBox = settings.debugMode & DebugMode::BoundingBox;
+
+				bool showBoundingBox = (settings.debugMode & DebugMode::BoundingBox) == DebugMode::BoundingBox;
 				if (ImGui::Checkbox("Show BoundingBox", &showBoundingBox)) {
-					// this->settings.debugMode &= ~(showWireFrame ? DebugMode::Wireframe : DebugMode::None);
+					if (showBoundingBox) {
+						this->settings.debugMode =
+							Math::addFlag<unsigned int>(this->settings.debugMode, DebugMode::BoundingBox);
+					} else {
+						this->settings.debugMode =
+							Math::removeFlag<unsigned int>(this->settings.debugMode, DebugMode::BoundingBox);
+					}
+				}
+
+				if (this->debugDrawer) {
+					/*	*/
+					ImGui::TextUnformatted("Debug Drawer");
 				}
 			}
 
@@ -929,14 +965,14 @@ namespace glsample {
 
 					switch (light->lightType) {
 					case Light::LightType::Directional: {
-						DirectionalLight *dirLight = (DirectionalLight *)light;
+						DirectionalLight *dirLight = dynamic_cast<DirectionalLight *>(light);
 						glm::vec3 rotation_eular = dirLight->getRotationEular();
 						if (ImGui::DragFloat3("Rotation", &rotation_eular[0])) {
 							dirLight->setRotationEular(rotation_eular);
 						}
 					} break;
 					case Light::LightType::Point: {
-						PointLight *pointLight = (PointLight *)light;
+						PointLight *pointLight = dynamic_cast<PointLight *>(light);
 
 						ImGui::DragFloat("Range", &pointLight->range);
 					} break;

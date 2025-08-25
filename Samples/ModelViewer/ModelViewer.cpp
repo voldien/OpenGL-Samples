@@ -106,7 +106,7 @@ namespace glsample {
 
 	void ModelViewer::draw() {
 
-		glUseProgram(this->physical_based_rendering_program);
+		/*	Shadow Pass.	*/
 		{ this->scene.shadowPass(); }
 
 		this->scene.update(this->getTimer().deltaTime<float>());

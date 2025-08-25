@@ -65,7 +65,6 @@ namespace glsample {
 								 const TextureCompression compression = TextureCompression::None);
 
 	  protected:
-	  
 		void getFormat(const Image &image, unsigned int &format, unsigned int &dataType, unsigned int &internalformat,
 					   const ColorSpace colorSpace = ColorSpace::RawLinear,
 					   const TextureCompression compression = TextureCompression::None);
@@ -73,7 +72,7 @@ namespace glsample {
 	  private:
 		fragcore::IFileSystem *filesystem = nullptr;
 		fragcore::TaskScheduler *schedular;
-		std::array<unsigned int, 4> pbos = {};
+		std::array<unsigned int, 8> pbos = {};
 		std::atomic_int current_pbo = 0;
 	};
 

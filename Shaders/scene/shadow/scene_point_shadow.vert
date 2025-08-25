@@ -5,21 +5,23 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
-layout(location = 0) in vec3 Vertex;
+layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec2 TextureCoord;
+
+layout(location = 4) in int index;
+/*	*/
 layout(location = 8) in ivec2 vAssigns;
 
-layout(location = 0) out vec2 UV;
+layout(location = 0) out invariant flat int GIndex;
+layout(location = 1) out vec2 OutTextureCoord;
 
-#include "common.glsl"
-#include "phongblinn.glsl"
 #include "scene.glsl"
 
 void main() {
+	
 	const mat4 model = getModel(vAssigns.y);
 
-	const DirectionalLight directionLight = getDirectional(0);
-
-	gl_Position = directionLight.lightShadow.lightSpaceMatrix * model * vec4(Vertex, 1.0);
-	UV = TextureCoord;
+	gl_Position = model * vec4(vertex, 1.0);
+	GIndex = index;
+	OutTextureCoord = TextureCoord;
 }

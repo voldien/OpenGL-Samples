@@ -52,6 +52,10 @@ namespace glsample {
 		/*	Geometry and material.	*/
 		std::vector<unsigned int> geometryObjectIndex;
 		std::vector<unsigned int> materialIndex;
+
+			/*	*/
+	// glm::mat4 modelGlobalTransform;
+	// glm::mat4 modelLocalTransform;
 	};
 
 } // namespace glsample

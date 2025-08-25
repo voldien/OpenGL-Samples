@@ -1,3 +1,4 @@
+#include "IO/IFileSystem.h"
 #include "SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
@@ -22,7 +23,7 @@ namespace glsample {
 	  public:
 		SceneShadow() = default;
 
-		void init() override { Scene::init(); }
+		void init(IFileSystem* filesystem) override { Scene::init(filesystem); }
 
 		void bindMaterial(const MaterialObject *material) override {
 			if (!shadowPass) {

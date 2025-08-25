@@ -89,8 +89,6 @@ void main() {
 	fragColor.a *= texture(AlphaMaskedTexture, TexCoords).r;
 	fragColor *= mat.transparency.rgba;
 
-	//fragColor = vec4(DirectLight, 1);
-
 	if (fragColor.a < mat.clip_.x) {
 		discard;
 	}
