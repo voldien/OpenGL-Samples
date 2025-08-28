@@ -4,7 +4,7 @@
 #include <Importer/ImageImport.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
-#include <Util/CameraController.h>
+#include <Scene/CameraController.h>
 #include <array>
 #include <cstdint>
 #include <glm/fwd.hpp>

@@ -152,12 +152,15 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	}
 
 	// TODO: relocate
-	static void blitFrameBuffer(const glsample::FrameBuffer *framebuffer, const unsigned int width, const int height,
+	static void blitFrameBufferAttacments(const glsample::FrameBuffer* targetFrameBuffer, const glsample::FrameBuffer *framebufferAttachments, const unsigned int width, const int height,
 								glm::vec4 rectNormalized, int mode = 0) {
 
 		/*	Blit image targets to screen.	*/
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->framebuffer);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, targetFrameBuffer->framebuffer);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, framebufferAttachments->framebuffer);
+
+		const size_t nrAttachments = framebufferAttachments->nrAttachments;
+
 		/*	Transfer each target to default framebuffer.	*/
 		const size_t widthDivior = 3;
 		const size_t heightDivior = 2;
@@ -166,7 +169,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 		const float sub_view_height = (int)(height / heightDivior);
 
 		// TODO: make its function for reuse it with other samples
-		for (size_t index = 0; index < framebuffer->nrAttachments; index++) {
+		for (size_t index = 0; index < framebufferAttachments->nrAttachments; index++) {
 
 			glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
 

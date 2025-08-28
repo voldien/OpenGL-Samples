@@ -7,7 +7,7 @@
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
-#include <Scene.h>
+#include <Scene/Scene.h>
 #include <ShaderLoader.h>
 #include <cstddef>
 #include <glm/gtc/matrix_transform.hpp>

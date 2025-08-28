@@ -1,5 +1,5 @@
 #include "SampleHelper.h"
-#include "SceneHelper.h"
+#include "Scene/SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -8,7 +8,7 @@
 
 #include <ImportHelper.h>
 #include <ModelImporter.h>
-#include <Scene.h>
+#include <Scene/Scene.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 

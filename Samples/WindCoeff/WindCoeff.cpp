@@ -1,7 +1,7 @@
 #include "Common.h"
 #include "GraphicFormat.h"
 #include "SampleHelper.h"
-#include "Util/Camera.h"
+#include "Scene/Camera.h"
 #include "imgui.h"
 #include <GLSample.h>
 #include <GLSampleWindow.h>

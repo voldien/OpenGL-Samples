@@ -4,12 +4,51 @@
 #include "common.glsl"
 #include "light.glsl"
 
+// ----------------------------------------------------------------------------
+// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+// efficient VanDerCorpus calculation.
+float RadicalInverse_VdC(in uint bits) {
+	bits = (bits << 16u) | (bits >> 16u);
+	bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+	bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+	bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+	bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+	return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+// ----------------------------------------------------------------------------
+vec2 Hammersley(const in uint i, const in uint N) { return vec2(float(i) / float(N), RadicalInverse_VdC(i)); }
+
+// ----------------------------------------------------------------------------
+vec3 ImportanceSampleGGX(const in vec2 Xi, const in vec3 N, const in float roughness) {
+	const float a = roughness * roughness;
+
+	float phi = 2.0 * PI * Xi.x;
+	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
+	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+
+	// from spherical coordinates to cartesian coordinates - halfway vector
+	vec3 H;
+	H.x = cos(phi) * sinTheta;
+	H.y = sin(phi) * sinTheta;
+	H.z = cosTheta;
+
+	// from tangent-space H vector to world-space sample vector
+	vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+	vec3 tangent = normalize(cross(up, N));
+	vec3 bitangent = cross(N, tangent);
+
+	vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+	return normalize(sampleVec);
+}
+
 vec3 fresnelSchlick(const in float cosTheta, const in vec3 f0) {
 
 	return f0 + (1.0 - f0) * pow(max(1 - cosTheta, 0.0), 5.0);
 }
 
 vec3 fresnelSchlickRoughness(const in float cosTheta, const in vec3 F0, const in float roughness) {
+
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
@@ -20,35 +59,16 @@ vec3 FresnelSchlick(const in vec3 F0, const in vec3 V, const in vec3 N) {
 
 vec3 FresnelSteinberg(const in vec3 F0, const in vec3 V, const in vec3 N) { return vec3(0); }
 
-vec3 getNormalFromMap(const in sampler2D normalMap, const in vec2 TexCoords, const in vec3 WorldPos,
-					  const in vec3 Normal, const float bumpiness) {
-
-	vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
-	tangentNormal.xy *= bumpiness;
-
-	const vec3 Q1 = dFdx(WorldPos);
-	const vec3 Q2 = dFdy(WorldPos);
-	const vec2 st1 = dFdx(TexCoords);
-	const vec2 st2 = dFdy(TexCoords);
-
-	const vec3 N = normalize(Normal);
-	const vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
-	const vec3 B = -normalize(cross(N, T));
-	const mat3 TBN = mat3(T, B, N);
-
-	return normalize(TBN * tangentNormal);
-}
-
 // ----------------------------------------------------------------------------
 // Normal Distributions
 //-----------------------------------------------------------------------------
 float DistributionGGX(const in vec3 N, const in vec3 H, const in float roughness) {
-	float a = roughness * roughness;
-	float a2 = a * a;
-	float NdotH = max(dot(N, H), 0.0);
-	float NdotH2 = NdotH * NdotH;
+	const float a = roughness * roughness;
+	const float a2 = a * a;
+	const float NdotH = max(dot(N, H), 0.0);
+	const float NdotH2 = NdotH * NdotH;
 
-	float nom = a2;
+	const float nom = a2;
 	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
 	denom = PI * denom * denom;
 
@@ -58,23 +78,20 @@ float DistributionGGX(const in vec3 N, const in vec3 H, const in float roughness
 // --------------------------------------------------------------------
 //	Geometry Term Functions
 //---------------------------------------------------------------------
-float GeometrySchlickGGX(const in float NdotV, const in float roughness) {
-	float r = (roughness + 1.0);
-	float k = (r * r) / 8.0;
-
+float GeometrySchlickGGX(float NdotV, float roughness) {
+	// note that we use a different k for IBL
+	float a = roughness;
+	float k = (a * a) / 2.0;
 	float nom = NdotV;
 	float denom = NdotV * (1.0 - k) + k;
-
 	return nom / denom;
 }
-
 // ----------------------------------------------------------------------------
-float GeometrySmith(const in vec3 N, const in vec3 V, const in vec3 L, const in float roughness) {
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
 	float NdotV = max(dot(N, V), 0.0);
 	float NdotL = max(dot(N, L), 0.0);
 	float ggx2 = GeometrySchlickGGX(NdotV, roughness);
 	float ggx1 = GeometrySchlickGGX(NdotL, roughness);
-
 	return ggx1 * ggx2;
 }
 

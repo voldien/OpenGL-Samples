@@ -16,8 +16,6 @@ layout(location = 0) out vec3 vertex;
 layout(location = 1) out vec2 uv;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 tangent;
-layout(location = 4) out vec4 lightSpace;
-
 /*	*/
 layout(location = 8) flat invariant out ivec2 fAssigns;
 

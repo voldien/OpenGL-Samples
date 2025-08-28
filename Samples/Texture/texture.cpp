@@ -3,7 +3,7 @@
 #include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderLoader.h>
-#include <Util/CameraController.h>
+#include <Scene/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -13,10 +13,10 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class Texture : public GLSampleWindow {
+	class TextureCube : public GLSampleWindow {
 	  public:
-		Texture() : GLSampleWindow() {
-			this->setTitle("Texture");
+		TextureCube() : GLSampleWindow() {
+			this->setTitle("TextureCube");
 
 			/*	Default camera position and orientation.	*/
 			this->camera.setPosition(glm::vec3(-2.5f));
@@ -171,9 +171,9 @@ namespace glsample {
 		}
 	};
 
-	class TextureGLSample : public GLSample<Texture> {
+	class TextureGLSample : public GLSample<TextureCube> {
 	  public:
-		TextureGLSample() : GLSample<Texture>() {}
+		TextureGLSample() : GLSample<TextureCube>() {}
 
 		void customOptions(cxxopts::OptionAdder &options) override {
 			options("T,texture", "Texture Path", cxxopts::value<std::string>()->default_value("asset/texture.png"));

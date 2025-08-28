@@ -14,7 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Util/Frustum.h"
+#include "Scene/Frustum.h"
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>

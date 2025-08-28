@@ -6,6 +6,10 @@
 #include "material.glsl"
 #include "transformation.glsl"
 
+/*	*/
+layout(constant_id = 16) const int MAX_BONES = 512;
+layout(constant_id = 17) const int MAX_BONE_INFLUENCE = 4;
+
 struct tessellation_settings {
 	float tessLevel;
 	float gDispFactor;
@@ -34,6 +38,8 @@ struct Node {
 };
 
 struct light_settings {
+	//TODO: seperate for shadow data.
+
 	DirectionalLight directional[16];
 	PointLight point[64];
 	uint directionalCount;
@@ -72,7 +78,7 @@ layout(set = 0, binding = 0) uniform sampler2D DiffuseTexture;
 layout(set = 0, binding = 1) uniform sampler2D NormalTexture;
 layout(set = 0, binding = 2) uniform sampler2D AlphaMaskedTexture;
 
-/*	*/
+/*	Physical Based Material Textures.	*/
 layout(set = 0, binding = 3) uniform sampler2D RoughnessTexture;
 layout(set = 0, binding = 8) uniform sampler2D MetalicTexture;
 layout(set = 0, binding = 4) uniform sampler2D EmissionTexture;
@@ -80,12 +86,16 @@ layout(set = 0, binding = 7) uniform sampler2D DisplacementTexture;
 layout(set = 0, binding = 6) uniform sampler2D AOTexture;
 
 /*	*/
-layout(set = 1, binding = 10) uniform sampler2D IrradianceTexture;
-layout(set = 1, binding = 11) uniform samplerCube prefilterMap;
-layout(set = 1, binding = 12) uniform sampler2D brdfLUT;
-
+layout(set = 0, binding = 9) uniform sampler2D BackBufferTexture;
 layout(set = 2, binding = 13) uniform sampler2D CameraDepthTexture;
 
+/*	Image Based Lightning Textures.	*/
+layout(set = 1, binding = 10) uniform sampler2D IrradianceTexture; /*	*/
+layout(set = 1, binding = 11) uniform sampler2D prefilterMap;	   /*	*/
+layout(set = 1, binding = 12) uniform sampler2D BRDFLUT;		   /*	*/
+
+
+/*	Light.	*/
 layout(set = 3, binding = 20) uniform samplerCube PointShadowTexture[4];
 layout(set = 3, binding = 24) uniform sampler2DShadow DirectionalShadowTexture[4];
 

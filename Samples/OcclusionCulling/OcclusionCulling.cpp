@@ -7,7 +7,7 @@
 #include <GL/glew.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
-#include <Scene.h>
+#include <Scene/Scene.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 

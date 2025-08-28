@@ -16,7 +16,7 @@
 #pragma once
 #include "PBRScene.h"
 #include "Skybox.h"
-#include "Util/CameraController.h"
+#include "Scene/CameraController.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -55,7 +55,8 @@ namespace glsample {
 		Skybox skybox;
 
 		unsigned int irradiance_texture{};
-		unsigned int specular_texture{};
+		unsigned int reflection_prefilter_texture{};
+		unsigned int brdf_integration_map_texture;
 
 		unsigned int physical_based_rendering_program{};
 		unsigned int simple_physical_based_rendering_program{};

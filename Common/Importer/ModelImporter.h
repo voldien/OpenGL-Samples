@@ -86,6 +86,10 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	float clipping = 1;
 	/*	*/
 
+	enum class ShadingModel : unsigned int {
+
+	};
+
 	unsigned int shade_model = 0; /*	aiShadingMode	*/
 
 	MaterialTextureSampling texture_sampling[32];
@@ -210,8 +214,8 @@ using Bone = struct alignas(16) bone_t : public AssetObject {
 };
 
 using SkeletonSystem = struct model_skeleton_t : public AssetObject {
-
 	std::map<std::string, Bone> bones;
+	NodeObject *root;
 };
 
 using TextureAssetObject = struct alignas(32) texture_asset_object_t {
@@ -297,7 +301,7 @@ class FVDECLSPEC ModelImporter {
 	SkeletonSystem *initBoneSkeleton(const aiMesh *mesh, unsigned int index);
 
 	TextureAssetObject *initTexture(aiTexture *texture, unsigned int index);
-	size_t getTextureRequiredSize(aiTexture *texture) const noexcept;
+	size_t getTextureRequiredSize(const aiTexture *texture) const noexcept;
 
 	AnimationObject *initAnimation(const aiAnimation *animation, unsigned int index);
 	//
@@ -323,6 +327,8 @@ class FVDECLSPEC ModelImporter {
 
 	const std::vector<LightObject> &getLights() const noexcept { return this->lights; }
 
+	const std::vector<AnimationObject> &getAnimation() const noexcept { return this->animations; }
+
 	/*	*/
 	const std::vector<TextureAssetObject> &getTextures() const noexcept { return this->textures; }
 	std::vector<TextureAssetObject> &getTextures() noexcept { return this->textures; }
@@ -336,7 +342,7 @@ class FVDECLSPEC ModelImporter {
 
 	std::string filepath;
 	const aiScene *sceneRef = nullptr;
-	fragcore::PoolAllocator<NodeObject> nodePool;
+	std::vector<NodeObject> nodePool;
 	std::vector<NodeObject *> nodes;
 	std::map<std::string, NodeObject *> nodeByName;
 

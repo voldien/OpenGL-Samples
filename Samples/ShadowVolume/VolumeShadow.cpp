@@ -1,5 +1,5 @@
 #include "GLSampleSession.h"
-#include "SceneHelper.h"
+#include "Scene/SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -7,7 +7,7 @@
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
-#include <Scene.h>
+#include <Scene/Scene.h>
 #include <ShaderLoader.h>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>

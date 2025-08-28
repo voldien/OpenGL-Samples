@@ -1,13 +1,13 @@
 #include "GLUIComponent.h"
 #include "SampleHelper.h"
-#include "SceneHelper.h"
+#include "Scene/SceneHelper.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>
 #include <ModelImporter.h>
-#include <Scene.h>
+#include <Scene/Scene.h>
 #include <ShaderLoader.h>
 #include <glm/gtc/matrix_transform.hpp>
 

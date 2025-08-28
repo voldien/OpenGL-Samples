@@ -1,8 +1,8 @@
 #include "ModelBase.h"
 #include "ImageImport.h"
 #include "ModelImporter.h"
-#include "SceneHelper.h"
-#include "Scene.h"
+#include "Scene/SceneHelper.h"
+#include "Scene/Scene.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>

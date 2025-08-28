@@ -1,0 +1,74 @@
+#version 460 core
+#extension GL_ARB_shading_language_include : enable
+#extension GL_GOOGLE_include_directive : enable
+
+precision mediump float;
+precision mediump int;
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, rg16f) uniform writeonly image2D TargetBRDFIntegrationTexture;
+
+layout(push_constant) uniform Settings { layout(offset = 0) float sampleDelta; }
+settings;
+
+#include "common.glsl"
+#include "pbr.glsl"
+
+vec2 IntegrateBRDF(const in float NdotV, const in float roughness) {
+
+	vec3 V;
+	V.x = sqrt(1.0 - NdotV * NdotV);
+	V.y = 0.0;
+	V.z = NdotV;
+
+	highp float A = 0.0;
+	highp float B = 0.0;
+
+	vec3 N = vec3(0.0, 0.0, 1.0);
+
+	const uint SAMPLE_COUNT = 1024u;
+	const float sampleInverse = 1 / float(SAMPLE_COUNT);
+
+	for (uint i = 0u; i < SAMPLE_COUNT; ++i) {
+
+		vec2 Xi = Hammersley(i, SAMPLE_COUNT);
+		vec3 H = ImportanceSampleGGX(Xi, N, roughness);
+		vec3 L = normalize(2.0 * dot(V, H) * H - V);
+
+		float NdotL = max(L.z, 0.00000);
+		float NdotH = max(H.z, 0.00000);
+		float VdotH = max(dot(V, H), 0.0);
+
+		if (NdotL > 0.0) {
+
+			const highp float G = GeometrySmith(N, V, L, roughness);
+			const highp float G_Vis = (G * VdotH) / (NdotH * NdotV);
+			const highp float Fc = pow(1.0 - VdotH, 5.0);
+
+			A += (1.0 - Fc) * G_Vis;
+			B += Fc * G_Vis;
+		}
+	}
+
+	A *= sampleInverse;
+	B *= sampleInverse;
+
+	return vec2(A, B);
+}
+
+void main() {
+
+	/*  */
+	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(TargetBRDFIntegrationTexture)))) {
+		return;
+	}
+
+	/*	Get pixel coordinate.	*/
+	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+	const vec2 normalized_uv_coords = vec2(pixel_coords) / imageSize(TargetBRDFIntegrationTexture);
+
+	vec2 integratedBRDF = IntegrateBRDF(normalized_uv_coords.x + 0.001, normalized_uv_coords.y);
+
+	imageStore(TargetBRDFIntegrationTexture, pixel_coords, vec4(integratedBRDF.xyxy));
+}

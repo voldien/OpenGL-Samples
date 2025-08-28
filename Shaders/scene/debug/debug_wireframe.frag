@@ -6,4 +6,10 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
-void main() {}
+layout(location = 0) out vec4 fragColor;
+
+layout(location = 0) in vec3 color;
+
+#include "scene.glsl"
+
+void main() { fragColor = vec4(color, 1); }

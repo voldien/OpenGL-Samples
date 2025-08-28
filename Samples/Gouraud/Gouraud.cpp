@@ -3,7 +3,7 @@
 #include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
 #include <ShaderLoader.h>
-#include <Util/CameraController.h>
+#include <Scene/CameraController.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace glsample {

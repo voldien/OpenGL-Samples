@@ -1,7 +1,7 @@
 #include "SampleHelper.h"
-#include "Scene.h"
+#include "Scene/Scene.h"
 #include "Skybox.h"
-#include "Util/CameraController.h"
+#include "Scene/CameraController.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>

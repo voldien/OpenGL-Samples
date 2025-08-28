@@ -3,7 +3,7 @@
 #include "Math3D/Math3D.h"
 #include "PhysicDesc.h"
 #include "SampleHelper.h"
-#include "Util/CameraController.h"
+#include "Scene/CameraController.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>

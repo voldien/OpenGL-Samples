@@ -22,12 +22,13 @@ layout(location = 8) flat in ivec2 fAssigns;
 
 layout(binding = 9) uniform sampler2DShadow ShadowTexture;
 
-layout(constant_id = 16) const int PCF_SAMPLES = 7;
+layout(constant_id = 18) const int PCF_SAMPLES = 7;
 
 #include "common.glsl"
 #include "pbr.glsl"
 #include "phongblinn.glsl"
 #include "scene.glsl"
+#include"common_frag.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 
@@ -106,6 +107,7 @@ void main() {
 	fragColor.a *= texture(AlphaMaskedTexture, UV).r;
 	fragColor *= mat.transparency.rgba;
 	fragColor.rgb += mat.emission.rgb * texture(EmissionTexture, UV).rgb;
+	
 	if (fragColor.a < mat.clip_.x) {
 		discard;
 	}

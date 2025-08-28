@@ -17,8 +17,8 @@
 
 #include "Common.h"
 #include "DataStructure/StackBufferedAllocator.h"
-#include "Importer/ModelImporter.h"
 #include "SampleHelper.h"
+#include "Scene/Material.h"
 
 namespace glsample {
 	/**
@@ -33,26 +33,28 @@ namespace glsample {
 		void draw(Camera *camera, FrameBuffer *frame);
 		//	RenderQueue getSupportedQueue() const override; /*  Render as overlay only. */
 
+		void updateBuffers();
+
 		virtual void reset() {}
 
-		virtual void addLine(const glm::vec3 &start, const glm::vec3 &end, const Color &color, float lineWidth = 1.0f,
-							 float duration = 0.0f, bool depthEnabled = true);
+		virtual void addLine(const glm::vec3 &start, const glm::vec3 &end, const glm::vec4 &color,
+							 float lineWidth = 1.0f, float duration = 0.0f, bool depthEnabled = true);
 
-		virtual void addCross(const glm::vec3 &position, const Color &color, float size, float duration = 0.0f,
+		virtual void addCross(const glm::vec3 &position, const glm::vec4 &color, float size, float duration = 0.0f,
 							  bool depthEnabled = true);
 
-		virtual void addSphere(const Color &position, float radius, const Color &color, float duration = 0.0f,
+		virtual void addSphere(const glm::vec4 &position, float radius, const glm::vec4 &color, float duration = 0.0f,
 							   bool depthEnabled = true);
 
 		virtual void addCircle(const glm::vec3 &centerPosition, const glm::vec3 &planeNormal, float radius,
-							   const Color &color, float duration = 0.0f, bool depthEnabled = true);
+							   const glm::vec4 &color, float duration = 0.0f, bool depthEnabled = true);
 
 		virtual void addTriangle(const glm::vec3 &a, const glm::vec3 &b, const glm::vec3 &c, float duration = 0.0f,
 								 bool depthEnabled = true);
 
-		virtual void addAABB(const AABB &aabb, const Color &color, float duration = 0.0f, bool depthEnabled = true);
+		virtual void addAABB(const AABB &aabb, const glm::vec4 &color, float duration = 0.0f, bool depthEnabled = true);
 
-		virtual void addOBB(const OBB &obb, const Color &color, float duration = 0.0f, bool depthEnabled = true);
+		virtual void addOBB(const OBB &obb, const glm::vec4 &color, float duration = 0.0f, bool depthEnabled = true);
 
 	  protected:
 	  private:
@@ -63,7 +65,7 @@ namespace glsample {
 			bool depthEnabled{};   /*  */
 			float timeRemaining{}; /*  */
 			float invokeTime{};	   /*  */
-			Color color;		   /*	Common Color attribute.	*/
+			glm::vec4 color;	   /*	Common Color attribute.	*/
 
 			union Command {
 				struct {
@@ -93,6 +95,8 @@ namespace glsample {
 
 				struct {
 					glm::vec4 pos;
+					glm::vec4 size;
+					glm::quat rotation;
 				} aabb;
 
 				struct {
@@ -114,11 +118,14 @@ namespace glsample {
 			glm::vec4 color;
 		};
 
+		/*	*/
 		std::map<unsigned int, Queue<DebugDrawCommand *>> commands; /*  */
 		StackBufferedAllocator stackAllocator;
 		std::vector<MeshObject> debugGeometrys; /*  Geometry of the debug objects. - multiple sub geometries.   */
-		MaterialObject material;
 
+		Material material;
+
+		/*	*/
 		StageBuffer<DebugData, 3> StageBuffers;
 		UBOPool ubo_pool;
 	};

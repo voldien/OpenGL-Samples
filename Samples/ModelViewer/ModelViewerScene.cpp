@@ -29,8 +29,8 @@ void PBRScene::init(IFileSystem *filesystem) {
 	Scene::init(filesystem);
 
 	/*	*/
-	DirectionalLight* dirLight = new DirectionalLight();
-	dirLight->setSize( glm::ivec3(1024, 1024, 1));
+	DirectionalLight *dirLight = new DirectionalLight();
+	dirLight->setSize(glm::ivec3(1024, 1024, 1));
 	this->getLights().push_back(dirLight);
 
 	/*	Point Light.	*/
@@ -48,7 +48,7 @@ void PBRScene::init(IFileSystem *filesystem) {
 	/*	*/
 	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-	compilerOptions.glslVersion = 430;
+	compilerOptions.glslVersion = 330;
 
 	/*	*/
 	const std::vector<uint32_t> vertex_point_shadow_binary =
@@ -83,8 +83,9 @@ void PBRScene::init(IFileSystem *filesystem) {
 	for (size_t i = 0; i < getMaterials().size(); i++) {
 		MaterialObject *mat = &getMaterials()[i];
 		if (mat->shinininess > 1) {
-			mat->shinininess *= (1.0f / 256.0f);
+			mat->shinininess *= (1.0f / 32.0f);
 		}
+		mat->specular = glm::vec4(1, 1, 1, 1);
 	}
 }
 
@@ -129,9 +130,15 @@ void PBRScene::render() {
 
 void PBRScene::bindMaterial(const MaterialObject *material) {
 	Scene::bindMaterial(material);
+
 	if (UseShadowPass) {
 		/*	*/
-		glCullFace(GL_FRONT);
+		if (material->culling_both_side_mode) {
+			glCullFace(GL_FRONT_AND_BACK);
+		} else {
+			glCullFace(GL_FRONT);
+		}
+
 		glEnable(GL_CULL_FACE);
 		glDisable(GL_BLEND);
 	}

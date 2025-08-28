@@ -1,4 +1,4 @@
-#include "Util/Frustum.h"
+#include "Scene/Frustum.h"
 
 namespace glsample {
 

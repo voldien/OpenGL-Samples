@@ -18,7 +18,7 @@
 #include "Core/Object.h"
 #include "DataStructure/ITree.h"
 #include "Importer/ModelImporter.h"
-#include "Scene/Transform.h"
+#include "Transform.h"
 
 namespace glsample {
 
@@ -28,14 +28,24 @@ namespace glsample {
 	 */
 	class FVDECLSPEC Node : public glsample::TransformGLM,
 							public fragcore::ITree<Node>,
-							public fragcore::Object,
-							public NodeObject /*	TODO: remove*/ {
+							public fragcore::Object {
 	  public:
 		Node() = default;
 		Node(const NodeObject *node);
 		~Node() override = default;
 
 	  public:
+		void setPosition(const glm::vec3 &position) noexcept;
+		glm::vec3 getPosition() noexcept;
+		const glm::vec3 &getPosition() const noexcept;
+
+		void setScale(const glm::vec3 &scale) noexcept;
+		glm::vec3 getScale() const noexcept;
+
+		const glm::quat &getRotation() const noexcept;
+		void setRotation(const glm::quat &quat) noexcept;
+
+		/*	*/
 
 		glm::vec3 getLocalPosition() const noexcept;
 		glm::vec3 getLocalScale() const noexcept;
@@ -53,9 +63,9 @@ namespace glsample {
 		std::vector<unsigned int> geometryObjectIndex;
 		std::vector<unsigned int> materialIndex;
 
-			/*	*/
-	// glm::mat4 modelGlobalTransform;
-	// glm::mat4 modelLocalTransform;
+		/*	*/
+		 glm::mat4 modelGlobalTransform;
+		 glm::mat4 modelLocalTransform;
 	};
 
 } // namespace glsample

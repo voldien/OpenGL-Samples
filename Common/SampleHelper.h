@@ -16,8 +16,8 @@
 #pragma once
 #include "DataStructure/MemoryAddress.h"
 #include "Math3D/LinAlg.h"
-#include "Util/Camera.h"
-#include "Util/CameraController.h"
+#include "Scene/Camera.h"
+#include "Scene/CameraController.h"
 #include <Eigen/Eigen>
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
@@ -62,12 +62,10 @@ namespace glsample {
 		return mat;
 	}
 
-
 	template <typename T, unsigned int n> struct StageBuffer {
 		std::array<T, n> buffers;
 		T getBase() const noexcept { return this->buffers[0]; }
 	};
-
 
 	enum class GBuffer : unsigned int {
 		Albedo = 0,				 /*	*/
@@ -146,7 +144,6 @@ namespace glsample {
 		LightShadowData lightShadow;
 		glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-
 	};
 
 	using PointLightInstance = struct point_light_instance_t {
@@ -155,7 +152,7 @@ namespace glsample {
 		float range = 5;
 		glm::vec4 color = glm::vec4(1);
 		/*	*/
-		float intensity = 1;	//TODO: remove
+		float intensity = 1; // TODO: remove
 		float constant_attenuation = 1;
 		float linear_attenuation = 0.1f;
 		float quadratic_attenuation = 0.025f;
@@ -216,8 +213,8 @@ namespace glsample {
 		frustum_instance_t() = default;
 		frustum_instance_t(const Frustum &frustum) {
 
-			for (unsigned int i = 0; i < 6; i++) {
-				planes[i] = glm::vec4(E2GLM(frustum.getPlane(i).getNormal()), frustum.getPlane(i).distance());
+			for (unsigned int plane_index = 0; plane_index < 6; plane_index++) {
+				planes[plane_index] = glm::vec4(E2GLM(frustum.getPlane(plane_index).getNormal()), frustum.getPlane(plane_index).distance());
 			}
 		}
 
@@ -240,6 +237,14 @@ namespace glsample {
 		UBOObject *referenceBuffer; /*	*/
 		size_t offset;				/*	*/
 		size_t size;				/*	*/
+	};
+
+	using Texture = struct texture_t {
+		unsigned int texture_type{};
+		unsigned int texture{};
+		unsigned int width{};
+		unsigned int height{};
+		unsigned int depth = 1;
 	};
 
 	using FrameBuffer = struct framebuffer_t {

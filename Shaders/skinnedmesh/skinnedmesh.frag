@@ -14,6 +14,7 @@ layout(location = 3) in vec3 FragIN_tangent;
 /*	*/
 layout(location = 8) flat in ivec2 fAssigns;
 
+#include "common_frag.glsl"
 #include "pbr.glsl"
 #include "phongblinn.glsl"
 #include "skinnedmesh_common.glsl"
@@ -35,7 +36,7 @@ void main() {
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
-	const vec4 irradiance_color = vec4(1);// texture(IrradianceTexture, irradiance_uv).rgba;
+	const vec4 irradiance_color = vec4(1); // texture(IrradianceTexture, irradiance_uv).rgba;
 
 	const vec4 color = texture(DiffuseTexture, FragIN_uv) * mat.diffuseColor;
 	const vec4 lighting = (glob_settings.ambientColor * mat.ambientColor * irradiance_color + lightColor);

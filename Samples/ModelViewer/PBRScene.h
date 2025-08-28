@@ -1,7 +1,7 @@
 #pragma once
 #include "FragDef.h"
 #include "IO/FileSystem.h"
-#include "Scene.h"
+#include "Scene/Scene.h"
 
 namespace glsample {
 
@@ -32,5 +32,14 @@ namespace glsample {
 
 		unsigned int shadow_point;
 		unsigned int shadow_point_alpha;
+
+		using VariableRateSettings = struct variable_rate_shading_t {
+			unsigned int variable_rate_color_program{};
+			unsigned int variable_depth_edge_rate_program{};
+			unsigned int variable_visual_edge_rate_program{};
+			int localWorkGroupSize[3]{};
+			unsigned int variable_rate_lut_texture = 0;
+			unsigned int variable_rate_visual_texture = 0;
+		};
 	};
 } // namespace glsample

@@ -2,8 +2,8 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
+#include <Scene/CameraController.h>
 #include <ShaderLoader.h>
-#include <Util/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>

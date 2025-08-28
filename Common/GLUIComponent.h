@@ -14,9 +14,9 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "Util/Camera.h"
-#include "Util/CameraController.h"
-#include"SampleHelper.h"
+#include "SampleHelper.h"
+#include "Scene/Camera.h"
+#include "Scene/CameraController.h"
 #include "imgui.h"
 #include <UIComponent.h>
 
@@ -34,7 +34,6 @@ namespace glsample {
 		void draw() override = 0;
 
 	  protected:
-
 		static void drawCamera(Camera &camera) {
 
 			float fov = camera.getFOVDegree();

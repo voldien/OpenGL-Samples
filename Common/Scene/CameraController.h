@@ -15,7 +15,7 @@
  */
 #pragma once
 #include "Input.h"
-#include "Util/Camera.h"
+#include "Scene/Camera.h"
 #include <SDL2/SDL_keyboard.h>
 #include <SDLInput.h>
 #include <glm/fwd.hpp>

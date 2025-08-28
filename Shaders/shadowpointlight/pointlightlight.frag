@@ -18,6 +18,7 @@ layout(location = 8) flat in ivec2 fAssigns;
 #include "pbr.glsl"
 #include "phongblinn.glsl"
 #include "scene.glsl"
+#include"common_frag.glsl"
 
 layout(binding = 16) uniform samplerCube ShadowTexture[4];
 

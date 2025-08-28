@@ -5,21 +5,20 @@
 #extension GL_EXT_control_flow_attributes2 : enable
 
 #include "colorspace.glsl"
+#include "math.glsl"
 #include "noise.glsl"
 #include "texture.glsl"
 #include "transformation.glsl"
-#include "math.glsl"
-
 
 /*	Application constant.	*/
 layout(constant_id = 0) const float EPSILON = 1.19209e-07;
 
 struct Camera {
-	float near;			/*	*/
-	float far;			/*	*/
-	float aspect;		/*	*/
-	float fov;			/*	*/
-	
+	float near;	  /*	*/
+	float far;	  /*	*/
+	float aspect; /*	*/
+	float fov;	  /*	*/
+
 	vec4 position;		/*	*/
 	vec4 viewDir;		/*	*/
 	vec4 position_size; /*	*/
@@ -69,8 +68,10 @@ vec3 equirectangular(const in vec2 xy) {
 }
 
 vec2 inverse_equirectangular(const in vec3 direction) {
+
 	const vec2 invAtan = vec2(1.0 / (2 * PI), 1.0 / PI);
-	vec2 uv = vec2(atan(direction.z, direction.x + EPSILON * 10000), asin(direction.y));
+	vec2 uv = vec2(atan(direction.z, direction.x + EPSILON), asin(direction.y+ EPSILON));
+
 	uv *= invAtan;
 	uv += 0.5;
 	return uv;
@@ -79,9 +80,15 @@ vec2 inverse_equirectangular(const in vec3 direction) {
 /**
  *
  */
-vec3 getTBN(const in vec3 InNormal, const in vec3 InTangent, const in sampler2D normalSampler, const in vec2 uv) {
+vec3 getTBN(const in vec3 InNormal, const in vec3 InTangent, const in sampler2D NormalTexture, const in float bumpiness,
+			const in vec2 uv) {
+
+	/*	*/
+	vec3 tangentNormal = texture(NormalTexture, uv).xyz * 2.0 - 1.0;
+	tangentNormal.xy *= bumpiness;
+
 	return ((mat3(normalize(InTangent - dot(InTangent, InNormal) * InNormal), cross(InTangent, InNormal), InNormal)) *
-			((2.0f * vec3(texture(normalSampler, uv).rg, 1.0)) - 1.0f))
+			tangentNormal)
 		.xyz;
 }
 

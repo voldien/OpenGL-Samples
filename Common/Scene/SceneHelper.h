@@ -16,8 +16,8 @@
 #pragma once
 
 #include "FragDef.h"
-#include "ImportHelper.h"
-#include "ModelImporter.h"
+#include "Importer/ImportHelper.h"
+#include "Importer/ModelImporter.h"
 #include "Node.h"
 #include "Scene.h"
 
@@ -28,6 +28,8 @@ namespace glsample {
 		template <typename T = glsample::Scene> static T loadFrom(ModelImporter &importer) {
 
 			T scene;
+
+			scene.init(importer.getFileSystem());
 
 			/*	*/
 			scene.nodes = importer.getNodes();
@@ -40,6 +42,8 @@ namespace glsample {
 			scene.materials = importer.getMaterials();
 
 			convertLightSystem(scene, importer);
+			convertAnimationSystem(scene, importer);
+			convertMaterialSystem(scene, importer);
 
 			return scene;
 		}
@@ -56,6 +60,7 @@ namespace glsample {
 				case 2: {
 					PointLight *point = new PointLight();
 					point->setPosition(lights[i].position);
+					point->setColor(lights[i].mColorDiffuse);
 
 					scene.getLights().push_back(point);
 				} break;
@@ -63,7 +68,8 @@ namespace glsample {
 				case 1: {
 					DirectionalLight *direction = new DirectionalLight();
 					direction->setPosition(lights[i].position);
-					// direction->setRotation(GLM2E((lights[i].direction * glm::vec3(0,0,1)) ));
+					direction->rotateTowards(lights[i].direction);
+					direction->setColor(lights[i].mColorDiffuse);
 					scene.getLights().push_back(direction);
 				} break;
 
@@ -71,6 +77,31 @@ namespace glsample {
 				}
 
 				// lights[i].
+			}
+		}
+
+		static void convertMaterialSystem(Scene &scene, const ModelImporter &importer) {
+			// scene.getMaterials().resize(importer.getMaterials().size());
+			for (size_t i = 0; i < importer.getMaterials().size(); i++) {
+				const MaterialObject &mat = importer.getMaterials()[i];
+
+				Material material;
+			//	material.
+			}
+		}
+
+		static void convertAnimationSystem(Scene &scene, const ModelImporter &importer) {
+			for (size_t i = 0; i < importer.getAnimation().size(); i++) {
+				const AnimationObject &anim = importer.getAnimation()[i];
+
+				/*	Transfer animation data.	*/
+				AnimationPlayer *animationPlayer = new AnimationPlayer();
+				animationPlayer->time = anim.duration;
+				animationPlayer->setName(anim.name);
+				animationPlayer->curves = anim.curves_s;
+
+				/*	*/
+				scene.getAnimation().push_back(animationPlayer);
 			}
 		}
 

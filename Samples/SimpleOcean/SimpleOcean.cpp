@@ -2,7 +2,7 @@
 #include "PostProcessing/MistPostProcessing.h"
 #include "SampleHelper.h"
 #include "Skybox.h"
-#include "Util/CameraController.h"
+#include "Scene/CameraController.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>

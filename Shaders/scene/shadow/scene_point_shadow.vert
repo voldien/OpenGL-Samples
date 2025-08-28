@@ -12,13 +12,13 @@ layout(location = 4) in int index;
 /*	*/
 layout(location = 8) in ivec2 vAssigns;
 
-layout(location = 0) out invariant flat int GIndex;
+layout(location = 0) out flat int GIndex; // invariant
 layout(location = 1) out vec2 OutTextureCoord;
 
 #include "scene.glsl"
 
 void main() {
-	
+
 	const mat4 model = getModel(vAssigns.y);
 
 	gl_Position = model * vec4(vertex, 1.0);

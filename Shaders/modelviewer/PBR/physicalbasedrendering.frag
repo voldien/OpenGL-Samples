@@ -12,6 +12,7 @@ layout(location = 3) in vec3 Tangent;
 
 layout(location = 8) flat in ivec2 fAssigns;
 
+#include "common_frag.glsl"
 #include "pbr.glsl"
 #include "pbr_common.glsl"
 
@@ -22,20 +23,22 @@ void main() {
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
 	/*	Material properties.	*/
-	const vec3 albedo = texture(DiffuseTexture, TexCoords).rgb;
+	const vec4 albedo = texture(DiffuseTexture, TexCoords);
 	const float metallic = texture(MetalicTexture, TexCoords).r * mat.clip_.z;
 	const float roughness = clamp(texture(RoughnessTexture, TexCoords).r * mat.specular_roughness.a, 0, 1);
 	const float ao = texture(AOTexture, TexCoords).r;
 	const vec3 emissive = mat.emission.rgb * texture(EmissionTexture, TexCoords).rgb;
 
 	/*	input lighting data	*/
-	vec3 SurfaceNormal = getNormalFromMap(NormalTexture, TexCoords, WorldPos, Normal, mat.clip_.y);
+	vec3 SurfaceNormal =
+		getTBN(Normal, Tangent, NormalTexture, mat.clip_.y,
+			   TexCoords); // getNormalFromMap(NormalTexture, TexCoords, WorldPos, Normal, mat.clip_.y);
 	vec3 ViewPixelDir = normalize(getCamera().position.xyz - WorldPos);
 	vec3 ViewPixelReflectDir = reflect(-ViewPixelDir, SurfaceNormal);
 
 	/*	Interpolated between non-metal to metal fresnel factor.	*/
 	vec3 F0 = vec3(0.04);
-	F0 = mix(F0, albedo, metallic);
+	F0 = mix(F0, albedo.rgb, metallic);
 
 	/*	Directional Light.	*/
 	vec3 DirectLight = vec3(0.0);
@@ -43,7 +46,7 @@ void main() {
 
 		/*	Calculate light color.	*/
 		const vec3 lightSource = computePBRDirectionLight(getDirectional(light_index), ViewPixelDir, SurfaceNormal,
-														  roughness, metallic, F0, albedo);
+														  roughness, metallic, F0, albedo.rgb);
 
 		/*	Shadow.	*/
 		const vec4 LightSpaceVertex = getDirectional(light_index).lightShadow.lightSpaceMatrix * vec4(WorldPos, 1);
@@ -55,7 +58,8 @@ void main() {
 
 	/*	Point Lights.	*/
 	for (uint i = 0; i < getPointLightCount(); i++) {
-		DirectLight += computePBRPoint(getPointLight(i), WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo);
+		DirectLight +=
+			computePBRPoint(getPointLight(i), WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo.rgb);
 	}
 
 	/*	ambient lighting (we now use IBL as the ambient term)	*/
@@ -70,15 +74,19 @@ void main() {
 	const vec4 diffuse_irradiance_color = vec4(texture(IrradianceTexture, irradiance_uv).rgb, 1);
 	const vec3 diffuse_irradiance_color_contr =
 		glob_settings.ambientColor.rgb * diffuse_irradiance_color.rgb * mat.ambientColor.rgb;
-	const vec3 diffuse = diffuse_irradiance_color_contr * (albedo * mat.diffuseColor.rgb);
+	const vec4 diffuseColor = 	albedo * mat.diffuseColor;
+	const vec3 diffuse = diffuse_irradiance_color_contr * diffuseColor.rgb;
 
 	// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to
 	// get the IBL specular part.
-	const float MAX_REFLECTION_LOD = 4.0;
-	const vec3 prefilteredColor = textureLod(prefilterMap, ViewPixelReflectDir, roughness * MAX_REFLECTION_LOD).rgb;
-	const vec2 brdf = texture(brdfLUT, vec2(max(dot(SurfaceNormal, ViewPixelDir), 0.0), roughness)).rg;
+	const float MAX_REFLECTION_LOD = 5.0;
+	const vec2 irradiance_specular_uv = inverse_equirectangular(normalize(ViewPixelReflectDir));
 
-	vec3 specular = vec3(0); // prefilteredColor * (F * brdf.x + brdf.y);
+	const vec3 prefilteredColor = textureLod(prefilterMap, irradiance_specular_uv, roughness * MAX_REFLECTION_LOD).rgb;
+	const vec2 brdf_lookup_uv = vec2(max(dot(SurfaceNormal, ViewPixelDir), 0.0), roughness);
+	const vec2 brdf = texture(BRDFLUT, brdf_lookup_uv).rg;
+
+	vec3 specular = prefilteredColor * (kSpecular_F * brdf.x + brdf.y);
 	specular *= mat.specular_roughness.rgb;
 
 	const vec3 indirectLight = (kDiffuse * diffuse + specular) * ao;
@@ -86,6 +94,9 @@ void main() {
 	const vec3 color = emissive + indirectLight + DirectLight;
 
 	fragColor = vec4(color, 1.0);
+
+	/*	Alpha.	*/
+	fragColor.a *= diffuseColor.a;
 	fragColor.a *= texture(AlphaMaskedTexture, TexCoords).r;
 	fragColor *= mat.transparency.rgba;
 

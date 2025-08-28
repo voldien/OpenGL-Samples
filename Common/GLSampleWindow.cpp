@@ -459,6 +459,7 @@ void GLSampleWindow::renderUI() {
 
 	/*	Make sure all commands are flush before resizing.	*/
 	if (this->preWidth != this->width() || this->preHeight != this->height()) {
+		
 		/*	Finish all commands before starting resizing buffers and etc.	*/
 		glFinish();
 

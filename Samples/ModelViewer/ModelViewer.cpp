@@ -1,7 +1,7 @@
 #include "ModelViewer.h"
 #include "PBRScene.h"
-#include "Scene.h"
-#include "SceneHelper.h"
+#include "Scene/Scene.h"
+#include "Scene/SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -78,6 +78,10 @@ namespace glsample {
 					   (int)TextureTypeBinding::Displacement);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "IrradianceTexture"),
 					   (int)TextureTypeBinding::Irradiance);
+		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "prefilterMap"),
+					   (int)TextureTypeBinding::PreFilter);
+		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "BRDFLUT"),
+					   (int)TextureTypeBinding::BRDFLUT);
 		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
 							  this->uniform_buffer_binding);
 		uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
@@ -91,15 +95,17 @@ namespace glsample {
 		skybox.Init(this->reflection_texture, this->skybox_program);
 
 		/*	*/
+		MiscProcessingUtil util(this->getFileSystem());
+		util.computeDiffuseIrradiance(skybox.getTexture(), this->irradiance_texture, 256, 128);
+		util.computeReflectanceIrradiance(skybox.getTexture(), this->reflection_prefilter_texture, 2048, 1024);
+		util.computeBRDFIntegrationMap(this->brdf_integration_map_texture, 512, 512);
+
+		glFlush();
+
+		/*	*/
 		ModelImporter modelLoader(FileSystem::getFileSystem());
 		modelLoader.loadContent(modelPath, 0);
 		this->scene = SceneHelper::loadFrom<PBRScene>(modelLoader);
-		this->scene.init(this->getFileSystem());
-
-		/*	*/
-		MiscProcessingUtil util(this->getFileSystem());
-		util.computeDiffuseIrradiance(skybox.getTexture(), this->irradiance_texture, 256, 128);
-		util.computeReflectanceIrradiance(skybox.getTexture(), this->specular_texture, 256, 128);
 	}
 
 	void ModelViewer::onResize(int width, int height) { this->camera.setAspect((float)width / (float)height); }
@@ -117,12 +123,17 @@ namespace glsample {
 
 			/*	Set render viewport size in pixels.	*/
 			glViewport(0, 0, width, height);
-
 			glClear(GL_DEPTH_BUFFER_BIT);
 
 			{
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::BRDFLUT);
+				glBindTexture(GL_TEXTURE_2D, this->brdf_integration_map_texture);
+
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::PreFilter);
+				glBindTexture(GL_TEXTURE_2D, this->reflection_prefilter_texture);
 
 				glUseProgram(this->physical_based_rendering_program);
 				this->scene.render(&this->camera);

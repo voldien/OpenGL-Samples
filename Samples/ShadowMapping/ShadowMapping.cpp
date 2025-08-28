@@ -1,12 +1,12 @@
 #include "IO/IFileSystem.h"
-#include "SceneHelper.h"
+#include "Scene/SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>
-#include <Importer/Scene.h>
+#include <Scene/Scene.h>
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <cstddef>

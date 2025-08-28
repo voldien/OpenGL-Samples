@@ -1,8 +1,8 @@
 #include "Common.h"
 #include "GLUIComponent.h"
 #include "SampleHelper.h"
-#include "Scene.h"
-#include "SceneHelper.h"
+#include "Scene/Scene.h"
+#include "Scene/SceneHelper.h"
 #include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>

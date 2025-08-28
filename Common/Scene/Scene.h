@@ -19,9 +19,11 @@
 #include "DataStructure/PoolAllocator.h"
 #include "GLSampleSession.h"
 #include "IO/IFileSystem.h"
-#include "ModelImporter.h"
+#include "Importer/ModelImporter.h" //TODO: evntually remove.
 #include "SampleHelper.h"
+#include "Scene/Animation.h"
 #include "Scene/Light.h"
+#include "Scene/RenderQueue.h"
 #include "Util/DebugDrawer.h"
 #include <deque>
 
@@ -37,7 +39,7 @@ namespace glsample {
 		AmbientOcclusion = 6,			 /*	*/
 		Displacement = 7,				 /*	*/
 		Metal = 8,						 /*	*/
-		Reserve1 = 9,					 /*	*/
+		BackBuffer = 9,					 /*	*/
 		Irradiance = 10,				 /*	*/
 		PreFilter = 11,					 /*	*/
 		BRDFLUT = 12,					 /*	*/
@@ -45,30 +47,10 @@ namespace glsample {
 		DirectionalLightDepthBuffer = 24 /*	*/
 	};
 
-	/*	The higher the later the will be rendered in the rendering queue.	*/
-	enum RenderQueue : unsigned int {
-		Background = 500,	 /*  */
-		Geometry = 1000,	 /*  */
-		AlphaTest = 1500,	 /*  */
-		GeometryLast = 1600, /*  */
-		Transparent = 2000,	 /*  */
-		Overlay = 3000,		 /*  */
-	};
-
 	enum DebugMode : unsigned int {
 		None = 0,
 		Wireframe = 0x1,
 		BoundingBox = 0x2,
-	};
-
-	class AnimationPlayer {
-	  public:
-		AnimationPlayer() = default;
-		AnimationPlayer(AnimationObject &animation) {}
-
-		float time{};
-		unsigned int mode{};
-		AnimationObject *animation{};
 	};
 
 	/**
@@ -82,6 +64,7 @@ namespace glsample {
 		Scene();
 		virtual ~Scene();
 
+	  public:
 		virtual void init(IFileSystem *filesystem = nullptr);
 
 		virtual void release();
@@ -93,9 +76,6 @@ namespace glsample {
 		virtual void render();
 
 		virtual void renderUI();
-
-	  public: /*	*/
-			  //	void enableDebug();
 
 	  protected: /*	Internal backend methods.	*/
 		virtual void bindMaterial(const MaterialObject *material);
@@ -119,14 +99,17 @@ namespace glsample {
 		std::vector<Light *> &getLights() noexcept { return this->lights; }
 		// std::vector<DirectionalLight *> getDirectionalLight() noexcept { return {}; }
 
+		const std::vector<AnimationPlayer *> &getAnimation() const noexcept { return this->animations; }
+		std::vector<AnimationPlayer *> &getAnimation() noexcept { return this->animations; }
+
 		DirectionalLightData *getDirectionalLight(const size_t index = 0) noexcept {
 			return &this->stageLightData.getBase()->directional[index];
 		}
 
 	  protected:
-		void bindTexture(const MaterialObject &material, const TextureTypeBinding texture_type);
-		int computeMaterialPriority(const MaterialObject &material) const noexcept;
-		RenderQueue getQueueDomain(const MaterialObject &material) const noexcept;
+		virtual void bindTexture(const MaterialObject &material, const TextureTypeBinding texture_type);
+		virtual int computeMaterialPriority(const MaterialObject &material) const noexcept;
+		virtual RenderQueue getQueueDomain(const MaterialObject &material) const noexcept;
 		size_t getRoundRobinIndex() const noexcept {
 			return this->renderPassFrameIndex % UniformDataStructure::bufferRoundRobinSize;
 		}
@@ -145,13 +128,18 @@ namespace glsample {
 		std::vector<MeshObject> refGeometry;
 		std::vector<TextureAssetObject> refTexture;
 		std::vector<MaterialObject> materials;
-		std::vector<AnimationObject> animations;
+		std::vector<AnimationPlayer *> animations;
 		std::vector<Light *> lights;
 
 		// PoolAllocator<DirectionalLight> DirLightPool;
 		// PoolAllocator<PointLight> PointLightPool;
 		// fragcore::PoolAllocator<Node> nodePool;
 		// fragcore::PoolAllocator<AnimationPlayer> animationss;
+
+		using FrustumSettings = struct _frustum_settings_t {
+			bool useFrustum;
+			unsigned int FrustumCullingMode = 0;
+		};
 
 		using GlobalRenderSettings = struct _global_rendering_settings_t {
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
@@ -197,8 +185,8 @@ namespace glsample {
 		};
 
 	  protected: /*	Default texture if texture from material is missing.*/
-		std::array<unsigned int, 16> default_textures;
-		std::array<unsigned int, 16> samplers;
+		std::array<unsigned int, 16> default_textures = {0};
+		std::array<unsigned int, 16> samplers = {0};
 
 		using Debug = struct debug_t {
 			DebugMode debugMode;
@@ -208,10 +196,11 @@ namespace glsample {
 
 		using RenderingSettings = struct rendering_settings_t {
 			unsigned int debugMode = DebugMode::None;
-			bool frustumCulling = false;
+			FrustumSettings frustumSettings;
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
 			FogSettings fogSettings;
 			LightSettings lightSettings;
+			bool preRender;
 		};
 
 		DebugMode debugMode = DebugMode::None;

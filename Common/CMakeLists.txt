@@ -1,8 +1,10 @@
 FILE(GLOB SOURCE_OPENGL_COMMON_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+									${CMAKE_CURRENT_SOURCE_DIR}/Scene/*.cpp
 									 ${CMAKE_CURRENT_SOURCE_DIR}/Util/*.cpp
 									 ${CMAKE_CURRENT_SOURCE_DIR}/PostProcessing/*.cpp)
 FILE(GLOB HEADER_OPENGL_COMMON_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h
 									 ${CMAKE_CURRENT_SOURCE_DIR}/PostProcessing/*.h
+									 ${CMAKE_CURRENT_SOURCE_DIR}/Scene/*.h
 									 ${CMAKE_CURRENT_SOURCE_DIR}/Util/*.h)
 SOURCE_GROUP(Common FILES ${HEADER_OPENGL_COMMON_FILES} ${SOURCE_OPENGL_COMMON_FILES})
 
@@ -32,6 +34,6 @@ IF(OpenMP_FOUND AND OpenMP_CXX_FOUND)
 ENDIF()
 
 ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Importer)
-ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Scene)
+#ADD_SUBDIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/Scene)
 
 INSTALL(TARGETS glCommon fragcore nekomimi-window fragcore-rgl fragcore-shader-compiler cxxopts fragcore-geometry-util fragcore-window-sdl fragcore-imageloader glew fragcore-scheduler-tasksch DESTINATION lib)

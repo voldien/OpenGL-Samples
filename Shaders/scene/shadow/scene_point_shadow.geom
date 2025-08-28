@@ -14,7 +14,7 @@ layout(location = 1) in vec2 InTextureCoord[];
 
 layout(location = 0) out vec4 FragVertex;
 layout(location = 2) out vec2 FragTextureCoord;
-layout(location = 1) out invariant flat int FIndex;
+layout(location = 1) out  flat int FIndex; // invariant
 
 #include "scene.glsl"
 

@@ -23,22 +23,28 @@
 
 namespace glsample {
 
+	/*	*/
 	class FVDECLSPEC MiscProcessingUtil {
 	  public:
 		MiscProcessingUtil(fragcore::IFileSystem *filesystem);
 		virtual ~MiscProcessingUtil();
 
 		/*	*/
-		void computeDiffuseIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
-							   const unsigned int height);
-		void computeDiffuseIrradiance(unsigned int env_source, unsigned int irradiance_target);
+		void computeDiffuseIrradiance(unsigned int env_texture_panoramic_source, unsigned int &irradiance_target,
+									  const unsigned int width, const unsigned int height);
+		void computeDiffuseIrradiance(unsigned int env_texture_panoramic_source, unsigned int irradiance_target);
+		void computeDiffuseIrradianceCubeMap();
 
+		/*	*/
+		void computeReflectanceIrradiance(unsigned int env_texture_panoramic_source, unsigned int &irradiance_target,
+										  const unsigned int width, const unsigned int height);
+		void computeReflectanceIrradiance(unsigned int env_texture_panoramic_source, unsigned int irradiance_target);
+		void computeReflectanceIrradianceCubeMap();
 
-		void computeReflectanceIrradiance(unsigned int env_source, unsigned int &irradiance_target, const unsigned int width,
-							   const unsigned int height);
-		void computeReflectanceIrradiance(unsigned int env_source, unsigned int irradiance_target);
-
-
+		/*	*/
+		void computeBRDFIntegrationMap(unsigned int &brdf_integration_target_texture, const unsigned int width,
+									   const unsigned int height);
+		void computeBRDFIntegrationMap(unsigned int brdf_integration_target_texture);
 
 		/*	*/
 		void computePerlinNoise(unsigned int *target, const unsigned int width, const unsigned int height,
@@ -46,19 +52,22 @@ namespace glsample {
 								const glm::vec2 &tile_offset = glm::vec2(10, 10), const int octaves = 16);
 		void computePerlinNoise(unsigned int target, const glm::vec2 &size = glm::vec2(10, 10),
 								const glm::vec2 &tile_offset = glm::vec2(10, 10), const int octaves = 16);
-		/**/
-		void computeBump2Normal(unsigned int bump_source, unsigned int &normal_target, const unsigned int width,
-								const unsigned int height);
-		void computeBump2Normal(unsigned int bump_source, unsigned int normal_target);
 
-		/**/
+		/*	*/
+		void computeBump2Normal(unsigned int bump_source_texture, unsigned int &normal_texture_target,
+								const unsigned int width, const unsigned int height);
+		void computeBump2Normal(unsigned int bump_source_texture, unsigned int normal_texture_target);
+
+		/*	*/
 		void computeColor2HeightMap(unsigned int color_source, unsigned int &height_target, const unsigned int width,
-								const unsigned int height);
+									const unsigned int height);
 		void computeColor2HeightMap(unsigned int color_source, unsigned int height_target);
 
 	  private:
 		fragcore::IFileSystem *filesystem = nullptr;
-		int irradiance_program = -1;
+		int irradiance_diffuse_program = -1;
+		int irradiance_specular_program = -1;
+		int brdf_integration_map_program = -1;
 		int bump2normal_program = -1;
 		int perlin_noise2D_program = -1;
 		//			std::array<int, (size_t)ColorSpace::MaxColorSpaces * 3> compute_programs_local_workgroup_sizes{};

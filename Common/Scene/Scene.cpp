@@ -2,13 +2,13 @@
 #include "../Common.h"
 #include "IO/IFileSystem.h"
 #include "Math3D/Color.h"
-#include "ModelImporter.h"
+#include "Importer/ModelImporter.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 #include "UIComponent.h"
-#include "Util/CameraController.h"
+#include "Scene/CameraController.h"
 #include "Util/DebugDrawer.h"
-#include "Util/Frustum.h"
+#include "Scene/Frustum.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include <GL/glew.h>
@@ -33,7 +33,7 @@ namespace glsample {
 		Scene &scene;
 	};
 
-	Scene::Scene() { this->init(); }
+	Scene::Scene() = default;
 
 	Scene::~Scene() = default;
 
@@ -264,7 +264,7 @@ namespace glsample {
 		/*	Update animations.	*/
 		for (size_t anim_index = 0; anim_index < this->animations.size(); anim_index++) {
 			/*	*/
-			AnimationObject &animationClip = this->animations[anim_index];
+			AnimationPlayer &animationClip = *this->getAnimation()[anim_index];
 			// this->animations[x].curves;
 		}
 
@@ -401,7 +401,7 @@ namespace glsample {
 		this->visableNodes.clear();
 
 		/*	Frustum Culling.	*/
-		if (this->settings.frustumCulling && frustum) {
+		if (this->settings.frustumSettings.useFrustum && frustum) {
 
 			/*	*/
 			// TODO: multi thread
@@ -489,7 +489,45 @@ namespace glsample {
 
 		/*	*/
 		if (useDebug()) {
-			this->debugDrawer->draw(camera, nullptr);
+
+			const bool renderWireframe = Math::isFlagSet<unsigned int>(debugMode, DebugMode::Wireframe);
+			if (renderWireframe) {
+				const std::string debugDomain = "Wireframe";
+				glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, debugDomain.size(), debugDomain.data());
+				for (size_t i = 0; i < visableNodes.size(); i++) {
+
+					/*	*/
+					this->renderNode(visableNodes[i]);
+				}
+
+				glPopDebugGroup();
+			}
+
+			const bool renderBoundingShapes = Math::isFlagSet<unsigned int>(debugMode, DebugMode::BoundingBox);
+			if (renderBoundingShapes) {
+				const std::string debugDomain = "Debug";
+				glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, debugDomain.size(), debugDomain.data());
+				/*	Populate.	*/
+
+				const std::vector<RenderQueue> order = {RenderQueue::Background,  RenderQueue::Geometry,
+														RenderQueue::AlphaTest,	  RenderQueue::GeometryLast,
+														RenderQueue::Transparent, RenderQueue::Overlay};
+
+				/*	*/
+				for (auto it = order.begin(); it != order.end(); it++) {
+					// RenderQueue renderQueue = (*it).first;
+					std::deque<const NodeObject *> nodeQueue = this->renderBucketQueue[(*it)];
+					for (auto itQ = nodeQueue.begin(); itQ != nodeQueue.end(); itQ++) {
+
+						const NodeObject *node = (*itQ);
+						// this->debugDrawer->addAABB(node->bound.aabb, glm::vec4(0.3f, 1.0f 0.3f, 1.0f));
+					}
+				}
+
+				this->debugDrawer->draw(camera, nullptr);
+
+				glPopDebugGroup();
+			}
 		}
 	}
 
@@ -532,6 +570,9 @@ namespace glsample {
 		// TODO: merge by shared geometries.
 
 		/*	Iterate through each node.	*/
+
+		// TODO: impl update bone data.
+		/*	*/
 
 		/*	Bind common data for all drawcall.	*/
 		{
@@ -652,8 +693,10 @@ namespace glsample {
 			this->bindTexture(*material, TextureTypeBinding::Displacement);
 			this->bindTexture(*material, TextureTypeBinding::Specular_Roughness);
 			this->bindTexture(*material, TextureTypeBinding::Metal);
+
 			// this->bindTexture(material, TextureType::Irradiance); //TODO: enable once material has been binded
 			// with irradiance texture
+
 			this->bindTexture(*material, TextureTypeBinding::DepthBuffer);
 
 			/*	*/
@@ -689,7 +732,7 @@ namespace glsample {
 
 			/*	*/
 			if (material->culling_both_side_mode) {
-				glEnable(GL_CULL_FACE);
+				glDisable(GL_CULL_FACE);
 				glCullFace(GL_FRONT_AND_BACK);
 			} else {
 				glEnable(GL_CULL_FACE);
@@ -842,7 +885,7 @@ namespace glsample {
 			if (ImGui::CollapsingHeader("Rendering Settings")) {
 
 				/*	*/
-				if (ImGui::Checkbox("Use Frustum Culling", &this->settings.frustumCulling)) {
+				if (ImGui::Checkbox("Use Frustum Culling", &this->settings.frustumSettings.useFrustum)) {
 				}
 
 				bool showWireFrame = (settings.debugMode & DebugMode::Wireframe) == DebugMode::Wireframe;
@@ -928,6 +971,7 @@ namespace glsample {
 						const glm::mat4 globaMat = nodes[node_index]->parent == nullptr
 													   ? glm::mat4(1)
 													   : nodes[node_index]->parent->modelGlobalTransform;
+
 						nodes[node_index]->modelGlobalTransform =
 							glm::translate(globaMat, nodes[node_index]->localPosition) *
 							glm::mat4_cast(nodes[node_index]->localRotation);
@@ -937,6 +981,15 @@ namespace glsample {
 					}
 
 					if (ImGui::DragFloat3("Scale", &nodes[node_index]->localScale[0])) {
+
+						const glm::mat4 globaMat = nodes[node_index]->parent == nullptr
+													   ? glm::mat4(1)
+													   : nodes[node_index]->parent->modelGlobalTransform;
+
+						nodes[node_index]->modelGlobalTransform =
+							glm::translate(globaMat, nodes[node_index]->localPosition) *
+							glm::mat4_cast(nodes[node_index]->localRotation) *
+							glm::scale(nodes[node_index]->localScale);
 					}
 					ImGui::Separator();
 
@@ -1126,6 +1179,21 @@ namespace glsample {
 			if (ImGui::CollapsingHeader("Textures")) {
 				size_t material_index = 0;
 				for (; material_index < this->materials.size(); material_index++) {
+				}
+			}
+
+			if (ImGui::CollapsingHeader("Animation")) {
+
+				size_t animation_index = 0;
+				for (; animation_index < this->getAnimation().size(); animation_index++) {
+					AnimationPlayer *animation = this->getAnimation()[animation_index];
+
+					ImGui::PushID(animation_index + 1000);
+
+					ImGui::TextUnformatted(animation->getName().c_str());
+					ImGui::Text("Animation Channels: %zu", animation->getCurves().size());
+
+					ImGui::PopID();
 				}
 			}
 

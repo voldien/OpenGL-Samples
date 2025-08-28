@@ -4,6 +4,7 @@
 #include "DataStructure/StackBufferedAllocator.h"
 #include "GLSampleSession.h"
 #include "IO/IFileSystem.h"
+#include "SampleHelper.h"
 
 #include <ShaderLoader.h>
 #include <cstddef>
@@ -20,7 +21,7 @@ DebugDrawManager::DebugDrawManager(fragcore::IFileSystem *filesystem)
 	/*	*/
 	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
-	compilerOptions.glslVersion = 430;
+	compilerOptions.glslVersion = 330;
 
 	const std::vector<uint32_t> vertex_debug_aabb_binary =
 		fragcore::IOUtil::readFileData<uint32_t>(debug_vertex_aabb_path, filesystem);
@@ -45,15 +46,13 @@ DebugDrawManager::DebugDrawManager(fragcore::IFileSystem *filesystem)
 	glBindBuffer(GL_UNIFORM_BUFFER, this->ubo_pool.buffer.buffer);
 	glBufferData(GL_UNIFORM_BUFFER, this->ubo_pool.buffer.totalSize, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+	/*	Load Meshes.	*/
 }
 
 void DebugDrawManager::draw(Camera *camera, FrameBuffer *frame) {
 
-	/*	Transfer data.	*/
-	for (size_t i = 0; i < this->commands.size(); i++) {
-		const Queue<DebugDrawCommand *> &commandQueue = this->commands[i];
-		const size_t nrCommands = commandQueue.getSize();
-	}
+	this->updateBuffers();
 
 	int width = 0;
 	int height = 0;
@@ -62,6 +61,7 @@ void DebugDrawManager::draw(Camera *camera, FrameBuffer *frame) {
 
 	/*	*/
 	for (size_t i = 0; i < this->commands.size(); i++) {
+
 		const Queue<DebugDrawCommand *> &commandQueue = this->commands[i];
 		const size_t nrCommands = commandQueue.getSize();
 		const MeshObject &mesh = this->debugGeometrys[i];
@@ -70,6 +70,9 @@ void DebugDrawManager::draw(Camera *camera, FrameBuffer *frame) {
 
 		/*	*/
 		if (nrCommands > 0) {
+
+			/*	Bind Mesh.	*/
+
 			glDrawArraysInstanced(GL_TRIANGLES, 0, mesh.nrIndicesElements, nrCommands);
 		}
 	}
@@ -77,9 +80,20 @@ void DebugDrawManager::draw(Camera *camera, FrameBuffer *frame) {
 
 	this->stackAllocator.clear();
 }
-void DebugDrawManager::addLine(const glm::vec3 &start, const glm::vec3 &end, const Color &color, float lineWidth,
+
+void DebugDrawManager::updateBuffers() {
+
+	/*	Transfer data.	*/
+	for (size_t i = 0; i < this->commands.size(); i++) {
+		const Queue<DebugDrawCommand *> &commandQueue = this->commands[i];
+		const size_t nrCommands = commandQueue.getSize();
+	}
+}
+
+void DebugDrawManager::addLine(const glm::vec3 &start, const glm::vec3 &end, const glm::vec4 &color, float lineWidth,
 							   float duration, bool depthEnabled) {
 	DebugDrawCommand *command = allocCommand();
+	
 	command->command.line.start = glm::vec4(start, 1);
 	command->command.line.end = glm::vec4(end, 1);
 	command->color = color;
@@ -88,14 +102,14 @@ void DebugDrawManager::addLine(const glm::vec3 &start, const glm::vec3 &end, con
 	this->commands[(int)command->type].enqueue(command);
 }
 
-void DebugDrawManager::addCross(const glm::vec3 &position, const Color &color, float size, float duration,
+void DebugDrawManager::addCross(const glm::vec3 &position, const glm::vec4 &color, float size, float duration,
 								bool depthEnabled) {
 	DebugDrawCommand *command = allocCommand();
 	command->type = DrawType::CROSS;
 	this->commands[(int)command->type].enqueue(command);
 }
 
-void DebugDrawManager::addSphere(const Color &position, float radius, const Color &color, float duration,
+void DebugDrawManager::addSphere(const glm::vec4 &position, float radius, const glm::vec4 &color, float duration,
 								 bool depthEnabled) {
 	DebugDrawCommand *command = allocCommand();
 	command->type = DrawType::SPHERE;
@@ -103,21 +117,27 @@ void DebugDrawManager::addSphere(const Color &position, float radius, const Colo
 }
 
 void DebugDrawManager::addCircle(const glm::vec3 &centerPosition, const glm::vec3 &planeNormal, float radius,
-								 const Color &color, float duration, bool depthEnabled) {}
+								 const glm::vec4 &color, float duration, bool depthEnabled) {}
 
 void DebugDrawManager::addTriangle(const glm::vec3 &a, const glm::vec3 &b, const glm::vec3 &c, float duration,
 								   bool depthEnabled) {}
 
-void DebugDrawManager::addAABB(const AABB &aabb, const Color &color, float duration, bool depthEnabled) {
+void DebugDrawManager::addAABB(const AABB &aabb, const glm::vec4 &color, float duration, bool depthEnabled) {
 	DebugDrawCommand *command = allocCommand();
 	command->type = DrawType::AABB;
+	command->color = color;
+
+	command->command.aabb.pos = glm::vec4(E2GLM(aabb.getCenter()), 1.0f);
+	command->command.aabb.size = glm::vec4(E2GLM(aabb.getHalfSize()), 1.0f);
+
 	this->commands[(int)command->type].enqueue(command);
 }
 
-void DebugDrawManager::addOBB(const OBB &obb, const Color &color, float duration, bool depthEnabled) {
+void DebugDrawManager::addOBB(const OBB &obb, const glm::vec4 &color, float duration, bool depthEnabled) {
 
 	DebugDrawCommand *command = allocCommand();
 	command->type = DrawType::OBB;
+	command->color = color;
 	this->commands[(int)command->type].enqueue(command);
 }
 

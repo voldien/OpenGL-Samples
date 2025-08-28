@@ -1,11 +1,12 @@
 #include "GLUIComponent.h"
 #include "Skybox.h"
+#include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ShaderLoader.h>
-#include <Util/CameraController.h>
+#include <Scene/CameraController.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -70,15 +71,22 @@ namespace glsample {
 								  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
-				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().diffuse_irradiance_texture), ImVec2(512, 256),
-							 ImVec2(1, 1), ImVec2(0, 0));
-				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().reflectance_irradiance_texture), ImVec2(512, 256),
-							 ImVec2(1, 1), ImVec2(0, 0));
+
+				float rouhness = 0;
+				ImGui::Checkbox("Show Reflectence", &showReflectence);
+				ImGui::SliderFloat("Roughness", &rouhness, 0, 1);
+
+				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().diffuse_irradiance_texture),
+							 ImVec2(512, 256), ImVec2(1, 1), ImVec2(0, 0));
+				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().reflectance_irradiance_texture),
+							 ImVec2(512, 256), ImVec2(1, 1), ImVec2(0, 0));
 				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().skybox.getTexture()), ImVec2(512, 256),
 							 ImVec2(1, 1), ImVec2(0, 0));
 			}
 
 			bool showWireFrame = false;
+
+			bool showReflectence = true;
 
 		  private:
 			struct uniform_buffer_block &uniform;
@@ -126,8 +134,8 @@ namespace glsample {
 
 			MiscProcessingUtil util(this->getFileSystem());
 			util.computeDiffuseIrradiance(this->skybox_texture_panoramic, this->diffuse_irradiance_texture, 256, 128);
-			util.computeReflectanceIrradiance(this->skybox_texture_panoramic, this->reflectance_irradiance_texture, 256, 128);
-			
+			util.computeReflectanceIrradiance(this->skybox_texture_panoramic, this->reflectance_irradiance_texture,
+											  2048, 1024);
 
 			skybox.Init(this->skybox_texture_panoramic, Skybox::loadDefaultProgram(this->getFileSystem()));
 
@@ -142,7 +150,7 @@ namespace glsample {
 			glBufferData(GL_UNIFORM_BUFFER, this->uniformSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-			CommonUtil::loadSphere(this->sphere, 3, 24, 24);
+			CommonUtil::loadSphere(this->sphere, 3, 48, 48);
 		}
 
 		void onResize(int width, int height) override { this->camera.setAspect((float)width / (float)height); }
@@ -175,7 +183,11 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->diffuse_irradiance_texture);
+				if (skyboxSettingComponent->showReflectence) {
+					glBindTexture(GL_TEXTURE_2D, this->reflectance_irradiance_texture);
+				} else {
+					glBindTexture(GL_TEXTURE_2D, this->diffuse_irradiance_texture);
+				}
 
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->sphere.vao);

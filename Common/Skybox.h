@@ -21,7 +21,7 @@
 #include <Exception.hpp>
 #include <IO/FileSystem.h>
 #include <IO/IOUtil.h>
-#include <Util/CameraController.h>
+#include <Scene/CameraController.h>
 #include <fmt/format.h>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>

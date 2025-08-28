@@ -1,6 +1,6 @@
 #include "ModelImporter.h"
-#include "Scene.h"
-#include "SceneHelper.h"
+#include "Scene/Scene.h"
+#include "Scene/SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
 #include <GLSample.h>

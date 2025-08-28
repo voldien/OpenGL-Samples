@@ -7,7 +7,7 @@
 #include <GLSampleWindow.h>
 #include <OpenALAudioInterface.h>
 #include <ShaderLoader.h>
-#include <Util/CameraController.h>
+#include <Scene/CameraController.h>
 #include <cstddef>
 #include <cstdint>
 #include <fmt/core.h>

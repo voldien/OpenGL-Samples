@@ -1,6 +1,6 @@
 #include "GLUIComponent.h"
-#include "SceneHelper.h"
-#include "Scene.h"
+#include "Scene/SceneHelper.h"
+#include "Scene/Scene.h"
 #include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>

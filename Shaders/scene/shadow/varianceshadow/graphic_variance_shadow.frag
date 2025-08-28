@@ -18,9 +18,10 @@ layout(location = 4) in vec4 lightSpace;
 layout(binding = 9) uniform sampler2DShadow ShadowTexture;
 
 #include "common.glsl"
-#include "scene.glsl"
+#include "common_frag.glsl"
+#include "pbr.glsl"
 #include "phongblinn.glsl"
-#include"pbr.glsl"
+#include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;

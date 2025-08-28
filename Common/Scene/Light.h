@@ -16,12 +16,13 @@
 #pragma once
 
 #include "Common.h"
+#include "FragDef.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 
 namespace glsample {
 
-	class Light : public Frustum {
+	class FVDECLSPEC Light : public Frustum {
 	  public:
 		enum class LightType {
 			Directional,
@@ -49,6 +50,9 @@ namespace glsample {
 										   : glm::ivec3(0);
 		}
 
+		glm::vec4 getColor() const noexcept { return this->color; }
+		void setColor(const glm::vec4 &newColor) { this->color = newColor; }
+
 	  public:
 		LightType lightType = LightType::Directional;
 		glm::vec4 color = glm::vec4(1);
@@ -62,10 +66,10 @@ namespace glsample {
 		FrameBuffer *shadowFrameBuffer = nullptr;
 	};
 
-
-	class DirectionalLight : public Light {
+	class FVDECLSPEC DirectionalLight : public Light {
 	  public:
 		DirectionalLight() {
+			this->setName("Directional Light");
 			this->lightType = LightType::Directional;
 			this->setShadowDistance(50.0f);
 			this->rotateTowards(glm::vec3(1));
@@ -132,9 +136,10 @@ namespace glsample {
 		}
 	};
 
-	class PointLight : public Light {
+	class FVDECLSPEC PointLight : public Light {
 	  public:
 		PointLight() {
+			this->setName("PointLight");
 			this->lightType = LightType::Point;
 			this->setShadowDistance(50.0f);
 		}

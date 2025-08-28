@@ -22,7 +22,11 @@ void main() {
 	lightDistance = lightDistance / pointLight.range;
 
 	const float alpha = texture(DiffuseTexture, TextureCoord).a * texture(AlphaMaskedTexture, TextureCoord).r;
-	if (alpha < 0.5) {
+
+	const material mat = getMaterial(0); // fAssigns.x
+	const float clip = mat.clip_.x;
+
+	if (alpha < clip) {
 		discard;
 	} else {
 		gl_FragDepth = lightDistance;

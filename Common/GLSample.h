@@ -21,7 +21,7 @@
 #include "GLUIComponent.h"
 #include "IO/FileSystem.h"
 #include "IO/IFileSystem.h"
-#include "Util/CameraController.h"
+#include "Scene/CameraController.h"
 #include "Util/ProcessDataUtil.h"
 #include "magic_enum.hpp"
 #include <GLHelper.h>

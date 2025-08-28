@@ -12,8 +12,14 @@ MiscProcessingUtil::~MiscProcessingUtil() {
 	if (this->bump2normal_program >= 0) {
 		glDeleteProgram(this->bump2normal_program);
 	}
-	if (this->irradiance_program >= 0) {
-		glDeleteProgram(this->irradiance_program);
+	if (this->irradiance_diffuse_program >= 0) {
+		glDeleteProgram(this->irradiance_diffuse_program);
+	}
+	if (this->irradiance_specular_program >= 0) {
+		glDeleteProgram(this->irradiance_diffuse_program);
+	}
+	if (this->brdf_integration_map_program >= 0) {
+		glDeleteProgram(this->irradiance_diffuse_program);
 	}
 	if (this->perlin_noise2D_program >= 0) {
 		glDeleteProgram(this->perlin_noise2D_program);
@@ -34,7 +40,6 @@ void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsig
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 4);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -46,7 +51,8 @@ void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsig
 
 	const char *irradiance_path = "Shaders/compute/irradiance_env.comp.spv";
 
-	if (this->irradiance_program == -1) {
+	if (this->irradiance_diffuse_program == -1) {
+
 		/*	*/
 		const std::vector<uint32_t> compute_irradiance_env_binary =
 			fragcore::IOUtil::readFileData<uint32_t>(irradiance_path, filesystem);
@@ -56,18 +62,19 @@ void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsig
 		compilerOptions.glslVersion = 420; /*	Min shader version required.	*/
 
 		/*  */
-		this->irradiance_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_irradiance_env_binary);
-		glUseProgram(this->irradiance_program);
+		this->irradiance_diffuse_program =
+			ShaderLoader::loadComputeProgram(compilerOptions, &compute_irradiance_env_binary);
+		glUseProgram(this->irradiance_diffuse_program);
 
-		glUniform1i(glGetUniformLocation(this->irradiance_program, "sourceEnvTexture"), 0);
-		glUniform1i(glGetUniformLocation(this->irradiance_program, "targetIrradianceTexture"), 1);
+		glUniform1i(glGetUniformLocation(this->irradiance_diffuse_program, "sourceEnvTexture"), 0);
+		glUniform1i(glGetUniformLocation(this->irradiance_diffuse_program, "targetIrradianceTexture"), 1);
 	}
 
-	glUseProgram(this->irradiance_program);
+	glUseProgram(this->irradiance_diffuse_program);
 
 	GLint localWorkGroupSize[3];
 
-	glGetProgramiv(this->irradiance_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+	glGetProgramiv(this->irradiance_diffuse_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 
 	GLint width = 0;
 	GLint height = 0;
@@ -84,8 +91,8 @@ void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsig
 	glBindTexture(GL_TEXTURE_2D, env_source);
 
 	/*	Parameters.	*/
-	glUniform1f(glGetUniformLocation(this->irradiance_program, "settings.SampleDelta"), 0.025f);
-	glUniform1f(glGetUniformLocation(this->irradiance_program, "settings.maxValue"), 64);
+	glUniform1f(glGetUniformLocation(this->irradiance_diffuse_program, "settings.SampleDelta"), 0.025f);
+	glUniform1f(glGetUniformLocation(this->irradiance_diffuse_program, "settings.maxValue"), 64);
 
 	/*	The image where the graphic version will be stored as.	*/
 	glBindImageTexture(1, irradiance_target, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
@@ -95,6 +102,7 @@ void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsig
 
 	glDispatchCompute(WorkGroupX, WorkGroupY, 1);
 
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	/*	Wait in till image has been written.	*/
@@ -112,7 +120,9 @@ void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source, u
 	glGenTextures(1, &irradiance_target);
 
 	glBindTexture(GL_TEXTURE_2D, irradiance_target);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+
+	const size_t MAX_LODS = 5;
 
 	/*	*/
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -120,7 +130,8 @@ void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source, u
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 4);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, MAX_LODS);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, MAX_LODS);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -128,37 +139,39 @@ void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source, u
 	MiscProcessingUtil::computeReflectanceIrradiance(env_source, irradiance_target);
 }
 
-void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source, unsigned int irradiance_target) {
+void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source,
+													  unsigned int specular_env_texture_target) {
 
-	const char *irradiance_path = "Shaders/compute/irradiance_env_refletence.comp.spv";
+	const char *irradiance_specular_path = "Shaders/compute/irradiance_env_refletence.comp.spv";
 
-	if (this->irradiance_program == -1) {
+	if (this->irradiance_specular_program == -1) {
 		/*	*/
 		const std::vector<uint32_t> compute_irradiance_env_binary =
-			fragcore::IOUtil::readFileData<uint32_t>(irradiance_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(irradiance_specular_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 		compilerOptions.glslVersion = 420; /*	Min shader version required.	*/
 
 		/*  */
-		this->irradiance_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_irradiance_env_binary);
-		glUseProgram(this->irradiance_program);
+		this->irradiance_specular_program =
+			ShaderLoader::loadComputeProgram(compilerOptions, &compute_irradiance_env_binary);
+		glUseProgram(this->irradiance_specular_program);
 
-		glUniform1i(glGetUniformLocation(this->irradiance_program, "sourceEnvTexture"), 0);
-		glUniform1i(glGetUniformLocation(this->irradiance_program, "targetIrradianceTexture"), 1);
+		glUniform1i(glGetUniformLocation(this->irradiance_specular_program, "sourceEnvTexture"), 0);
+		glUniform1i(glGetUniformLocation(this->irradiance_specular_program, "targetIrradianceTexture"), 1);
 	}
 
-	glUseProgram(this->irradiance_program);
+	glUseProgram(this->irradiance_specular_program);
 
 	GLint localWorkGroupSize[3];
 
-	glGetProgramiv(this->irradiance_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+	glGetProgramiv(this->irradiance_specular_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
 
 	GLint width = 0;
 	GLint height = 0;
 
-	glBindTexture(GL_TEXTURE_2D, irradiance_target);
+	glBindTexture(GL_TEXTURE_2D, specular_env_texture_target);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
@@ -166,29 +179,121 @@ void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source, u
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+	/*	Generate the mip level textures.	*/
+	glGenerateMipmap(GL_TEXTURE_2D);
+
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, env_source);
 
 	/*	Parameters.	*/
-	glUniform1f(glGetUniformLocation(this->irradiance_program, "settings.SampleDelta"), 0.025f);
-	glUniform1f(glGetUniformLocation(this->irradiance_program, "settings.maxValue"), 64);
+	glUniform1f(glGetUniformLocation(this->irradiance_specular_program, "settings.SampleDelta"), 0.025f);
+	glUniform1f(glGetUniformLocation(this->irradiance_specular_program, "settings.maxValue"), 64);
 
-	/*	The image where the graphic version will be stored as.	*/
-	glBindImageTexture(1, irradiance_target, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+	size_t lods = 5;
 
-	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]);
-	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]);
+	for (size_t LOD_INDEX = 0; LOD_INDEX <= lods; LOD_INDEX++) {
 
-	glDispatchCompute(WorkGroupX, WorkGroupY, 1);
+		const float roughness = ((float)LOD_INDEX / (float)lods);
 
+		glUniform1f(glGetUniformLocation(this->irradiance_specular_program, "settings.roughness"), roughness);
+
+		/*	The image where the graphic version will be stored as.	*/
+		glBindImageTexture(1, specular_env_texture_target, LOD_INDEX, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+		const size_t mip_width = width / (1 << LOD_INDEX);
+		const size_t mip_height = height / (1 << LOD_INDEX);
+
+		const unsigned int WorkGroupX = std::ceil(mip_width / (float)localWorkGroupSize[0]);
+		const unsigned int WorkGroupY = std::ceil(mip_height / (float)localWorkGroupSize[1]);
+
+		glDispatchCompute(WorkGroupX, WorkGroupY, 1);
+	}
+
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	/*	Wait in till image has been written.	*/
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 	glUseProgram(0);
+}
 
-	glBindTexture(GL_TEXTURE_2D, irradiance_target);
+void MiscProcessingUtil::computeBRDFIntegrationMap(unsigned int &brdf_integration_target_texture, const unsigned int width,
+												   const unsigned int height) {
+	glGenTextures(1, &brdf_integration_target_texture);
+
+	glBindTexture(GL_TEXTURE_2D, brdf_integration_target_texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, width, height, 0, GL_RG, GL_FLOAT, nullptr);
+
+	const size_t MAX_LODS = 5;
+
+	/*	*/
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	MiscProcessingUtil::computeBRDFIntegrationMap(brdf_integration_target_texture);
+}
+
+void MiscProcessingUtil::computeBRDFIntegrationMap(unsigned int brdf_integration_target_texture) {
+
+	const char *compute_brdf_integration_map_path = "Shaders/compute/brdf_integration_map.comp.spv";
+
+	if (this->brdf_integration_map_program == -1) {
+		/*	*/
+		const std::vector<uint32_t> compute_brdf_integration_map_binary =
+			fragcore::IOUtil::readFileData<uint32_t>(compute_brdf_integration_map_path, filesystem);
+
+		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+		compilerOptions.glslVersion = 420; /*	Min shader version required.	*/
+
+		/*  */
+		this->brdf_integration_map_program =
+			ShaderLoader::loadComputeProgram(compilerOptions, &compute_brdf_integration_map_binary);
+		glUseProgram(this->brdf_integration_map_program);
+
+		glUniform1i(glGetUniformLocation(this->brdf_integration_map_program, "TargetBRDFIntegrationTexture"), 0);
+	}
+
+	glUseProgram(this->brdf_integration_map_program);
+
+	GLint localWorkGroupSize[3];
+
+	glGetProgramiv(this->brdf_integration_map_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+
+	GLint width = 0;
+	GLint height = 0;
+
+	glBindTexture(GL_TEXTURE_2D, brdf_integration_target_texture);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	/*	Parameters.	*/
+	glUniform1f(glGetUniformLocation(this->brdf_integration_map_program, "settings.SampleDelta"), 0.025f);
+
+	/*	The image where the graphic version will be stored as.	*/
+	glBindImageTexture(0, brdf_integration_target_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG16F);
+
+	const unsigned int WorkGroupX = std::ceil(width / (float)localWorkGroupSize[0]);
+	const unsigned int WorkGroupY = std::ceil(height / (float)localWorkGroupSize[1]);
+
+	glDispatchCompute(WorkGroupX, WorkGroupY, 1);
+	glUseProgram(0);
+
+	/*	Wait in till image has been written.	*/
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+
+	glBindTexture(GL_TEXTURE_2D, brdf_integration_target_texture);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }

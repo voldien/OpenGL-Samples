@@ -4,7 +4,7 @@
 #include <Importer/ImageImport.h>
 #include <ShaderCompiler.h>
 #include <ShaderLoader.h>
-#include <Util/CameraController.h>
+#include <Scene/CameraController.h>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <random>
