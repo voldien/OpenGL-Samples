@@ -318,6 +318,7 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 
 		if (parent) {
 			pobject->parent = parent;
+			// parent->childrens.addChild(ITree<node_object_t *> *pchild)
 		} else {
 			pobject->parent = nullptr;
 		}

@@ -139,6 +139,9 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	unsigned int getDefaultFramebuffer() const noexcept;
 	glsample::FrameBuffer *getDefaultFrameBufferObj() { return this->defaultFramebuffer.get(); }
 	const glsample::FrameBuffer *getDefaultFrameBufferObj() const noexcept { return this->defaultFramebuffer.get(); }
+
+	bool getIsPostProcessingEnabled() const noexcept { return this->postProcessingEnabled; }
+	void setPostProcessingEnabled(bool enabled) noexcept { this->postProcessingEnabled = enabled; }
 	glsample::PostProcessingManager *getPostProcessingManager() const noexcept {
 		return this->postprocessingManager.get();
 	}
@@ -152,8 +155,9 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	}
 
 	// TODO: relocate
-	static void blitFrameBufferAttacments(const glsample::FrameBuffer* targetFrameBuffer, const glsample::FrameBuffer *framebufferAttachments, const unsigned int width, const int height,
-								glm::vec4 rectNormalized, int mode = 0) {
+	static void blitFrameBufferAttacments(const glsample::FrameBuffer *targetFrameBuffer,
+										  const glsample::FrameBuffer *framebufferAttachments, const unsigned int width,
+										  const int height, glm::vec4 rectNormalized, int mode = 0) {
 
 		/*	Blit image targets to screen.	*/
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, targetFrameBuffer->framebuffer);
@@ -224,6 +228,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	std::shared_ptr<fragcore::IFileSystem> filesystem; /*	*/
 
+	bool postProcessingEnabled = true;
 	std::shared_ptr<glsample::PostProcessingManager> postprocessingManager = nullptr;
 	std::shared_ptr<glsample::ColorSpaceConverter> colorSpace;
 

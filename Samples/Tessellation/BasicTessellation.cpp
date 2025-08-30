@@ -24,7 +24,7 @@ namespace glsample {
 			this->addUIComponent(this->tessellationSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(20.5f));
+			this->camera.setPosition(glm::vec3(-100.0f, 100.0f,-100.0f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
 
@@ -254,7 +254,7 @@ namespace glsample {
 			this->uniformStageBuffer.model = glm::translate(this->uniformStageBuffer.model, glm::vec3(0, 0, 10));
 			this->uniformStageBuffer.model =
 				glm::rotate(this->uniformStageBuffer.model, (float)-Math::PI_half, glm::vec3(1, 0, 0));
-			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(20, 20, 20));
+			this->uniformStageBuffer.model = glm::scale(this->uniformStageBuffer.model, glm::vec3(20, 20, 20) * 5.0f);
 
 			/*	*/
 			this->uniformStageBuffer.view = this->camera.getViewMatrix();

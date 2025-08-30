@@ -14,7 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "DataStructure/PoolAllocator.h"
+#include "DataStructure/ITree.h"
 #include "DataStructure/StackAllactor.h"
 #include "FragDef.h"
 #include "Math3D/LinAlg.h"
@@ -135,6 +135,7 @@ using MaterialObject = struct material_object_t : public AssetObject {
 };
 
 using NodeObject = struct node_object_t : public AssetObject {
+
 	/*	*/
 	glm::vec3 localPosition;
 	glm::quat localRotation;
@@ -151,6 +152,7 @@ using NodeObject = struct node_object_t : public AssetObject {
 	std::vector<unsigned int> materialIndex;
 
 	struct node_object_t *parent = nullptr;
+	fragcore::ITree<struct node_object_t *> childrens;
 };
 
 using MeshData = struct mesh_data_t : public AssetObject {
@@ -228,6 +230,7 @@ using TextureAssetObject = struct alignas(32) texture_asset_object_t {
 	char *data = nullptr;
 };
 
+// TOOD: relocate.
 using KeyFrame = struct alignas(16) key_frame_t {
 	float time;		  /*	*/
 	float value;	  /*	*/

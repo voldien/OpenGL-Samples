@@ -42,7 +42,7 @@ namespace glsample {
 
 		/*	Shader pipeline programs.	*/
 		unsigned int particle_graphic_program{};
-		unsigned int particle_compute_program{};
+		unsigned int particle_simulation_compute_program{};
 		unsigned int particle_init_compute_program{};
 		unsigned int particle_motion_force_compute_program{};
 		unsigned int vector_field_graphic_program{};
@@ -161,7 +161,7 @@ namespace glsample {
 
 		const std::string particleInitComputeShaderPath = "Shaders/vectorfield/init_particle2D.comp.spv";
 		/*	Particle Simulation in Vector Field.	*/
-		const std::string particleComputeShaderPath = "Shaders/vectorfield/particle2D.comp.spv";
+		const std::string particleSimulationComputeShaderPath = "Shaders/vectorfield/particle2D.comp.spv";
 		/*	Particle Simulation in Vector Field.	*/
 		const std::string particleMotionForceComputeShaderPath = "Shaders/vectorfield/apply_force_2D.comp.spv";
 
@@ -173,7 +173,7 @@ namespace glsample {
 		void Release() override {
 			/*	*/
 			glDeleteProgram(this->particle_graphic_program);
-			glDeleteProgram(this->particle_compute_program);
+			glDeleteProgram(this->particle_simulation_compute_program);
 			glDeleteProgram(this->particle_motion_force_compute_program);
 			glDeleteProgram(this->vector_field_graphic_program);
 
@@ -212,14 +212,14 @@ namespace glsample {
 				const std::vector<uint32_t> compute_particle_init_binary =
 					IOUtil::readFileData<uint32_t>(this->particleInitComputeShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> compute_particle_binary =
-					IOUtil::readFileData<uint32_t>(this->particleComputeShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->particleSimulationComputeShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> compute_motion_binary_binary =
 					IOUtil::readFileData<uint32_t>(this->particleMotionForceComputeShaderPath, this->getFileSystem());
 
 				/*	Load Compute.	*/
 				this->particle_init_compute_program =
 					ShaderLoader::loadComputeProgram(compilerOptions, &compute_particle_init_binary);
-				this->particle_compute_program =
+				this->particle_simulation_compute_program =
 					ShaderLoader::loadComputeProgram(compilerOptions, &compute_particle_binary);
 				this->particle_motion_force_compute_program =
 					ShaderLoader::loadComputeProgram(compilerOptions, &compute_motion_binary_binary);
@@ -251,22 +251,23 @@ namespace glsample {
 
 			/*	Setup particle simulation compute pipeline.	*/
 			{
-				glUseProgram(this->particle_compute_program);
+				glUseProgram(this->particle_simulation_compute_program);
 				int uniform_buffer_particle_compute_index =
-					glGetUniformBlockIndex(this->particle_compute_program, "UniformBufferBlock");
-				int particle_buffer_read_index =
-					glGetProgramResourceIndex(this->particle_compute_program, GL_SHADER_STORAGE_BLOCK, "ReadBuffer");
-				int particle_buffer_write_index =
-					glGetProgramResourceIndex(this->particle_compute_program, GL_SHADER_STORAGE_BLOCK, "WriteBuffer");
-				glGetProgramiv(this->particle_compute_program, GL_COMPUTE_WORK_GROUP_SIZE, localWorkGroupSize);
+					glGetUniformBlockIndex(this->particle_simulation_compute_program, "UniformBufferBlock");
+				int particle_buffer_read_index = glGetProgramResourceIndex(this->particle_simulation_compute_program,
+																		   GL_SHADER_STORAGE_BLOCK, "ReadBuffer");
+				int particle_buffer_write_index = glGetProgramResourceIndex(this->particle_simulation_compute_program,
+																			GL_SHADER_STORAGE_BLOCK, "WriteBuffer");
+				glGetProgramiv(this->particle_simulation_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
+							   localWorkGroupSize);
 
 				/*	*/
-				glUniformBlockBinding(this->particle_compute_program, uniform_buffer_particle_compute_index,
+				glUniformBlockBinding(this->particle_simulation_compute_program, uniform_buffer_particle_compute_index,
 									  this->uniform_buffer_binding);
 				/*	*/
-				glShaderStorageBlockBinding(this->particle_compute_program, particle_buffer_read_index,
+				glShaderStorageBlockBinding(this->particle_simulation_compute_program, particle_buffer_read_index,
 											this->particle_read_buffer_binding);
-				glShaderStorageBlockBinding(this->particle_compute_program, particle_buffer_write_index,
+				glShaderStorageBlockBinding(this->particle_simulation_compute_program, particle_buffer_write_index,
 											this->particle_write_buffer_binding);
 
 				glUseProgram(0);
@@ -408,8 +409,8 @@ namespace glsample {
 			if (this->vectorFieldSettingComponent->requestRest) {
 
 				// TODO: for each particle buffer.
-				const uint nrWorkGroupsX = (std::ceil((float)(this->nrParticles / this->particle_multiple_count) /
-													  (float)this->localWorkGroupSize[0]));
+				const uint nrWorkGroupsX = std::ceil((float)(this->nrParticles / this->particle_multiple_count) /
+													 (float)this->localWorkGroupSize[0]);
 
 				/*	Compute.	*/
 				glUseProgram(this->particle_init_compute_program);
@@ -434,6 +435,7 @@ namespace glsample {
 				glUseProgram(0);
 
 				this->vectorFieldSettingComponent->requestRest = false;
+				return;
 			}
 
 			/*	Compute particles in vector field.	*/
@@ -444,7 +446,7 @@ namespace glsample {
 													  (float)this->localWorkGroupSize[0]));
 
 				/*	Compute.	*/
-				glUseProgram(this->particle_compute_program);
+				glUseProgram(this->particle_simulation_compute_program);
 
 				/*	Bind uniform buffer.	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,

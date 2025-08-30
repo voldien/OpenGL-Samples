@@ -67,6 +67,7 @@ namespace glsample {
 		/*	*/
 		unsigned int graphic_program{};
 		unsigned int skybox_program{};
+  
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
@@ -106,10 +107,7 @@ namespace glsample {
 
 		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn_directional_light.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/phongblinn/phong_directional_light.frag.spv";
-
-		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
-		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/panoramic.frag.spv";
-
+ 
 		void Release() override {
 			/*	*/
 			glDeleteProgram(this->skybox_program);
@@ -137,11 +135,7 @@ namespace glsample {
 					IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_simple_ocean_binary =
 					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> vertex_binary =
-					IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, this->getFileSystem());
-				const std::vector<uint32_t> fragment_binary =
-					IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, this->getFileSystem());
-
+		 
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
@@ -149,8 +143,8 @@ namespace glsample {
 				/*	Load shader programs.	*/
 				this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_simple_ocean_binary,
 																		 &fragment_simple_ocean_binary);
-				this->skybox_program =
-					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
+
+				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
 			}
 
 			/*	Setup graphic pipeline settings.    */
@@ -160,14 +154,7 @@ namespace glsample {
 			glUniform1i(glGetUniformLocation(this->graphic_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
-
-			/*	*/
-			glUseProgram(this->skybox_program);
-			uniform_buffer_index = glGetUniformBlockIndex(this->skybox_program, "UniformBufferBlock");
-			glUniformBlockBinding(this->skybox_program, uniform_buffer_index, 0);
-			glUniform1i(glGetUniformLocation(this->skybox_program, "PanoramaTexture"), 0);
-			glUseProgram(0);
-
+ 
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::RawLinear);

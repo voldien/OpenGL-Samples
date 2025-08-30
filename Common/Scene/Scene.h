@@ -211,11 +211,11 @@ namespace glsample {
 		/*	*/
 		bool useCoherent = true;
 
-		StageBuffer<GlobalSceneState *, 3> stageCommonRobin;
-		StageBuffer<NodeData *, 3> stageNodeDataRobin;
-		StageBuffer<NodeData *, 3> stagePreNodeDataRobin;
-		StageBuffer<MaterialData *, 3> stageMaterialDataRobin;
-		StageBuffer<LightData *, 3> stageLightData;
+		StageBuffer<GlobalSceneState *, 4> stageCommonRobin;
+		StageBuffer<NodeData *, 4> stageNodeDataRobin;
+		StageBuffer<NodeData *, 4> stagePreNodeDataRobin;
+		StageBuffer<MaterialData *, 4> stageMaterialDataRobin;
+		StageBuffer<LightData *, 4> stageLightData;
 
 		template <unsigned int bufferRoundRobinSize> struct uniform_buffer_collection {
 			unsigned int base_offset = 0;
@@ -229,7 +229,7 @@ namespace glsample {
 
 		using UniformDataStructure = struct uniform_data_structure {
 			/*	*/
-			static const size_t bufferRoundRobinSize = 3;
+			static const size_t bufferRoundRobinSize = 4;
 			UBOObject uniform_buffer{};
 
 			unsigned int node_and_common_uniform_buffer{}; // TODO: removed and replace with uniform_buffer;

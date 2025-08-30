@@ -21,9 +21,7 @@
 namespace glsample {
 
 	class PostProcessing;
-	/**
-	 * @brief
-	 *
+	/*
 	 */
 	class FVDECLSPEC PostProcessingManager : public fragcore::Object {
 	  public:
@@ -40,6 +38,7 @@ namespace glsample {
 
 		void render(glsample::FrameBuffer *framebuffer,
 					const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets);
+
 
 		void populateCommonData() {}
 		void swapPostProcessing(int a, int b);

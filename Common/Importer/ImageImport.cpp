@@ -47,7 +47,7 @@ unsigned int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpac
 
 	/*	*/
 	const size_t power_of_2 = std::floor(std::log(Math::max(image.width(), image.height())) / std::log(2));
-	const size_t max_mipmap = Math::clamp<size_t>(power_of_2 - 4, 0, std::numeric_limits<size_t>::max());
+	const size_t max_mipmap = Math::clamp<size_t>(power_of_2 - 2, 0, std::numeric_limits<size_t>::max());
 
 	/*	*/
 	GLuint currentPBO = this->pbos[current_pbo++];

@@ -1,8 +1,8 @@
 #include "GLUIComponent.h"
 #include "PostProcessing/MistPostProcessing.h"
 #include "SampleHelper.h"
-#include "Skybox.h"
 #include "Scene/CameraController.h"
+#include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -29,9 +29,9 @@ namespace glsample {
 			this->addUIComponent(this->simpleOceanSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(200.5f));
-			this->camera.lookAt(glm::vec3(0.f));
-			this->camera.setNear(1);
+			this->camera.setPosition(glm::vec3(0,500.5f,0));
+			this->camera.lookAt(glm::vec3(500.f, 100.0f, 500.0f));
+			this->camera.setNear(1.0f);
 			this->camera.setFar(4500.0f);
 		}
 
@@ -340,7 +340,9 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Depth);
-				glBindTexture(GL_TEXTURE_2D, this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
+				glBindTexture(
+					GL_TEXTURE_2D,
+					this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 
 				glCullFace(GL_FRONT);
 				glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -376,8 +378,9 @@ namespace glsample {
 
 			/*	Post processing.	*/
 			if (this->simpleOceanSettingComponent->useMistFogPost) {
-				this->mistprocessing.render(this->irradiance_texture, this->getDefaultFrameBufferObj()->attachments[0],
-											this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
+				this->mistprocessing.render(
+					this->irradiance_texture, this->getDefaultFrameBufferObj()->attachments[0],
+					this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 			}
 		}
 

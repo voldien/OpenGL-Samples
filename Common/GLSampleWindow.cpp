@@ -212,6 +212,11 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		ImGui::EndDisabled();
 
 		/*	List all builtin post processing.	*/
+		bool usePostProcessing = this->getRefSample().getIsPostProcessingEnabled();
+		if (ImGui::Checkbox("Use Post Processing", &usePostProcessing)) {
+			this->getRefSample().setPostProcessingEnabled(usePostProcessing);
+		}
+		
 		if (this->getRefSample().getPostProcessingManager() && ImGui::CollapsingHeader("Post Processing")) {
 
 			ImGui::BeginGroup();
@@ -459,7 +464,7 @@ void GLSampleWindow::renderUI() {
 
 	/*	Make sure all commands are flush before resizing.	*/
 	if (this->preWidth != this->width() || this->preHeight != this->height()) {
-		
+
 		/*	Finish all commands before starting resizing buffers and etc.	*/
 		glFinish();
 
@@ -528,7 +533,7 @@ void GLSampleWindow::renderUI() {
 		}
 
 		/*	*/
-		if (this->postprocessingManager) {
+		if (this->postprocessingManager && this->postProcessingEnabled) {
 
 			const std::string postStage = "Post Processing";
 			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, postStage.size(), postStage.data());

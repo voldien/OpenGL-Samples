@@ -2,8 +2,8 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
-#include <ShaderLoader.h>
 #include <Scene/CameraController.h>
+#include <ShaderLoader.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -142,7 +142,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, this->diffuse_texture);
 
-				/*	Draw triangle*/
+				/*	Draw triangle.	*/
 				glBindVertexArray(this->cubeGeometry.vao);
 				glDrawElements(GL_TRIANGLES, this->cubeGeometry.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 				glBindVertexArray(0);

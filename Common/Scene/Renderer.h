@@ -19,6 +19,8 @@
 namespace glsample {
 	class Renderer : public Node {
 	  public:
+		/*	*/
+		fragcore::Bound bound{};
 		/*	Geometry and material.	*/
 		std::vector<unsigned int> geometryObjectIndex;
 		std::vector<unsigned int> materialIndex;

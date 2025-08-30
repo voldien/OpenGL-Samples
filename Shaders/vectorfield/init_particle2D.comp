@@ -22,6 +22,7 @@ void main() {
 
 		/*	Particle index.	*/
 		const uint pindex = gl_GlobalInvocationID.x * NR_Particles + i;
+		
 
 		if (pindex >= ubo.setting.nrParticles) {
 			return;

@@ -4,11 +4,11 @@
 #include "Math/Math.h"
 #include "Math3D/BoundingSphere.h"
 #include "Math3D/Math3D.h"
+#include "Scene/CameraController.h"
+#include "Scene/Frustum.h"
 #include "Scene/Scene.h"
 #include "Scene/SceneHelper.h"
 #include "Skybox.h"
-#include "Scene/CameraController.h"
-#include "Scene/Frustum.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -397,7 +397,6 @@ namespace glsample {
 					glDisable(GL_SCISSOR_TEST);
 				}
 			}
-			
 		}
 
 		void update() override {
@@ -522,8 +521,8 @@ namespace glsample {
 					localBoundMatrix = glm::scale(localBoundMatrix, E2GLM<float, 3>(aabb.getHalfSize()));
 
 					const glm::mat4 model = node->modelGlobalTransform * localBoundMatrix;
-					const glm::vec4 color =
-						glm::vec4((node->materialIndex[0] * 0.1f) + 0.2, 1, 1 * (node->materialIndex[0] / 3.0f), 0.035f);
+					const glm::vec4 color = glm::vec4((node->materialIndex[0] * 0.1f) + 0.2, 1,
+													  1 * (node->materialIndex[0] / 3.0f), 0.035f);
 					const InstanceData data = {model, color};
 
 					instance_model_matrices.push_back(data);

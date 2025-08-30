@@ -17,21 +17,19 @@
 
 #include "Core/Object.h"
 #include "DataStructure/ITree.h"
-#include "Importer/ModelImporter.h"
 #include "Transform.h"
 
 namespace glsample {
+
+	enum class NodeType { Node, Frustum, Camera, Renderer, Light, MaxNodeTypes };
 
 	/**
 	 * @brief
 	 *
 	 */
-	class FVDECLSPEC Node : public glsample::TransformGLM,
-							public fragcore::ITree<Node>,
-							public fragcore::Object {
+	class FVDECLSPEC Node : public glsample::TransformGLM, public fragcore::ITree<Node>, public fragcore::Object {
 	  public:
 		Node() = default;
-		Node(const NodeObject *node);
 		~Node() override = default;
 
 	  public:
@@ -46,10 +44,15 @@ namespace glsample {
 		void setRotation(const glm::quat &quat) noexcept;
 
 		/*	*/
+		Node *parent() const noexcept;
 
 		glm::vec3 getLocalPosition() const noexcept;
 		glm::vec3 getLocalScale() const noexcept;
 		glm::quat getLocalRotation() const noexcept;
+
+		void setLocalPosition(const glm::vec3 &localPosition) noexcept;
+		void setLocalScale(const glm::vec3 &localScale) noexcept;
+		void setLocalRotation(const glm::quat &localRotation) noexcept;
 
 		glm::mat4 getViewMatrix() const noexcept;
 		glm::mat4 getRotationMatrix() const noexcept;
@@ -64,8 +67,8 @@ namespace glsample {
 		std::vector<unsigned int> materialIndex;
 
 		/*	*/
-		 glm::mat4 modelGlobalTransform;
-		 glm::mat4 modelLocalTransform;
+		glm::mat4 modelGlobalTransform{};
+		glm::mat4 modelLocalTransform{};
 	};
 
 } // namespace glsample

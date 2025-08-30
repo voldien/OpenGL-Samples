@@ -1,14 +1,14 @@
 #include "Scene.h"
 #include "../Common.h"
 #include "IO/IFileSystem.h"
-#include "Math3D/Color.h"
 #include "Importer/ModelImporter.h"
+#include "Math3D/Color.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
-#include "UIComponent.h"
 #include "Scene/CameraController.h"
-#include "Util/DebugDrawer.h"
 #include "Scene/Frustum.h"
+#include "UIComponent.h"
+#include "Util/DebugDrawer.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include <GL/glew.h>
@@ -182,11 +182,12 @@ namespace glsample {
 				/*	*/
 				this->useCoherent = true;
 
-				/*	*/
+				/*	Create and map buffer.	*/
 				glBufferStorage(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
 				uint8_t *pdata = (unsigned char *)glMapBufferRange(
 					GL_UNIFORM_BUFFER, 0, total_ubo_size,
-					GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
+					GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT |
+						GL_MAP_INVALIDATE_RANGE_BIT);
 
 				/*	*/
 				{
@@ -390,6 +391,7 @@ namespace glsample {
 			/*	Update Lights.	*/
 			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, light_offset, this->UBOStructure.light_align_size);
 
+			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
 		} else {
 			// TODO: add
 		}

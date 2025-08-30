@@ -315,7 +315,7 @@ namespace glsample {
 							desc.mass = 10;
 							desc.useGravity = true;
 							desc.drag = 0.005f;
-							desc.position = Vector3(x * offset, 10 + y * offset, z * offset);
+							desc.position = Vector3(x * offset, 10 + (y * offset), z * offset);
 							desc.isKinematic = false;
 							fragcore::RigidBody *rigidbody = this->physic_interface->createRigibody(&desc);
 							this->rigidbodies_box[rig_index++] = rigidbody;
@@ -333,7 +333,7 @@ namespace glsample {
 							desc.mass = 10;
 							desc.useGravity = true;
 							desc.drag = 0.005f;
-							desc.position = Vector3(x * offset, 10 + y * offset + 50, z * offset);
+							desc.position = Vector3(x * offset, 10 + (y * offset) + 50, z * offset);
 							desc.isKinematic = false;
 							fragcore::RigidBody *rigidbody = this->physic_interface->createRigibody(&desc);
 							this->rigidbodies_sphere[rig_index++] = rigidbody;
@@ -404,8 +404,8 @@ namespace glsample {
 				/*	*/
 				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->uniform_instance_buffer_binding,
 								  this->ssbo_instance_buffer,
-								  ((this->getFrameCount()) % this->nrUniformBuffers) * this->uniformInstanceSize +
-									  this->rigidbodies_box.size() * sizeof(glm::mat4),
+								  (((this->getFrameCount()) % this->nrUniformBuffers) * this->uniformInstanceSize) +
+									  (this->rigidbodies_box.size() * sizeof(glm::mat4)),
 								  this->uniformInstanceSize);
 
 				/*	*/
