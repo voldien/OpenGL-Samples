@@ -37,7 +37,6 @@ namespace glsample {
 	class FVDECLSPEC Skybox : public UIDObject {
 	  public:
 		struct uniform_buffer_block {
-			glm::mat4 proj;
 			glm::mat4 modelViewProjection;
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			GammaCorrectionSettings correct_settings;
@@ -58,9 +57,11 @@ namespace glsample {
 		virtual void RenderImGUI();
 
 		unsigned int getTexture() const noexcept { return this->skybox_texture_panoramic; }
+		void setTexture(const unsigned int texture) noexcept { this->skybox_texture_panoramic = texture; }
 
 	  public:
-		static int loadDefaultProgram(fragcore::IFileSystem *filesystem);
+		static int loadDefaultPanoramicProgram(fragcore::IFileSystem *filesystem);
+		static int loadDefaultCubeMapProgram(fragcore::IFileSystem *filesystem);
 
 	  private:
 		MeshObject SkyboxCube;

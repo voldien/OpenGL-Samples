@@ -1,6 +1,9 @@
 #ifndef _COMMON_SCENE_H_
 #define _COMMON_SCENE_H_ 1
 
+//TODO: relocate
+#extension GL_ARB_texture_cube_map_array : enable
+
 #include "common.glsl"
 #include "light.glsl"
 #include "material.glsl"
@@ -90,7 +93,7 @@ layout(set = 0, binding = 9) uniform sampler2D BackBufferTexture;
 layout(set = 2, binding = 13) uniform sampler2D CameraDepthTexture;
 
 /*	Image Based Lightning Textures.	*/
-layout(set = 1, binding = 10) uniform sampler2D IrradianceTexture; /*	*/
+layout(set = 1, binding = 10) uniform samplerCube IrradianceTexture; /*	*/
 layout(set = 1, binding = 11) uniform sampler2D prefilterMap;	   /*	*/
 layout(set = 1, binding = 12) uniform sampler2D BRDFLUT;		   /*	*/
 

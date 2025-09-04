@@ -233,7 +233,7 @@ namespace glsample {
 				this->multipass_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_binary, &fragment_binary);
 
-				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
+				this->skybox_program = Skybox::loadDefaultPanoramicProgram(this->getFileSystem());
 			}
 
 			/*	Setup graphic pipeline.	*/

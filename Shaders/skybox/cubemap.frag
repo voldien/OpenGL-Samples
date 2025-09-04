@@ -7,10 +7,9 @@ precision mediump int;
 layout(location = 0) out vec4 fragColor;
 layout(location = 0) in vec3 vVertex;
 
-layout(binding = 0) uniform samplerCube textureCubeMap;
+layout(binding = 0) uniform samplerCube TextureCubeMap;
 
 layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
-	mat4 proj;
 	mat4 modelViewProjection;
 	vec4 tintColor;
 	/*	*/
@@ -21,9 +20,9 @@ ubo;
 
 void main() {
 
-	fragColor = textureLod(textureCubeMap, vVertex, 0) * ubo.tintColor;
-	fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
+	fragColor = texture(TextureCubeMap, vVertex) * ubo.tintColor;
 
-	const float gamma = ubo.gamma;
-	fragColor = pow(fragColor, vec4(1.0 / gamma));
+	// fragColor = vec4(1.0) - exp(-fragColor * ubo.exposure);
+	// const float gamma = ubo.gamma;
+	// fragColor = pow(fragColor, vec4(1.0 / gamma));
 }

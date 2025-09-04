@@ -233,7 +233,7 @@ namespace glsample {
 
 			TextureImporter textureImporter(this->getFileSystem());
 
-			const int skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
+			const int skybox_program = Skybox::loadDefaultPanoramicProgram(this->getFileSystem());
 			/*	load Textures	*/
 			const unsigned int skytexture = textureImporter.loadImage2D(panoramicPath);
 			skybox.Init(skytexture, skybox_program);

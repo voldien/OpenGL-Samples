@@ -233,7 +233,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 	MiscProcessingUtil process(modelLoader.getFileSystem());
 
 	/*	*/
-#pragma omp parallel for schedule(dynamic, 4)
+#pragma omp parallel for schedule(static, 4)
 	for (size_t texture_index = 0; texture_index < Reftextures.size(); texture_index++) {
 
 		std::vector<MaterialObject *> materials = modelLoader.getMaterials(texture_index);
@@ -254,11 +254,14 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 				/*	Convert BumpMap to NormalMap*/
 				if (!materials.empty() && materials[0]->heightbumpIndex == texture_index) {
+
 					// TODO: use gpu to convert image.
 					image = std::move(ImageUtil::convert2NormalMap(image, 3.5f));
 					materials[0]->heightbumpIndex = -1;
 					materials[0]->normalIndex = texture_index;
 				}
+
+				// TODO: convert glossy/specular to roughness if used.
 
 				/*	*/
 				images[texture_index] = std::move(image);
@@ -316,8 +319,13 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 		/*	Determine color space, based on the texture usages.	*/
 		if (!materials.empty()) {
+
 			if (materials[0]->diffuseIndex == texture_index) {
 				colorSpace = ColorSpace::SRGB;
+			}
+			//TODO: add support to package the normal.
+			if (materials[0]->normalIndex == texture_index) {
+				/*	*/
 			}
 		}
 

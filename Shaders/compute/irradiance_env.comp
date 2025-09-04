@@ -7,7 +7,7 @@ precision mediump int;
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(set = 0, binding = 0) uniform sampler2D sourceEnvTexture;
+layout(set = 0, binding = 0) uniform sampler2D SourceEnvTexture;
 layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D targetIrradianceTexture;
 
 layout(push_constant) uniform Settings {
@@ -56,6 +56,7 @@ void main() {
 		uint sub_irradiance_sample_count = 0;
 
 		for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta) {
+
 			/* spherical to cartesian (in tangent space)	*/
 			const vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
 			/* tangent space to world	*/
@@ -64,7 +65,7 @@ void main() {
 			const vec2 panoramic_coordinate = inverse_equirectangular(sampleVec);
 
 			/*	Sample from pre-filter downsampled environment texture.	*/
-			sub_irradiance += textureLod(sourceEnvTexture, panoramic_coordinate, LOD).rgb * cos(theta) * sin(theta);
+			sub_irradiance += textureLod(SourceEnvTexture, panoramic_coordinate, LOD).rgb * cos(theta) * sin(theta);
 			sub_irradiance_sample_count++;
 		}
 		diffuse_irradiance += sub_irradiance * (1.0 / float(sub_irradiance_sample_count));

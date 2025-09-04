@@ -6,8 +6,8 @@
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>
-#include <Scene/Scene.h>
 #include <ModelImporter.h>
+#include <Scene/Scene.h>
 #include <ShaderLoader.h>
 #include <cstddef>
 #include <glm/fwd.hpp>
@@ -23,7 +23,7 @@ namespace glsample {
 	  public:
 		SceneShadow() = default;
 
-		void init(IFileSystem* filesystem) override { Scene::init(filesystem); }
+		void init(IFileSystem *filesystem) override { Scene::init(filesystem); }
 
 		void bindMaterial(const MaterialObject *material) override {
 			if (!shadowPass) {
@@ -72,7 +72,7 @@ namespace glsample {
 		SceneShadow scene;
 		Skybox skybox;
 
-		unsigned int irradiance_texture{};
+		unsigned int diffuse_irradiance_cubemap_texture{};
 
 		/*	*/
 		unsigned int graphic_program{};
@@ -184,7 +184,7 @@ namespace glsample {
 				this->shadow_alpha_clip_program = ShaderLoader::loadGraphicProgram(
 					compilerOptions, &vertex_shadow_binary, &fragment_shadow_alpha_binary);
 
-				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
+				this->skybox_program = Skybox::loadDefaultPanoramicProgram(this->getFileSystem());
 			}
 
 			{
@@ -210,9 +210,11 @@ namespace glsample {
 				glUseProgram(this->graphic_program);
 				int uniform_buffer_index = glGetUniformBlockIndex(this->graphic_program, "UniformBufferBlock");
 				glUniform1i(glGetUniformLocation(this->graphic_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
-				glUniform1i(glGetUniformLocation(this->graphic_program, "AlphaMaskedTexture"), TextureTypeBinding::AlphaMask);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "AlphaMaskedTexture"),
+							TextureTypeBinding::AlphaMask);
 				glUniform1i(glGetUniformLocation(this->graphic_program, "ShadowTexture"), shadowBinding);
-				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureTypeBinding::Irradiance);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"),
+							TextureTypeBinding::Irradiance);
 
 				glUniformBlockBinding(this->graphic_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
@@ -221,11 +223,13 @@ namespace glsample {
 				/*	Setup graphic pipeline.	*/
 				glUseProgram(this->graphic_pfc_program);
 				uniform_buffer_index = glGetUniformBlockIndex(this->graphic_pfc_program, "UniformBufferBlock");
-				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
+				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "DiffuseTexture"),
+							TextureTypeBinding::Diffuse);
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "AlphaMaskedTexture"),
 							TextureTypeBinding::AlphaMask);
 				glUniform1i(glGetUniformLocation(this->graphic_pfc_program, "ShadowTexture"), shadowBinding);
-				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"), TextureTypeBinding::Irradiance);
+				glUniform1i(glGetUniformLocation(this->graphic_program, "IrradianceTexture"),
+							TextureTypeBinding::Irradiance);
 				glUniformBlockBinding(this->graphic_pfc_program, uniform_buffer_index,
 									  this->uniform_graphic_buffer_binding);
 				glUseProgram(0);
@@ -305,7 +309,7 @@ namespace glsample {
 			this->skybox.Init(skytexture, this->skybox_program);
 
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeDiffuseIrradiance(skytexture, this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradianceCubeMap(skybox.getTexture(), this->diffuse_irradiance_cubemap_texture, 64, 64);
 		}
 
 		void onResize(int width, int height) override {
@@ -372,7 +376,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->shadowTexture);
 
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
-				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, this->diffuse_irradiance_cubemap_texture);
 
 				this->scene.shadowPass = false;
 				this->scene.render(&this->camera);

@@ -246,7 +246,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->reflection_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::RawLinear);
-			this->skybox.Init(this->reflection_texture, Skybox::loadDefaultProgram(this->getFileSystem()));
+			this->skybox.Init(this->reflection_texture, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
 
 			/*	*/
 			MiscProcessingUtil util(this->getFileSystem());

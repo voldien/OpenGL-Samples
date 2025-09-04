@@ -53,7 +53,7 @@ namespace glsample {
 				compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary, nullptr, nullptr, nullptr);
 
 			/*	Create skybox graphic pipeline program.	*/
-			this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
+			this->skybox_program = Skybox::loadDefaultPanoramicProgram(this->getFileSystem());
 		}
 
 		/*	Setup graphic pipeline.	*/

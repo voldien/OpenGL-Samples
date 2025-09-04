@@ -319,7 +319,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
-			skybox.Init(skytexture, Skybox::loadDefaultProgram(this->getFileSystem()));
+			skybox.Init(skytexture, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
 
 			this->scene = SceneHelper::loadFrom(modelLoader);
 

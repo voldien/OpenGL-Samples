@@ -12,9 +12,9 @@ layout(location = 0) in vec3 vVertex;
 layout(binding = 0) uniform sampler2D PanoramaTexture;
 
 layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
-	mat4 proj;
 	mat4 modelViewProjection;
 	vec4 tintColor;
+	/*	*/
 	float exposure;
 	float gamma;
 }
@@ -26,7 +26,6 @@ void main() {
 
 	const vec2 uv = inverse_equirectangular(normalize(vVertex));
 
-	fragColor = textureLod(PanoramaTexture, uv, 0) * ubo.tintColor;
-
-	fragColor = fragColor * ubo.tintColor;
+	/*	Sample highest resolution texture.	*/
+	fragColor = texture(PanoramaTexture, uv) * ubo.tintColor;
 }

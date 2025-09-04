@@ -62,7 +62,7 @@ namespace glsample {
 			this->physical_based_rendering_program =
 				ShaderLoader::loadGraphicProgram(compilerOptions, &pbr_vertex_binary, &pbr_fragment_binary);
 
-			this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
+			this->skybox_program = Skybox::loadDefaultPanoramicProgram(this->getFileSystem());
 		}
 
 		/*	Setup shader.	*/
@@ -96,11 +96,14 @@ namespace glsample {
 
 		/*	*/
 		MiscProcessingUtil util(this->getFileSystem());
-		util.computeDiffuseIrradiance(skybox.getTexture(), this->irradiance_texture, 256, 128);
+		util.computeDiffuseIrradianceCubeMap(skybox.getTexture(), this->diffuse_irradiance_cubemap_texture, 32, 32);
 		util.computeReflectanceIrradiance(skybox.getTexture(), this->reflection_prefilter_texture, 2048, 1024);
 		util.computeBRDFIntegrationMap(this->brdf_integration_map_texture, 512, 512);
 
+		 
+		/*	Invoke flush and start computing while loading geometry data.	*/
 		glFlush();
+
 
 		/*	*/
 		ModelImporter modelLoader(FileSystem::getFileSystem());
@@ -127,7 +130,7 @@ namespace glsample {
 
 			{
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
-				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, this->diffuse_irradiance_cubemap_texture);
 
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::BRDFLUT);
 				glBindTexture(GL_TEXTURE_2D, this->brdf_integration_map_texture);

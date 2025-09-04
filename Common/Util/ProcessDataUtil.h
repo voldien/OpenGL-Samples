@@ -33,13 +33,22 @@ namespace glsample {
 		void computeDiffuseIrradiance(unsigned int env_texture_panoramic_source, unsigned int &irradiance_target,
 									  const unsigned int width, const unsigned int height);
 		void computeDiffuseIrradiance(unsigned int env_texture_panoramic_source, unsigned int irradiance_target);
-		void computeDiffuseIrradianceCubeMap();
+
+		void computeDiffuseIrradianceCubeMap(unsigned int env_texture_panoramic_source,
+											 unsigned int& irradiance_cubemap_texture_target, unsigned int width,
+											 unsigned int height);
+		void computeDiffuseIrradianceCubeMap(unsigned int env_texture_panoramic_source,
+											 unsigned int& irradiance_cubemap_texture_target);
 
 		/*	*/
 		void computeReflectanceIrradiance(unsigned int env_texture_panoramic_source, unsigned int &irradiance_target,
 										  const unsigned int width, const unsigned int height);
 		void computeReflectanceIrradiance(unsigned int env_texture_panoramic_source, unsigned int irradiance_target);
-		void computeReflectanceIrradianceCubeMap();
+		void computeReflectanceIrradianceCubeMap(unsigned int env_texture_panoramic_source,
+											 unsigned int& irradiance_cubemap_texture_target, unsigned int width,
+											 unsigned int height);
+		void computeReflectanceIrradianceCubeMap(unsigned int env_texture_panoramic_source,
+											 unsigned int& irradiance_cubemap_texture_target);
 
 		/*	*/
 		void computeBRDFIntegrationMap(unsigned int &brdf_integration_target_texture, const unsigned int width,
@@ -66,7 +75,9 @@ namespace glsample {
 	  private:
 		fragcore::IFileSystem *filesystem = nullptr;
 		int irradiance_diffuse_program = -1;
+		int irradiance_diffuse_cubemap_program = -1;
 		int irradiance_specular_program = -1;
+		int irradiance_specular_cubemap_program = -1;
 		int brdf_integration_map_program = -1;
 		int bump2normal_program = -1;
 		int perlin_noise2D_program = -1;

@@ -6,13 +6,11 @@
 #extension GL_GOOGLE_include_directive : enable
 
 layout(location = 0) in vec3 Vertex;
-
 layout(location = 0) out vec3 vVertex;
 
 #include "common.glsl"
 
 layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
-	mat4 proj;
 	mat4 modelViewProjection;
 	vec4 tintColor;
 	/*	*/

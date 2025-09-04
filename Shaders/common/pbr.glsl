@@ -43,8 +43,12 @@ vec3 ImportanceSampleGGX(const in vec2 Xi, const in vec3 N, const in float rough
 }
 
 vec3 fresnelSchlick(const in float cosTheta, const in vec3 f0) {
+	float f = pow(1.0 - cosTheta, 5.0);
+	return f + f0 * (1.0 - f);
+}
 
-	return f0 + (1.0 - f0) * pow(max(1 - cosTheta, 0.0), 5.0);
+vec3 fresnelSchlick(const in float cosTheta, const in vec3 f0, const in float f90) {
+	return f0 + (vec3(f90) - f0) * pow(1.0 - cosTheta, 5.0);
 }
 
 vec3 fresnelSchlickRoughness(const in float cosTheta, const in vec3 F0, const in float roughness) {
@@ -62,23 +66,36 @@ vec3 FresnelSteinberg(const in vec3 F0, const in vec3 V, const in vec3 N) { retu
 // ----------------------------------------------------------------------------
 // Normal Distributions
 //-----------------------------------------------------------------------------
+#define MEDIUMP_FLT_MAX 65504.0
+#define saturateMediump(x) min(x, MEDIUMP_FLT_MAX)
 float DistributionGGX(const in vec3 N, const in vec3 H, const in float roughness) {
+
 	const float a = roughness * roughness;
 	const float a2 = a * a;
 	const float NdotH = max(dot(N, H), 0.0);
-	const float NdotH2 = NdotH * NdotH;
+	const float NdotH2 = (NdotH * a2 - NdotH) * NdotH + 1.0; // NdotH * NdotH;
 
 	const float nom = a2;
 	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
 	denom = PI * denom * denom;
 
-	return nom / denom;
+	const float distribution = nom / denom;
+	return saturateMediump(distribution);
+}
+
+float D_GGX(float roughness, float NoH, const vec3 n, const vec3 h) {
+	vec3 NxH = cross(n, h);
+	float a = NoH * roughness;
+	float k = roughness / (dot(NxH, NxH) + a * a);
+	float d = k * k * (1.0 / PI);
+	return saturateMediump(d);
 }
 
 // --------------------------------------------------------------------
 //	Geometry Term Functions
 //---------------------------------------------------------------------
-float GeometrySchlickGGX(float NdotV, float roughness) {
+
+float GeometrySchlickGGX(const in float NdotV, const in float roughness) {
 	// note that we use a different k for IBL
 	float a = roughness;
 	float k = (a * a) / 2.0;
@@ -86,47 +103,75 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
 	float denom = NdotV * (1.0 - k) + k;
 	return nom / denom;
 }
-// ----------------------------------------------------------------------------
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
-	float NdotV = max(dot(N, V), 0.0);
-	float NdotL = max(dot(N, L), 0.0);
+
+float GeometrySmithGGXCorrelated(const in vec3 N, const in vec3 V, const in vec3 L, const in float roughness) {
+	const float NdotV = max(dot(N, V), 0.0);
+	const float NdotL = max(dot(N, L), 0.0);
+
+	const float a2 = roughness * roughness;
+	const float GGXV = NdotL * sqrt(NdotV * NdotV * (1.0 - a2) + a2);
+	const float GGXL = NdotV * sqrt(NdotL * NdotL * (1.0 - a2) + a2);
+	return 0.5 / (GGXV + GGXL);
+}
+
+float GeometrySmithGGXCorrelatedFast(const in vec3 N, const in vec3 V, const in vec3 L, const in float roughness) {
+
+	const float NdotV = max(dot(N, V), 0.0);
+	const float NdotL = max(dot(N, L), 0.0);
+
+	const float a = roughness;
+	const float GGXV = NdotL * (NdotV * (1.0 - a) + a);
+	const float GGXL = NdotV * (NdotL * (1.0 - a) + a);
+	return 0.5 / (GGXV + GGXL);
+}
+
+float GeometrySmith(const in vec3 N, const in vec3 V, const in vec3 L, const in float roughness) {
+
+	const float NdotV = max(dot(N, V), 0.0);
+	const float NdotL = max(dot(N, L), 0.0);
+
 	float ggx2 = GeometrySchlickGGX(NdotV, roughness);
 	float ggx1 = GeometrySchlickGGX(NdotL, roughness);
 	return ggx1 * ggx2;
 }
 
+///////////
+vec3 multiscattering_energy() {
+	return vec3(0);
+	//	vec3 energyCompensation = 1.0 + f0 * (1.0 / dfg.y - 1.0);
+	// Scale the specular lobe to account for multiscattering
+	// Fr *= pixel.energyCompensation;
+}
+
 /***************************************************/
 // TODO:
-vec3 brdfRadiance(const vec3 light_direction, const vec3 half_vector, const in vec3 ViewPixelDir,
-				  const in vec3 SurfaceNormal, const in float roughness, const in float metallic, const in vec3 F0,
-				  const in vec3 albedo, const in vec3 radiance) {
+vec3 BSDF(const vec3 light_direction, const vec3 half_vector, const in vec3 ViewPixelDir, const in vec3 SurfaceNormal,
+		  const in float roughness, const in float metallic, const in vec3 F0, const in vec3 albedo) {
+
 	// Normal Distribution term (D)
 	float dTerm = DistributionGGX(SurfaceNormal, half_vector, roughness);
-
+	/* Geometry term (G)	*/
+	float gTerm = GeometrySmithGGXCorrelated(SurfaceNormal, ViewPixelDir, light_direction, roughness);
 	/*	Fresnel term (F)	*/
-	// Determines the ratio of light reflected vs. absorbed
-	// const vec3 fTerm = FresnelSchlick(half_vector, ViewPixelDir, F0);
 	const vec3 fTerm = fresnelSchlick(max(dot(half_vector, ViewPixelDir), 0.0), F0);
 
-	/* Geometry term (G)	*/
-	float gTerm = GeometrySmith(SurfaceNormal, ViewPixelDir, light_direction, roughness);
+	const float VoN = max(dot(ViewPixelDir, SurfaceNormal), 0.0);
 
 	const vec3 numerator = dTerm * fTerm * gTerm;
-	float denominator =
-		4.0 * max(dot(ViewPixelDir, SurfaceNormal), 0.0) * max(dot(light_direction, SurfaceNormal), 0.0);
+	const float denominator = 4.0 * VoN * max(dot(light_direction, SurfaceNormal), 0.0);
 
 	// recall fTerm is the proportion of reflected light, so the result here is the specular
-	const vec3 specular = numerator / (denominator + 0.0001);
+	const float saturedDenominator = max(denominator, 0.0001);
+	const vec3 specular = numerator / saturedDenominator;
 
 	vec3 kSpecular = fTerm;
 	vec3 kDiffuse = vec3(1.0) - kSpecular;
 	kDiffuse *= 1.0 - metallic; // metallic materials should have no diffuse component
 
-	vec3 diffuse = kDiffuse * albedo / PI;
-	vec3 cookTorranceBrdf = diffuse + specular;
-	float nDotL = max(dot(SurfaceNormal, light_direction), 0.0);
+	const float nDotL = max(dot(SurfaceNormal, light_direction), 0.0);
 
-	return cookTorranceBrdf * radiance * nDotL;
+	const vec3 diffuse = (kDiffuse * albedo) * PI_INVERSE;
+	return diffuse + specular;
 }
 
 vec3 computePBRPoint(const in PointLight light, const in vec3 worldPosition, const in vec3 ViewPixelDir,
@@ -134,22 +179,22 @@ vec3 computePBRPoint(const in PointLight light, const in vec3 worldPosition, con
 					 const in vec3 albedo) {
 
 	const vec3 light_direction = normalize(light.position.xyz - worldPosition);
-	const vec3 half_vector = normalize(ViewPixelDir + light_direction);
+	const vec3 halfway_vector = normalize(ViewPixelDir + light_direction);
 
 	const float distance = length(light.position.xyz - worldPosition);
 	const float attenuation = (1 / (distance * distance));
 	const vec3 radiance = light.color.rgb * attenuation * light.range;
 
 	// Normal Distribution term (D)
-	float dTerm = DistributionGGX(SurfaceNormal, half_vector, roughness);
+	float dTerm = DistributionGGX(SurfaceNormal, halfway_vector, roughness);
 
 	/*	Fresnel term (F)	*/
 	// Determines the ratio of light reflected vs. absorbed
 	// const vec3 fTerm = FresnelSchlick(half_vector, ViewPixelDir, F0);
-	const vec3 fTerm = fresnelSchlick(max(dot(half_vector, ViewPixelDir), 0.0), F0);
+	const vec3 fTerm = fresnelSchlick(max(dot(halfway_vector, ViewPixelDir), 0.0), F0);
 
 	/* Geometry term (G)	*/
-	float gTerm = GeometrySmith(SurfaceNormal, ViewPixelDir, light_direction, roughness);
+	float gTerm = GeometrySmithGGXCorrelated(SurfaceNormal, ViewPixelDir, light_direction, roughness);
 
 	const vec3 numerator = dTerm * fTerm * gTerm;
 	float denominator =
@@ -162,7 +207,7 @@ vec3 computePBRPoint(const in PointLight light, const in vec3 worldPosition, con
 	vec3 kDiffuse = vec3(1.0) - kSpecular;
 	kDiffuse *= 1.0 - metallic; // metallic materials should have no diffuse component
 
-	vec3 diffuse = kDiffuse * albedo / PI;
+	vec3 diffuse = kDiffuse * albedo * PI_INVERSE;
 	vec3 cookTorranceBrdf = diffuse + specular;
 	float nDotL = max(dot(SurfaceNormal, light_direction), 0.0);
 
@@ -174,29 +219,27 @@ vec3 computePBRDirectionLight(const in DirectionalLight light, const in vec3 Vie
 							  const in float roughness, const in float metallic, const in vec3 F0,
 							  const in vec3 albedo) {
 
-	const vec3 light_direction = normalize(-light.direction.xyz);
+	const vec3 light_direction = -light.direction.xyz;
 	const vec3 half_vector = normalize(ViewPixelDir + light_direction);
 
-	const float attenuation = 1;
-	const vec3 radiance = light.lightColor.rgb * attenuation; // aka Li
+	const vec3 radiance = light.lightColor.rgb; // aka Li
 
 	// Normal Distribution term (D)
-	float dTerm = DistributionGGX(SurfaceNormal, half_vector, roughness);
-
+	float dTerm = D_GGX(roughness, max(dot(half_vector, SurfaceNormal), 0), SurfaceNormal,
+						half_vector); // DistributionGGX(SurfaceNormal, half_vector, roughness);
 	/* Geometry term (G)	*/
-	float gTerm = GeometrySmith(SurfaceNormal, ViewPixelDir, light_direction, roughness);
-
+	float gTerm = GeometrySmithGGXCorrelated(SurfaceNormal, ViewPixelDir, light_direction, roughness);
 	/*	Fresnel term (F)	*/
-	// Determines the ratio of light reflected vs. absorbed
-	//	vec3 fTerm = FresnelSchlick(half_vector, ViewPixelDir, F0);
 	const vec3 fTerm = fresnelSchlick(max(dot(half_vector, ViewPixelDir), 0.0), F0);
 
+	const float VoN = max(dot(ViewPixelDir, SurfaceNormal), 0.0);
+
 	const vec3 numerator = dTerm * fTerm * gTerm;
-	const float denominator =
-		4.0 * max(dot(ViewPixelDir, SurfaceNormal), 0.0) * max(dot(light_direction, SurfaceNormal), 0.0);
+	const float denominator = 4.0 * VoN * max(dot(light_direction, SurfaceNormal), 0.0);
 
 	// recall fTerm is the proportion of reflected light, so the result here is the specular
-	const vec3 specular = numerator / (denominator + 0.0001);
+	const float saturedDenominator = max(denominator, 0.0001);
+	const vec3 specular = numerator / saturedDenominator;
 
 	vec3 kSpecular = fTerm;
 	vec3 kDiffuse = vec3(1.0) - kSpecular;
@@ -204,7 +247,7 @@ vec3 computePBRDirectionLight(const in DirectionalLight light, const in vec3 Vie
 
 	const float nDotL = max(dot(SurfaceNormal, light_direction), 0.0);
 
-	const vec3 diffuse = (kDiffuse * albedo) / PI;
+	const vec3 diffuse = (kDiffuse * albedo) * PI_INVERSE;
 	const vec3 cookTorranceBrdf = diffuse + specular;
 
 	return cookTorranceBrdf * radiance * nDotL;

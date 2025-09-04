@@ -25,20 +25,22 @@ void main() {
 	/*	Material properties.	*/
 	const vec4 albedo = texture(DiffuseTexture, TexCoords);
 	const float metallic = texture(MetalicTexture, TexCoords).r * mat.clip_.z;
-	const float roughness = clamp(texture(RoughnessTexture, TexCoords).r * mat.specular_roughness.a, 0, 1);
+	const float roughness = clamp(texture(RoughnessTexture, TexCoords).r * mat.specular_roughness.a, 0.0001, 1);
 	const float ao = texture(AOTexture, TexCoords).r;
 	const vec3 emissive = mat.emission.rgb * texture(EmissionTexture, TexCoords).rgb;
 
 	/*	input lighting data	*/
-	vec3 SurfaceNormal =
+	const vec3 SurfaceNormal =
 		getTBN(Normal, Tangent, NormalTexture, mat.clip_.y,
 			   TexCoords); // getNormalFromMap(NormalTexture, TexCoords, WorldPos, Normal, mat.clip_.y);
 	vec3 ViewPixelDir = normalize(getCamera().position.xyz - WorldPos);
-	vec3 ViewPixelReflectDir = reflect(-ViewPixelDir, SurfaceNormal);
+	vec3 ViewPixelReflectDir = normalize(reflect(-ViewPixelDir, SurfaceNormal));
 
 	/*	Interpolated between non-metal to metal fresnel factor.	*/
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo.rgb, metallic);
+
+	const float perceivedRoughness = roughness * roughness;
 
 	/*	Directional Light.	*/
 	vec3 DirectLight = vec3(0.0);
@@ -58,23 +60,22 @@ void main() {
 
 	/*	Point Lights.	*/
 	for (uint i = 0; i < getPointLightCount(); i++) {
-		DirectLight +=
-			computePBRPoint(getPointLight(i), WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo.rgb);
+		DirectLight += computePBRPoint(getPointLight(i), WorldPos, ViewPixelDir, SurfaceNormal, roughness, metallic, F0,
+									   albedo.rgb);
 	}
 
 	/*	ambient lighting (we now use IBL as the ambient term)	*/
-	vec3 kSpecular_F = fresnelSchlickRoughness(max(dot(SurfaceNormal, ViewPixelDir), 0.0), F0, roughness);
+	vec3 kSpecular_F = fresnelSchlick(max(dot(SurfaceNormal, ViewPixelDir), 0.0), F0); // roughness
 
 	/*	*/
 	vec3 kDiffuse = 1.0 - kSpecular_F;
 	kDiffuse *= 1.0 - metallic;
 
 	/*	Diffuse.	*/
-	const vec2 irradiance_uv = inverse_equirectangular(normalize(SurfaceNormal));
-	const vec4 diffuse_irradiance_color = vec4(texture(IrradianceTexture, irradiance_uv).rgb, 1);
+	const vec4 diffuse_irradiance_color = vec4(texture(IrradianceTexture, SurfaceNormal).rgb, 1);
 	const vec3 diffuse_irradiance_color_contr =
 		glob_settings.ambientColor.rgb * diffuse_irradiance_color.rgb * mat.ambientColor.rgb;
-	const vec4 diffuseColor = 	albedo * mat.diffuseColor;
+	const vec4 diffuseColor = albedo * mat.diffuseColor;
 	const vec3 diffuse = diffuse_irradiance_color_contr * diffuseColor.rgb;
 
 	// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to

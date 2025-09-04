@@ -35,7 +35,7 @@ void main() {
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(alteredNormal));
-	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
+	const vec4 irradiance_color = texture(IrradianceTexture, alteredNormal).rgba;
 
 	const vec4 ramp[4] = {vec4(0, 0.02, 0.05, 0.086), vec4(0.166239, 0.038374, 0.005713, 0.26), vec4(1, 1, 1, 0.527273),
 						  vec4(0.601909, 0.678011, 1, 1.0)};

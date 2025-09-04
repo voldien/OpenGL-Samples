@@ -115,7 +115,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
-			this->skybox.Init(skytexture, Skybox::loadDefaultProgram(this->getFileSystem()));
+			this->skybox.Init(skytexture, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize = 0;

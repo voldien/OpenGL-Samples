@@ -1,7 +1,10 @@
 #include "Util/ProcessDataUtil.h"
 #include "ShaderLoader.h"
+#include "Skybox.h"
 #include <GL/glew.h>
 #include <IO/IOUtil.h>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 
@@ -17,6 +20,12 @@ MiscProcessingUtil::~MiscProcessingUtil() {
 	}
 	if (this->irradiance_specular_program >= 0) {
 		glDeleteProgram(this->irradiance_diffuse_program);
+	}
+	if (this->irradiance_diffuse_cubemap_program >= 0) {
+		glDeleteProgram(this->irradiance_diffuse_cubemap_program);
+	}
+	if (this->irradiance_specular_cubemap_program >= 0) {
+		glDeleteProgram(this->irradiance_specular_cubemap_program);
 	}
 	if (this->brdf_integration_map_program >= 0) {
 		glDeleteProgram(this->irradiance_diffuse_program);
@@ -66,7 +75,7 @@ void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsig
 			ShaderLoader::loadComputeProgram(compilerOptions, &compute_irradiance_env_binary);
 		glUseProgram(this->irradiance_diffuse_program);
 
-		glUniform1i(glGetUniformLocation(this->irradiance_diffuse_program, "sourceEnvTexture"), 0);
+		glUniform1i(glGetUniformLocation(this->irradiance_diffuse_program, "SourceEnvTexture"), 0);
 		glUniform1i(glGetUniformLocation(this->irradiance_diffuse_program, "targetIrradianceTexture"), 1);
 	}
 
@@ -115,6 +124,121 @@ void MiscProcessingUtil::computeDiffuseIrradiance(unsigned int env_source, unsig
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void MiscProcessingUtil::computeDiffuseIrradianceCubeMap(unsigned int env_texture_panoramic_source,
+														 unsigned int &irradiance_cubemap_texture_target,
+														 unsigned int width, unsigned int height) {
+	glGenTextures(1, &irradiance_cubemap_texture_target);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_cubemap_texture_target);
+	for (unsigned int i = 0; i < 6; i++) {
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+	}
+
+	/*	*/
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+
+	/*	Generate mipmap.	*/
+	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	computeDiffuseIrradianceCubeMap(env_texture_panoramic_source, irradiance_cubemap_texture_target);
+}
+
+void MiscProcessingUtil::computeDiffuseIrradianceCubeMap(unsigned int env_texture_panoramic_source,
+														 unsigned int &irradiance_cubemap_texture_target) {
+
+	/*	Load Shaders.	*/
+	const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+	const std::string irradianceDiffuseCubemapShaderPath = "Shaders/compute/irradiance_env_cubemap.frag.spv";
+
+	if (this->irradiance_diffuse_cubemap_program == -1) {
+		const std::vector<uint32_t> vertex_skybox_binary =
+			IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, filesystem);
+		/*	*/
+		const std::vector<uint32_t> frag_diffuse_irradiance_env_binary =
+			fragcore::IOUtil::readFileData<uint32_t>(irradianceDiffuseCubemapShaderPath, filesystem);
+
+		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+		compilerOptions.glslVersion = 330; /*	Min shader version required.	*/
+
+		/*  */
+		this->irradiance_diffuse_cubemap_program = ShaderLoader::loadGraphicProgram(
+			compilerOptions, &vertex_skybox_binary, &frag_diffuse_irradiance_env_binary);
+		glUseProgram(this->irradiance_diffuse_cubemap_program);
+
+		glUniform1i(glGetUniformLocation(this->irradiance_diffuse_cubemap_program, "SourceEnvTexture"), 0);
+	}
+
+	GLint width = 0;
+	GLint height = 0;
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_cubemap_texture_target);
+	glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_WIDTH, &width);
+	glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &height);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	GLint currentDrawFBO;
+	GLint currentReadFBO;
+	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentDrawFBO);
+	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &currentReadFBO);
+
+	/*	Create Framebuffer.	*/
+	unsigned int captureFBO = 0;
+	glGenFramebuffers(1, &captureFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+
+	Skybox skybox;
+	skybox.Init(env_texture_panoramic_source, irradiance_diffuse_cubemap_program);
+
+	/*	Render frames.	*/
+
+	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
+	glm::mat4 captureViews[] = {
+		/*	Right Left.	*/
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+		/*	Up Down.	*/
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
+		/*	Forward Back.	*/
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))
+
+	};
+
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+	glViewport(0, 0, width, height);
+	for (unsigned int face_index = 0; face_index < 6; face_index++) {
+		/*	Set ModeViewProjection */
+		/*	Set Render Target.	*/
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face_index,
+							   irradiance_cubemap_texture_target, 0);
+		glClear(GL_COLOR_BUFFER_BIT);
+		/*	Render Mesh.	*/
+		skybox.Render(captureViews[face_index]);
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	/*	Restore framebuffer state.	*/
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, currentDrawFBO);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, currentReadFBO);
+
+	/*	Generate mipmap.	*/
+	glBindTexture(GL_TEXTURE_CUBE_MAP, irradiance_cubemap_texture_target);
+	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	/*	Clear framebuffer data.	*/
+	glDeleteFramebuffers(1, &captureFBO);
+}
+
 void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source, unsigned int &irradiance_target,
 													  const unsigned int width, const unsigned int height) {
 	glGenTextures(1, &irradiance_target);
@@ -158,7 +282,7 @@ void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source,
 			ShaderLoader::loadComputeProgram(compilerOptions, &compute_irradiance_env_binary);
 		glUseProgram(this->irradiance_specular_program);
 
-		glUniform1i(glGetUniformLocation(this->irradiance_specular_program, "sourceEnvTexture"), 0);
+		glUniform1i(glGetUniformLocation(this->irradiance_specular_program, "SourceEnvTexture"), 0);
 		glUniform1i(glGetUniformLocation(this->irradiance_specular_program, "targetIrradianceTexture"), 1);
 	}
 
@@ -218,8 +342,44 @@ void MiscProcessingUtil::computeReflectanceIrradiance(unsigned int env_source,
 	glUseProgram(0);
 }
 
-void MiscProcessingUtil::computeBRDFIntegrationMap(unsigned int &brdf_integration_target_texture, const unsigned int width,
-												   const unsigned int height) {
+void MiscProcessingUtil::computeReflectanceIrradianceCubeMap(unsigned int env_texture_panoramic_source,
+															 unsigned int &irradiance_cubemap_texture_target,
+															 unsigned int width, unsigned int height) {
+	glGenTextures(1, &irradiance_cubemap_texture_target);
+
+	// TODO: check if supported.
+
+	int LODS = 6;
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, irradiance_cubemap_texture_target);
+
+	glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_RGBA16F, width, height, 6 * LODS, 0, GL_RGBA, GL_FLOAT, nullptr);
+	for (unsigned int i = 0; i < 6; i++) {
+	}
+
+	/*	*/
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAX_LOD, 8);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_BASE_LEVEL, 0);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+
+	computeReflectanceIrradianceCubeMap(env_texture_panoramic_source, irradiance_cubemap_texture_target);
+}
+void MiscProcessingUtil::computeReflectanceIrradianceCubeMap(unsigned int env_texture_panoramic_source,
+															 unsigned int &irradiance_cubemap_texture_target) {
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, irradiance_cubemap_texture_target);
+	glGenerateMipmap(GL_TEXTURE_CUBE_MAP_ARRAY);
+	glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+}
+
+void MiscProcessingUtil::computeBRDFIntegrationMap(unsigned int &brdf_integration_target_texture,
+												   const unsigned int width, const unsigned int height) {
 	glGenTextures(1, &brdf_integration_target_texture);
 
 	glBindTexture(GL_TEXTURE_2D, brdf_integration_target_texture);

@@ -54,7 +54,7 @@ namespace glsample {
 		PBRScene scene;
 		Skybox skybox;
 
-		unsigned int irradiance_texture{};
+		unsigned int diffuse_irradiance_cubemap_texture{};
 		unsigned int reflection_prefilter_texture{};
 		unsigned int brdf_integration_map_texture;
 

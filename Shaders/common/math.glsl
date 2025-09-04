@@ -3,6 +3,8 @@
 
 /*	Constants.	*/
 #define PI 3.1415926535897932384626433832795
+#define PI2 (PI * 2.0)
+#define PI_INVERSE (1 / PI)
 #define PI_HALF (PI / 2.0)
 #define E_CONSTANT 2.7182818284590
 

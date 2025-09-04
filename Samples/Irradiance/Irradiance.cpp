@@ -5,8 +5,8 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
-#include <ShaderLoader.h>
 #include <Scene/CameraController.h>
+#include <ShaderLoader.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -33,7 +33,6 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 proj{};
 			glm::mat4 modelViewProjection{};
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			float exposure = 1.0f;
@@ -74,7 +73,9 @@ namespace glsample {
 
 				float rouhness = 0;
 				ImGui::Checkbox("Show Reflectence", &showReflectence);
-				ImGui::SliderFloat("Roughness", &rouhness, 0, 1);
+				if (ImGui::SliderFloat("Roughness", &rouhness, 0, 1)) {
+					/*	Set Sampler LOD Bias.	*/
+				}
 
 				ImGui::Image(static_cast<ImTextureID>(this->getRefSample().diffuse_irradiance_texture),
 							 ImVec2(512, 256), ImVec2(1, 1), ImVec2(0, 0));
@@ -137,7 +138,7 @@ namespace glsample {
 			util.computeReflectanceIrradiance(this->skybox_texture_panoramic, this->reflectance_irradiance_texture,
 											  2048, 1024);
 
-			skybox.Init(this->skybox_texture_panoramic, Skybox::loadDefaultProgram(this->getFileSystem()));
+			skybox.Init(this->skybox_texture_panoramic, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
 
 			/*	*/
 			GLint minMapBufferSize = 0;
@@ -203,9 +204,8 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
-			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
 			this->uniform_stage_buffer.modelViewProjection =
-				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix());
+				(this->camera.getProjectionMatrix() * this->camera.getViewMatrix());
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

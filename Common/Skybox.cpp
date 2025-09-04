@@ -4,8 +4,8 @@
 #include <GL/glew.h>
 #include <IO/IOUtil.h>
 #include <ProceduralGeometry.h>
-#include <ShaderLoader.h>
 #include <Scene/CameraController.h>
+#include <ShaderLoader.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/matrix.hpp>
@@ -16,6 +16,7 @@ namespace glsample {
 
 	Skybox::Skybox() = default;
 	Skybox::~Skybox() {
+		/*	Delete only what it owns.	*/
 		glDeleteBuffers(1, &this->SkyboxCube.vbo);
 		glDeleteBuffers(1, &this->SkyboxCube.ibo);
 		glDeleteSamplers(1, &this->skybox_sampler);
@@ -58,6 +59,7 @@ namespace glsample {
 	}
 
 	void Skybox::Render(const glm::mat4 &viewProj) {
+
 		if (!this->isEnabled) {
 			return;
 		}
@@ -69,7 +71,7 @@ namespace glsample {
 		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 		void *uniformPointer =
 			glMapBufferRange(GL_UNIFORM_BUFFER, ((frameIndex + 0) % this->nrUniformBuffer) * this->uniformAlignSize,
-							 this->uniformAlignSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+							 this->uniformAlignSize, GL_MAP_WRITE_BIT);
 		memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
 		glUnmapBuffer(GL_UNIFORM_BUFFER);
 
@@ -172,7 +174,7 @@ namespace glsample {
 		ImGui::PopID();
 	}
 
-	int Skybox::loadDefaultProgram(fragcore::IFileSystem *filesystem) {
+	int Skybox::loadDefaultPanoramicProgram(fragcore::IFileSystem *filesystem) {
 
 		/*	*/
 		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
@@ -198,6 +200,37 @@ namespace glsample {
 		int uniform_buffer_index = glGetUniformBlockIndex(skybox_program, "UniformBufferBlock");
 		glUniformBlockBinding(skybox_program, uniform_buffer_index, 0);
 		glUniform1i(glGetUniformLocation(skybox_program, "PanoramaTexture"), 0);
+		glUseProgram(0);
+
+		return skybox_program;
+	}
+
+	int Skybox::loadDefaultCubeMapProgram(fragcore::IFileSystem *filesystem) {
+
+		/*	*/
+		const std::string vertexSkyboxPanoramicShaderPath = "Shaders/skybox/skybox.vert.spv";
+		const std::string fragmentSkyboxPanoramicShaderPath = "Shaders/skybox/cubemap.frag.spv";
+
+		/*	Load shader binaries.	*/
+		const std::vector<uint32_t> vertex_skybox_binary =
+			IOUtil::readFileData<uint32_t>(vertexSkyboxPanoramicShaderPath, filesystem);
+		const std::vector<uint32_t> fragment_skybox_binary =
+			IOUtil::readFileData<uint32_t>(fragmentSkyboxPanoramicShaderPath, filesystem);
+
+		/*	*/
+		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
+		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
+		compilerOptions.glslVersion = 150;
+
+		/*	Create skybox graphic pipeline program.	*/
+		const int skybox_program =
+			ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_skybox_binary, &fragment_skybox_binary);
+
+		/*	Setup graphic pipeline.	*/
+		glUseProgram(skybox_program);
+		int uniform_buffer_index = glGetUniformBlockIndex(skybox_program, "UniformBufferBlock");
+		glUniformBlockBinding(skybox_program, uniform_buffer_index, 0);
+		glUniform1i(glGetUniformLocation(skybox_program, "TextureCubeMap"), 0);
 		glUseProgram(0);
 
 		return skybox_program;

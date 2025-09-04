@@ -97,8 +97,7 @@ void main() {
 													mat.specular_roughness.a, SpecularColor.rgb);
 
 	/*	*/
-	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
-	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
+	const vec4 irradiance_color = texture(IrradianceTexture, NewNormal).rgba;
 
 	const vec4 color = texture(DiffuseTexture, UV) * mat.diffuseColor;
 	const vec4 lighting = (glob_settings.ambientColor * mat.ambientColor * irradiance_color + lightColor * shadow);

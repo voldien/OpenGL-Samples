@@ -99,7 +99,7 @@ void main() {
 
 	/*	*/
 	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
-	const vec4 irradiance_color = vec4(texture(IrradianceTexture, irradiance_uv).rgb, 1);
+	const vec4 irradiance_color = vec4(texture(IrradianceTexture, NewNormal).rgb, 1);
 
 	const vec4 color = texture(DiffuseTexture, UV) * mat.diffuseColor;
 	const vec4 lighting = (glob_settings.ambientColor * mat.ambientColor * irradiance_color + pointLightColors);

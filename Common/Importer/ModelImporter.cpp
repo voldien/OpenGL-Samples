@@ -892,9 +892,18 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 			material_obj->transparent.a *= tmp;
 		}
 
+		/*	Physical Based Material Properties.	*/
+
+		bool use;
+		if (ref_material->Get(AI_MATKEY_USE_COLOR_MAP, use) == aiReturn::aiReturn_SUCCESS) {
+		}
+
 		if (ref_material->Get(AI_MATKEY_BASE_COLOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
 			material_obj->diffuse = color;
 			material_obj->diffuse[3] = 1;
+		}
+
+		if (ref_material->Get(AI_MATKEY_USE_METALLIC_MAP, use) == aiReturn::aiReturn_SUCCESS) {
 		}
 
 		/*	*/

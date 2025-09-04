@@ -63,7 +63,7 @@ void main() {
 	const material mat = getMaterial(fAssigns.x);
 	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
 
-	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
+	const vec3 SurfaceNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
 
 	const vec3 viewDir = normalize(getCamera().position.xyz - vertex);
 
@@ -74,12 +74,11 @@ void main() {
 
 	/*	*/
 	const vec4 SpecularColor = vec4(mat.specular_roughness.rgb, 1) * texture(RoughnessTexture, UV).r;
-	const vec4 lightColor = computeBlinnDirectional(LightUBO.light.directional[0], NewNormal, viewDir,
+	const vec4 lightColor = computeBlinnDirectional(LightUBO.light.directional[0], SurfaceNormal, viewDir,
 													mat.specular_roughness.a, SpecularColor.rgb);
 
 	/*	*/
-	const vec2 irradiance_uv = inverse_equirectangular(normalize(NewNormal));
-	const vec4 irradiance_color = vec4(texture(IrradianceTexture, irradiance_uv).rgb, 1);
+	const vec4 irradiance_color = vec4(texture(IrradianceTexture, SurfaceNormal).rgb, 1);
 
 	const vec4 color = texture(DiffuseTexture, UV) * mat.diffuseColor;
 	const vec4 lighting = (glob_settings.ambientColor * mat.ambientColor * irradiance_color + lightColor * shadow);

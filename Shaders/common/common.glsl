@@ -67,10 +67,10 @@ vec3 equirectangular(const in vec2 xy) {
 	return normalize(rayDirection);
 }
 
+const vec2 invAtan = vec2(1.0 / (2 * PI), 1.0 / PI);
 vec2 inverse_equirectangular(const in vec3 direction) {
 
-	const vec2 invAtan = vec2(1.0 / (2 * PI), 1.0 / PI);
-	vec2 uv = vec2(atan(direction.z, direction.x + EPSILON), asin(direction.y+ EPSILON));
+	vec2 uv = vec2(atan(direction.z, direction.x + EPSILON), asin(direction.y + EPSILON));
 
 	uv *= invAtan;
 	uv += 0.5;
@@ -80,16 +80,21 @@ vec2 inverse_equirectangular(const in vec3 direction) {
 /**
  *
  */
-vec3 getTBN(const in vec3 InNormal, const in vec3 InTangent, const in sampler2D NormalTexture, const in float bumpiness,
+vec3 getTBN(const in vec3 InNormal, const in vec3 InTangent, const in sampler2D NormalTexture, const in float normalStrength,
 			const in vec2 uv) {
 
 	/*	*/
 	vec3 tangentNormal = texture(NormalTexture, uv).xyz * 2.0 - 1.0;
-	tangentNormal.xy *= bumpiness;
+	tangentNormal.xy *= normalStrength;
 
-	return ((mat3(normalize(InTangent - dot(InTangent, InNormal) * InNormal), cross(InTangent, InNormal), InNormal)) *
-			tangentNormal)
-		.xyz;
+	tangentNormal = normalize(tangentNormal);
+
+	const vec3 tangentSurfaceNormal =
+		((mat3(normalize(InTangent - dot(InTangent, InNormal) * InNormal), cross(InTangent, InNormal), InNormal)) *
+		 tangentNormal)
+			.xyz;
+
+	return tangentSurfaceNormal;
 }
 
 /**
@@ -229,7 +234,7 @@ struct IndirectDispatchCommand {
 	uint num_groups_z;
 };
 
-vec2 sphere_uv_mapping(const vec3 position) { return inverse_equirectangular(normalize(position)); }
+vec2 sphere_uv_mapping(const in vec3 normalized_direction) { return inverse_equirectangular(normalized_direction); }
 
 struct Sphere {
 	vec4 position_radius;

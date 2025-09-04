@@ -72,6 +72,7 @@ namespace glsample {
 		static void mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes);
 
 		static int createColorTexture(unsigned int width, unsigned int height, const fragcore::Color &color);
+		static int createColorTexture16F(unsigned int width, unsigned int height, const fragcore::Color &color);
 
 		static void createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachments);
 		static void updateFrameBuffer(FrameBuffer *framebuffer,

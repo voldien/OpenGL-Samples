@@ -7,7 +7,7 @@ layout(location = 0) out vec4 fragColor;
 
 layout(location = 0) in vec3 vertex;
 layout(location = 1) in vec2 UV;
-layout(location = 2) in vec3 normal;
+layout(location = 2) in vec3 surfaceNormal;
 layout(location = 3) in vec3 tangent;
 layout(location = 4) in vec3 ViewDir;
 
@@ -43,11 +43,11 @@ void main() {
 	const vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
 
 	vec4 lightColor =
-		computePhongDirectional(ubo.directional, normalize(normal), viewDir, ubo.shininess.r, ubo.specularColor.rgb);
+		computePhongDirectional(ubo.directional, normalize(surfaceNormal), viewDir, ubo.shininess.r, ubo.specularColor.rgb);
 
 	/*	*/
-	const vec2 irradiance_uv = inverse_equirectangular(normalize(normal));
-	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
+	const vec2 irradiance_uv = inverse_equirectangular(normalize(surfaceNormal));
+	const vec4 irradiance_color = texture(IrradianceTexture, surfaceNormal).rgba;
 
 	/*	*/
 	fragColor = (texture(DiffuseTexture, UV) * mat.diffuseColor) *

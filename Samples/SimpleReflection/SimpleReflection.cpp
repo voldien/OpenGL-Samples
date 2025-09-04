@@ -144,7 +144,7 @@ namespace glsample {
 				this->graphic_program = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_simple_ocean_binary,
 																		 &fragment_simple_ocean_binary);
 
-				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
+				this->skybox_program = Skybox::loadDefaultPanoramicProgram(this->getFileSystem());
 			}
 
 			/*	Setup graphic pipeline settings.    */

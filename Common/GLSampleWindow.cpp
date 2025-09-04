@@ -216,7 +216,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 		if (ImGui::Checkbox("Use Post Processing", &usePostProcessing)) {
 			this->getRefSample().setPostProcessingEnabled(usePostProcessing);
 		}
-		
+
 		if (this->getRefSample().getPostProcessingManager() && ImGui::CollapsingHeader("Post Processing")) {
 
 			ImGui::BeginGroup();

@@ -85,7 +85,6 @@ namespace glsample {
 
 		/*	Create default textures.	*/
 		{
-			const unsigned char normalForward[] = {127, 127, 255, 255};
 			const unsigned char white[] = {255, 255, 255, 255};
 			const unsigned char black[] = {0, 0, 0, 255};
 
@@ -108,10 +107,9 @@ namespace glsample {
 				1, 1, fragcore::Color(black[0] / 255.0f, black[1] / 255.0f, black[2] / 255.0f, black[3] / 255.0f));
 			this->default_textures[TextureTypeBinding::Metal] = this->default_textures[TextureTypeBinding::Diffuse];
 
-			this->default_textures[TextureTypeBinding::Normal] = glsample::CommonUtil::createColorTexture(
-				1, 1,
-				fragcore::Color(normalForward[0] / 255.0f, normalForward[1] / 255.0f, normalForward[2] / 255.0f,
-								normalForward[3] / 255.0f));
+			/*	Default Normal.	*/
+			this->default_textures[TextureTypeBinding::Normal] =
+				glsample::CommonUtil::createColorTexture16F(1, 1, fragcore::Color(0.5f, 0.5f, 1.0f, 1.0f));
 		}
 
 		/*	Default samplers.	*/

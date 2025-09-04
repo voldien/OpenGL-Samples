@@ -198,7 +198,7 @@ namespace glsample {
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_shadow_binary,
 													 &fragment_shadow_alpha_clip_binary, &geometry_shadow_binary);
 
-				this->skybox_program = Skybox::loadDefaultProgram(this->getFileSystem());
+				this->skybox_program = Skybox::loadDefaultPanoramicProgram(this->getFileSystem());
 			}
 
 			/*	load Textures	*/

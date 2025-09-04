@@ -324,6 +324,12 @@ void TextureImporter::getFormat(const Image &image, unsigned int &format, unsign
 				throw NotSupportedException("None Supported ASTC Format: {} ({})",
 											magic_enum::enum_name(image.getFormat()), internalformat);
 			}
+		} else if (compression == TextureCompression::BPTC) {
+			switch (internalformat) {
+			default:
+				throw NotSupportedException("None Supported BPTC Format: {} ({})",
+											magic_enum::enum_name(image.getFormat()), internalformat);
+			}
 		}
 	}
 }

@@ -184,6 +184,33 @@ int CommonUtil::createColorTexture(unsigned int width, unsigned int height, cons
 	return texRef;
 }
 
+int CommonUtil::createColorTexture16F(unsigned int width, unsigned int height, const fragcore::Color &color) {
+	GLuint texRef = 0;
+
+	FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)&texRef));
+	FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, texRef));
+	FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, color.data()));
+
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST));
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+
+	/*	*/
+	FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1.0f));
+
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+
+	/*	No Mipmap.	*/
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 0));
+
+	FVALIDATE_GL_CALL(glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, 0.0f));
+
+	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0));
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return texRef;
+}
+
 void CommonUtil::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachments) {
 
 	glGenFramebuffers(1, &framebuffer->framebuffer);
@@ -346,7 +373,8 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 								   framebuffer->attachments[framebuffer->depthIndex], 0);
 			break;
 		case GL_TEXTURE_CUBE_MAP:
-					glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, framebuffer->attachments[framebuffer->depthIndex], 0);
+			glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, framebuffer->attachments[framebuffer->depthIndex],
+								 0);
 			break;
 		}
 	}

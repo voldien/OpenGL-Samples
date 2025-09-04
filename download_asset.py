@@ -17,6 +17,7 @@ download_zip_asset_urls = [
 	"https://casual-effects.com/g3d/data10/common/model/teapot/teapot.zip",
 	"https://casual-effects.com/g3d/data10/research/model/dragon/dragon.zip",
 	"https://casual-effects.com/g3d/data10/common/model/CornellBox/CornellBox.zip",
+	"https://casual-effects.com/g3d/data10/common/model/mori_knob/mori_knob.zip",
 	# "https://casual-effects.com/g3d/data10/research/model/San_Miguel/San_Miguel.zip",
 	# "https://casual-effects.com/g3d/data10/research/model/gallery/gallery.zip",
 	# PBR Models

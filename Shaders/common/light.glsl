@@ -8,7 +8,7 @@ struct ShadowLight {
 
 struct DirectionalLight {
 	ShadowLight lightShadow;
-	vec4 direction;
+	vec4 direction; /*	Normalized.	*/
 	vec4 lightColor;
 };
 
