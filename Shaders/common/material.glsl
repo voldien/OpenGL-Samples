@@ -4,12 +4,12 @@
 /*	*/
 struct material {
 	ivec4 info;				 /*	*/
-	vec4 ambientColor;		 /*	*/
-	vec4 diffuseColor;		 /*	*/
-	vec4 transparency;		 /*	*/
-	vec4 specular_roughness; /*	*/
-	vec4 emission;			 /*	*/
-	vec4 clip_;				 /*	*/
+	vec4 ambientColor;		 /*	Ambient Color.	*/
+	vec4 diffuseColor;		 /*	Diffuse Color.	*/
+	vec4 transparency;		 /*	Transparent/Transmission.	*/
+	vec4 specular_roughness; /*	Specular Color, roughness in Alpha Channel*/
+	vec4 emission;			 /*	Emission Color.	*/
+	vec4 clip_;				 /*	Multiple parameters packaged, (Clipping,)	 */
 };
 
 #endif

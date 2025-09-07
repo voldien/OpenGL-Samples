@@ -1,6 +1,6 @@
 #include "GLUIComponent.h"
-#include "Scene/SceneHelper.h"
 #include "Scene/Scene.h"
+#include "Scene/SceneHelper.h"
 #include "Skybox.h"
 #include "imgui.h"
 #include <GL/glew.h>
@@ -74,7 +74,7 @@ namespace glsample {
 		/*	*/
 		MeshObject plan;
 		Skybox skybox;
-		Scene scene;
+		Scene *scene{};
 
 		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer{};
@@ -173,7 +173,7 @@ namespace glsample {
 		const std::string fragmentOverlayTextureShaderPath = "Shaders/postprocessingeffects/overlay.frag.spv";
 
 		void Release() override {
-			this->scene.release();
+			this->scene->release();
 
 			/*	Delete graphic pipelines.	*/
 			glDeleteProgram(this->ssao_world_program);
@@ -333,7 +333,7 @@ namespace glsample {
 				std::default_random_engine generator;
 				for (size_t i = 0; i < maxKernels; ++i) {
 
-					glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0,
+					glm::vec3 sample((randomFloats(generator) * 2.0) - 1.0, (randomFloats(generator) * 2.0) - 1.0,
 									 randomFloats(generator));
 
 					sample = glm::normalize(sample);
@@ -538,7 +538,7 @@ namespace glsample {
 
 				glDisable(GL_CULL_FACE);
 
-				this->scene.render();
+				this->scene->render();
 
 				glUseProgram(0);
 
@@ -680,8 +680,8 @@ namespace glsample {
 				for (size_t i = 0; i < this->multipass_textures.size(); i++) {
 					glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
 					glBlitFramebuffer(0, 0, this->multipass_texture_width, this->multipass_texture_height,
-									  (i % 2) * (halfW), (i / 2) * halfH, halfW + (i % 2) * halfW,
-									  halfH + (i / 2) * halfH, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+									  (i % 2) * (halfW), (i / 2) * halfH, halfW + ((i % 2) * halfW),
+									  halfH + ((i / 2) * halfH), GL_COLOR_BUFFER_BIT, GL_LINEAR);
 				}
 			}
 			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
@@ -691,7 +691,7 @@ namespace glsample {
 
 			/*	Update Camera and Scene.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
-			this->scene.update(this->getTimer().deltaTime<float>());
+			this->scene->update(this->getTimer().deltaTime<float>());
 
 			this->uniformStageBlock.proj = this->camera.getProjectionMatrix();
 			this->uniformStageBlockSSAO.proj = this->camera.getProjectionMatrix();

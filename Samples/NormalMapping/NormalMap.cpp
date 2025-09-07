@@ -49,7 +49,7 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		Scene scene; /*	World Scene.	*/
+		Scene* scene{}; /*	World Scene.	*/
 
 		/*	*/
 		unsigned int normalMapping_program{};
@@ -186,7 +186,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, normalMapSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				this->scene.render();
+				this->scene->render();
 			}
 		}
 

@@ -32,14 +32,14 @@ namespace glsample {
 
 		void render(Camera *camera) override { Scene::render(camera); }
 
-		void render(std::queue<const NodeObject *> &queue) {
+		void render(std::queue<const Node *> &queue) {
 			while (!queue.empty()) {
 				Scene::renderNode(queue.front());
 				queue.pop();
 			}
 		}
 
-		void renderNode(const NodeObject *node) override { Scene::renderNode(node); }
+		void renderNode(const Node *node) override { Scene::renderNode(node); }
 	};
 
 	/**
@@ -95,7 +95,7 @@ namespace glsample {
 		MeshObject frustum;
 		MeshObject plan;
 		MeshObject frustumPlanes;
-		SceneFrustum scene; /*	World Scene.	*/
+		SceneFrustum *scene{}; /*	World Scene.	*/
 		Skybox skybox;
 
 		/*	*/
@@ -118,8 +118,8 @@ namespace glsample {
 		CameraController camera;
 		CameraController camera_observe_frustum;
 
-		std::queue<const NodeObject *> mainCameraNodeQueue;
-		std::queue<const NodeObject *> secondCameraNodeQueue;
+		std::queue<const Node *> mainCameraNodeQueue;
+		std::queue<const Node *> secondCameraNodeQueue;
 
 		size_t instanceBatch = 0;
 
@@ -174,7 +174,7 @@ namespace glsample {
 
 		void Release() override {
 
-			this->scene.release();
+			this->scene->release();
 
 			glDeleteProgram(this->graphic_program);
 			glDeleteProgram(this->bounding_program);
@@ -338,7 +338,7 @@ namespace glsample {
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				glUseProgram(this->graphic_program);
-				this->scene.render(this->mainCameraNodeQueue);
+				this->scene->render(this->mainCameraNodeQueue);
 				glUseProgram(0);
 				this->skybox.Render(this->camera);
 
@@ -378,7 +378,7 @@ namespace glsample {
 					glUseProgram(this->graphic_program);
 
 					auto copy_observer_camera_node = this->secondCameraNodeQueue;
-					this->scene.render(copy_observer_camera_node);
+					this->scene->render(copy_observer_camera_node);
 					glUseProgram(0);
 					this->skybox.Render(this->camera_observe_frustum);
 
@@ -437,11 +437,11 @@ namespace glsample {
 			}
 
 			/*	Compute frustum culling.	*/
-			mainCameraNodeQueue = std::queue<const NodeObject *>();
-			secondCameraNodeQueue = std::queue<const NodeObject *>();
-			for (size_t x = 0; x < this->scene.getNodes().size(); x++) {
+			mainCameraNodeQueue = std::queue<const Node *>();
+			secondCameraNodeQueue = std::queue<const Node *>();
+			for (size_t x = 0; x < this->scene->getNodes().size(); x++) {
 
-				const NodeObject *node = this->scene.getNodes()[x];
+				const Node *node = this->scene->getNodes()[x];
 
 				for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
 
@@ -495,19 +495,19 @@ namespace glsample {
 			glBindVertexArray(0);
 		}
 
-		void renderBoundingBox(const CameraController &camera, std::queue<const NodeObject *> &queue) {
+		void renderBoundingBox(const CameraController &camera, std::queue<const Node *> &queue) {
 
 			// TODO: fix if more than buffer size.
 			std::vector<InstanceData> instance_model_matrices;
 
 			while (!queue.empty()) {
 
-				const NodeObject *node = queue.front();
+				const Node *node = queue.front();
 				queue.pop();
 
 				for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
 
-					const MeshObject &refMesh = this->scene.getMeshes()[node->geometryObjectIndex[i]];
+					const MeshObject &refMesh = this->scene->getMeshes()[node->geometryObjectIndex[i]];
 
 					/*	*/
 					const AABB aabb = GeometryUtility::computeBoundingBox(
@@ -564,7 +564,7 @@ namespace glsample {
 			for (size_t x = 0; x < instance_model_matrices.size(); x += this->instanceBatch) {
 
 				/*	*/
-				const NodeObject *node = this->scene.getNodes()[x];
+				const Node *node = this->scene->getNodes()[x];
 				const size_t nrDrawInstances = std::min(instance_model_matrices.size() - x, this->instanceBatch);
 
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_instance_buffer_binding,

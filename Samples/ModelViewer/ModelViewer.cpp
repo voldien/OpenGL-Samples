@@ -25,6 +25,8 @@ namespace glsample {
 		this->camera.lookAt(glm::vec3(0.f));
 	}
 
+	ModelViewer::~ModelViewer() { delete this->scene; }
+
 	void ModelViewer::Release() { glDeleteProgram(this->physical_based_rendering_program); }
 
 	void ModelViewer::Initialize() {
@@ -100,10 +102,8 @@ namespace glsample {
 		util.computeReflectanceIrradiance(skybox.getTexture(), this->reflection_prefilter_texture, 2048, 1024);
 		util.computeBRDFIntegrationMap(this->brdf_integration_map_texture, 512, 512);
 
-		 
 		/*	Invoke flush and start computing while loading geometry data.	*/
 		glFlush();
-
 
 		/*	*/
 		ModelImporter modelLoader(FileSystem::getFileSystem());
@@ -116,9 +116,9 @@ namespace glsample {
 	void ModelViewer::draw() {
 
 		/*	Shadow Pass.	*/
-		{ this->scene.shadowPass(); }
+		{ this->scene->shadowPass(); }
 
-		this->scene.update(this->getTimer().deltaTime<float>());
+		this->scene->update(this->getTimer().deltaTime<float>());
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			size_t width = 0, height = 0;
@@ -139,7 +139,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->reflection_prefilter_texture);
 
 				glUseProgram(this->physical_based_rendering_program);
-				this->scene.render(&this->camera);
+				this->scene->render(&this->camera);
 				glUseProgram(0);
 			}
 

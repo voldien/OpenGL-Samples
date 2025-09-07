@@ -25,25 +25,24 @@ namespace glsample {
 
 	class FVDECLSPEC SceneHelper {
 	  public:
-		template <typename T = glsample::Scene> static T loadFrom(ModelImporter &importer) {
+		template <typename T = glsample::Scene> static T *loadFrom(ModelImporter &importer) {
 
-			T scene;
+			T *scene = new T();
 
-			scene.init(importer.getFileSystem());
+			scene->init(importer.getFileSystem());
 
+			// TODO: conditional.
 			/*	*/
-			scene.nodes = importer.getNodes();
+			ImportHelper::loadModelBuffer(importer, scene->refGeometry);
+			ImportHelper::loadTextures(importer, scene->refTexture);
 
-			ImportHelper::loadModelBuffer(importer, scene.refGeometry);
-			ImportHelper::loadTextures(importer, scene.refTexture);
+			convertNodeSystem(*scene, importer);
 
-			convertNodeSystem(scene, importer);
+			scene->materials = importer.getMaterials();
 
-			scene.materials = importer.getMaterials();
-
-			convertLightSystem(scene, importer);
-			convertAnimationSystem(scene, importer);
-			convertMaterialSystem(scene, importer);
+			convertLightSystem(*scene, importer);
+			convertAnimationSystem(*scene, importer);
+			convertMaterialSystem(*scene, importer);
 
 			return scene;
 		}
@@ -54,7 +53,7 @@ namespace glsample {
 		static void convertAnimationSystem(Scene &scene, const ModelImporter &importer);
 
 		static void convertNodeSystem(Scene &scene, ModelImporter &importer);
-		static void convertNodeChildren(NodeObject *node0, Node *node);
+		static void convertNodeChildren(const NodeObject *node0, Node *node);
 	};
 
 }; // namespace glsample

@@ -5,7 +5,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake" )
 INCLUDE(assimp)
 
 ADD_LIBRARY(gl-sample-common-asset-importer ${SOURCE_IMPORTER_FILES} ${HEADER_IMPORTER_FILES})
-TARGET_LINK_LIBRARIES(gl-sample-common-asset-importer PUBLIC fmt fragcore-imageloader glCommon assimp)
+TARGET_LINK_LIBRARIES(gl-sample-common-asset-importer PUBLIC fmt fragcore fragcore-imageloader glCommon assimp)
 
 TARGET_INCLUDE_DIRECTORIES(gl-sample-common-asset-importer PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}

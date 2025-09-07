@@ -47,7 +47,7 @@ namespace glsample {
 
 		CameraController camera;
 
-		Scene scene;
+		Scene *scene{};
 
 		unsigned int skinned_graphic_program{};
 		unsigned int skinned_debug_weight_program{};
@@ -94,7 +94,7 @@ namespace glsample {
 				ImGui::Checkbox("Show Weight", &this->showWeight);
 				ImGui::Checkbox("Show Axis", &this->showAxis);
 
-				this->getRefSample().scene.renderUI();
+				this->getRefSample().scene->renderUI();
 			}
 
 			bool showWireFrame = false;
@@ -173,8 +173,10 @@ namespace glsample {
 			int uniform_buffer_index = glGetUniformBlockIndex(this->skinned_graphic_program, "UniformBufferBlock");
 			int uniform_skeleton_buffer_index =
 				glGetUniformBlockIndex(this->skinned_graphic_program, "UniformSkeletonBufferBlock");
-			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
-			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "NormalTexture"), TextureTypeBinding::Normal);
+			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "DiffuseTexture"),
+						TextureTypeBinding::Diffuse);
+			glUniform1i(glGetUniformLocation(this->skinned_graphic_program, "NormalTexture"),
+						TextureTypeBinding::Normal);
 			glUniformBlockBinding(this->skinned_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUniformBlockBinding(this->skinned_graphic_program, uniform_skeleton_buffer_index,
 								  this->uniform_skeleton_buffer_binding);
@@ -266,7 +268,7 @@ namespace glsample {
 
 				glUseProgram(this->skinned_graphic_program);
 
-				this->scene.render(&this->camera);
+				this->scene->render(&this->camera);
 
 				/*	*/
 				if (this->skinnedSettingComponent->showBone) {
@@ -279,7 +281,7 @@ namespace glsample {
 					glUseProgram(this->skinned_debug_weight_program);
 					glDepthFunc(GL_LEQUAL);
 
-					scene.render();
+					scene->render();
 					glUseProgram(0);
 				}
 
@@ -300,7 +302,7 @@ namespace glsample {
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
-			this->scene.update(this->getTimer().deltaTime<float>());
+			this->scene->update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			{
@@ -341,7 +343,7 @@ namespace glsample {
 					((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformSkeletonBufferSize,
 
 					this->uniformSkeletonBufferSize, GL_MAP_WRITE_BIT);
-					
+
 				/*	*/
 				for (auto it = skeleton.bones.begin(); it != skeleton.bones.end(); it++) {
 

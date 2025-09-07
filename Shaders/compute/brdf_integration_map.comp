@@ -32,13 +32,13 @@ vec2 IntegrateBRDF(const in float NdotV, const in float roughness) {
 
 	for (uint i = 0u; i < SAMPLE_COUNT; ++i) {
 
-		vec2 Xi = Hammersley(i, SAMPLE_COUNT);
-		vec3 H = ImportanceSampleGGX(Xi, N, roughness);
-		vec3 L = normalize(2.0 * dot(V, H) * H - V);
+		const vec2 Xi = Hammersley(i, SAMPLE_COUNT);
+		const vec3 H = ImportanceSampleGGX(Xi, N, roughness);
+		const vec3 L = normalize(2.0 * dot(V, H) * H - V);
 
-		float NdotL = max(L.z, 0.00000);
-		float NdotH = max(H.z, 0.00000);
-		float VdotH = max(dot(V, H), 0.0);
+		const float NdotL = max(L.z, 0.00000);
+		const float NdotH = max(H.z, 0.00000);
+		const float VdotH = max(dot(V, H), 0.0);
 
 		if (NdotL > 0.0) {
 

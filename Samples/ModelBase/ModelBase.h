@@ -1,4 +1,3 @@
-#include "SampleHelper.h"
 #include "Scene/Scene.h"
 #include "Skybox.h"
 #include "Scene/CameraController.h"
@@ -38,7 +37,7 @@ namespace glsample {
 		unsigned int irradiance_texture;
 
 		Skybox skybox;
-		Scene scene;
+		Scene* scene;
 		CameraController cameraController;
 
 		/*	*/
@@ -74,7 +73,7 @@ namespace glsample {
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 
 				/*	*/
-				this->getRefSample().scene.renderUI();
+				this->getRefSample().scene->renderUI();
 			}
 
 			bool showWireFrame = false;

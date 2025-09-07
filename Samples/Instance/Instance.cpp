@@ -19,8 +19,8 @@ namespace glsample {
 			this->instanceSettingComponent = std::make_shared<InstanceSettingComponent>(this->uniformData);
 			this->addUIComponent(this->instanceSettingComponent);
 
-			this->camera.setPosition(glm::vec3(0));
-			this->camera.lookAt(glm::vec3(1));
+			this->camera.setPosition(glm::vec3(50));
+			this->camera.lookAt(glm::vec3(5));
 		}
 
 		struct uniform_buffer_block {

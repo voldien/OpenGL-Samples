@@ -8,6 +8,7 @@
 #define PI_HALF (PI / 2.0)
 #define E_CONSTANT 2.7182818284590
 
+/*	*/
 float map(float s, float a1, float a2, float b1, float b2) {
 	return b1 + (s - a1) * (b2 - b1) / (a2 - a1);
 }

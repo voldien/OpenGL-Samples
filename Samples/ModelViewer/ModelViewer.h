@@ -30,6 +30,7 @@ namespace glsample {
 	class ModelViewer : public GLSampleWindow {
 	  public:
 		ModelViewer();
+		~ModelViewer() override;
 
 		struct tessellation_settings {
 			float tessLevel = 1;
@@ -51,7 +52,7 @@ namespace glsample {
 		unsigned int reflection_texture{};
 
 		/*	*/
-		PBRScene scene;
+		PBRScene* scene;
 		Skybox skybox;
 
 		unsigned int diffuse_irradiance_cubemap_texture{};
@@ -95,7 +96,7 @@ namespace glsample {
 				// ImGui::Checkbox("WireFrame", &this->showWireFrame);
 
 				/*	*/
-				this->getRefSample().scene.renderUI();
+				this->getRefSample().scene->renderUI();
 			}
 
 			bool showWireFrame = false;

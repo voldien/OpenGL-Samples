@@ -69,7 +69,7 @@ namespace glsample {
 		size_t shadowWidth = static_cast<long>(4096) * 2;
 		size_t shadowHeight = static_cast<long>(4096) * 2;
 
-		SceneShadow scene;
+		SceneShadow *scene{};
 		Skybox skybox;
 
 		unsigned int diffuse_irradiance_cubemap_texture{};
@@ -99,15 +99,15 @@ namespace glsample {
 
 			void draw() override {
 
-				ImGui::DragFloat("Shadow Strength", &this->getRefSample().scene.getLights()[0]->shadow, 1, 0.0f, 1.0f);
-				ImGui::DragFloat("Shadow Bias", &this->getRefSample().scene.getLights()[0]->bias, 1, 0.0f, 1.0f,
+				ImGui::DragFloat("Shadow Strength", &this->getRefSample().scene->getLights()[0]->shadow, 1, 0.0f, 1.0f);
+				ImGui::DragFloat("Shadow Bias", &this->getRefSample().scene->getLights()[0]->bias, 1, 0.0f, 1.0f,
 								 "%.5f");
 				ImGui::DragFloat("PCF Radius", &this->uniform.pcfRadius, 1, 0.0f, 100.0f);
 				// ImGui::ColorEdit4("Light", &this->uniform.directional.lightColor[0],
 				// 				  ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 				// ImGui::DragFloat3("Direction", &this->uniform.directional.lightDirection[0]);
 
-				ImGui::DragFloat("Distance", &this->getRefSample().scene.getLights()[0]->shadowDistance);
+				ImGui::DragFloat("Distance", &this->getRefSample().scene->getLights()[0]->shadowDistance);
 
 				ImGui::Checkbox("PCF Shadow", &this->use_pcf);
 				ImGui::Checkbox("Shadow Alpha Clipping", &this->useShadowClip);
@@ -115,7 +115,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Depth Texture");
 				ImGui::Image(static_cast<ImTextureID>(this->depth), ImVec2(512, 512), ImVec2(1, 1), ImVec2(0, 0));
 
-				this->getRefSample().scene.renderUI();
+				this->getRefSample().scene->renderUI();
 			}
 
 			float distance = 50.0;
@@ -301,7 +301,7 @@ namespace glsample {
 			ModelImporter *modelLoader = new ModelImporter(this->getFileSystem());
 			modelLoader->loadContent(modelPath, 0);
 			this->scene = SceneHelper::loadFrom<SceneShadow>(*modelLoader);
-			this->scene.getLights().push_back(new DirectionalLight());
+			this->scene->getLights().push_back(new DirectionalLight());
 
 			/*	load Skybox Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
@@ -324,7 +324,7 @@ namespace glsample {
 
 			/*	Shadow Pass.	*/
 			{
-				Light *lightSource = this->scene.getLights()[0];
+				Light *lightSource = this->scene->getLights()[0];
 				if (lightSource->getShadowStrength() > 0) {
 					/*	*/
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_shadow_buffer_binding, this->uniform_buffer,
@@ -343,8 +343,8 @@ namespace glsample {
 
 					/*	Render shadow.	*/
 
-					this->scene.shadowPass = true;
-					this->scene.render(this->scene.getLights()[0]);
+					this->scene->shadowPass = true;
+					this->scene->render(this->scene->getLights()[0]);
 
 					glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 				}
@@ -378,8 +378,8 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, this->diffuse_irradiance_cubemap_texture);
 
-				this->scene.shadowPass = false;
-				this->scene.render(&this->camera);
+				this->scene->shadowPass = false;
+				this->scene->render(&this->camera);
 				glUseProgram(0);
 			}
 
@@ -390,7 +390,7 @@ namespace glsample {
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
-			this->scene.update(this->getTimer().deltaTime<float>());
+			this->scene->update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

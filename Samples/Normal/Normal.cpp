@@ -23,8 +23,8 @@ namespace glsample {
 			this->addUIComponent(this->normalSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(20.0f));
-			this->camera.lookAt(glm::vec3(0.f));
+			this->camera.setPosition(glm::vec3(50.0f));
+			this->camera.lookAt(glm::vec3(5.f));
 		}
 
 		struct alignas(16) uniform_buffer_block {
@@ -201,7 +201,7 @@ namespace glsample {
 
 			/*	*/
 			glViewport(0, 0, width, height);
-			glClearColor(0.095f, 0.095f, 0.095f, 1.0f);
+			glClearColor(0.015f, 0.015f, 0.015f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			/*	Optional - to display wireframe.	*/

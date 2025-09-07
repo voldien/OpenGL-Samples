@@ -151,8 +151,8 @@ using NodeObject = struct node_object_t : public AssetObject {
 	std::vector<unsigned int> geometryObjectIndex;
 	std::vector<unsigned int> materialIndex;
 
+	int parent_index = -1;
 	struct node_object_t *parent = nullptr;
-	fragcore::ITree<struct node_object_t *> childrens;
 };
 
 using MeshData = struct mesh_data_t : public AssetObject {

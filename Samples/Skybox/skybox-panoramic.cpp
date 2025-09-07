@@ -31,7 +31,6 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 proj{};
 			glm::mat4 modelViewProjection{};
 			glm::vec4 tintColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			float exposure = 1.0f;
@@ -201,9 +200,8 @@ namespace glsample {
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/
-			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();
 			this->uniform_stage_buffer.modelViewProjection =
-				(this->uniform_stage_buffer.proj * this->camera.getViewMatrix());
+				(camera.getProjectionMatrix() * this->camera.getViewMatrix());
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

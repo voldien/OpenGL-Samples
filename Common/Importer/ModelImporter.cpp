@@ -311,14 +311,14 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 		aiVector3f position, scale;
 		aiQuaternion rotation;
 
-		// TODO: fix pool.
-
+		// TODO: fix pool for classes.
 		NodeObject *pobject = new NodeObject(); // nodePool.obtain();
 		//*pobject = NodeObject();
 
+		/*	Assigned parent.	*/
 		if (parent) {
 			pobject->parent = parent;
-			// parent->childrens.addChild(ITree<node_object_t *> *pchild)
+			pobject->parent_index = this->nodes.size();
 		} else {
 			pobject->parent = nullptr;
 		}

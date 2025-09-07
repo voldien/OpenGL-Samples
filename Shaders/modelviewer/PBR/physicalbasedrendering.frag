@@ -16,6 +16,11 @@ layout(location = 8) flat in ivec2 fAssigns;
 #include "pbr.glsl"
 #include "pbr_common.glsl"
 
+
+float computeLODFromRoughness(const in float perceptualRoughness){
+	return perceptualRoughness;
+}
+
 void main() {
 
 	/*	*/

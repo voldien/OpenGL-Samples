@@ -32,7 +32,6 @@ namespace glsample {
 		unsigned int skybox_cubemap{};
 
 		struct uniform_buffer_block {
-			glm::mat4 proj{};
 			glm::mat4 modelViewProjection{};
 			glm::vec4 tintColor{};
 			float exposure = 1.0f;
@@ -188,9 +187,7 @@ namespace glsample {
 			camera.update(getTimer().deltaTime<float>());
 
 			/*	*/
-			this->uniform_stage_buffer.proj =
-				glm::perspective(glm::radians(45.0f), (float)this->width() / (float)this->height(), 0.15f, 1000.0f);
-			this->uniform_stage_buffer.modelViewProjection = (this->uniform_stage_buffer.proj * camera.getViewMatrix());
+			this->uniform_stage_buffer.modelViewProjection = (camera.getProjectionMatrix() * camera.getViewMatrix());
 
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);

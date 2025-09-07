@@ -5,10 +5,10 @@
 precision mediump float;
 precision mediump int;
 
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(location = 0) out vec4 fragColor;
+layout(location = 0) in vec3 vVertex;
 
 layout(set = 0, binding = 0) uniform sampler2D SourceEnvTexture;
-layout(set = 0, binding = 1, rgba16f) uniform writeonly image2D targetIrradianceTexture;
 
 layout(push_constant) uniform Settings {
 	layout(offset = 0) float sampleDelta;
@@ -36,7 +36,7 @@ vec3 prefilter(const in vec3 N, const in float roughness) {
 		// generates a sample vector that's biased towards the preferred alignment direction (importance sampling).
 		const vec2 Xi = Hammersley(i, SAMPLE_COUNT);
 		const vec3 H = ImportanceSampleGGX(Xi, N, roughness);
-		const vec3 L = normalize(2.0 * dot(V, H) * H - V) *0.9999; //TODO: fix in till equi recntugular look up.
+		const vec3 L = normalize(2.0 * dot(V, H) * H - V) * 0.9999; // TODO: fix in till equi recntugular look up.
 
 		const float NdotL = max(dot(N, L), 0.0);
 		if (NdotL > 0.0) {
@@ -67,19 +67,9 @@ vec3 prefilter(const in vec3 N, const in float roughness) {
 
 void main() {
 
-	/*  */
-	if (any(greaterThan(gl_GlobalInvocationID.xy, imageSize(targetIrradianceTexture)))) {
-		return;
-	}
-
-	/*	*/
-	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
-	const vec2 normalized_uv_coords = vec2(pixel_coords) / vec2(imageSize(targetIrradianceTexture));
-
-	const vec2 shifted_uv = 2.0 * vec2(normalized_uv_coords.x, 1.0 - normalized_uv_coords.y) - vec2(1.0);
-	const vec3 direction = equirectangular(shifted_uv);
+	const vec3 direction = normalize(vVertex);
 
 	const vec3 prefilter_color = prefilter(direction, settings.roughness);
 
-	imageStore(targetIrradianceTexture, pixel_coords, vec4(prefilter_color, 1));
+	fragColor = vec4(prefilter_color, 1);
 }

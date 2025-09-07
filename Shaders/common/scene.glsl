@@ -1,7 +1,7 @@
 #ifndef _COMMON_SCENE_H_
 #define _COMMON_SCENE_H_ 1
 
-//TODO: relocate
+// TODO: relocate
 #extension GL_ARB_texture_cube_map_array : enable
 
 #include "common.glsl"
@@ -41,7 +41,7 @@ struct Node {
 };
 
 struct light_settings {
-	//TODO: seperate for shadow data.
+	// TODO: seperate for shadow data.
 
 	DirectionalLight directional[16];
 	PointLight point[64];
@@ -94,9 +94,8 @@ layout(set = 2, binding = 13) uniform sampler2D CameraDepthTexture;
 
 /*	Image Based Lightning Textures.	*/
 layout(set = 1, binding = 10) uniform samplerCube IrradianceTexture; /*	*/
-layout(set = 1, binding = 11) uniform sampler2D prefilterMap;	   /*	*/
-layout(set = 1, binding = 12) uniform sampler2D BRDFLUT;		   /*	*/
-
+layout(set = 1, binding = 11) uniform sampler2D prefilterMap;		 /*	*/
+layout(set = 1, binding = 12) uniform sampler2D BRDFLUT;			 /*	*/
 
 /*	Light.	*/
 layout(set = 3, binding = 20) uniform samplerCube PointShadowTexture[4];

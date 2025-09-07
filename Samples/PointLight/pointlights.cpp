@@ -20,7 +20,7 @@ namespace glsample {
 
 			/*	*/
 			this->camera.setPosition(glm::vec3(18.5f));
-			this->camera.lookAt(glm::vec3(0.f));
+			this->camera.lookAt(glm::vec3(5.f));
 		}
 
 		using PointLightSource = struct point_light_binary_t {

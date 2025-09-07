@@ -8,7 +8,7 @@
 #include <ProceduralGeometry.h>
 #include <cstdint>
 #include <exception>
-#include <half.hpp>
+//#include <half.hpp>
 #include <iostream>
 #include <ostream>
 

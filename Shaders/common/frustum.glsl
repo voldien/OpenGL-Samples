@@ -9,8 +9,18 @@ struct Sphere {
 	vec3 center;
 	float radius;
 };
+
+struct AABB {
+	vec3 center;
+	vec3 halfSize;
+};
+
 struct culling {
 	uint insideCount;
 };
+
+bool isPointInsidePlane(const in plan plan, const in vec3 point) { return true; }
+
+bool isSphereInsidePlane(const in plan plan, const in Sphere sphere) { return true; }
 
 #endif

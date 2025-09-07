@@ -22,7 +22,7 @@ namespace glsample {
 	  public:
 		MipMapScene() : Scene() {}
 
-		void renderNode(const NodeObject *node) override {
+		void renderNode(const Node *node) override {
 
 			for (size_t i = 0; i < node->geometryObjectIndex.size(); i++) {
 
@@ -68,7 +68,7 @@ namespace glsample {
 
 		unsigned int mip_levels = 6;
 
-		MipMapScene scene;
+		MipMapScene *scene{};
 
 		/*	*/
 		unsigned int mipmap_graphic_program{};
@@ -116,6 +116,8 @@ namespace glsample {
 		const std::string fragmentGraphicShaderPath = "Shaders/mipmap/mipmap_visual.frag.spv";
 
 		void Release() override {
+			delete this->scene;
+
 			glDeleteProgram(this->mipmap_graphic_program);
 
 			glDeleteBuffers(1, &this->uniform_buffer);
@@ -245,7 +247,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->mipmap_texture);
 				glBindSampler(0, this->mipmap_sampler);
 
-				this->scene.render(&this->camera);
+				this->scene->render(&this->camera);
 			}
 		}
 

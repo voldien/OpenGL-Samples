@@ -60,7 +60,7 @@ namespace glsample {
 
 		CameraController camera;
 
-		Scene scene;
+		Scene* scene{};
 
 		/*	*/
 		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
@@ -232,7 +232,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-				this->scene.render(&this->camera);
+				this->scene->render(&this->camera);
 
 				this->skybox.Render(this->camera);
 
@@ -279,7 +279,7 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			this->scene.update(this->getTimer().deltaTime<float>());
+			this->scene->update(this->getTimer().deltaTime<float>());
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/

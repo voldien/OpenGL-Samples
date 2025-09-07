@@ -49,7 +49,7 @@ namespace glsample {
 		/*	*/
 		MeshObject plan;   /*	Directional light.	*/
 		MeshObject sphere; /*	Point Light.*/
-		Scene scene;	   /*	World Scene.	*/
+		Scene* scene{};	   /*	World Scene.	*/
 		Skybox skybox;	   /*	*/
 
 		FrameBuffer deferredFramebuffer;
@@ -491,7 +491,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->deferredSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				this->scene.render();
+				this->scene->render();
 
 				glUseProgram(0);
 			}

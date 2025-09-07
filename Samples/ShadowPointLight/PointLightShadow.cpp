@@ -62,7 +62,7 @@ namespace glsample {
 		unsigned int shadowWidth = 1024 * 2;
 		unsigned int shadowHeight = 1024 * 2;
 
-		Scene scene;
+		Scene* scene{};
 		Skybox skybox;
 
 		unsigned int irradiance_texture{};
@@ -118,7 +118,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Animate Lights", &this->animate);
-				this->getRefSample().scene.renderUI();
+				this->getRefSample().scene->renderUI();
 			}
 
 			bool showWireFrame = false;
@@ -386,7 +386,7 @@ namespace glsample {
 					/*	Setup the shadow.	*/
 					glEnableVertexAttribArrayARB(4);
 					glVertexAttribI1i(4, i);
-					this->scene.render();
+					this->scene->render();
 				}
 			}
 
@@ -421,7 +421,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
-				this->scene.render(&this->camera);
+				this->scene->render(&this->camera);
 			}
 
 			skybox.Render(this->camera);
@@ -430,7 +430,7 @@ namespace glsample {
 		void update() override {
 
 			/*	Update Camera.	*/
-			this->scene.update(this->getTimer().deltaTime<float>());
+			this->scene->update(this->getTimer().deltaTime<float>());
 			this->camera.update(this->getTimer().deltaTime<float>());
 
 			/*	*/

@@ -19,7 +19,7 @@ MiscProcessingUtil::~MiscProcessingUtil() {
 		glDeleteProgram(this->irradiance_diffuse_program);
 	}
 	if (this->irradiance_specular_program >= 0) {
-		glDeleteProgram(this->irradiance_diffuse_program);
+		glDeleteProgram(this->irradiance_specular_program);
 	}
 	if (this->irradiance_diffuse_cubemap_program >= 0) {
 		glDeleteProgram(this->irradiance_diffuse_cubemap_program);
@@ -28,7 +28,7 @@ MiscProcessingUtil::~MiscProcessingUtil() {
 		glDeleteProgram(this->irradiance_specular_cubemap_program);
 	}
 	if (this->brdf_integration_map_program >= 0) {
-		glDeleteProgram(this->irradiance_diffuse_program);
+		glDeleteProgram(this->brdf_integration_map_program);
 	}
 	if (this->perlin_noise2D_program >= 0) {
 		glDeleteProgram(this->perlin_noise2D_program);

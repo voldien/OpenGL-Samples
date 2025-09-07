@@ -10,8 +10,8 @@
 #include <GLSampleWindow.h>
 #include <ImageImport.h>
 #include <ImportHelper.h>
-#include <ModelImporter.h>
 #include <ModelBase.h>
+#include <ModelImporter.h>
 #include <ShaderLoader.h>
 
 #include <glm/ext/matrix_transform.hpp>
@@ -70,7 +70,7 @@ namespace glsample {
 		unsigned int irradiance_texture{};
 
 		MeshObject plan;
-		Scene scene;
+		Scene *scene{};
 		Skybox skybox;
 
 		/*	*/
@@ -106,7 +106,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Debug");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 
-				this->getRefSample().scene.renderUI();
+				this->getRefSample().scene->renderUI();
 			}
 
 			bool showWireFrame = false;
@@ -324,7 +324,7 @@ namespace glsample {
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
 
-				this->scene.render(&this->camera);
+				this->scene->render(&this->camera);
 			}
 
 			{

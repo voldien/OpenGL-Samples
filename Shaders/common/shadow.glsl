@@ -3,6 +3,7 @@
 #include "light.glsl"
 
 // TODO: rename
+/*	1 => No Shadow. 0 => Shadow.	*/
 float ShadowCalculation(const in DirectionalLight directionLight, const in sampler2DShadow ShadowTexture,
 						const in vec3 surfaceNormal, const in vec4 VertexLightSpace) {
 
@@ -33,6 +34,7 @@ float ShadowCalculation(const in DirectionalLight directionLight, const in sampl
 	return 1 - shadow * shadowStrength;
 }
 
+/*	1 => No Shadow. 0 => Shadow.	*/
 float ShadowCalculationPCF(const DirectionalLight directionLight, const in sampler2DShadow ShadowTexture,
 						   const in vec3 surfaceNormal, const in vec4 VertexLightSpace) {
 
@@ -42,6 +44,7 @@ float ShadowCalculationPCF(const DirectionalLight directionLight, const in sampl
 	if (VertexLightSpace.w > 1.0 || projCoords.z > 1.0) {
 		return 0;
 	}
+
 	const float pcf_radius = 1;
 	const int PCF_SAMPLES = 16;
 
@@ -72,7 +75,9 @@ float ShadowCalculationPCF(const DirectionalLight directionLight, const in sampl
 		}
 	}
 
-	return (1.0 - (shadowFactor / nrSamples));
+	const float shadowContribution = (shadowFactor / nrSamples);
+
+	return (1.0 - shadowContribution);
 }
 
 #endif

@@ -212,3 +212,4 @@ lint/tmp/
 *.spv
 
 asset/
+imgui.ini

@@ -16,8 +16,6 @@
 #pragma once
 #include "Common.h"
 #include "Core/UIDObject.h"
-#include "DataStructure/PoolAllocator.h"
-#include "GLSampleSession.h"
 #include "IO/IFileSystem.h"
 #include "Importer/ModelImporter.h" //TODO: evntually remove.
 #include "SampleHelper.h"
@@ -79,7 +77,7 @@ namespace glsample {
 
 	  protected: /*	Internal backend methods.	*/
 		virtual void bindMaterial(const MaterialObject *material);
-		virtual void renderNode(const NodeObject *node);
+		virtual void renderNode(const Node *node);
 
 		virtual void sortRenderQueue();
 
@@ -90,7 +88,8 @@ namespace glsample {
 		bool useDebug() const noexcept { return this->debugMode > DebugMode::None; }
 
 	  public:
-		const std::vector<NodeObject *> &getNodes() const noexcept { return this->nodes; }
+		const std::vector<Node *> &getNodes() const noexcept { return this->nodes; }
+		std::vector<Node *> &getNodes() noexcept { return this->nodes; }
 
 		const std::vector<MeshObject> &getMeshes() const noexcept { return this->refGeometry; }
 		std::vector<MeshObject> &getMeshes() noexcept { return this->refGeometry; }
@@ -120,11 +119,12 @@ namespace glsample {
 		MaterialObject *currentBindedMaterial = nullptr;
 
 		/*	TODO add queue structure.	*/
-		std::map<RenderQueue, std::deque<const NodeObject *>> renderBucketQueue;
-		std::deque<const NodeObject *> renderQueue;
-		std::vector<NodeObject *> visableNodes;
+		std::map<RenderQueue, std::deque<const Node *>> renderBucketQueue;
+		std::deque<const Node *> renderQueue;
+		std::vector<Node *> visableNodes;
 
-		std::vector<NodeObject *> nodes;
+		std::vector<Node *> nodes;
+		std::vector<Node> nodePool;
 		std::vector<MeshObject> refGeometry;
 		std::vector<TextureAssetObject> refTexture;
 		std::vector<MaterialObject> materials;

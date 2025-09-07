@@ -128,7 +128,7 @@ namespace glsample {
 
 			/*	Bind shader pipeline.	*/
 			glUseProgram(this->physical_based_rendering_program);
-			this->scene.render(&this->cameraController);
+			this->scene->render(&this->cameraController);
 			glUseProgram(0);
 		}
 
@@ -138,7 +138,7 @@ namespace glsample {
 	void ModelBase::update() {
 		/*	Update Camera.	*/
 		this->cameraController.update(this->getTimer().deltaTime<float>());
-		this->scene.update(this->getTimer().deltaTime<float>());
+		this->scene->update(this->getTimer().deltaTime<float>());
 
 		/*	*/
 		{

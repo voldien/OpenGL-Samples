@@ -54,7 +54,11 @@ namespace glsample {
 		void setLocalScale(const glm::vec3 &localScale) noexcept;
 		void setLocalRotation(const glm::quat &localRotation) noexcept;
 
+		glm::mat4 getGlobalMatrix() const noexcept;
+		glm::mat4 getLocalMatrix() const noexcept;
+
 		glm::mat4 getViewMatrix() const noexcept;
+		glm::mat4 getLocalViewMatrix() const noexcept;
 		glm::mat4 getRotationMatrix() const noexcept;
 		glm::mat4 getViewTranslationMatrix() const noexcept;
 

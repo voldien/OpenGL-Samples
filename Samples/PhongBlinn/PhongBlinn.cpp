@@ -56,7 +56,7 @@ namespace glsample {
 		} uniformStageBuffer;
 
 		/*	*/
-		Scene scene; /*	World Scene.	*/
+		Scene* scene{}; /*	World Scene.	*/
 		const size_t nrPointLights = 4;
 
 		/*	Textures.	*/
@@ -249,7 +249,7 @@ namespace glsample {
 				/*	Optional - to display wireframe.	*/
 				glPolygonMode(GL_FRONT_AND_BACK, this->phongblinnSettingComponent->showWireFrame ? GL_LINE : GL_FILL);
 
-				this->scene.render(&this->camera);
+				this->scene->render(&this->camera);
 			}
 		}
 

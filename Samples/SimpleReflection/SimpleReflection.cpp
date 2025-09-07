@@ -51,7 +51,7 @@ namespace glsample {
 		/*	*/
 		MeshObject plan;
 		Skybox skybox;
-		Scene scene;
+		Scene *scene{};
 
 		/*	G-Buffer	*/
 		unsigned int multipass_framebuffer{};
@@ -67,7 +67,6 @@ namespace glsample {
 		/*	*/
 		unsigned int graphic_program{};
 		unsigned int skybox_program{};
-  
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
@@ -107,7 +106,7 @@ namespace glsample {
 
 		const std::string vertexShaderPath = "Shaders/phongblinn/phongblinn_directional_light.vert.spv";
 		const std::string fragmentShaderPath = "Shaders/phongblinn/phong_directional_light.frag.spv";
- 
+
 		void Release() override {
 			/*	*/
 			glDeleteProgram(this->skybox_program);
@@ -135,7 +134,7 @@ namespace glsample {
 					IOUtil::readFileData<uint32_t>(vertexShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_simple_ocean_binary =
 					IOUtil::readFileData<uint32_t>(fragmentShaderPath, this->getFileSystem());
-		 
+
 				fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
@@ -154,7 +153,7 @@ namespace glsample {
 			glUniform1i(glGetUniformLocation(this->graphic_program, "NormalTexture"), 1);
 			glUniformBlockBinding(this->graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
- 
+
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::RawLinear);
@@ -294,7 +293,7 @@ namespace glsample {
 				glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 				glStencilMask(0x0);
 
-				this->scene.render();
+				this->scene->render();
 
 				glUseProgram(0);
 			}
@@ -312,7 +311,7 @@ namespace glsample {
 
 				/*	*/
 
-				this->scene.render();
+				this->scene->render();
 
 				glUseProgram(0);
 			}
@@ -337,7 +336,7 @@ namespace glsample {
 
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
-			this->scene.update(this->getTimer().deltaTime<float>());
+			this->scene->update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniform_stage_buffer.proj = this->camera.getProjectionMatrix();

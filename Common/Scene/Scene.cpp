@@ -288,8 +288,8 @@ namespace glsample {
 		NodeData *baseNodeData = this->stageNodeDataRobin.buffers[getRoundRobinIndex()];
 		size_t node_index = 0;
 		auto copyQueue = renderQueue; // TODO: fix performance
-		for (const NodeObject *node : copyQueue) {
-			baseNodeData[node_index++].model = node->modelGlobalTransform;
+		for (const Node *node : copyQueue) {
+			baseNodeData[node_index++].model = node->getGlobalMatrix(); // modelGlobalTransform;
 		}
 
 		/*	Update Materials.	*/
@@ -406,7 +406,7 @@ namespace glsample {
 			/*	*/
 			// TODO: multi thread
 			const size_t num_threads = 6;
-			static std::vector<std::vector<NodeObject *>> objects(num_threads, std::vector<NodeObject *>());
+			static std::vector<std::vector<Node *>> objects(num_threads, std::vector<Node *>());
 			for (size_t i = 0; i < objects.size(); i++) {
 				objects[i].clear();
 				objects[i].reserve(1024);
@@ -415,7 +415,7 @@ namespace glsample {
 #pragma omp parallel for collapse(1) num_threads(num_threads)
 			for (size_t node_index = 0; node_index < this->getNodes().size(); node_index++) {
 
-				NodeObject *node = this->getNodes()[node_index];
+				Node *node = this->getNodes()[node_index];
 
 				/*	Check if any of the meshes are visable. */
 				for (size_t mesh_index = 0; mesh_index < node->geometryObjectIndex.size(); mesh_index++) {
@@ -458,11 +458,11 @@ namespace glsample {
 			}
 
 			for (size_t i = 0; i < objects.size(); i++) {
-				visableNodes.insert(visableNodes.end(), objects[i].begin(), objects[i].end());
+				this->visableNodes.insert(this->visableNodes.end(), objects[i].begin(), objects[i].end());
 			}
 
 		} else {
-			visableNodes = this->getNodes();
+			this->visableNodes = this->getNodes();
 		}
 	}
 
@@ -516,10 +516,10 @@ namespace glsample {
 				/*	*/
 				for (auto it = order.begin(); it != order.end(); it++) {
 					// RenderQueue renderQueue = (*it).first;
-					std::deque<const NodeObject *> nodeQueue = this->renderBucketQueue[(*it)];
+					std::deque<const Node *> nodeQueue = this->renderBucketQueue[(*it)];
 					for (auto itQ = nodeQueue.begin(); itQ != nodeQueue.end(); itQ++) {
 
-						const NodeObject *node = (*itQ);
+						const Node *node = (*itQ);
 						// this->debugDrawer->addAABB(node->bound.aabb, glm::vec4(0.3f, 1.0f 0.3f, 1.0f));
 					}
 				}
@@ -596,30 +596,30 @@ namespace glsample {
 		/*	*/
 		for (auto it = order.begin(); it != order.end(); it++) {
 			// RenderQueue renderQueue = (*it).first;
-			std::deque<const NodeObject *> nodeQueue = this->renderBucketQueue[(*it)];
+			std::deque<const Node *> nodeQueue = this->renderBucketQueue[(*it)];
 
 			/*	*/
 			const std::string domain = fmt::format("{}", (int)(*it));
 
 			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, domain.size(), domain.data());
 			for (auto itQ = nodeQueue.begin(); itQ != nodeQueue.end(); itQ++) {
-				const NodeObject *node = (*itQ);
+				const Node *node = (*itQ);
 				this->renderNode(node);
 			}
 			glPopDebugGroup();
 		}
 
 		for (auto it = this->renderQueue.begin(); it != this->renderQueue.end(); it++) {
-			const NodeObject *node = (*it);
+			const Node *node = (*it);
 			// this->renderNode(node);
 		}
 
 		/*	*/
 		if (this->debugMode & DebugMode::Wireframe) {
 			/*	*/
-			for (const NodeObject *node : this->renderQueue) {
+			for (const Node *node : this->renderQueue) {
 				/*	*/
-				// const NodeObject *node = this->renderQueue[x];
+				// const Node *node = this->renderQueue[x];
 				// this->renderNode(node);
 			}
 		}
@@ -744,7 +744,7 @@ namespace glsample {
 		}
 	}
 
-	void Scene::renderNode(const NodeObject *node) {
+	void Scene::renderNode(const Node *node) {
 
 		/*	Update binding offset.	*/
 		if ((currentNodeIndex % this->UBOStructure.max_node_per_binding) == 0) {
@@ -783,7 +783,8 @@ namespace glsample {
 				this->bindMaterial(&material);
 			}
 
-			const MeshObject &refMesh = this->refGeometry[node->geometryObjectIndex[geo_index]];
+			const int mesh_index = node->geometryObjectIndex[geo_index];
+			const MeshObject &refMesh = this->refGeometry[mesh_index];
 			glBindVertexArray(refMesh.vao);
 
 			/*	Material, model matrix.	*/
@@ -808,15 +809,15 @@ namespace glsample {
 		for (size_t x = 0; x < this->visableNodes.size(); x++) {
 
 			/*	*/
-			const NodeObject *node = this->visableNodes[x];
+			const Node *node = this->visableNodes[x];
 			if (node->materialIndex.empty()) {
 				continue;
 			}
 
 			/*	*/
-			const bool validIndex = node->materialIndex[0] < this->materials.size();
+			const bool validMaterialIndex = node->materialIndex[0] < this->materials.size();
 
-			if (validIndex) {
+			if (validMaterialIndex) {
 
 				const MaterialObject *material = &this->materials[node->materialIndex[0]];
 				assert(material);
@@ -832,7 +833,7 @@ namespace glsample {
 				}
 
 			} else {
-				std::cerr << "Invalid Material " << node->name << std::endl;
+				std::cerr << "Invalid Material " << node->getName() << std::endl;
 			}
 		}
 
@@ -947,49 +948,38 @@ namespace glsample {
 
 				for (size_t node_index = 0; node_index < nodes.size(); node_index++) {
 
+					Node *currentNode = nodes[node_index];
+
 					if (node_index == 0) {
 						ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 					}
 
 					ImGui::PushID(node_index);
 
-					if (nodes[node_index]->parent) {
-						ImGui::TextUnformatted(nodes[node_index]->parent->name.c_str());
+					if (currentNode->getParent()) {
+						ImGui::TextUnformatted(currentNode->getParent()->ptr()->getName().c_str());
 					}
 
-					ImGui::TextUnformatted(nodes[node_index]->name.c_str());
-					if (ImGui::DragFloat3("Position", &nodes[node_index]->localPosition[0])) {
-						const glm::mat4 globaMat = nodes[node_index]->parent == nullptr
-													   ? glm::mat4(1)
-													   : nodes[node_index]->parent->modelGlobalTransform;
-						nodes[node_index]->modelGlobalTransform =
-							glm::translate(globaMat, nodes[node_index]->localPosition);
+					ImGui::TextUnformatted(currentNode->getName().c_str());
+					
+					glm::vec3 localPosition = currentNode->getLocalPosition();
+					if (ImGui::DragFloat3("Position", &localPosition[0])) {
+						currentNode->setLocalPosition(localPosition);
 					}
 
-					if (ImGui::DragFloat4("Rotation (Quat)", &nodes[node_index]->localRotation[0])) {
-						nodes[node_index]->localRotation = glm::normalize(nodes[node_index]->localRotation);
-						const glm::mat4 globaMat = nodes[node_index]->parent == nullptr
-													   ? glm::mat4(1)
-													   : nodes[node_index]->parent->modelGlobalTransform;
-
-						nodes[node_index]->modelGlobalTransform =
-							glm::translate(globaMat, nodes[node_index]->localPosition) *
-							glm::mat4_cast(nodes[node_index]->localRotation);
+					glm::quat quat_local_rotation = currentNode->getLocalRotation();
+					if (ImGui::DragFloat4("Rotation (Quat)", &quat_local_rotation[0])) {
+						currentNode->setLocalRotation(quat_local_rotation);
 					}
 
-					if (ImGui::DragFloat3("Rotation (Eular)", &nodes[node_index]->localRotation[0])) {
+					glm::vec3 eular_rotation = currentNode->getRotationEular();
+					if (ImGui::DragFloat3("Rotation (Eular)", &eular_rotation[0])) {
+						currentNode->setRotationEular(eular_rotation);
 					}
 
-					if (ImGui::DragFloat3("Scale", &nodes[node_index]->localScale[0])) {
-
-						const glm::mat4 globaMat = nodes[node_index]->parent == nullptr
-													   ? glm::mat4(1)
-													   : nodes[node_index]->parent->modelGlobalTransform;
-
-						nodes[node_index]->modelGlobalTransform =
-							glm::translate(globaMat, nodes[node_index]->localPosition) *
-							glm::mat4_cast(nodes[node_index]->localRotation) *
-							glm::scale(nodes[node_index]->localScale);
+					glm::vec3 local_scale = currentNode->getLocalScale();
+					if (ImGui::DragFloat3("Scale", &local_scale[0])) {
+						currentNode->setLocalScale(local_scale);
 					}
 					ImGui::Separator();
 

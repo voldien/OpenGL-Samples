@@ -41,6 +41,9 @@ vec3 ImportanceSampleGGX(const in vec2 Xi, const in vec3 N, const in float rough
 	vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
 	return normalize(sampleVec);
 }
+// ----------------------------------------------------------------------------
+// Fresnel Distributions
+//-----------------------------------------------------------------------------
 
 vec3 fresnelSchlick(const in float cosTheta, const in vec3 f0) {
 	float f = pow(1.0 - cosTheta, 5.0);
@@ -87,7 +90,7 @@ float D_GGX(float roughness, float NoH, const vec3 n, const vec3 h) {
 	vec3 NxH = cross(n, h);
 	float a = NoH * roughness;
 	float k = roughness / (dot(NxH, NxH) + a * a);
-	float d = k * k * (1.0 / PI);
+	float d = k * k * PI_INVERSE;
 	return saturateMediump(d);
 }
 

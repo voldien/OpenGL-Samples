@@ -2,6 +2,7 @@
 #define _COMMON_BLINN_PHONG_LIGHT_ 1
 #include "light.glsl"
 
+
 struct phongblinn_material {
 	vec4 specular_shinnines;
 };

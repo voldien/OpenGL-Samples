@@ -54,7 +54,7 @@ namespace glsample {
 			float fogIntensity = 1.0f;
 		} uniform_stage_buffer;
 
-		Scene scene;
+		Scene *scene{};
 
 		unsigned int graphic_fog_program = 0;
 
@@ -91,7 +91,7 @@ namespace glsample {
 				ImGui::TextUnformatted("Debug Settings");
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 
-				this->getRefSample().scene.renderUI();
+				this->getRefSample().scene->renderUI();
 			}
 
 			bool showWireFrame = false;
@@ -190,14 +190,14 @@ namespace glsample {
 				glCullFace(GL_BACK);
 				glDisable(GL_CULL_FACE);
 
-				this->scene.render(&this->camera);
+				this->scene->render(&this->camera);
 			}
 		}
 
 		void update() override {
 			/*	Update Camera.	*/
 			this->camera.update(this->getTimer().deltaTime<float>());
-			this->scene.update(this->getTimer().deltaTime<float>());
+			this->scene->update(this->getTimer().deltaTime<float>());
 
 			/*	*/
 			this->uniform_stage_buffer.model = glm::mat4(1.0f);

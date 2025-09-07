@@ -1,4 +1,5 @@
 #include "SceneHelper.h"
+#include "Scene/Node.h"
 
 using namespace glsample;
 
@@ -61,27 +62,45 @@ void SceneHelper::convertAnimationSystem(Scene &scene, const ModelImporter &impo
 
 void SceneHelper::convertNodeSystem(Scene &scene, ModelImporter &importer) {
 
-    /*  */
-    importer.getNodeRoot();
+	/*  */
+	const size_t nr_nodes = importer.getNodes().size();
+	scene.nodePool = std::vector<Node>(nr_nodes);
 
-    
-	for (size_t node_index = 0; node_index < importer.getNodes().size(); node_index++) {
+	/*	Convert nodes.	*/
+	for (size_t node_index = 0; node_index < nr_nodes; node_index++) {
 
-		NodeObject *node_Obj = importer.getNodes()[node_index];
-		Node *node = new Node(); // TODO: get from pool.
+		/*	*/
+		const NodeObject *node_Obj = importer.getNodes()[node_index];
+		Node *node = &scene.nodePool[node_index];
 
-		node->setPosition(node_Obj->localPosition);
-		node->setScale(node_Obj->localScale);
-		node->setRotation(node_Obj->localRotation);
+		const int node_parent_index = node_Obj->parent_index;
+		if (node_parent_index >= 0) {
+			Node *parent = &scene.nodePool[node_parent_index];
+			node->setParent(parent);
+		}
 
-		node->modelLocalTransform = node_Obj->modelLocalTransform;
-		node->modelGlobalTransform = node_Obj->modelGlobalTransform;
-
-		node->geometryObjectIndex = node_Obj->geometryObjectIndex;
-		node->materialIndex = node_Obj->materialIndex;
-
+		/*	*/
 		convertNodeChildren(node_Obj, node);
+	}
+
+	scene.getNodes().resize(nr_nodes);
+	for (size_t node_index = 0; node_index < nr_nodes; node_index++) {
+		scene.getNodes()[node_index] = &scene.nodePool[node_index];
 	}
 }
 
-void SceneHelper::convertNodeChildren(NodeObject *node0, Node *node) {}
+void SceneHelper::convertNodeChildren(const NodeObject *node_Obj, Node *node) {
+	node->setName(node_Obj->name);
+
+	node->setPosition(node_Obj->localPosition);
+	node->setScale(node_Obj->localScale);
+	node->setRotation(node_Obj->localRotation);
+
+	node->bound = node_Obj->bound;
+
+	node->modelLocalTransform = node_Obj->modelLocalTransform;
+	node->modelGlobalTransform = node_Obj->modelGlobalTransform;
+
+	node->geometryObjectIndex = node_Obj->geometryObjectIndex;
+	node->materialIndex = node_Obj->materialIndex;
+}

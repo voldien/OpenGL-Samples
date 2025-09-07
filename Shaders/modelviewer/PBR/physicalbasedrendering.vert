@@ -29,8 +29,8 @@ void main() {
 	/*	*/
 	gl_Position = (viewProj * model) * vec4(Vertex, 1.0);
 	vertex = (model * vec4(Vertex, 1.0)).xyz;
-	normal = (model * vec4(Normal, 0.0)).xyz;
-	tangent = (model * vec4(Tangent, 0.0)).xyz;
+	normal = normalize((model * vec4(Normal, 0.0)).xyz);
+	tangent = normalize((model * vec4(Tangent, 0.0)).xyz);
 	uv = TextureCoord;
 
 	/*	*/

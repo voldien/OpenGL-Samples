@@ -6,10 +6,10 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <Importer/ImageImport.h>
+#include <Scene/CameraController.h>
 #include <Scene/Scene.h>
 #include <ShaderLoader.h>
 #include <Skybox.h>
-#include <Scene/CameraController.h>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -120,11 +120,23 @@ namespace glsample {
 		glm::mat4 cameraProj{};
 		CameraController camera;
 
-		/*	Simple Terrain.	*/
-		const std::string vertexTerrainShaderPath = "Shaders/terrain/terrain.vert.spv";
-		const std::string fragmentTerrainShaderPath = "Shaders/terrain/terrain.frag.spv";
-		const std::string vertexTerrainControlShaderPath = "Shaders/terrain/terrain.tesc.spv";
-		const std::string fragmentTerrainEvolutionShaderPath = "Shaders/terrain/terrain.tese.spv";
+		/*	Terrain.	*/
+		const std::string vertexTerrainShaderPath = "Shaders/forest/terrain/terrain.vert.spv";
+		const std::string fragmentTerrainShaderPath = "Shaders/forest/terrain/terrain.frag.spv";
+		const std::string controlTerrainShaderPath = "Shaders/forest/terrain/terrain.tesc.spv";
+		const std::string evolutionTerrainShaderPath = "Shaders/forest/terrain/terrain.tese.spv";
+
+		/*	Grass.	*/
+		const std::string vertexGrassShaderPath = "Shaders/forest/terrain/terrain.vert.spv";
+		const std::string fragmentGrassShaderPath = "Shaders/forest/terrain/terrain.frag.spv";
+		const std::string vertexGrassControlShaderPath = "Shaders/forest/terrain/terrain.tesc.spv";
+		const std::string fragmentGrassEvolutionShaderPath = "Shaders/forest/terrain/terrain.tese.spv";
+
+		/*	Grass.	*/
+		const std::string vertexTreeShaderPath = "Shaders/forest/terrain/terrain.vert.spv";
+		const std::string fragmentTreeShaderPath = "Shaders/forest/terrain/terrain.frag.spv";
+		const std::string vertexTreeControlShaderPath = "Shaders/forest/terrain/terrain.tesc.spv";
+		const std::string fragmentTreeEvolutionShaderPath = "Shaders/forest/terrain/terrain.tese.spv";
 
 		/*	Simple Water.	*/
 		const std::string vertexSimpleWaterShaderPath = "Shaders/simpleocean/simple_water.vert.spv";
@@ -227,9 +239,9 @@ namespace glsample {
 				const std::vector<uint32_t> fragment_terrain_binary =
 					IOUtil::readFileData<uint32_t>(this->fragmentTerrainShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> control_binary_binary =
-					IOUtil::readFileData<uint32_t>(this->vertexTerrainControlShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->controlTerrainShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> evolution_terrain_binary =
-					IOUtil::readFileData<uint32_t>(this->fragmentTerrainEvolutionShaderPath, this->getFileSystem());
+					IOUtil::readFileData<uint32_t>(this->evolutionTerrainShaderPath, this->getFileSystem());
 
 				const std::vector<uint32_t> vertex_simple_ocean_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexSimpleWaterShaderPath, this->getFileSystem());
@@ -254,17 +266,22 @@ namespace glsample {
 			int uniform_buffer_index = glGetUniformBlockIndex(this->terrain_program, "UniformBufferBlock");
 			glUniform1i(glGetUniformLocation(this->terrain_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
 			glUniform1i(glGetUniformLocation(this->terrain_program, "NormalTexture"), TextureTypeBinding::Normal);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "DisplacementTexture"), TextureTypeBinding::Displacement);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "IrradianceTexture"), TextureTypeBinding::Irradiance);
+			glUniform1i(glGetUniformLocation(this->terrain_program, "DisplacementTexture"),
+						TextureTypeBinding::Displacement);
+			glUniform1i(glGetUniformLocation(this->terrain_program, "IrradianceTexture"),
+						TextureTypeBinding::Irradiance);
 			glUniformBlockBinding(this->terrain_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
 			/*	*/
 			glUseProgram(this->simple_ocean_program);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "DepthTexture"), TextureTypeBinding::DepthBuffer);
+			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "DepthTexture"),
+						TextureTypeBinding::DepthBuffer);
 			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "NormalTexture"), TextureTypeBinding::Normal);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "IrradianceTexture"), TextureTypeBinding::Irradiance);
-			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "ReflectionTexture"), TextureTypeBinding::Reflection);
+			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "IrradianceTexture"),
+						TextureTypeBinding::Irradiance);
+			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "ReflectionTexture"),
+						TextureTypeBinding::Reflection);
 
 			uniform_buffer_index = glGetUniformBlockIndex(this->simple_ocean_program, "UniformBufferBlock");
 			glUniformBlockBinding(this->simple_ocean_program, uniform_buffer_index, this->uniform_buffer_binding);
@@ -332,6 +349,7 @@ namespace glsample {
 
 			glClear(GL_DEPTH_BUFFER_BIT);
 
+			/*	*/
 			if (this->terrainSettingComponent->updateTerrain) {
 				this->terrainSettingComponent->updateTerrain = false;
 				static MiscProcessingUtil util = MiscProcessingUtil(this->getFileSystem());
@@ -375,7 +393,9 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::DepthBuffer);
-				glBindTexture(GL_TEXTURE_2D, this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
+				glBindTexture(
+					GL_TEXTURE_2D,
+					this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
@@ -434,7 +454,9 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::DepthBuffer);
-				glBindTexture(GL_TEXTURE_2D, this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
+				glBindTexture(
+					GL_TEXTURE_2D,
+					this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Normal);
@@ -462,8 +484,9 @@ namespace glsample {
 
 			/*	Post processing.	*/
 			if (this->terrainSettingComponent->useMistFogPost) {
-				this->mistprocessing.render(this->irradiance_texture, this->getDefaultFrameBufferObj()->attachments[0],
-											this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
+				this->mistprocessing.render(
+					this->irradiance_texture, this->getDefaultFrameBufferObj()->attachments[0],
+					this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 			}
 		}
 
