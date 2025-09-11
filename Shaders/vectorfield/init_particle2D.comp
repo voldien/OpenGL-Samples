@@ -7,13 +7,13 @@
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
-#include "base.glsl"
+#include "vectorfield_base.glsl"
 
 /*	*/
-layout(std430, binding = 1) readonly restrict buffer ReadBuffer { particle_t particle[]; }
+layout(std430, set = 1, binding = 1) readonly restrict buffer ReadBuffer { particle_t particle[]; }
 readBuffer;
 /*	*/
-layout(std430, binding = 2) writeonly restrict buffer WriteBuffer { particle_t particle[]; }
+layout(std430, set = 1, binding = 2) writeonly restrict buffer WriteBuffer { particle_t particle[]; }
 writeBuffer;
 
 void main() {
@@ -22,13 +22,19 @@ void main() {
 
 		/*	Particle index.	*/
 		const uint pindex = gl_GlobalInvocationID.x * NR_Particles + i;
-		
 
 		if (pindex >= ubo.setting.nrParticles) {
 			return;
 		}
 
-		writeBuffer.particle[pindex].position.xy = vec2(10, 10);
-		writeBuffer.particle[pindex].velocity.xy = vec2(0, 0);
+		const vec2 max_bound = ubo.setting.particleBox.xy;
+		const vec2 uniform_random2 =
+			vec2(simple_rand(pindex.xx * 100.03 + i), simple_rand(vec2(100 * i) + pindex.xx * 20.3));
+		const vec2 uniform_position = uniform_random2 * max_bound; // TODO
+		const vec2 random_init_velocity =
+			vec2(snoise(uniform_position.xy + pindex.xx * 100), snoise(uniform_position.yx - pindex.xx * 100));
+
+		writeBuffer.particle[pindex].position.xy = clamp(uniform_position, vec2(0.05), 0.99999 * max_bound);
+		writeBuffer.particle[pindex].velocity.xy = random_init_velocity;
 	}
 }

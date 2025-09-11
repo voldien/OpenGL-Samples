@@ -6,6 +6,7 @@
 #include "magic_enum.hpp"
 #include <GL/glew.h>
 #include <IO/IOUtil.h>
+#include <Math/Math.h>
 #include <limits>
 
 using namespace glsample;
@@ -17,11 +18,11 @@ BlurPostProcessing::BlurPostProcessing() {
 }
 
 BlurPostProcessing::~BlurPostProcessing() {
-	if (glIsProgram(this->guassian_blur_vertical_compute_program)) {
-		glDeleteProgram(this->guassian_blur_vertical_compute_program);
+	if (glIsProgram(this->guassian_blur_vertical_fixed_compute_program)) {
+		glDeleteProgram(this->guassian_blur_vertical_fixed_compute_program);
 	}
-	if (glIsProgram(this->guassian_blur_horizontal_compute_program)) {
-		glDeleteProgram(this->guassian_blur_horizontal_compute_program);
+	if (glIsProgram(this->guassian_blur_horizontal_fixed_compute_program)) {
+		glDeleteProgram(this->guassian_blur_horizontal_fixed_compute_program);
 	}
 	if (glIsProgram(this->box_blur_compute_program)) {
 		glDeleteProgram(this->box_blur_compute_program);
@@ -36,30 +37,30 @@ void BlurPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	const char *box_blur_compute_path = "Shaders/postprocessingeffects/box_blur.comp.spv";
 
-	if (this->guassian_blur_vertical_compute_program == 0) {
+	if (this->guassian_blur_vertical_fixed_compute_program == 0) {
 
 		const std::vector<uint32_t> guassian_blur_vertical_compute_binary =
-			IOUtil::readFileData<uint32_t>(guassian_vertical_blur_compute_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(guassian_vertical_blur_compute_path, filesystem);
 
 		const std::vector<uint32_t> guassian_blur_horizontal_compute_binary =
-			IOUtil::readFileData<uint32_t>(guassian_horizontal_blur_compute_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(guassian_horizontal_blur_compute_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 		compilerOptions.glslVersion = 420; /*	Min required glsl spec.	*/
 
 		/*  */
-		this->guassian_blur_vertical_compute_program =
+		this->guassian_blur_vertical_fixed_compute_program =
 			ShaderLoader::loadComputeProgram(compilerOptions, &guassian_blur_vertical_compute_binary);
 		/*  */
-		this->guassian_blur_horizontal_compute_program =
+		this->guassian_blur_horizontal_fixed_compute_program =
 			ShaderLoader::loadComputeProgram(compilerOptions, &guassian_blur_horizontal_compute_binary);
 	}
 
 	if (this->box_blur_compute_program == 0) {
 		/*	*/
 		const std::vector<uint32_t> box_blur_compute_binary =
-			IOUtil::readFileData<uint32_t>(box_blur_compute_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(box_blur_compute_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -69,18 +70,18 @@ void BlurPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		this->box_blur_compute_program = ShaderLoader::loadComputeProgram(compilerOptions, &box_blur_compute_binary);
 	}
 
-	glUseProgram(this->guassian_blur_vertical_compute_program);
-	glGetProgramiv(this->guassian_blur_vertical_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
+	glUseProgram(this->guassian_blur_vertical_fixed_compute_program);
+	glGetProgramiv(this->guassian_blur_vertical_fixed_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
 				   localWorkGroupSize[Blur::GuassianBlur]);
-	glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "ColorTexture"), 0);
-	glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "TargetTexture"), 1);
+	glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_fixed_compute_program, "ColorTexture"), 0);
+	glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_fixed_compute_program, "TargetTexture"), 1);
 	glUseProgram(0);
 
-	glUseProgram(this->guassian_blur_horizontal_compute_program);
-	glGetProgramiv(this->guassian_blur_horizontal_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
+	glUseProgram(this->guassian_blur_horizontal_fixed_compute_program);
+	glGetProgramiv(this->guassian_blur_horizontal_fixed_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
 				   localWorkGroupSize[Blur::GuassianBlur + 1]);
-	glUniform1i(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "ColorTexture"), 0);
-	glUniform1i(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "TargetTexture"), 1);
+	glUniform1i(glGetUniformLocation(this->guassian_blur_horizontal_fixed_compute_program, "ColorTexture"), 0);
+	glUniform1i(glGetUniformLocation(this->guassian_blur_horizontal_fixed_compute_program, "TargetTexture"), 1);
 	glUseProgram(0);
 
 	glUseProgram(this->box_blur_compute_program);
@@ -137,15 +138,15 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 					this->blurSettings.samples);
 		break;
 	case GuassianBlur:
-		glUseProgram(this->guassian_blur_vertical_compute_program);
-		glUniform1f(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "settings.radius"),
+		glUseProgram(this->guassian_blur_vertical_fixed_compute_program);
+		glUniform1f(glGetUniformLocation(this->guassian_blur_vertical_fixed_compute_program, "settings.radius"),
 					this->blurSettings.radius);
-		glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "settings.samples"),
+		glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_fixed_compute_program, "settings.samples"),
 					this->blurSettings.samples);
-		glUseProgram(this->guassian_blur_horizontal_compute_program);
-		glUniform1f(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "settings.radius"),
+		glUseProgram(this->guassian_blur_horizontal_fixed_compute_program);
+		glUniform1f(glGetUniformLocation(this->guassian_blur_horizontal_fixed_compute_program, "settings.radius"),
 					this->blurSettings.radius);
-		glUniform1i(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "settings.samples"),
+		glUniform1i(glGetUniformLocation(this->guassian_blur_horizontal_fixed_compute_program, "settings.samples"),
 					this->blurSettings.samples);
 		break;
 	default:
@@ -180,7 +181,7 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 		if (WorkGroupX > 0 && WorkGroupY > 0) {
 			for (int it = 0; it < this->blurSettings.nrIterations; it++) {
 
-				glUseProgram(this->guassian_blur_vertical_compute_program);
+				glUseProgram(this->guassian_blur_vertical_fixed_compute_program);
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, read_color_texture);
 				glBindImageTexture(1, write_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -189,7 +190,7 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 				std::swap(write_texture, read_color_texture);
 
-				glUseProgram(this->guassian_blur_horizontal_compute_program);
+				glUseProgram(this->guassian_blur_horizontal_fixed_compute_program);
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, read_color_texture);
 				glBindImageTexture(1, write_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -221,16 +222,16 @@ void BlurPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 
 void BlurPostProcessing::updateGuassianKernel() {
 
-	Math::guassian<float>(this->blurSettings.guassian.data(), this->blurSettings.samples, 0,
-						  this->blurSettings.variance);
+	fragcore::Math::guassian<float>(this->blurSettings.guassian.data(), this->blurSettings.samples, 0,
+									this->blurSettings.variance);
 
-	glUseProgram(this->guassian_blur_vertical_compute_program);
-	glUniform1fv(glGetUniformLocation(this->guassian_blur_vertical_compute_program, "settings.kernel"),
+	glUseProgram(this->guassian_blur_vertical_fixed_compute_program);
+	glUniform1fv(glGetUniformLocation(this->guassian_blur_vertical_fixed_compute_program, "settings.kernel"),
 				 this->blurSettings.samples, this->blurSettings.guassian.data());
 	glUseProgram(0);
 
-	glUseProgram(this->guassian_blur_horizontal_compute_program);
-	glUniform1fv(glGetUniformLocation(this->guassian_blur_horizontal_compute_program, "settings.kernel"),
+	glUseProgram(this->guassian_blur_horizontal_fixed_compute_program);
+	glUniform1fv(glGetUniformLocation(this->guassian_blur_horizontal_fixed_compute_program, "settings.kernel"),
 				 this->blurSettings.samples, this->blurSettings.guassian.data());
 	glUseProgram(0);
 }

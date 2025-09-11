@@ -18,7 +18,10 @@
 #include "Common.h"
 #include "DataStructure/StackBufferedAllocator.h"
 #include "SampleHelper.h"
+#include "Scene/Camera.h"
 #include "Scene/Material.h"
+#include <DataStructure/Queue.h>
+#include <Math3D/OBB.h>
 
 namespace glsample {
 	/**
@@ -35,7 +38,7 @@ namespace glsample {
 
 		void updateBuffers();
 
-		virtual void reset() {}
+		virtual void reset();
 
 		virtual void addLine(const glm::vec3 &start, const glm::vec3 &end, const glm::vec4 &color,
 							 float lineWidth = 1.0f, float duration = 0.0f, bool depthEnabled = true);
@@ -120,7 +123,7 @@ namespace glsample {
 
 		/*	*/
 		std::map<unsigned int, Queue<DebugDrawCommand *>> commands; /*  */
-		StackBufferedAllocator stackAllocator;
+		fragcore::StackBufferedAllocator stackAllocator;
 		std::vector<MeshObject> debugGeometrys; /*  Geometry of the debug objects. - multiple sub geometries.   */
 
 		Material material;
@@ -128,5 +131,6 @@ namespace glsample {
 		/*	*/
 		StageBuffer<DebugData, 3> StageBuffers;
 		UBOPool ubo_pool;
+		UBOPool storageBufferPool;
 	};
 } // namespace glsample

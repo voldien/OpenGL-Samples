@@ -24,6 +24,10 @@ namespace glsample {
 	  public:
 		/*	Shadow shader paths.	*/
 
+		/*	*/
+		const std::string vertexMultiPassShaderPath = "Shaders/multipass/multipass.vert.spv";
+		const std::string fragmentMultiPassShaderPath = "Shaders/multipass/multipass.frag.spv";
+
 		// const std::string fragmentDirectionalClippingShadowShaderPath =
 		// "Shaders/scene/shadow/scene_directional_shadow.vert.spv";
 
@@ -37,7 +41,8 @@ namespace glsample {
 			unsigned int variable_rate_color_program{};
 			unsigned int variable_depth_edge_rate_program{};
 			unsigned int variable_visual_edge_rate_program{};
-			int localWorkGroupSize[3]{};
+
+			std::array<int, 3> localWorkGroupSize{};
 			unsigned int variable_rate_lut_texture = 0;
 			unsigned int variable_rate_visual_texture = 0;
 		};

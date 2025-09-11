@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "Common.h"
+#include "Core/Time.h"
 #include "Core/UIDObject.h"
 #include "IO/IFileSystem.h"
 #include "Importer/ModelImporter.h" //TODO: evntually remove.
@@ -22,6 +23,7 @@
 #include "Scene/Animation.h"
 #include "Scene/Light.h"
 #include "Scene/RenderQueue.h"
+#include "Scene/SceneSettingComponentUI.h"
 #include "Util/DebugDrawer.h"
 #include <deque>
 
@@ -109,9 +111,7 @@ namespace glsample {
 		virtual void bindTexture(const MaterialObject &material, const TextureTypeBinding texture_type);
 		virtual int computeMaterialPriority(const MaterialObject &material) const noexcept;
 		virtual RenderQueue getQueueDomain(const MaterialObject &material) const noexcept;
-		size_t getRoundRobinIndex() const noexcept {
-			return this->renderPassFrameIndex % UniformDataStructure::bufferRoundRobinSize;
-		}
+		size_t getRoundRobinIndex() const noexcept { return this->renderPassFrameIndex % BufferRoundRobinSize; }
 
 	  protected:
 		DebugDrawManager *debugDrawer = nullptr;
@@ -130,6 +130,8 @@ namespace glsample {
 		std::vector<MaterialObject> materials;
 		std::vector<AnimationPlayer *> animations;
 		std::vector<Light *> lights;
+
+		std::vector<glm::mat4> worldMatricesCache;
 
 		// PoolAllocator<DirectionalLight> DirLightPool;
 		// PoolAllocator<PointLight> PointLightPool;
@@ -151,9 +153,7 @@ namespace glsample {
 		using GlobalSceneState = struct common_constant_data_t {
 			// TODO: keep multi frame camera frustum.
 			CameraInstanceData camera;
-
 			FrustumInstance frustum{};
-
 			GlobalRenderSettings renderSettings = GlobalRenderSettings();
 
 			/*	*/
@@ -203,6 +203,8 @@ namespace glsample {
 			bool preRender;
 		};
 
+		fragcore::Time timer;
+		SceneSettingsUI settingUI;
 		DebugMode debugMode = DebugMode::None;
 		bool frustumCulling = false;
 		size_t currentNodeIndex = 0;
@@ -211,11 +213,12 @@ namespace glsample {
 		/*	*/
 		bool useCoherent = true;
 
-		StageBuffer<GlobalSceneState *, 4> stageCommonRobin;
-		StageBuffer<NodeData *, 4> stageNodeDataRobin;
-		StageBuffer<NodeData *, 4> stagePreNodeDataRobin;
-		StageBuffer<MaterialData *, 4> stageMaterialDataRobin;
-		StageBuffer<LightData *, 4> stageLightData;
+		static constexpr unsigned int BufferRoundRobinSize = 4;
+		StageBuffer<GlobalSceneState *, BufferRoundRobinSize> stageCommonRobin;
+		StageBuffer<NodeData *, BufferRoundRobinSize> stageNodeDataRobin;
+		StageBuffer<NodeData *, BufferRoundRobinSize> stagePreNodeDataRobin;
+		StageBuffer<MaterialData *, BufferRoundRobinSize> stageMaterialDataRobin;
+		StageBuffer<LightData *, BufferRoundRobinSize> stageLightData;
 
 		template <unsigned int bufferRoundRobinSize> struct uniform_buffer_collection {
 			unsigned int base_offset = 0;
@@ -229,31 +232,31 @@ namespace glsample {
 
 		using UniformDataStructure = struct uniform_data_structure {
 			/*	*/
-			static const size_t bufferRoundRobinSize = 4;
+
 			UBOObject uniform_buffer{};
 
 			unsigned int node_and_common_uniform_buffer{}; // TODO: removed and replace with uniform_buffer;
 
 			unsigned int node_base_offset = 0;
-			std::array<unsigned int, bufferRoundRobinSize> node_offsets{};
-			std::array<unsigned int, bufferRoundRobinSize> node_prev_offsets{};
+			std::array<unsigned int, BufferRoundRobinSize> node_offsets{};
+			std::array<unsigned int, BufferRoundRobinSize> node_prev_offsets{};
 			unsigned int node_size_align = 0;
 			unsigned int node_size_total_align = 0;
 			unsigned int max_node_per_binding = 0;
 
 			unsigned int material_base_offset = 0;
-			std::array<unsigned int, bufferRoundRobinSize> mateiral_offsets{};
+			std::array<unsigned int, BufferRoundRobinSize> mateiral_offsets{};
 			unsigned int material_align_size = 0;
 			unsigned int material_align_total_size = 0;
 			unsigned int max_material_per_block = 0;
 
 			unsigned int light_base_offset = 0;
-			std::array<unsigned int, bufferRoundRobinSize> light_offsets{};
+			std::array<unsigned int, BufferRoundRobinSize> light_offsets{};
 			unsigned int light_align_size = 0;
 			unsigned int light_align_total_size = 0;
 			unsigned int max_light_per_binding = 0;
 
-			std::array<unsigned int, bufferRoundRobinSize> common_offsets{};
+			std::array<unsigned int, BufferRoundRobinSize> common_offsets{};
 			unsigned int common_base_offset = 0;
 			unsigned int common_size_align = 0;
 			unsigned int common_size_total_align = 0;
@@ -264,6 +267,7 @@ namespace glsample {
 			unsigned int node_buffer_binding = 2;
 			unsigned int node_prev_buffer_binding = 6;
 			unsigned int bone_buffer_binding = 3;
+			unsigned int bone_prev_buffer_binding = 7;
 			unsigned int material_buffer_binding = 4;
 			unsigned int light_buffer_binding = 5;
 		};
@@ -272,5 +276,13 @@ namespace glsample {
 
 		unsigned int renderPassFrameIndex = 0;
 		static const unsigned int frameChainCount = 3;
+
+	  public:
+		const RenderingSettings &getRenderingSettings() const noexcept { return this->settings; }
+		RenderingSettings &getRenderingSettings() noexcept { return this->settings; }
+
+		std::vector<TextureAssetObject> &getTextures() noexcept { return this->refTexture; }
+
+		DebugDrawManager *getDebugDrawer() noexcept { return this->debugDrawer; }
 	};
 } // namespace glsample

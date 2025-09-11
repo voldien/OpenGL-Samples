@@ -2,6 +2,7 @@
 #include "GLHelper.h"
 #include "GLSampleSession.h"
 #include "RenderDesc.h"
+#include "SampleHelper.h"
 #include <ProceduralGeometry.h>
 #include <internal_object_type.h>
 
@@ -230,11 +231,12 @@ void CommonUtil::createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAtta
 }
 
 void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initializer_list<fragcore::TextureDesc> &desc,
-								   const fragcore::TextureDesc &depthstencil) {
+								   const fragcore::TextureDesc *depthstencil) {
 
 	unsigned int attachment_index = 0;
 	std::array<unsigned int, 32> &attachments_mapping = framebuffer->draw_attachments;
 
+	/*	*/
 	for (const auto *it = desc.begin(); it != desc.end(); it++) {
 		const fragcore::TextureDesc &target_desc = *(it);
 
@@ -308,16 +310,17 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 	}
 
 	/*	Depth/stencil buffer.	*/
+	if(depthstencil)
 	{
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer->framebuffer);
 
-		const unsigned int multisamples = depthstencil.nrSamples;
-		const unsigned int depth_width = depthstencil.width;
-		const unsigned int depth_height = depthstencil.height;
-		const unsigned int depth_depth = depthstencil.depth;
-		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(depthstencil.graphicFormat);
+		const unsigned int multisamples = depthstencil->nrSamples;
+		const unsigned int depth_width = depthstencil->width;
+		const unsigned int depth_height = depthstencil->height;
+		const unsigned int depth_depth = depthstencil->depth;
+		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(depthstencil->graphicFormat);
 
-		GLenum texture_type = fragcore::GLHelper::getTextureTarget(depthstencil.target);
+		GLenum texture_type = fragcore::GLHelper::getTextureTarget(depthstencil->target);
 		if (multisamples > 1) {
 			texture_type = GL_TEXTURE_2D_MULTISAMPLE;
 		}
@@ -394,6 +397,33 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+UBOPool CommonUtil::createBufferPool(const uint32_t bufferType, const size_t bufferSize) noexcept {
+
+	UBOPool uboPool;
+	/*	*/
+	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, (GLint *)&uboPool.buffer.alignment);
+
+	uboPool.buffer.size = bufferSize;
+	uboPool.buffer.totalSize = fragcore::Math::align<size_t>(uboPool.buffer.size, (size_t)uboPool.buffer.alignment);
+	uboPool.addresser = MemoryAddress(uboPool.buffer.totalSize, 0);
+
+	/*	*/
+	glGenBuffers(1, &uboPool.buffer.buffer);
+	glBindBuffer(bufferType, uboPool.buffer.buffer);
+	glBufferData(bufferType, (GLsizeiptr)uboPool.buffer.totalSize, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(bufferType, 0);
+
+	return uboPool;
+}
+
+UBORange CommonUtil::getBuffer(UBOPool &pool, const size_t bufferSize) noexcept {
+	UBORange bufferRange;
+	bufferRange.referenceBuffer = &pool.buffer;
+	bufferRange.size = bufferSize;
+	bufferRange.offset = pool.addresser.allocateAligned(bufferSize, pool.buffer.alignment);
+	return bufferRange;
 }
 
 void glsample::refreshWholeRoundRobinBuffer(unsigned int bufferType, unsigned int buffer, const unsigned int robin,

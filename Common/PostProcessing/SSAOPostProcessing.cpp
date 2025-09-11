@@ -8,7 +8,6 @@
 #include <GL/glew.h>
 #include <IO/IOUtil.h>
 #include <random>
-#include <utility>
 
 using namespace glsample;
 
@@ -34,20 +33,21 @@ SSAOPostProcessing::~SSAOPostProcessing() {
 		glDeleteProgram(this->downsample_compute_program);
 	}
 
-	// if (glIsBuffer(this->uniform_ssao_buffer)) {
-	// 	glDeleteBuffers(1, &this->uniform_ssao_buffer);
-	// }
-
 	if (glIsTexture(this->random_texture)) {
 		glDeleteTextures(1, &this->random_texture);
 	}
 }
 
+void SSAOPostProcessing::setManager(PostProcessingManager &manager) {
+	this->buffers[0] = CommonUtil::getBuffer(manager.getPool(), sizeof(uniformStageBlockSSAO));
+	this->buffers[1] = CommonUtil::getBuffer(manager.getPool(), sizeof(uniformStageBlockSSAO));
+}
+
 void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
+
 	/*	*/
 	const std::string vertexSSAOShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 	const std::string fragmentSSAOShaderPath = "Shaders/postprocessingeffects/ssao_world_space.frag.spv";
-
 	/*	*/
 	const std::string vertexSSAODepthOnlyShaderPath = "Shaders/postprocessingeffects/postprocessing.vert.spv";
 	const std::string fragmentSSAODepthOnlyShaderPath = "Shaders/postprocessingeffects/ssao_depth_only.frag.spv";
@@ -100,13 +100,6 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 						  this->uniform_ssao_buffer_binding);
 	glUseProgram(0);
 
-	/*	Align uniform buffer in respect to driver requirement.	*/
-	GLint minMapBufferSize = 0;
-	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-
-	// this->uniformSSAOBufferAlignSize =
-	// 	fragcore::Math::align<size_t>(this->uniformSSAOBufferAlignSize, (size_t)minMapBufferSize);
-
 	/*	FIXME: improve vectors.		*/
 	{
 		/*	Create random vector.	*/
@@ -128,15 +121,8 @@ void SSAOPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 			this->uniformStageBlockSSAO.kernel[i] = glm::vec4(sample, 0);
 		}
 
-		/*	*/
-		// glGenBuffers(1, &this->uniform_ssao_buffer);
-		// glBindBufferARB(GL_UNIFORM_BUFFER, this->uniform_ssao_buffer);
-		// glBufferData(GL_UNIFORM_BUFFER, this->uniformSSAOBufferAlignSize * 1, &this->uniformStageBlockSSAO,
-		// 			 GL_DYNAMIC_DRAW);
-		// glBindBufferARB(GL_UNIFORM_BUFFER, 0);
-
 		/*	Create white texture.	*/
-		this->white_texture = glsample::CommonUtil::createColorTexture(1, 1, Color::white());
+		this->white_texture = glsample::CommonUtil::createColorTexture(1, 1, fragcore::Color::white());
 
 		/*	Create noise normalMap.	*/
 		const size_t noiseW = 4;
@@ -317,6 +303,7 @@ void SSAOPostProcessing::render(glsample::FrameBuffer *framebuffer, unsigned int
 }
 
 void SSAOPostProcessing::renderUI() {
+	/*	*/
 	ImGui::DragFloat("Intensity", &uniformStageBlockSSAO.intensity, 0.1f, 0.0f);
 	ImGui::DragFloat("Radius", &uniformStageBlockSSAO.radius, 0.35f, 0.0f);
 	ImGui::DragInt("Sample", &uniformStageBlockSSAO.samples, 1, 0);

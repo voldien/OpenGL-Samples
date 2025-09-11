@@ -18,6 +18,9 @@ DebugDrawManager::DebugDrawManager(fragcore::IFileSystem *filesystem)
 	const char *debug_vertex_aabb_path = "Shaders/debug/debug_drawer_aabb.vert.spv";
 	const char *debug_fragment_aabb_path = "Shaders/debug/debug_drawer_aabb.frag.spv";
 
+	const char *debug_vertex_line_path = "Shaders/debug/debug_drawer_line.vert.spv";
+	const char *debug_fragment_line_path = "Shaders/debug/debug_drawer_line.frag.spv";
+
 	/*	*/
 	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -35,17 +38,8 @@ DebugDrawManager::DebugDrawManager(fragcore::IFileSystem *filesystem)
 		this->commands[index] = Queue<DebugDrawCommand *>(2048);
 	}
 
-	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, (GLint *)&this->ubo_pool.buffer.alignment);
-	this->ubo_pool.buffer.size = 1024 * 1024 * 2 * 8;
-	this->ubo_pool.buffer.totalSize =
-		fragcore::Math::align<size_t>(this->ubo_pool.buffer.size, (size_t)this->ubo_pool.buffer.alignment);
-	this->ubo_pool.addresser = MemoryAddress(this->ubo_pool.buffer.totalSize, 0);
-
 	/*	*/
-	glGenBuffers(1, &this->ubo_pool.buffer.buffer);
-	glBindBuffer(GL_UNIFORM_BUFFER, this->ubo_pool.buffer.buffer);
-	glBufferData(GL_UNIFORM_BUFFER, this->ubo_pool.buffer.totalSize, nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	this->ubo_pool = CommonUtil::createBufferPool(GL_UNIFORM_BUFFER, static_cast<size_t>(1024 * 1024 * 2 * 8));
 
 	/*	Load Meshes.	*/
 }
@@ -80,6 +74,11 @@ void DebugDrawManager::draw(Camera *camera, FrameBuffer *frame) {
 
 	this->stackAllocator.clear();
 }
+void DebugDrawManager::reset() {
+	for (unsigned int index = 0; index < (int)DrawType::MAX_DRAW_TYPE; index++) {
+		this->commands[index].clear();
+	}
+}
 
 void DebugDrawManager::updateBuffers() {
 
@@ -93,7 +92,7 @@ void DebugDrawManager::updateBuffers() {
 void DebugDrawManager::addLine(const glm::vec3 &start, const glm::vec3 &end, const glm::vec4 &color, float lineWidth,
 							   float duration, bool depthEnabled) {
 	DebugDrawCommand *command = allocCommand();
-	
+
 	command->command.line.start = glm::vec4(start, 1);
 	command->command.line.end = glm::vec4(end, 1);
 	command->color = color;

@@ -10,7 +10,7 @@ layout(location = 1) in vec3 normal;
 layout(location = 2) in vec3 tangent;
 
 #include "common.glsl"
-#include"scene.glsl"
+#include "scene.glsl"
 
 // layout(binding = 0, std140) uniform UniformBufferBlock {
 // 	mat4 model;
@@ -40,9 +40,9 @@ layout(location = 2) in vec3 tangent;
 void main() {
 
 	const material mat = MaterialUBO.materials[0];
-	//float fogFactor = getFogFactor() * ubo.fogItensity;
+	// float fogFactor = getFogFactor() * ubo.fogItensity;
 
-	//float contribution = max(0.0, dot(normalize(normal), normalize(ubo.direction.xyz)));
+	// float contribution = max(0.0, dot(normalize(normal), normalize(ubo.direction.xyz)));
 
 	fragColor = (texture(DiffuseTexture, uv) * mat.diffuseColor) * (mat.ambientColor);
 	fragColor.a *= texture(AlphaMaskedTexture, uv).r;
@@ -50,5 +50,5 @@ void main() {
 		discard;
 	}
 
-	//fragColor = mix(fragColor, ubo.fogColor, fogFactor).rgba;
+	// fragColor = mix(fragColor, ubo.fogColor, fogFactor).rgba;
 }

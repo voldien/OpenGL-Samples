@@ -15,14 +15,18 @@
  */
 #pragma once
 #include "DataStructure/MemoryAddress.h"
-#include "Math3D/LinAlg.h"
-#include "Scene/Camera.h"
-#include "Scene/CameraController.h"
 #include <Eigen/Eigen>
+#include <IO/IOUtil.h>
+#include <Math3D/AABB.h>
+#include <Math3D/Color.h>
+#include <Math3D/Math3D.h>
+#include <Math3D/OBB.h>
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
 
 namespace glsample {
+
+	using IOUtil = fragcore::IOUtil;
 
 	template <typename T, int m, int n>
 	inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, n> &em) noexcept {
@@ -63,20 +67,23 @@ namespace glsample {
 	}
 
 	template <typename T, unsigned int n> struct StageBuffer {
-		std::array<T, n> buffers;
+	  public:
 		T getBase() const noexcept { return this->buffers[0]; }
+		T &getBuffer(const unsigned int index) noexcept { return this->buffers[index]; }
+		std::array<T, n> buffers;
 	};
 
 	enum class GBuffer : unsigned int {
 		Albedo = 0,				 /*	*/
 		Color = 0,				 /*	Color, Alpha	*/
-		WorldSpace = 1,			 /*	*/
+		WorldSpace = 1,			 /*	WorldSpace (XYZ), */
 		TextureCoordinate = 2,	 /*	TexCoord0, TexCoord1	*/
-		Normal = 3,				 /*	*/
-		Specular = 4,			 /* SpecularColor,	Roughness*/
-		Emission = 5,			 /*	*/
+		Normal = 3,				 /*	Normal XYZ, */
+		Specular = 4,			 /* SpecularColor,	Roughness.	*/
+		Emission = 5,			 /*	Emission Color (RGB), */
 		Depth = 6,				 /*	*/
-		Velocity = 7,			 /*	*/
+		Velocity = 7,			 /*	Velocity (XYZ), */
+		RoughnessMetalAO = 8,	 /*	*/
 		Roughness = 8,			 /*	*/
 		AO = 9,					 /*	*/
 		Displacement = 10,		 /*	*/
@@ -87,140 +94,6 @@ namespace glsample {
 		IntermediateTarget2 = 15 /*	*/
 	};
 
-	enum class FogType : unsigned int {
-		None,	/*	*/
-		Linear, /*	*/
-		Exp,	/*	*/
-		Exp2,	/*	*/
-		Height	/*	*/
-	};
-
-	using GammaCorrectionSettings = struct gamme_correct_settings_t {
-		float exposure = 1.0f;
-		float gamma = 2.2f;
-	};
-
-	using FogSettings = struct fog_settings_t {
-		glm::vec4 fogColor = glm::vec4(0.45, 0.45, 0.45, 1);
-		/*	*/
-		float cameraNear = 0.15f;
-		float cameraFar = 1000.0f;
-		float fogStart = 100;
-		float fogEnd = 1000;
-
-		/*	*/
-		float fogDensity = 0.5f;
-		FogType fogType = FogType::Exp;
-		float fogIntensity = 1.0f;
-		float fogHeight = 0;
-	};
-
-	using MaterialInstance = struct material_instance_t {
-		glm::mat4 model;
-
-		/*	Color attributes.	*/
-		glm::vec4 ambient;
-		glm::vec4 diffuse;
-		glm::vec4 emission;
-		glm::vec4 specular;
-		glm::vec4 transparent;
-		glm::vec4 reflectivity;
-
-		/*	*/
-	};
-
-	using BoundingShapeData = struct bounding_data_t {
-		fragcore::Bound bound;
-	};
-
-	using BlinnPhongMaterialData = struct blinn_phong_material_data_t {};
-
-	using LightShadowData = struct light_shadow_t {
-		glm::mat4 lightSpaceMatrix;
-		glm::vec4 shadow; /*	Shadow, Bias,	*/
-	};
-
-	using DirectionalLightData = struct directional_light_t {
-		LightShadowData lightShadow;
-		glm::vec4 lightDirection = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
-		glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	};
-
-	using PointLightInstance = struct point_light_instance_t {
-		LightShadowData lightShadow;
-		glm::vec3 position = glm::vec3(0);
-		float range = 5;
-		glm::vec4 color = glm::vec4(1);
-		/*	*/
-		float intensity = 1; // TODO: remove
-		float constant_attenuation = 1;
-		float linear_attenuation = 0.1f;
-		float quadratic_attenuation = 0.025f;
-	};
-
-	using CameraInstanceData = struct camera_instance_data_t {
-		/*	*/
-		camera_instance_data_t &operator=(const Camera &camera) {
-			this->near = camera.getNear();
-			this->far = camera.getFar();
-			this->proj = camera.getProjectionMatrix();
-			this->inverseProj = glm::inverse(camera.getProjectionMatrix());
-
-			return *this;
-		}
-
-		camera_instance_data_t &operator=(CameraController &camera) {
-			//*this = camera.as<Camera<float>>();
-			// TODO: reuse function above
-			this->near = camera.getNear();
-			this->far = camera.getFar();
-			this->proj = camera.getProjectionMatrix();
-			this->inverseProj = glm::inverse(this->proj);
-			this->position = glm::vec4(camera.getPosition(), 0);
-
-			this->near = camera.getNear();
-			this->far = camera.getFar();
-			this->viewDir = glm::vec4(camera.getLookDirection(), 0);
-			this->view = camera.getViewMatrix();
-			this->viewInv = glm::inverse(this->view);
-
-			this->viewRot = camera.getRotationMatrix();
-			this->viewProj = this->proj * this->view;
-			this->viewProjInv = glm::inverse(this->viewProj);
-			return *this;
-		}
-
-		float near = 0.15;
-		float far = 1000;
-		float aspect = 1.0;
-		float fov_radian = 0.9;
-
-		glm::vec4 position = glm::vec4(0);
-		glm::vec4 viewDir = glm::vec4(0, 0, 1, 0);
-		glm::vec4 position_size = glm::vec4(0);
-		glm::uvec4 screen_width_padding = glm::ivec4(1);
-
-		glm::mat4 view = glm::mat4(1);
-		glm::mat4 viewInv = glm::mat4(1);
-		glm::mat4 viewRot = glm::mat4(1);
-		glm::mat4 viewProj = glm::mat4(1);
-		glm::mat4 viewProjInv = glm::mat4(1);
-		glm::mat4 proj = glm::mat4(1);
-		glm::mat4 inverseProj = glm::mat4(1);
-	};
-
-	using FrustumInstance = struct frustum_instance_t {
-		frustum_instance_t() = default;
-		frustum_instance_t(const Frustum &frustum) {
-
-			for (unsigned int plane_index = 0; plane_index < 6; plane_index++) {
-				planes[plane_index] = glm::vec4(E2GLM(frustum.getPlane(plane_index).getNormal()), frustum.getPlane(plane_index).distance());
-			}
-		}
-
-		glm::vec4 planes[6]{};
-	};
-
 	using UBOObject = struct uniform_buffer_object_t {
 		unsigned int buffer;	/*	*/
 		size_t size;			/*	*/
@@ -228,15 +101,15 @@ namespace glsample {
 		unsigned int alignment; /*	*/
 	};
 
-	using UBOPool = struct uniform_buffer_pool_object_t {
-		UBOObject buffer{};
-		MemoryAddress addresser;
-	};
-
 	using UBORange = struct uniform_buffer_range_t {
 		UBOObject *referenceBuffer; /*	*/
 		size_t offset;				/*	*/
 		size_t size;				/*	*/
+	};
+
+	using UBOPool = struct uniform_buffer_pool_object_t {
+		UBOObject buffer{};
+		fragcore::MemoryAddress addresser;
 	};
 
 	using Texture = struct texture_t {

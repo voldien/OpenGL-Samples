@@ -7,17 +7,17 @@
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 4) in;
 
-#include "base.glsl"
+#include "vectorfield_base.glsl"
 
 /*	*/
-layout(std430, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
+layout(std430, set = 1, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
 readBuffer;
 /*	*/
-layout(std430, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]; }
+layout(std430, set = 1, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]; }
 writeBuffer;
 
 /*	*/
-layout(std430, binding = 3) readonly buffer VectorField { vector_field_t field[]; }
+layout(std430, set = 1, binding = 3) readonly buffer VectorField { vector_field_t field[]; }
 vectorfield;
 
 /**
@@ -113,4 +113,3 @@ void main() {
 	writeBuffer.particle[pindex].time = readBuffer.particle[pindex].time - ubo.deltaTime;
 	writeBuffer.particle[pindex].velocity.xyz = velocity;
 }
-

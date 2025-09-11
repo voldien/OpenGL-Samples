@@ -22,9 +22,14 @@
 
 namespace glsample {
 
+	/*	*/
 	using DrawArraysIndirectCommand = fragcore::IndirectDrawArray;
 	using DrawElementsIndirectCommand = fragcore::IndirectDrawElement;
 	using DrawDispatchIndirectCommand = fragcore::IndirectDispatch;
+
+	/*	*/
+	using TextureDesc = fragcore::TextureDesc;
+	using SamplerDesc = fragcore::SamplerDesc;
 
 	using MeshObject = struct geometry_object_t {
 		/*	*/
@@ -39,17 +44,11 @@ namespace glsample {
 		size_t indices_offset = 0;
 
 		unsigned int stride = 0;
-		int primitiveType = 0;
+
+		fragcore::Primitive primitiveType = fragcore::Primitive::Triangles;
 
 		/*	*/
 		fragcore::Bound bound{};
-	};
-
-	using TextureObject = struct texture_object_t {
-		unsigned int width = 0;
-		unsigned int height = 0;
-		unsigned int depth = 0;
-		unsigned int texture = 0;
 	};
 
 	enum class ColorSpace : unsigned int {
@@ -64,20 +63,37 @@ namespace glsample {
 
 	class FVDECLSPEC CommonUtil {
 	  public:
+		/*	*/
 		static void loadPlan(MeshObject &planMesh, const float scale, const int segmentX = 1, const int segmentY = 1);
 		static void loadCube(MeshObject &cubeMesh, const float scale, const int segmentX = 1, const int segmentY = 1);
 		static void loadSphere(MeshObject &sphereMesh, const float radius = 1, const int slices = 8,
 							   const int segements = 8);
 
+		/*	Merge multiple meshes into a single buffer.	*/
 		static void mergeMeshBuffers(const std::vector<MeshObject> &sphereMesh, std::vector<MeshObject> &mergeMeshes);
 
+		/*	Create simple texture.	*/
 		static int createColorTexture(unsigned int width, unsigned int height, const fragcore::Color &color);
 		static int createColorTexture16F(unsigned int width, unsigned int height, const fragcore::Color &color);
+		static int createColorTexture(unsigned int width, unsigned int height,
+									  const fragcore::TextureDesc &textureDesc);
 
+		/*	*/
 		static void createFrameBuffer(FrameBuffer *framebuffer, unsigned int nrAttachments);
 		static void updateFrameBuffer(FrameBuffer *framebuffer,
 									  const std::initializer_list<fragcore::TextureDesc> &desc,
-									  const fragcore::TextureDesc &depthstencil);
+									  const fragcore::TextureDesc *depthstencil);
+
+		/*	*/
+		static UBOPool createBufferPool(const uint32_t bufferType, const size_t bufferSize) noexcept;
+		static UBORange getBuffer(UBOPool &pool, const size_t bufferSize) noexcept;
+		template <int n> static std::array<UBORange, n> getBuffers(UBOPool &pool, const size_t bufferSize) noexcept {
+			std::array<UBORange, n> buffers;
+			for (size_t i = 0; i < buffers.size(); i++) {
+				buffers[i] = getBuffer(pool, bufferSize);
+			}
+			return buffers;
+		}
 	};
 
 	extern void refreshWholeRoundRobinBuffer(unsigned int bufferType, unsigned int buffer, const unsigned int robin,

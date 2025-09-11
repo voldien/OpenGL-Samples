@@ -72,11 +72,11 @@ void CameraController::enableNavigation(const bool enable) noexcept { this->enab
 void CameraController::enableLook(const bool enable) noexcept { this->enabled_Look = enable; }
 
 const glm::mat4 &CameraController::getViewMatrix() const noexcept { return this->view; }
-const glm::mat4 CameraController::getRotationMatrix() const noexcept {
+glm::mat4 CameraController::getRotationMatrix() const noexcept {
 	glm::quat rotation = glm::quatLookAt(glm::normalize(this->getLookDirection()), glm::normalize(this->getUp()));
 	return glm::toMat4(rotation);
 }
-const glm::mat4 CameraController::getViewTranslationMatrix() const noexcept {
+glm::mat4 CameraController::getViewTranslationMatrix() const noexcept {
 	return glm::translate(glm::mat4(1), -this->getPosition());
 }
 
@@ -107,10 +107,10 @@ void CameraController::update() noexcept {
 void CameraController::updateFrustum() {
 
 	/*	*/
-	const Vector3 position = Vector3(this->pos[0], this->pos[1], this->pos[2]);
-	const Vector3 look = Vector3(this->look[0], this->look[1], this->look[2]).normalized();
-	const Vector3 up = Vector3(this->up[0], this->up[1], this->up[2]).normalized();
-	const Vector3 right = look.cross(up).normalized();
+	const glm::vec3 position = this->pos;
+	const glm::vec3 look = glm::normalize(this->look);
+	const glm::vec3 up = glm::normalize(this->up);
+	const glm::vec3 right = glm::cross(look, up);
 
 	this->calcFrustumPlanes(position, look, up, right);
 }

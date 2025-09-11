@@ -6,7 +6,7 @@
 layout(location = 0) out vec4 fragColor;
 layout(location = 0) smooth in vec4 vColor;
 
-#include"base.glsl"
+#include "vectorfield_base.glsl"
 
 vec4 computeColor() { return (ubo.color + vColor); }
 

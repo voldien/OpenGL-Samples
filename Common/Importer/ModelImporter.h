@@ -14,7 +14,6 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
-#include "DataStructure/ITree.h"
 #include "DataStructure/StackAllactor.h"
 #include "FragDef.h"
 #include "Math3D/LinAlg.h"

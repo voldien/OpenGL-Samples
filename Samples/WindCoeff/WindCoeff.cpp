@@ -332,7 +332,13 @@ namespace glsample {
 
 			const size_t frame_width = 512;
 			const size_t frame_height = 512;
+			const TextureDesc depthStencil = {
+				.width = width,
+				.height = height,
+				.graphicFormat = GraphicFormat::Depth_24Bit_8Stencil,
+				.nrSamples = 0,
 
+			};
 			CommonUtil::updateFrameBuffer(&this->framebuffer,
 										  {{
 											  .width = frame_width,
@@ -340,12 +346,7 @@ namespace glsample {
 											  .graphicFormat = GraphicFormat::R16G16B16A16_SNorm,
 											  .nrSamples = 0,
 										  }},
-										  {
-											  .width = frame_width,
-											  .height = frame_height,
-											  .graphicFormat = GraphicFormat::Depth_32Bit,
-											  .nrSamples = 0,
-										  });
+										  &depthStencil);
 
 			this->camera.setAspect((float)width / (float)height);
 		}

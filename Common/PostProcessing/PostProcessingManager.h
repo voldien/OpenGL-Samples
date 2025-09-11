@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "GLSampleBase.h"
 #include "SampleHelper.h"
 #include <cstdint>
 #include <initializer_list>
@@ -25,7 +26,7 @@ namespace glsample {
 	 */
 	class FVDECLSPEC PostProcessingManager : public fragcore::Object {
 	  public:
-		PostProcessingManager();
+		PostProcessingManager(GLSampleBase &base);
 		~PostProcessingManager() override = default;
 
 		void addPostProcessing(const std::shared_ptr<PostProcessing> &postProcessing);
@@ -39,17 +40,17 @@ namespace glsample {
 		void render(glsample::FrameBuffer *framebuffer,
 					const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets);
 
-
 		void populateCommonData() {}
 		void swapPostProcessing(int a, int b);
 
-		const UBOPool &getPool() const noexcept { return this->ubo_pool; }
-		UBOPool &getPool() noexcept { return this->ubo_pool; }
+		const UBOPool &getPool() const noexcept { return this->base.getUniformPool(); }
+		UBOPool &getPool() noexcept { return this->base.getUniformPool(); }
 
 	  protected:
 		std::vector<std::shared_ptr<PostProcessing>> postProcessings;
 		std::vector<uint32_t> post_enabled;
 
-		UBOPool ubo_pool;
+		GLSampleBase &base;
+
 	};
 } // namespace glsample

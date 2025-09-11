@@ -21,13 +21,11 @@ namespace glsample {
 
 	/**
 	 * @brief
-	 *
 	 */
 	class FVDECLSPEC ShaderLoader {
 	  public:
 		/**
 		 * @brief
-		 *
 		 */
 		static int loadGraphicProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
 									  const std::vector<uint32_t> *vertex, const std::vector<uint32_t> *fragment,

@@ -8,7 +8,7 @@ layout(points) in;
 layout(triangle_strip) out;
 layout(max_vertices = 4) out;
 
-#include "base.glsl"
+#include "vectorfield_base.glsl"
 
 layout(location = 0) smooth out vec2 uv;
 layout(location = 1) smooth out vec4 gColor;

@@ -39,12 +39,20 @@ namespace glsample {
 	  private:
 		void updateGuassianKernel();
 
+		unsigned int circle_of_confusion_compute_program = 0;
+
 		unsigned int guassian_blur_variable_horizontal_compute_program = 0;
 		unsigned int guassian_blur_variable_vertical_compute_program = 0;
 
+		unsigned int guassian_blur_vertical_fixed_compute_program = 0;
+		unsigned int guassian_blur_horizontal_fixed_compute_program = 0;
 
-		unsigned int guassian_blur_fixed_compute_program;
 		unsigned int indirect_guassian_dispatch_compute_program = 0;
+
+		unsigned int bokeh_vertex_program = 0;
+		unsigned int bokeh_fragment_program = 0;
+
+		unsigned int indirect_bokeh_compute_program = 0;
 
 		unsigned int texture_sampler = 0;
 		unsigned int vao = 0;
@@ -66,6 +74,6 @@ namespace glsample {
 
 		int depthOfFieldType;
 
-		int localWorkGroupSize[5][3];
+		std::array<std::array<int, 3>, 5> localWorkGroupSize;
 	};
 } // namespace glsample

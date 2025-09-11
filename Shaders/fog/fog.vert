@@ -12,8 +12,8 @@ layout(location = 0) out vec2 UV;
 layout(location = 1) out vec3 normal;
 layout(location = 2) out vec3 tangent;
 
-#include"common.glsl"
-#include"scene.glsl"
+#include "common.glsl"
+#include "scene.glsl"
 
 layout(binding = 0, std140) uniform UniformBufferBlock {
 	mat4 model;
@@ -41,7 +41,7 @@ layout(binding = 0, std140) uniform UniformBufferBlock {
 ubo;
 
 void main() {
-	
+
 	const mat4 model = NodeUBO.node[gl_InstanceID].model;
 	const mat4 viewProj = constantCommon.constant.camera.viewProj;
 

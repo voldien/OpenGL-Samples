@@ -2,6 +2,7 @@
 #include "IO/FileIO.h"
 #include "ImageImport.h"
 #include "ModelImporter.h"
+#include "RenderDesc.h"
 #include "Util/ProcessDataUtil.h"
 #include <GL/glew.h>
 #include <ImageUtil.h>
@@ -206,14 +207,14 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 
 			switch (refModel.primitiveType) {
 			case 1:
-				ref.primitiveType = GL_POINTS;
+				ref.primitiveType = fragcore::Primitive::Point;
 				break;
 			case 2:
-				ref.primitiveType = GL_LINES;
+				ref.primitiveType = fragcore::Primitive::Lines;
 				break;
 			default:
 			case 4:
-				ref.primitiveType = GL_TRIANGLES;
+				ref.primitiveType = fragcore::Primitive::Triangles;
 				break;
 			}
 		}

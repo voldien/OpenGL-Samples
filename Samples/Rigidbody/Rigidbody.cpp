@@ -468,10 +468,10 @@ namespace glsample {
 
 				/*	Update uniform buffer.	*/
 				glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-				void *uniformMappedMemory = glMapBufferRange(
-					GL_UNIFORM_BUFFER,
-					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformAlignBufferSize,
-					this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				void *uniformMappedMemory = glMapBufferRange(GL_UNIFORM_BUFFER,
+															 ((this->getFrameCount() + 0) % this->nrUniformBuffers) *
+																 this->uniformAlignBufferSize,
+															 this->uniformAlignBufferSize, GL_MAP_WRITE_BIT);
 				memcpy(uniformMappedMemory, &this->uniformStageBuffer, sizeof(this->uniformStageBuffer));
 				glUnmapBuffer(GL_UNIFORM_BUFFER);
 			}
@@ -481,7 +481,7 @@ namespace glsample {
 				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->ssbo_instance_buffer);
 				uint8_t *uniform_instance_buffer_pointer = (uint8_t *)glMapBufferRange(
 					GL_SHADER_STORAGE_BUFFER,
-					((this->getFrameCount() + 1) % this->nrUniformBuffers) * this->uniformInstanceSize,
+					((this->getFrameCount() + 0) % this->nrUniformBuffers) * this->uniformInstanceSize,
 					this->uniformInstanceSize, GL_MAP_WRITE_BIT);
 
 				size_t offset = 0;

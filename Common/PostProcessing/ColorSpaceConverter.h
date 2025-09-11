@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "../Common.h"
+#include "GLDataStructure.h"
 #include "PostProcessing.h"
 
 namespace glsample {

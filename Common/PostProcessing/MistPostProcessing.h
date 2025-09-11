@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "GLDataStructure.h"
 #include "PostProcessing.h"
 #include "SampleHelper.h"
 

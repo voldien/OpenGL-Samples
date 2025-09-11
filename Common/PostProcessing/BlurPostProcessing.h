@@ -43,8 +43,8 @@ namespace glsample {
 		void updateGuassianKernel();
 
 	  private: /*	Memebers.	*/
-		int guassian_blur_vertical_compute_program = 0;
-		int guassian_blur_horizontal_compute_program = 0;
+		int guassian_blur_vertical_fixed_compute_program = 0;
+		int guassian_blur_horizontal_fixed_compute_program = 0;
 		int box_blur_compute_program = 0;
 		int kuwahara_compute_program = 0;
 		unsigned int texture_sampler = 0;

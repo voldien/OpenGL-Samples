@@ -8,7 +8,7 @@ layout(location = 1) in vec4 velocity;
 /*	*/
 layout(location = 0) smooth out vec4 vColor;
 
-#include "base.glsl"
+#include "vectorfield_base.glsl"
 
 
 void main() {

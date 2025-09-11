@@ -6,15 +6,14 @@
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 4) in;
 
-#include "base.glsl"
-
+#include "vectorfield_base.glsl"
 
 /*	*/
-layout(std430, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
+layout(std430, set = 1, binding = 1) readonly buffer ReadBuffer { particle_t particle[]; }
 readBuffer;
 
 /*	*/
-layout(std430, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]; }
+layout(std430, set = 1, binding = 2) writeonly buffer WriteBuffer { particle_t particle[]; }
 writeBuffer;
 
 /**
@@ -40,14 +39,13 @@ void main() {
 	const float invMass = readBuffer.particle[pindex].velocity.w;
 
 	/*  Add force to particle position. */
-	//velocity = force * invMass;
+	// velocity = force * invMass;
 	/*	Update the position.	*/
-	//position = position + velocity * ubo.deltaTime;
+	// position = position + velocity * ubo.deltaTime;
 
 	/*	Final position update.	*/
-	//position.xyz = clamp(position.xyz, min, max);
+	// position.xyz = clamp(position.xyz, min, max);
 
 	writeBuffer.particle[pindex].position = position;
 	writeBuffer.particle[pindex].velocity = vec4(velocity, 1);
 }
-

@@ -1,5 +1,7 @@
 #include "ModelViewer.h"
+#include "Common.h"
 #include "PBRScene.h"
+#include "SampleHelper.h"
 #include "Scene/Scene.h"
 #include "Scene/SceneHelper.h"
 #include "Skybox.h"
@@ -93,8 +95,8 @@ namespace glsample {
 
 		/*	load Textures	*/
 		TextureImporter textureImporter(this->getFileSystem());
-		this->reflection_texture = textureImporter.loadImage2D(panoramicPath);
-		skybox.Init(this->reflection_texture, this->skybox_program);
+		const unsigned int skybox_texture = textureImporter.loadImage2D(panoramicPath);
+		skybox.Init(skybox_texture, this->skybox_program);
 
 		/*	*/
 		MiscProcessingUtil util(this->getFileSystem());
@@ -109,9 +111,75 @@ namespace glsample {
 		ModelImporter modelLoader(FileSystem::getFileSystem());
 		modelLoader.loadContent(modelPath, 0);
 		this->scene = SceneHelper::loadFrom<PBRScene>(modelLoader);
+
+		/*	*/
+		CommonUtil::createFrameBuffer(&this->renderTarget, (unsigned int)GBuffer::Velocity + 1);
 	}
 
-	void ModelViewer::onResize(int width, int height) { this->camera.setAspect((float)width / (float)height); }
+	void ModelViewer::onResize(int width, int height) {
+		this->camera.setAspect((float)width / (float)height);
+
+		GraphicFormat internal_color_format = GraphicFormat::R16G16B16A16_SFloat;
+
+		CommonUtil::updateFrameBuffer(&this->renderTarget,
+									  {{
+										   .width = width,
+										   .height = height,
+										   .depth = 1,
+										   .graphicFormat = internal_color_format,
+										   .nrSamples = 1,
+									   },
+									   {
+										   .width = width,
+										   .height = height,
+										   .depth = 1,
+										   .graphicFormat = internal_color_format,
+										   .nrSamples = 1,
+									   },
+									   {
+										   .width = width,
+										   .height = height,
+										   .depth = 1,
+										   .graphicFormat = internal_color_format,
+										   .nrSamples = 1,
+									   },
+									   {
+										   .width = width,
+										   .height = height,
+										   .depth = 1,
+										   .graphicFormat = internal_color_format,
+										   .nrSamples = 1,
+									   },
+									   {
+										   .width = width,
+										   .height = height,
+										   .depth = 1,
+										   .graphicFormat = internal_color_format,
+										   .nrSamples = 1,
+									   },
+									   {
+										   .width = width,
+										   .height = height,
+										   .depth = 1,
+										   .graphicFormat = internal_color_format,
+										   .nrSamples = 1,
+									   },
+									   {
+										   .width = width,
+										   .height = height,
+										   .depth = 1,
+										   .graphicFormat = internal_color_format,
+										   .nrSamples = 1,
+									   },
+									   {
+										   .width = width,
+										   .height = height,
+										   .depth = 1,
+										   .graphicFormat = internal_color_format,
+										   .nrSamples = 1,
+									   }},
+									  nullptr);
+	}
 
 	void ModelViewer::draw() {
 

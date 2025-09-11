@@ -19,7 +19,7 @@ ColorGradePostProcessing::~ColorGradePostProcessing() {
 	if (this->grayscale_color_grade_program >= 0) {
 		glDeleteProgram(this->grayscale_color_grade_program);
 	}
-		if (this->sepia_program >= 0) {
+	if (this->sepia_program >= 0) {
 		glDeleteProgram(this->sepia_program);
 	}
 }
@@ -37,17 +37,17 @@ void ColorGradePostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	if (this->hue_color_grade_program == -1) {
 		/*	*/
 		const std::vector<uint32_t> hue_color_binary =
-			IOUtil::readFileData<uint32_t>(hue_color_correction_compute_shader_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(hue_color_correction_compute_shader_path, filesystem);
 		const std::vector<uint32_t> grayscale_compute_binary =
-			IOUtil::readFileData<uint32_t>(grayscale_compute_shader_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(grayscale_compute_shader_path, filesystem);
 		const std::vector<uint32_t> sepia_compute_binary =
-			IOUtil::readFileData<uint32_t>(sepia_compute_shader_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(sepia_compute_shader_path, filesystem);
 		const std::vector<uint32_t> exposure_compute_binary =
-			IOUtil::readFileData<uint32_t>(exposure_compute_shader_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(exposure_compute_shader_path, filesystem);
 		const std::vector<uint32_t> gamma_compute_binary =
-			IOUtil::readFileData<uint32_t>(gamma_compute_shader_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(gamma_compute_shader_path, filesystem);
 		const std::vector<uint32_t> color_balance_binary =
-			IOUtil::readFileData<uint32_t>(color_balance_compute_shader_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(color_balance_compute_shader_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -66,8 +66,7 @@ void ColorGradePostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	glUseProgram(this->hue_color_grade_program);
 
 	glUniform1i(glGetUniformLocation(this->hue_color_grade_program, "ColorTexture"), 0);
-	 glGetProgramiv(this->hue_color_grade_program, GL_COMPUTE_WORK_GROUP_SIZE,
-	 			   &this->localWorkGroupSize[0]);
+	glGetProgramiv(this->hue_color_grade_program, GL_COMPUTE_WORK_GROUP_SIZE, &this->localWorkGroupSize[0]);
 	glUseProgram(0);
 
 	glUseProgram(this->grayscale_color_grade_program);
@@ -93,7 +92,7 @@ void ColorGradePostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 void ColorGradePostProcessing::draw(
 	glsample::FrameBuffer *framebuffer,
-	const std::initializer_list<std::tuple<const GBuffer, unsigned int >> &render_targets) {
+	const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) {
 	PostProcessing::draw(framebuffer, render_targets);
 }
 

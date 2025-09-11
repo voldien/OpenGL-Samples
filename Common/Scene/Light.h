@@ -17,6 +17,8 @@
 
 #include "Common.h"
 #include "FragDef.h"
+#include "Frustum.h"
+#include "GLDataStructure.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 
@@ -30,34 +32,33 @@ namespace glsample {
 			Spot,
 		};
 
-		glm::vec3 getDirectionalLight() const noexcept { return this->forward(); }
+		glm::vec3 getDirectionalLight() const noexcept;
 
-		float getShadowStrength() const noexcept { return this->shadow; }
-		void setShadowStrength(float strength) { this->shadow = strength; }
+		float getShadowStrength() const noexcept;
+		void setShadowStrength(float strength);
 
-		virtual void setShadowDistance(float distance) { this->shadowDistance = distance; }
-		float getShadowDistance() const noexcept { return this->shadowDistance; }
+		virtual void setShadowDistance(float distance);
+		float getShadowDistance() const noexcept;
 
-		const glm::mat4 &getProjectionMatrix() const noexcept { return this->shadowData.lightSpaceMatrix; }
+		const glm::mat4 &getProjectionMatrix() const noexcept;
 
-		LightType getLightType() const noexcept { return this->lightType; }
+		LightType getLightType() const noexcept;
 
-		FrameBuffer *getFrameBuffer() const noexcept { return this->shadowFrameBuffer; }
+		FrameBuffer *getFrameBuffer() const noexcept;
 
-		virtual void setSize(const glm::ivec3 &size) {}
-		glm::ivec3 getSize() const noexcept {
-			return this->shadowFrameBuffer ? shadowFrameBuffer->attachmentSize[shadowFrameBuffer->depthIndex]
-										   : glm::ivec3(0);
-		}
+		/*	*/
+		virtual void setSize(const glm::ivec3 &size);
+		glm::ivec3 getSize() const noexcept;
 
-		glm::vec4 getColor() const noexcept { return this->color; }
-		void setColor(const glm::vec4 &newColor) { this->color = newColor; }
+		/*	*/
+		glm::vec4 getColor() const noexcept;
+		void setColor(const glm::vec4 &newColor);
 
 	  public:
 		LightType lightType = LightType::Directional;
 		glm::vec4 color = glm::vec4(1);
 
-		LightShadowData shadowData{};
+		LightDirectionalShadowData shadowData{};
 
 		float shadow = 1;
 		float bias = 0.0002f;
@@ -94,7 +95,7 @@ namespace glsample {
 				}
 
 				if (this->getFrameBuffer()) {
-					CommonUtil::updateFrameBuffer(getFrameBuffer(), {}, desc);
+					CommonUtil::updateFrameBuffer(getFrameBuffer(), {}, &desc);
 				}
 			}
 		}
@@ -116,23 +117,22 @@ namespace glsample {
 
 			shadowData.lightSpaceMatrix = lightSpaceMatrix;
 
-			this->calcFrustumPlanes(GLM2E(this->getPosition()), GLM2E(this->getDirectionalLight()), GLM2E(this->up()),
-									GLM2E(this->right()));
+			this->calcFrustumPlanes(this->getPosition(), this->getDirectionalLight(), this->up(), this->right());
 		}
 
-		void calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
-							   const Vector3 &right) override {
+		void calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
+							   const glm::vec3 &right) override {
 
 			const float distance = this->getShadowDistance();
 
-			this->planes[NEAR_PLANE] = {position - distance * look_forward, look_forward};
-			this->planes[FAR_PLANE] = {position + distance * look_forward, -look_forward};
+			this->planes[NEAR_PLANE] = {GLM2E(position - distance * look_forward), GLM2E(look_forward)};
+			this->planes[FAR_PLANE] = {GLM2E(position + distance * look_forward), GLM2E(-look_forward)};
 
-			this->planes[RIGHT_PLANE] = {position - distance * right, right};
-			this->planes[LEFT_PLANE] = {position + distance * right, -right};
+			this->planes[RIGHT_PLANE] = {GLM2E(position - distance * right), GLM2E(right)};
+			this->planes[LEFT_PLANE] = {GLM2E(position + distance * right), GLM2E(-right)};
 
-			this->planes[TOP_PLANE] = {position - distance * up, up};
-			this->planes[BOTTOM_PLANE] = {position + distance * up, -up};
+			this->planes[TOP_PLANE] = {GLM2E(position - distance * up), GLM2E(up)};
+			this->planes[BOTTOM_PLANE] = {GLM2E(position + distance * up), GLM2E(-up)};
 		}
 	};
 
@@ -163,7 +163,7 @@ namespace glsample {
 				}
 
 				if (this->getFrameBuffer()) {
-					CommonUtil::updateFrameBuffer(getFrameBuffer(), {}, desc);
+					CommonUtil::updateFrameBuffer(getFrameBuffer(), {}, &desc);
 				}
 			}
 		}
@@ -186,22 +186,21 @@ namespace glsample {
 
 			shadowData.lightSpaceMatrix = lightSpaceMatrix;
 
-			this->calcFrustumPlanes(GLM2E(this->getPosition()), GLM2E(this->getDirectionalLight()), GLM2E(this->up()),
-									GLM2E(this->right()));
+			this->calcFrustumPlanes(this->getPosition(), this->getDirectionalLight(), this->up(), this->right());
 		}
 
-		void calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
-							   const Vector3 &right) override {
+		void calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
+							   const glm::vec3 &right) override {
 			const float distance = this->getShadowDistance();
 
-			this->planes[NEAR_PLANE] = {position - distance * look_forward, look_forward};
-			this->planes[FAR_PLANE] = {position + distance * look_forward, -look_forward};
+			// this->planes[NEAR_PLANE] = {position - distance * look_forward, look_forward};
+			// this->planes[FAR_PLANE] = {position + distance * look_forward, -look_forward};
 
-			this->planes[RIGHT_PLANE] = {position - distance * right, right};
-			this->planes[LEFT_PLANE] = {position + distance * right, -right};
+			// this->planes[RIGHT_PLANE] = {position - distance * right, right};
+			// this->planes[LEFT_PLANE] = {position + distance * right, -right};
 
-			this->planes[TOP_PLANE] = {position - distance * up, up};
-			this->planes[BOTTOM_PLANE] = {position + distance * up, -up};
+			// this->planes[TOP_PLANE] = {position - distance * up, up};
+			// this->planes[BOTTOM_PLANE] = {position + distance * up, -up};
 		}
 
 		float getRange() const noexcept { return this->range; }

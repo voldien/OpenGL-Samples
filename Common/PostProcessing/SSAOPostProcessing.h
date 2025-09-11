@@ -33,17 +33,7 @@ namespace glsample {
 
 		void renderUI() override;
 
-		void setManager(PostProcessingManager &manager) override {
-			this->buffers[0].referenceBuffer = &manager.getPool().buffer;
-			this->buffers[0].size = sizeof(uniformStageBlockSSAO);
-			this->buffers[0].offset =
-				manager.getPool().addresser.allocateAligned(this->buffers[0].size, manager.getPool().buffer.alignment);
-
-			this->buffers[1].referenceBuffer = &manager.getPool().buffer;
-			this->buffers[1].size = sizeof(uniformStageBlockSSAO);
-			this->buffers[1].offset =
-				manager.getPool().addresser.allocateAligned(this->buffers[1].size, manager.getPool().buffer.alignment);
-		}
+		void setManager(PostProcessingManager &manager) override;
 
 	  public:
 		void render(glsample::FrameBuffer *framebuffer, unsigned int depth_texture, unsigned int world_texture,

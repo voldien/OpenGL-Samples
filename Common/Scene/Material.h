@@ -77,8 +77,8 @@ namespace glsample {
 		ShaderPipeline &getPipeline() noexcept { return *this->pipeline; }
 
 	  public: /*  Get and set methods.  */
-			  // int getInt(const char *name);
-			  // void setInt(const char *name, int value);
+		// int getInt(const char *name);
+		// void setInt(const char *name, int value);
 
 		// void setIntArray(const char *name, int nrElements, int *elements);
 		// int *getIntArray(const char *name, int *nrElements);

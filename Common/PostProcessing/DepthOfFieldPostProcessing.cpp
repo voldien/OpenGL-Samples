@@ -3,7 +3,6 @@
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include "imgui.h"
-#include "magic_enum.hpp"
 #include <GL/glew.h>
 #include <IO/IOUtil.h>
 #include <limits>
@@ -22,8 +21,14 @@ DepthOfFieldProcessing::~DepthOfFieldProcessing() {
 	if (glIsProgram(this->guassian_blur_variable_horizontal_compute_program)) {
 		glDeleteProgram(this->guassian_blur_variable_horizontal_compute_program);
 	}
-	if (glIsProgram(this->guassian_blur_fixed_compute_program)) {
-		glDeleteProgram(this->guassian_blur_fixed_compute_program);
+	if (glIsProgram(this->guassian_blur_variable_vertical_compute_program)) {
+		glDeleteProgram(this->guassian_blur_variable_vertical_compute_program);
+	}
+	if (glIsProgram(this->guassian_blur_vertical_fixed_compute_program)) {
+		glDeleteProgram(this->guassian_blur_vertical_fixed_compute_program);
+	}
+	if (glIsProgram(this->guassian_blur_horizontal_fixed_compute_program)) {
+		glDeleteProgram(this->guassian_blur_horizontal_fixed_compute_program);
 	}
 	if (glIsProgram(this->indirect_guassian_dispatch_compute_program)) {
 		glDeleteProgram(this->indirect_guassian_dispatch_compute_program);
@@ -31,27 +36,28 @@ DepthOfFieldProcessing::~DepthOfFieldProcessing() {
 }
 
 void DepthOfFieldProcessing::initialize(fragcore::IFileSystem *filesystem) {
+
 	/*	*/
 	const char *guassian_vertical_blur_compute_path = "Shaders/postprocessingeffects/guassian_blur_vertical.comp.spv";
 	const char *guassian_horizontal_blur_compute_path =
 		"Shaders/postprocessingeffects/guassian_blur_horizontal.comp.spv";
 
+	const char *box_blur_compute_path = "Shaders/postprocessingeffects/box_blur.comp.spv";
+
 	const char *guassian_indirect_dispatch_compute_path =
 		"Shaders/postprocessingeffects/guassian_blur_vertical.comp.spv";
-
-	const char *box_blur_compute_path = "Shaders/postprocessingeffects/box_blur.comp.spv";
 
 	fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 	compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 	compilerOptions.glslVersion = 420; /*	Min required glsl spec.	*/
 
-	if (this->guassian_blur_fixed_compute_program <= 0) {
+	if (this->guassian_blur_vertical_fixed_compute_program == 0) {
 		/*	*/
 		const std::vector<uint32_t> guassian_blur_vertical_compute_binary =
-			IOUtil::readFileData<uint32_t>(guassian_vertical_blur_compute_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(guassian_vertical_blur_compute_path, filesystem);
 
 		const std::vector<uint32_t> guassian_blur_horizontal_compute_binary =
-			IOUtil::readFileData<uint32_t>(guassian_horizontal_blur_compute_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(guassian_horizontal_blur_compute_path, filesystem);
 
 		/*  */
 		this->guassian_blur_variable_vertical_compute_program =
@@ -61,13 +67,13 @@ void DepthOfFieldProcessing::initialize(fragcore::IFileSystem *filesystem) {
 			ShaderLoader::loadComputeProgram(compilerOptions, &guassian_blur_horizontal_compute_binary);
 	}
 
-	if (this->guassian_blur_variable_horizontal_compute_program <= 0) {
+	if (this->guassian_blur_variable_horizontal_compute_program == 0) {
 	}
 
-	if (this->indirect_guassian_dispatch_compute_program <= 0) {
+	if (this->indirect_guassian_dispatch_compute_program == 0) {
 		/*	*/
 		const std::vector<uint32_t> guassian_indirect_dispatch_compute_binary =
-			IOUtil::readFileData<uint32_t>(guassian_vertical_blur_compute_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(guassian_vertical_blur_compute_path, filesystem);
 	}
 
 	/*	*/
@@ -75,7 +81,7 @@ void DepthOfFieldProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		if (guassian_blur_variable_horizontal_compute_program) {
 			glUseProgram(this->guassian_blur_variable_horizontal_compute_program);
 			glGetProgramiv(this->guassian_blur_variable_horizontal_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
-						   localWorkGroupSize[0]);
+						   localWorkGroupSize[0].data());
 			glUniform1i(glGetUniformLocation(this->guassian_blur_variable_horizontal_compute_program, "ColorTexture"),
 						0);
 			glUniform1i(glGetUniformLocation(this->guassian_blur_variable_horizontal_compute_program, "TargetTexture"),
@@ -85,7 +91,7 @@ void DepthOfFieldProcessing::initialize(fragcore::IFileSystem *filesystem) {
 		if (guassian_blur_variable_vertical_compute_program) {
 			glUseProgram(this->guassian_blur_variable_vertical_compute_program);
 			glGetProgramiv(this->guassian_blur_variable_vertical_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
-						   localWorkGroupSize[1]);
+						   localWorkGroupSize[1].data());
 			glUniform1i(glGetUniformLocation(this->guassian_blur_variable_vertical_compute_program, "ColorTexture"), 0);
 			glUniform1i(glGetUniformLocation(this->guassian_blur_variable_vertical_compute_program, "TargetTexture"),
 						1);
@@ -95,20 +101,20 @@ void DepthOfFieldProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	/*	*/
 	{
-		if (guassian_blur_fixed_compute_program) {
-			glUseProgram(this->guassian_blur_fixed_compute_program);
-			glGetProgramiv(this->guassian_blur_fixed_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
-						   localWorkGroupSize[2]);
-			glUniform1i(glGetUniformLocation(this->guassian_blur_fixed_compute_program, "ColorTexture"), 0);
-			glUniform1i(glGetUniformLocation(this->guassian_blur_fixed_compute_program, "TargetTexture"), 1);
-			glUseProgram(0);
-		}
+		// if (guassian_blur_fixed_compute_program) {
+		// 	glUseProgram(this->guassian_blur_vertical_fixed_compute_program);
+		// 	glGetProgramiv(this->guassian_blur_vertical_fixed_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
+		// 				   localWorkGroupSize[2].data());
+		// 	glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_fixed_compute_program, "ColorTexture"), 0);
+		// 	glUniform1i(glGetUniformLocation(this->guassian_blur_vertical_fixed_compute_program, "TargetTexture"), 1);
+		// 	glUseProgram(0);
+		// }
 	}
 
 	if (indirect_guassian_dispatch_compute_program) {
 		glUseProgram(this->indirect_guassian_dispatch_compute_program);
 		glGetProgramiv(this->indirect_guassian_dispatch_compute_program, GL_COMPUTE_WORK_GROUP_SIZE,
-					   localWorkGroupSize[3]);
+					   localWorkGroupSize[3].data());
 		glUniform1i(glGetUniformLocation(this->indirect_guassian_dispatch_compute_program, "ColorTexture"), 0);
 		glUniform1i(glGetUniformLocation(this->indirect_guassian_dispatch_compute_program, "TargetTexture"), 1);
 		glUseProgram(0);
@@ -154,7 +160,7 @@ void DepthOfFieldProcessing::draw(
 
 void DepthOfFieldProcessing::updateGuassianKernel() {
 
-	Math::guassian<float>(this->blurSettings.guassian.data(), this->blurSettings.samples, 0,
+	fragcore::Math::guassian<float>(this->blurSettings.guassian.data(), this->blurSettings.samples, 0,
 						  this->blurSettings.variance);
 
 	glUseProgram(this->guassian_blur_variable_horizontal_compute_program);

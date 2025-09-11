@@ -17,7 +17,7 @@
 #include "Common.h"
 #include "Core/UIDObject.h"
 #include "FragDef.h"
-#include "SampleHelper.h"
+#include "GLDataStructure.h"
 #include <Exception.hpp>
 #include <IO/FileSystem.h>
 #include <IO/IOUtil.h>
@@ -59,7 +59,7 @@ namespace glsample {
 		unsigned int getTexture() const noexcept { return this->skybox_texture_panoramic; }
 		void setTexture(const unsigned int texture) noexcept { this->skybox_texture_panoramic = texture; }
 
-	  public:
+	  public: /*	*/
 		static int loadDefaultPanoramicProgram(fragcore::IFileSystem *filesystem);
 		static int loadDefaultCubeMapProgram(fragcore::IFileSystem *filesystem);
 
@@ -75,7 +75,8 @@ namespace glsample {
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
-		const size_t nrUniformBuffer = 3;
+		static const size_t nrUniformBuffer = 3;
+		std::array<UBORange, nrUniformBuffer> UniformBuffers;
 		size_t uniformAlignSize = sizeof(uniform_buffer_block);
 
 		glm::vec3 rotation;

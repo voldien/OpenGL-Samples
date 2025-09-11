@@ -36,7 +36,6 @@ struct Camera {
 struct FogSettings {
 	/*	*/
 	vec4 fogColor;
-	// ec4 exposure; //
 	/*	*/
 	float CameraNear;
 	float CameraFar;
@@ -53,9 +52,6 @@ struct FogSettings {
 struct Frustum {
 	vec4 planes[6];
 };
-
-float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
-float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
 
 vec3 equirectangular(const in vec2 xy) {
 	const vec2 tc = xy / vec2(2.0) - 0.5;
@@ -80,8 +76,8 @@ vec2 inverse_equirectangular(const in vec3 direction) {
 /**
  *
  */
-vec3 getTBN(const in vec3 InNormal, const in vec3 InTangent, const in sampler2D NormalTexture, const in float normalStrength,
-			const in vec2 uv) {
+vec3 getTBN(const in vec3 InNormal, const in vec3 InTangent, const in sampler2D NormalTexture,
+			const in float normalStrength, const in vec2 uv) {
 
 	/*	*/
 	vec3 tangentNormal = texture(NormalTexture, uv).xyz * 2.0 - 1.0;

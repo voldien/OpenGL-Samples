@@ -1,33 +1,20 @@
 #ifndef _COMMON_NOISE_
 #define _COMMON_NOISE_ 1
 
+float rand(const in float seed) { return fract(sin(seed) * 100000.0); }
+float rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
+
 // https://github.com/stegu/webgl-noise
-vec3 mod289(const vec3 x) {
-	return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-vec2 mod289(const vec2 x) {
-	return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-float mod289(const in float x) {
-	return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-vec4 mod289(const in vec4 x) {
-	return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-vec4 perm(const in vec4 x) {
-	return mod289(((x * 34.0) + 1.0) * x);
-}
+vec3 mod289(const vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec2 mod289(const vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+float mod289(const in float x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 mod289(const in vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec4 perm(const in vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
 
-vec3 permute(const vec3 x) {
-	return mod289(((x * 34.0) + 10.0) * x);
-}
-vec4 permute(const in vec4 x) {
-	return mod(((x * 34.0) + 1.0) * x, 289.0);
-}
+vec3 permute(const vec3 x) { return mod289(((x * 34.0) + 10.0) * x); }
+vec4 permute(const in vec4 x) { return mod(((x * 34.0) + 1.0) * x, 289.0); }
 
-float simple_rand(const in vec2 co) {
-	return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
-}
+float simple_rand(const in vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453); }
 
 float noise(const in vec3 p) {
 	vec3 a = floor(p);
@@ -55,12 +42,8 @@ float noise(const in vec3 p) {
 //	by Stefan Gustavson (https://github.com/stegu/webgl-noise)
 //
 
-vec4 taylorInvSqrt(const in vec4 r) {
-	return 1.79284291400159 - 0.85373472095314 * r;
-}
-vec3 fade(const in vec3 t) {
-	return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
-}
+vec4 taylorInvSqrt(const in vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+vec3 fade(const in vec3 t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
 
 float cnoise(const in vec3 P) {
 	vec3 Pi0 = floor(P);		// Integer part for indexing
@@ -135,9 +118,9 @@ float cnoise(const in vec3 P) {
 //
 float snoise(const vec2 v) {
 	const vec4 C = vec4(0.211324865405187,	// (3.0-sqrt(3.0))/6.0
-	0.366025403784439,	// 0.5*(sqrt(3.0)-1.0)
-	-0.577350269189626, // -1.0 + 2.0 * C.x
-	0.024390243902439); // 1.0 / 41.0
+						0.366025403784439,	// 0.5*(sqrt(3.0)-1.0)
+						-0.577350269189626, // -1.0 + 2.0 * C.x
+						0.024390243902439); // 1.0 / 41.0
 											// First corner
 	vec2 i = floor(v + dot(v, C.yy));
 	vec2 x0 = v - i + dot(i, C.xx);
@@ -180,7 +163,7 @@ float snoise(const vec2 v) {
 	return 130.0 * dot(m, g);
 }
 
-float snoise(vec3 v) {
+float snoise(const in vec3 v) {
 	const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
 	const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
 
@@ -205,7 +188,7 @@ float snoise(vec3 v) {
 	// Permutations
 	i = mod289(i);
 	vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x +
-		vec4(0.0, i1.x, i2.x, 1.0));
+					 vec4(0.0, i1.x, i2.x, 1.0));
 
 	// Gradients: 7x7 points over a square, mapped onto an octahedron.
 	// The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)

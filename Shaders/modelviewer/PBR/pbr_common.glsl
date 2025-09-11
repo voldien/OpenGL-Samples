@@ -3,8 +3,9 @@
 #include "scene.glsl"
 #include "shadow.glsl"
 
- layout(binding = 0, std140) uniform UniformBufferBlock { tessellation_settings tessellation; }
- ubo;
+/*	Physical Based Rendering.	*/
+layout(constant_id = 32) const bool UseImageBasedLightning = true;
+layout(constant_id = 33) const int DistrubtionFunction = 1;
 
 struct OutputPatch {
 	vec3 WorldPos_B030;

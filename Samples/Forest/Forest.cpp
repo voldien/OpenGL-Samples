@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "GLSampleSession.h"
 #include "PostProcessing/MistPostProcessing.h"
+#include "SampleHelper.h"
 #include "UIComponent.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -29,9 +30,11 @@ namespace glsample {
 			this->addUIComponent(this->terrainSettingComponent);
 
 			this->camera.setFar(2000.0f);
-			this->camera.setPosition(glm::vec3(-2.5f));
+			this->camera.setPosition(glm::vec3(200.5f));
 			this->camera.lookAt(glm::vec3(0.f));
 		}
+
+		static const size_t NRUniformBuffer = 3;
 
 		struct alignas(16) TerrainSettings {
 			glm::ivec2 size = glm::ivec2(1, 1);
@@ -72,11 +75,11 @@ namespace glsample {
 		};
 
 		using UniformOceanBufferBlock = struct UniformOceanBufferBlock_t {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
 
 			/*	Material	*/
 			float shininess = 8;
@@ -94,17 +97,32 @@ namespace glsample {
 
 		MeshObject terrain;
 		MeshObject ocean_water;
+
+		UBOPool uniformPool;
+		UBOPool indirectPool;
+
+		/*	*/
+		StageBuffer<UniformOceanBufferBlock, NRUniformBuffer> OceanBuffers;
+		StageBuffer<UniformTerrainBufferBlock, NRUniformBuffer> TerrainBuffers;
+
+		/*	*/
+		std::array<UBORange, NRUniformBuffer> indirectGrass{};
+
+		/*	*/
 		MistPostProcessing mistprocessing;
 
-		unsigned int terrain_program = 0;
+		unsigned int terrain_graphic_program = 0;
+		unsigned int terrain_grass_indirect_dispatch_compute_program = 0;
+		unsigned int terrain_grass_graphic_rogram = 0;
+		unsigned int terrain_vegation_program = 0;
 		unsigned int simple_ocean_program = 0;
 
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
+		unsigned int grass_write_buffer_binding = 0;
 		unsigned int uniform_light_buffer_binding = 1;
 		unsigned int uniform_buffer{};
 		unsigned int uniform_light_buffer{};
-		const size_t nrUniformBuffer = 3;
 
 		/*	Uniform align buffer sizes.	*/
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
@@ -113,7 +131,7 @@ namespace glsample {
 
 		unsigned int terrain_diffuse_texture = 0;
 		unsigned int terrain_heightMap = 0;
-		unsigned int irradiance_texture = 0;
+		unsigned int diffuse_irradiance_cubemap_texture = 0;
 		unsigned int color_texture = 0;
 		unsigned int ocean_normal = 0;
 
@@ -127,12 +145,14 @@ namespace glsample {
 		const std::string evolutionTerrainShaderPath = "Shaders/forest/terrain/terrain.tese.spv";
 
 		/*	Grass.	*/
-		const std::string vertexGrassShaderPath = "Shaders/forest/terrain/terrain.vert.spv";
-		const std::string fragmentGrassShaderPath = "Shaders/forest/terrain/terrain.frag.spv";
-		const std::string vertexGrassControlShaderPath = "Shaders/forest/terrain/terrain.tesc.spv";
-		const std::string fragmentGrassEvolutionShaderPath = "Shaders/forest/terrain/terrain.tese.spv";
+		const std::string vertexGrassShaderPath = "Shaders/forest/grass/grass.vert.spv";
+		const std::string fragmentGrassShaderPath = "Shaders/forest/grass/grass.frag.spv";
+		const std::string controlGrassShaderPath = "Shaders/forest/grass/grass.tesc.spv";
+		const std::string evolutionGrassShaderPath = "Shaders/forest/grass/grass.tese.spv";
 
-		/*	Grass.	*/
+		const std::string computeGrassShaderPath = "Shaders/forest/grass/grass.comp.spv";
+
+		/*	Vegetation.	*/
 		const std::string vertexTreeShaderPath = "Shaders/forest/terrain/terrain.vert.spv";
 		const std::string fragmentTreeShaderPath = "Shaders/forest/terrain/terrain.frag.spv";
 		const std::string vertexTreeControlShaderPath = "Shaders/forest/terrain/terrain.tesc.spv";
@@ -143,9 +163,13 @@ namespace glsample {
 		const std::string fragmentSimpleWaterShaderPath = "Shaders/simpleocean/simple_water.frag.spv";
 
 		/*	Occlusion.	*/
+		const std::string computeCullingShaderPath = "Shaders/simpleocean/simple_water.frag.spv";
 
 		void Release() override {
-			glDeleteProgram(this->terrain_program);
+
+			glDeleteProgram(this->terrain_graphic_program);
+			glDeleteProgram(this->terrain_grass_indirect_dispatch_compute_program);
+			glDeleteProgram(this->terrain_grass_graphic_rogram);
 			glDeleteProgram(this->simple_ocean_program);
 
 			glDeleteVertexArrays(1, &this->terrain.vao);
@@ -243,6 +267,19 @@ namespace glsample {
 				const std::vector<uint32_t> evolution_terrain_binary =
 					IOUtil::readFileData<uint32_t>(this->evolutionTerrainShaderPath, this->getFileSystem());
 
+				/*	*/
+				const std::vector<uint32_t> vertex_grassbinary =
+					IOUtil::readFileData<uint32_t>(this->vertexGrassShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> fragment_grass_binary =
+					IOUtil::readFileData<uint32_t>(this->fragmentGrassShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> control_grass_binary =
+					IOUtil::readFileData<uint32_t>(this->controlGrassShaderPath, this->getFileSystem());
+				const std::vector<uint32_t> evolution_grass_binary =
+					IOUtil::readFileData<uint32_t>(this->evolutionGrassShaderPath, this->getFileSystem());
+
+				const std::vector<uint32_t> compute_grass_binary =
+					IOUtil::readFileData<uint32_t>(this->computeGrassShaderPath, this->getFileSystem());
+
 				const std::vector<uint32_t> vertex_simple_ocean_binary =
 					IOUtil::readFileData<uint32_t>(this->vertexSimpleWaterShaderPath, this->getFileSystem());
 				const std::vector<uint32_t> fragment_simple_ocean_binary =
@@ -253,27 +290,59 @@ namespace glsample {
 				compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 				compilerOptions.glslVersion = this->getShaderVersion();
 
-				this->terrain_program =
+				this->terrain_graphic_program =
 					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_terrain_binary, &fragment_terrain_binary,
 													 nullptr, &control_binary_binary, &evolution_terrain_binary);
+
+				this->terrain_grass_graphic_rogram =
+					ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_grassbinary, &fragment_grass_binary,
+													 nullptr, &control_grass_binary, &evolution_grass_binary);
+
+				this->terrain_grass_indirect_dispatch_compute_program =
+					ShaderLoader::loadComputeProgram(compilerOptions, &compute_grass_binary);
 
 				this->simple_ocean_program = ShaderLoader::loadGraphicProgram(
 					compilerOptions, &vertex_simple_ocean_binary, &fragment_simple_ocean_binary);
 			}
 
 			/*	Create Terrain Shader.	*/
-			glUseProgram(this->terrain_program);
-			int uniform_buffer_index = glGetUniformBlockIndex(this->terrain_program, "UniformBufferBlock");
-			glUniform1i(glGetUniformLocation(this->terrain_program, "DiffuseTexture"), TextureTypeBinding::Diffuse);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "NormalTexture"), TextureTypeBinding::Normal);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "DisplacementTexture"),
+			glUseProgram(this->terrain_graphic_program);
+			int uniform_buffer_index = glGetUniformBlockIndex(this->terrain_graphic_program, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->terrain_graphic_program, "DiffuseTexture"),
+						TextureTypeBinding::Diffuse);
+			glUniform1i(glGetUniformLocation(this->terrain_graphic_program, "NormalTexture"),
+						TextureTypeBinding::Normal);
+			glUniform1i(glGetUniformLocation(this->terrain_graphic_program, "DisplacementTexture"),
 						TextureTypeBinding::Displacement);
-			glUniform1i(glGetUniformLocation(this->terrain_program, "IrradianceTexture"),
+			glUniform1i(glGetUniformLocation(this->terrain_graphic_program, "IrradianceTexture"),
 						TextureTypeBinding::Irradiance);
-			glUniformBlockBinding(this->terrain_program, uniform_buffer_index, this->uniform_buffer_binding);
+			glUniformBlockBinding(this->terrain_graphic_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
-			/*	*/
+			/*	Grass Graphic.	*/
+			glUseProgram(this->terrain_grass_graphic_rogram);
+			uniform_buffer_index = glGetUniformBlockIndex(this->terrain_grass_graphic_rogram, "UniformBufferBlock");
+			glUniform1i(glGetUniformLocation(this->terrain_grass_graphic_rogram, "DiffuseTexture"),
+						TextureTypeBinding::Diffuse);
+			glUniform1i(glGetUniformLocation(this->terrain_grass_graphic_rogram, "NormalTexture"),
+						TextureTypeBinding::Normal);
+			glUniform1i(glGetUniformLocation(this->terrain_grass_graphic_rogram, "DisplacementTexture"),
+						TextureTypeBinding::Displacement);
+			glUniform1i(glGetUniformLocation(this->terrain_grass_graphic_rogram, "IrradianceTexture"),
+						TextureTypeBinding::Irradiance);
+			glUniformBlockBinding(this->terrain_grass_graphic_rogram, uniform_buffer_index,
+								  this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	Grass Compute Shaders.	*/
+			glUseProgram(this->terrain_grass_indirect_dispatch_compute_program);
+			uniform_buffer_index =
+				glGetUniformBlockIndex(this->terrain_grass_indirect_dispatch_compute_program, "UniformBufferBlock");
+			glUniformBlockBinding(this->terrain_grass_indirect_dispatch_compute_program, uniform_buffer_index,
+								  this->uniform_buffer_binding);
+			glUseProgram(0);
+
+			/*	Simple Ocean*/
 			glUseProgram(this->simple_ocean_program);
 			glUniform1i(glGetUniformLocation(this->simple_ocean_program, "DepthTexture"),
 						TextureTypeBinding::DepthBuffer);
@@ -287,6 +356,19 @@ namespace glsample {
 			glUniformBlockBinding(this->simple_ocean_program, uniform_buffer_index, this->uniform_buffer_binding);
 			glUseProgram(0);
 
+			/*	*/
+			GLint minMapBufferSize = 0;
+			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
+			this->oceanUniformSize = Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
+			this->uniformAlignBufferSize = Math::align<size_t>(this->oceanUniformSize, (size_t)minMapBufferSize);
+
+			/*	Create uniform buffer.	*/
+			glGenBuffers(1, &this->uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
+			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * NRUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+			/*	*/
 			TextureImporter textureImporter(this->getFileSystem());
 
 			const int skybox_program = Skybox::loadDefaultPanoramicProgram(this->getFileSystem());
@@ -297,18 +379,6 @@ namespace glsample {
 			/*	Create terrain texture.	*/
 			this->terrain_diffuse_texture = textureImporter.loadImage2D(panoramicPath);
 			this->color_texture = CommonUtil::createColorTexture(1, 1, Color(0, 1, 0, 1));
-
-			/*	*/
-			GLint minMapBufferSize = 0;
-			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->oceanUniformSize = Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
-			this->uniformAlignBufferSize = Math::align<size_t>(this->oceanUniformSize, (size_t)minMapBufferSize);
-
-			/*	Create uniform buffer.	*/
-			glGenBuffers(1, &this->uniform_buffer);
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 			MiscProcessingUtil util = MiscProcessingUtil(this->getFileSystem());
 
@@ -325,7 +395,8 @@ namespace glsample {
 			util.computeBump2Normal(this->terrain_heightMap, this->ocean_normal, 2048, 2048);
 
 			/*	*/
-			util.computeDiffuseIrradiance(this->skybox.getTexture(), this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradianceCubeMap(this->skybox.getTexture(), this->diffuse_irradiance_cubemap_texture,
+												 32, 32);
 
 			this->mistprocessing.initialize(this->getFileSystem());
 
@@ -359,15 +430,30 @@ namespace glsample {
 				util.computeBump2Normal(this->terrain_heightMap, this->ocean_normal);
 			}
 
+			/*	Dispatch Grass Indirect */
+			{
+
+				glBindBufferRange(GL_SHADER_STORAGE_BUFFER, this->grass_write_buffer_binding,
+								  this->indirectGrass[getFrameBufferIndex()].referenceBuffer->buffer,
+								  this->indirectGrass[getFrameBufferIndex()].offset,
+								  this->indirectGrass[getFrameBufferIndex()].size);
+
+				glUseProgram(terrain_grass_indirect_dispatch_compute_program);
+
+				/*	*/
+
+				glUseProgram(0);
+			}
+
 			/*	Terrain.	*/
 			if (this->terrainSettingComponent->showTerrain) {
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
+								  (this->getFrameCount() % NRUniformBuffer) * this->uniformAlignBufferSize,
 								  this->uniformAlignBufferSize);
 
 				/*	Draw terrain.	*/
-				glUseProgram(this->terrain_program);
+				glUseProgram(this->terrain_graphic_program);
 
 				glEnable(GL_CULL_FACE);
 				glDisable(GL_BLEND);
@@ -399,7 +485,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
-				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, this->diffuse_irradiance_cubemap_texture);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Reflection);
@@ -433,13 +519,24 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
+			/*	Render grass*/
+			{
+				glUseProgram(this->terrain_grass_graphic_rogram);
+
+				//	glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->in);
+
+				glDrawArraysIndirect(GL_POINTS, nullptr);
+
+				glUseProgram(0);
+			}
+
 			this->skybox.Render(this->camera);
 
 			// Ocean/Water
 			if (this->terrainSettingComponent->showOcean) {
 				/*	*/
 				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % nrUniformBuffer) * this->uniformAlignBufferSize,
+								  (this->getFrameCount() % NRUniformBuffer) * this->uniformAlignBufferSize,
 								  this->uniformAlignBufferSize);
 				/*	*/
 				glEnable(GL_DEPTH_TEST);
@@ -485,7 +582,7 @@ namespace glsample {
 			/*	Post processing.	*/
 			if (this->terrainSettingComponent->useMistFogPost) {
 				this->mistprocessing.render(
-					this->irradiance_texture, this->getDefaultFrameBufferObj()->attachments[0],
+					this->diffuse_irradiance_cubemap_texture, this->getDefaultFrameBufferObj()->attachments[0],
 					this->getDefaultFrameBufferObj()->attachments[this->getDefaultFrameBufferObj()->depthIndex]);
 			}
 		}
@@ -524,7 +621,7 @@ namespace glsample {
 			/*	*/
 			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
+				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->NRUniformBuffer) * this->uniformAlignBufferSize,
 				this->uniformAlignBufferSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
 			memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);

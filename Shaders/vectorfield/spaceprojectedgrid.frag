@@ -9,7 +9,7 @@ layout(location = 0) smooth in vec3 vVertex;
 /*	*/
 layout(binding = 1) uniform sampler2D tex1;
 
-#include "base.glsl"
+#include "vectorfield_base.glsl"
 
 layout(binding = 2) uniform UniformBufferBlock2 {
 	mat4 model;

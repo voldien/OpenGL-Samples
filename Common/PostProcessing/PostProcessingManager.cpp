@@ -1,24 +1,11 @@
 #include "PostProcessing/PostProcessingManager.h"
-#include "DataStructure/MemoryAddress.h"
 #include "PostProcessing/PostProcessing.h"
 #include <GL/glew.h>
+#include <cstddef>
 
 using namespace glsample;
 
-PostProcessingManager::PostProcessingManager() {
-
-	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, (GLint *)&this->ubo_pool.buffer.alignment);
-	this->ubo_pool.buffer.size = 1024 * 1024 * 2;
-	this->ubo_pool.buffer.totalSize =
-		fragcore::Math::align<size_t>(this->ubo_pool.buffer.size, (size_t)this->ubo_pool.buffer.alignment);
-	this->ubo_pool.addresser = MemoryAddress(this->ubo_pool.buffer.totalSize, 0);
-
-	/*	*/
-	glGenBuffers(1, &this->ubo_pool.buffer.buffer);
-	glBindBuffer(GL_UNIFORM_BUFFER, this->ubo_pool.buffer.buffer);
-	glBufferData(GL_UNIFORM_BUFFER, this->ubo_pool.buffer.totalSize, nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-}
+PostProcessingManager::PostProcessingManager(GLSampleBase &base) : base(base) { /*	*/ }
 
 void PostProcessingManager::addPostProcessing(const std::shared_ptr<PostProcessing> &postProcessing) {
 	/*	*/
@@ -65,8 +52,8 @@ void PostProcessingManager::render(
 }
 
 void PostProcessingManager::swapPostProcessing(int a, int b) {
-	a = Math::clamp<int>(a, 0, this->postProcessings.size() - 1);
-	b = Math::clamp<int>(b, 0, this->postProcessings.size() - 1);
+	a = fragcore::Math::clamp<int>(a, 0, this->postProcessings.size() - 1);
+	b = fragcore::Math::clamp<int>(b, 0, this->postProcessings.size() - 1);
 
 	std::swap(this->postProcessings[a], this->postProcessings[b]);
 	std::swap(this->post_enabled[a], this->post_enabled[b]);

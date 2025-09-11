@@ -1,4 +1,6 @@
+#include "Common.h"
 #include "IO/IFileSystem.h"
+#include "SampleHelper.h"
 #include "Scene/SceneHelper.h"
 #include "Skybox.h"
 #include <GL/glew.h>
@@ -84,9 +86,9 @@ namespace glsample {
 		/*	Uniform buffer.	*/
 		unsigned int uniform_shadow_buffer_binding = 0;
 		unsigned int uniform_graphic_buffer_binding = 0;
-		unsigned int uniform_buffer{};
-		const size_t nrUniformBuffer = 3;
-		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
+		static const size_t nrUniformBuffer = 3;
+		std::array<UBORange, nrUniformBuffer> UniformBuffers;
+		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 		const int shadowBinding = TextureTypeBinding::DirectionalLightDepthBuffer;
 
 		CameraController camera;
@@ -145,8 +147,6 @@ namespace glsample {
 
 			glDeleteFramebuffers(1, &this->shadowFramebuffer);
 			glDeleteTextures(1, &this->shadowTexture);
-
-			glDeleteBuffers(1, &this->uniform_buffer);
 		}
 
 		void Initialize() override {
@@ -235,18 +235,10 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			/*	Align uniform buffer in respect to driver requirement.	*/
-			GLint minMapBufferSize = 0;
-			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
-			this->uniformAlignBufferSize =
-				fragcore::Math::align<size_t>(this->uniformAlignBufferSize, (size_t)minMapBufferSize);
-
-			// Create uniform buffer.
-			glGenBuffers(1, &this->uniform_buffer);
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignBufferSize * this->nrUniformBuffer, nullptr,
-						 GL_DYNAMIC_DRAW);
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
+			/*	Allocate uniform buffers.	*/
+			this->UniformBuffers[0] = CommonUtil::getBuffer(this->getUniformPool(), this->uniformBufferSize);
+			this->UniformBuffers[1] = CommonUtil::getBuffer(this->getUniformPool(), this->uniformBufferSize);
+			this->UniformBuffers[2] = CommonUtil::getBuffer(this->getUniformPool(), this->uniformBufferSize);
 
 			{
 				/*	Create shadow map.	*/
@@ -322,14 +314,16 @@ namespace glsample {
 			size_t width = 0, height = 0;
 			this->getCurrentFrameBufferSize(&width, &height);
 
+			const size_t uniform_buffer_index = (this->getFrameCount() % this->nrUniformBuffer);
 			/*	Shadow Pass.	*/
 			{
 				Light *lightSource = this->scene->getLights()[0];
 				if (lightSource->getShadowStrength() > 0) {
 					/*	*/
-					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_shadow_buffer_binding, this->uniform_buffer,
-									  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-									  this->uniformAlignBufferSize);
+					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_shadow_buffer_binding,
+									  this->UniformBuffers[uniform_buffer_index].referenceBuffer->buffer,
+									  this->UniformBuffers[uniform_buffer_index].offset,
+									  this->UniformBuffers[uniform_buffer_index].size);
 
 					glBindFramebuffer(GL_FRAMEBUFFER, this->shadowFramebuffer);
 
@@ -353,9 +347,10 @@ namespace glsample {
 			/*	Render Graphic.	*/
 			{
 				/*	*/
-				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_graphic_buffer_binding, this->uniform_buffer,
-								  (this->getFrameCount() % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-								  this->uniformAlignBufferSize);
+				glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_graphic_buffer_binding,
+								  this->UniformBuffers[uniform_buffer_index].referenceBuffer->buffer,
+								  this->UniformBuffers[uniform_buffer_index].offset,
+								  this->UniformBuffers[uniform_buffer_index].size);
 
 				glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 				/*	*/
@@ -393,11 +388,11 @@ namespace glsample {
 			this->scene->update(this->getTimer().deltaTime<float>());
 
 			/*	*/
-			glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-			void *uniformPointer = glMapBufferRange(
-				GL_UNIFORM_BUFFER, ((this->getFrameCount() + 1) % this->nrUniformBuffer) * this->uniformAlignBufferSize,
-				this->uniformAlignBufferSize,
-				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+			const size_t uniform_buffer_index = ((this->getFrameCount() + 1) % this->nrUniformBuffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->UniformBuffers[uniform_buffer_index].referenceBuffer->buffer);
+			void *uniformPointer =
+				glMapBufferRange(GL_UNIFORM_BUFFER, this->UniformBuffers[uniform_buffer_index].offset,
+								 this->UniformBuffers[uniform_buffer_index].size, GL_MAP_WRITE_BIT);
 			memcpy(uniformPointer, &this->uniformStageBuffer, sizeof(uniformStageBuffer));
 			glUnmapBuffer(GL_UNIFORM_BUFFER);
 		}

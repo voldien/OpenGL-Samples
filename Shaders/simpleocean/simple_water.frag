@@ -93,7 +93,7 @@ void main() {
 	/*	*/
 	const float blend_water_depth = 1.0075;
 
-	/*	Compute depth difference	*/
+	/*	Compute depth difference	*/	//TODO: relocate as a function.
 	const vec2 texSize = textureSize(DepthTexture, 0).xy;
 	const vec2 screen_uv = gl_FragCoord.xy / texSize;
 	const float camera_z = getExpToLinear(ubo.camera.near, ubo.camera.far, texture(DepthTexture, screen_uv).r);

@@ -27,9 +27,9 @@ void GrainPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	if (this->grain_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
+		const std::vector<uint32_t> post_vertex_binary = fragcore::IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
 		/*	*/
-		const std::vector<uint32_t> grain_fragment_binary = IOUtil::readFileData<uint32_t>(grain_frag_path, filesystem);
+		const std::vector<uint32_t> grain_fragment_binary = fragcore::IOUtil::readFileData<uint32_t>(grain_frag_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;

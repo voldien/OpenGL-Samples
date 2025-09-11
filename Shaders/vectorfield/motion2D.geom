@@ -7,7 +7,7 @@ layout(points) in;
 layout(line_strip) out;
 layout(max_vertices = 6) out;
 
-#include "base.glsl"
+#include "vectorfield_base.glsl"
 
 /*  */
 layout(location = 0) smooth in vec3 outForce[];

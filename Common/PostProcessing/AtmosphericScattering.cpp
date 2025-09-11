@@ -29,11 +29,13 @@ void AtmosphericScattering::initialize(fragcore::IFileSystem *filesystem) {
 	const char *glow_frag_path = "Shaders/postprocessingeffects/atmospheric_scattering.frag.spv";
 
 	if (this->atmospheric_scattering_graphic_program == -1) {
+
 		/*	*/
 		const std::vector<uint32_t> post_vertex_binary =
-			IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
-		const std::vector<uint32_t> glow_fragment_binary = IOUtil::readFileData<uint32_t>(glow_frag_path, filesystem);
-
+			fragcore::IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
+		const std::vector<uint32_t> glow_fragment_binary =
+			fragcore::IOUtil::readFileData<uint32_t>(glow_frag_path, filesystem);
+		/*	*/
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
 		compilerOptions.glslVersion = 420; /*	*/
@@ -43,6 +45,7 @@ void AtmosphericScattering::initialize(fragcore::IFileSystem *filesystem) {
 			ShaderLoader::loadGraphicProgram(compilerOptions, &post_vertex_binary, &glow_fragment_binary);
 	}
 
+	/*	*/
 	glUseProgram(this->atmospheric_scattering_graphic_program);
 	glUniform1i(glGetUniformLocation(this->atmospheric_scattering_graphic_program, "ColorTexture"), 0);
 	glBindFragDataLocation(this->atmospheric_scattering_graphic_program, 1, "fragColor");

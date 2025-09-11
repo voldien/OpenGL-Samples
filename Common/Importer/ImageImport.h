@@ -66,7 +66,7 @@ namespace glsample {
 								 const TextureCompression compression = TextureCompression::None);
 
 	  protected:
-		void getFormat(const Image &image, unsigned int &format, unsigned int &dataType, unsigned int &internalformat,
+		void getFormat(const fragcore::Image &image, unsigned int &format, unsigned int &dataType, unsigned int &internalformat,
 					   const ColorSpace colorSpace = ColorSpace::RawLinear,
 					   const TextureCompression compression = TextureCompression::None);
 

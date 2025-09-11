@@ -14,6 +14,7 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+#include "Core/Object.h"
 #include "TaskScheduler/IScheduler.h"
 #include <FragCore.h>
 #include <GL/glew.h>
@@ -23,11 +24,10 @@ namespace glsample {
 
 	/**
 	 * @brief
-	 *
 	 */
-	class FVDECLSPEC GLSampleSession {
+	class FVDECLSPEC GLSampleSession : public fragcore::Object {
 	  public:
-		virtual ~GLSampleSession() = default;
+		~GLSampleSession() override = default;
 
 		virtual void run(int argc, const char **argv, const std::vector<const char *> &requiredExtension = {}) = 0;
 		virtual void customOptions(cxxopts::OptionAdder &options) {}

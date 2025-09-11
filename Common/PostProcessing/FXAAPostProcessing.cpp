@@ -27,9 +27,9 @@ void FXAAPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	/*	*/
 	if (this->fxaa_frag_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
+		const std::vector<uint32_t> post_vertex_binary = fragcore::IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
 		const std::vector<uint32_t> guassian_blur_compute_binary =
-			IOUtil::readFileData<uint32_t>(fxaa_compute_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(fxaa_compute_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;

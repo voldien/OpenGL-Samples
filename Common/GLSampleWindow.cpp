@@ -122,7 +122,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 				// }
 
 				bool isSuperEnabled = this->getRefSample().useSSAA;
-				if (ImGui::Checkbox("SuperSampling Anti-Aliasing (SSAA)", (bool *)&isSuperEnabled)) {
+				if (ImGui::Checkbox("SuperSampling Anti-Aliasing (SSAA)", (&isSuperEnabled))) {
 					this->getRefSample().useSSAA = isSuperEnabled;
 				}
 				if (ImGui::DragInt("SSAA Samples", &this->getRefSample().SSAASamples, 1.0f, 1, 8)) {
@@ -131,7 +131,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 				}
 
 				bool useSampleAccum = this->getRefSample().useSampleAccumlation;
-				if (ImGui::Checkbox("Use Sample Accumlation", (bool *)&useSampleAccum)) {
+				if (ImGui::Checkbox("Use Sample Accumlation", (&useSampleAccum))) {
 					this->getRefSample().useSampleAccumlation = useSampleAccum;
 				}
 
@@ -297,8 +297,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
   private:
 };
 
-GLSampleWindow::GLSampleWindow()
-	: nekomimi::MIMIWindow(nekomimi::GfxBackEnd::ImGUI_OpenGL), preWidth(this->width()), preHeight(this->height()) {
+GLSampleWindow::GLSampleWindow() : preWidth(this->width()), preHeight(this->height()) {
 
 	/* Create logger	*/
 	auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -375,7 +374,7 @@ void GLSampleWindow::internalInit() {
 		}
 
 		if (use_post_process) {
-			this->postprocessingManager = std::make_shared<PostProcessingManager>();
+			this->postprocessingManager = std::make_shared<PostProcessingManager>(*this);
 
 			std::shared_ptr<FXAAPostProcessing> fxaa = std::make_shared<FXAAPostProcessing>();
 			fxaa->initialize(this->getFileSystem());
@@ -825,28 +824,6 @@ void GLSampleWindow::captureDebugFrame() noexcept {
 	}
 }
 
-unsigned int GLSampleWindow::getShaderVersion() const {
-	const int glsl_version = this->getResult()["glsl-version"].as<int>();
-
-	/*	Override glsl version.	*/
-	if (glsl_version >= 0) {
-		return glsl_version;
-	}
-
-	const fragcore::GLRendererInterface *interface = this->getGLRenderInterface();
-
-	const char *shaderVersion = interface->getShaderVersion(fragcore::ShaderLanguage::GLSL);
-
-	const unsigned int version = std::stoi(shaderVersion);
-	return version;
-}
-
-bool GLSampleWindow::supportSPIRV() const {
-	const fragcore::GLRendererInterface *interface =
-		dynamic_cast<const fragcore::GLRendererInterface *>(this->getRenderInterface());
-	return (interface->getShaderLanguage() & (fragcore::ShaderLanguage::SPIRV != 0));
-}
-
 void GLSampleWindow::createDefaultFrameBuffer() {
 
 	if (this->defaultFramebuffer == nullptr) {
@@ -878,6 +855,13 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 	const int framebuffer_Height = this->height() * this->getSizeSSAFactor();
 
 	if (this->MMSAFrameBuffer) {
+		const TextureDesc depthStencil = {
+			.width = framebuffer_Width,
+			.height = framebuffer_Height,
+			.depth = 1,
+			.graphicFormat = internal_depth_format,
+			.nrSamples = multi_sample_count,
+		};
 		CommonUtil::updateFrameBuffer(this->MMSAFrameBuffer.get(),
 									  {{
 										  .width = framebuffer_Width,
@@ -887,16 +871,17 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										  .nrSamples = multi_sample_count,
 
 									  }},
-									  {
-										  .width = framebuffer_Width,
-										  .height = framebuffer_Height,
-										  .depth = 1,
-										  .graphicFormat = internal_depth_format,
-										  .nrSamples = multi_sample_count,
-									  });
+									  &depthStencil);
 	}
 
 	if (this->defaultFramebuffer != nullptr) {
+		const TextureDesc depthStencil = {
+			.width = framebuffer_Width,
+			.height = framebuffer_Height,
+			.depth = 1,
+			.graphicFormat = internal_depth_format,
+			.nrSamples = 0,
+		};
 		CommonUtil::updateFrameBuffer(this->defaultFramebuffer.get(),
 									  {{
 										   .width = framebuffer_Width,
@@ -920,13 +905,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
 									   }},
-									  {
-										  .width = framebuffer_Width,
-										  .height = framebuffer_Height,
-										  .depth = 1,
-										  .graphicFormat = internal_depth_format,
-										  .nrSamples = 0,
-									  });
+									  &depthStencil);
 	}
 }
 

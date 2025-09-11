@@ -16,10 +16,7 @@ layout(location = 8) flat in ivec2 fAssigns;
 #include "pbr.glsl"
 #include "pbr_common.glsl"
 
-
-float computeLODFromRoughness(const in float perceptualRoughness){
-	return perceptualRoughness;
-}
+float computeLODFromRoughness(const in float perceptualRoughness) { return perceptualRoughness; }
 
 void main() {
 
@@ -83,19 +80,25 @@ void main() {
 	const vec4 diffuseColor = albedo * mat.diffuseColor;
 	const vec3 diffuse = diffuse_irradiance_color_contr * diffuseColor.rgb;
 
-	// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to
-	// get the IBL specular part.
-	const float MAX_REFLECTION_LOD = 5.0;
-	const vec2 irradiance_specular_uv = inverse_equirectangular(normalize(ViewPixelReflectDir));
+	vec3 indirectLight;
+	if (UseImageBasedLightning) {
+		// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation
+		// to get the IBL specular part.
+		const float MAX_REFLECTION_LOD = 5.0;
+		const vec2 irradiance_specular_uv = inverse_equirectangular(normalize(ViewPixelReflectDir));
 
-	const vec3 prefilteredColor = textureLod(prefilterMap, irradiance_specular_uv, roughness * MAX_REFLECTION_LOD).rgb;
-	const vec2 brdf_lookup_uv = vec2(max(dot(SurfaceNormal, ViewPixelDir), 0.0), roughness);
-	const vec2 brdf = texture(BRDFLUT, brdf_lookup_uv).rg;
+		const vec3 prefilteredColor =
+			textureLod(prefilterMap, irradiance_specular_uv, roughness * MAX_REFLECTION_LOD).rgb;
+		const vec2 brdf_lookup_uv = vec2(max(dot(SurfaceNormal, ViewPixelDir), 0.0), roughness);
+		const vec2 brdf = texture(BRDFLUT, brdf_lookup_uv).rg;
 
-	vec3 specular = prefilteredColor * (kSpecular_F * brdf.x + brdf.y);
-	specular *= mat.specular_roughness.rgb;
+		vec3 specular = prefilteredColor * (kSpecular_F * brdf.x + brdf.y);
+		specular *= mat.specular_roughness.rgb;
 
-	const vec3 indirectLight = (kDiffuse * diffuse + specular) * ao;
+		indirectLight = (kDiffuse * diffuse + specular) * ao;
+	} else {
+		indirectLight = vec3(0);
+	}
 
 	const vec3 color = emissive + indirectLight + DirectLight;
 

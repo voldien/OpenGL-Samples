@@ -27,10 +27,10 @@ void ChromaticAberrationPostProcessing::initialize(fragcore::IFileSystem *filesy
 
 	if (this->chromatic_abberation_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
+		const std::vector<uint32_t> post_vertex_binary = fragcore::IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
 		/*	*/
 		const std::vector<uint32_t> chromatic_abberation_fragment_binary =
-			IOUtil::readFileData<uint32_t>(chromatic_abberation_frag_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(chromatic_abberation_frag_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;

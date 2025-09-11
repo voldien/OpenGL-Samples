@@ -1,56 +1,57 @@
 #include "Scene/Frustum.h"
+#include "SampleHelper.h"
 
 namespace glsample {
 
 	Frustum::Frustum(const Frustum &other) : Node(other) {}
 
-	void Frustum::calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
-									const Vector3 &right) {}
+	void Frustum::calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
+									const glm::vec3 &right) {}
 
-	Frustum::Intersection Frustum::checkPoint(const Vector3 &pos) const noexcept {
+	Frustum::Intersection Frustum::checkPoint(const glm::vec3 &pos) const noexcept {
 
 		/*	Iterate through each plane.	*/
-		for (unsigned int x = 0; x < FrustumPlane::NPLANES; x++) {
-			if (fragcore::GeometryUtility::testPlanesPoint(this->planes[x], pos)) {
+		for (unsigned int plane_index = 0; plane_index < this->getNrPlanes(); plane_index++) {
+			if (fragcore::GeometryUtility::testPlanesPoint(this->getPlane(plane_index), GLM2E(pos))) {
 				return Intersection::Out;
 			}
 		}
 		return In;
 	}
 
-	Frustum::Intersection Frustum::intersectionAABB(const Vector3 &min, const Vector3 &max) const noexcept {
-		return Frustum::intersectionAABB(AABB::createMinMax(min, max));
+	Frustum::Intersection Frustum::intersectionAABB(const glm::vec3 &min, const glm::vec3 &max) const noexcept {
+		return Frustum::intersectionAABB(AABB::createMinMax(GLM2E(min), GLM2E(max)));
 	}
 
 	Frustum::Intersection Frustum::intersectionAABB(const AABB &bounds) const noexcept {
 		Frustum::Intersection result = Frustum::In;
 
-		for (unsigned int index_plane = 0; index_plane < FrustumPlane::NPLANES; index_plane++) {
+		for (unsigned int index_plane = 0; index_plane < this->getNrPlanes(); index_plane++) {
 
-			if (!fragcore::GeometryUtility::testPlanesAABB(this->planes[index_plane], bounds)) {
-				return Intersection::Out; //index_plane > 0 ? Intersection::Intersect : Intersection::Out;
+			if (!fragcore::GeometryUtility::testPlanesAABB(this->getPlane(index_plane), bounds)) {
+				return Intersection::Out; // index_plane > 0 ? Intersection::Intersect : Intersection::Out;
 			}
 		}
 
 		return result;
 	}
 
-	Frustum::Intersection Frustum::intersectionOBB(const Vector3 &u, const Vector3 &v,
-												   const Vector3 &w) const noexcept {
+	Frustum::Intersection Frustum::intersectionOBB(const glm::vec3 &u, const glm::vec3 &v,
+												   const glm::vec3 &w) const noexcept {
 		return Intersection::Out;
 	}
 	Frustum::Intersection Frustum::intersectionOBB(const OBB &obb) const noexcept { return Out; }
 
-	Frustum::Intersection Frustum::intersectionSphere(const Vector3 &pos, float radius) const noexcept {
-		return Frustum::intersectionSphere(BoundingSphere(pos, radius));
+	Frustum::Intersection Frustum::intersectionSphere(const glm::vec3 &position, float radius) const noexcept {
+		return Frustum::intersectionSphere(BoundingSphere(GLM2E(position), radius));
 	}
 
 	Frustum::Intersection Frustum::intersectionSphere(const BoundingSphere &sphere) const noexcept {
 
-		for (unsigned int index_plane = 0; index_plane < (unsigned int)FrustumPlane::NPLANES; index_plane++) {
+		for (unsigned int index_plane = 0; index_plane < this->getNrPlanes(); index_plane++) {
 
-			if (!fragcore::GeometryUtility::testPlanesSphere(this->planes[index_plane], sphere)) {
-				return Intersection::Out; //index_plane > 0 ? Intersection::Intersect : Intersection::Out;
+			if (!fragcore::GeometryUtility::testPlanesSphere(this->getPlane(index_plane), sphere)) {
+				return Intersection::Out; // index_plane > 0 ? Intersection::Intersect : Intersection::Out;
 			}
 		}
 		return Intersection::In;

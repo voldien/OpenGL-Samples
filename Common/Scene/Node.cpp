@@ -36,22 +36,39 @@ void Node::setRotation(const glm::quat &quat) noexcept { TransformGLM::setRotati
 Node *Node::parent() const noexcept { return dynamic_cast<Node *>(this->getParent()); }
 
 glm::mat4 Node::getGlobalMatrix() const noexcept {
-	glm::mat4 model(1);
-	model = glm::translate(model, this->getPosition());
-	model = model * glm::toMat4(this->getRotation());
-	model = glm::scale(model, this->getScale());
-	return model;
+	glm::mat4 globalModel(1);
+	globalModel = glm::translate(globalModel, this->getPosition());
+	globalModel = globalModel * glm::toMat4(this->getRotation());
+	globalModel = glm::scale(globalModel, this->getScale());
+	return globalModel;
 }
 glm::mat4 Node::getLocalMatrix() const noexcept {
-	glm::mat4 model(1);
-	model = glm::translate(model, this->getLocalPosition());
-	model = model * glm::toMat4(this->getLocalRotation());
-	model = glm::scale(model, this->getLocalScale());
-	return model;
+	glm::mat4 localModel(1);
+	localModel = glm::translate(localModel, this->getLocalPosition());
+	localModel = localModel * glm::toMat4(this->getLocalRotation());
+	localModel = glm::scale(localModel, this->getLocalScale());
+	return localModel;
 }
 
-glm::mat4 Node::getViewMatrix() const noexcept { return glm::translate(glm::mat4(1), -this->getPosition()); }
-glm::mat4 Node::getLocalViewMatrix() const noexcept { return glm::translate(glm::mat4(1), -this->getLocalPosition()); }
+glm::mat4 Node::getViewMatrix() const noexcept {
+	glm::mat4 globalView(1);
+	globalView = glm::translate(globalView, -this->getPosition());
+	globalView = globalView * glm::toMat4(glm::inverse(this->getRotation()));
+	globalView = glm::scale(globalView, this->getScale());
+
+	return globalView;
+}
+
+glm::mat4 Node::getLocalViewMatrix() const noexcept {
+
+	glm::mat4 localView(1);
+	localView = glm::translate(localView, -this->getLocalPosition());
+	localView = localView * glm::toMat4(glm::inverse(this->getLocalRotation()));
+	localView = glm::scale(localView, this->getLocalScale());
+
+	return localView;
+}
+
 glm::mat4 Node::getRotationMatrix() const noexcept {
 	glm::quat rotation = glm::quatLookAt(glm::normalize(this->forward()), glm::normalize(this->up()));
 	return glm::toMat4(rotation);
@@ -98,8 +115,10 @@ glm::vec3 Node::getLocalScale() const noexcept {
 }
 glm::quat Node::getLocalRotation() const noexcept {
 	Node *parent = this->parent();
-	glm::quat parent_rotation = parent ? parent->getRotation() : glm::quat();
+	if (parent) {
+		return parent->getRotation() * glm::inverse(getRotation());
+	}
 
 	// TODO: fix
-	return parent_rotation * glm::inverse(getRotation());
+	return this->getRotation();
 }

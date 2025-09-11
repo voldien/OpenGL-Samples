@@ -35,14 +35,14 @@ void BloomPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 	if (this->bloom_blur_graphic_program == -1) {
 		/*	*/
 		const std::vector<uint32_t> post_vertex_binary =
-			IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
-		const std::vector<uint32_t> glow_fragment_binary = IOUtil::readFileData<uint32_t>(glow_frag_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(vertex_path, filesystem); /*	*/
+		const std::vector<uint32_t> glow_fragment_binary = fragcore::IOUtil::readFileData<uint32_t>(glow_frag_path, filesystem);
 
 		const std::vector<uint32_t> downsample2x2_compute_binary =
-			IOUtil::readFileData<uint32_t>(downscale_compute_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(downscale_compute_path, filesystem);
 
 		const std::vector<uint32_t> upsample2x2_compute_binary =
-			IOUtil::readFileData<uint32_t>(upscale_compute_path, filesystem);
+			fragcore::IOUtil::readFileData<uint32_t>(upscale_compute_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;

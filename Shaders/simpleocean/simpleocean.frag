@@ -12,8 +12,8 @@ layout(location = 2) in vec3 normal;
 layout(origin_upper_left) in vec4 gl_FragCoord;
 
 #include "common.glsl"
-#include "phongblinn.glsl"
 #include "pbr.glsl"
+#include "phongblinn.glsl"
 
 layout(constant_id = 10) const int MaxWaves = 128;
 
@@ -55,8 +55,7 @@ ubo;
 
 layout(set = 0, binding = 0) uniform sampler2D ReflectionTexture;
 
-
-layout(set = 0, binding = 10) uniform sampler2D IrradianceTexture;
+layout(set = 0, binding = 10) uniform samplerCube IrradianceTexture;
 layout(set = 0, binding = 6) uniform sampler2D DepthTexture;
 
 void main() {
@@ -75,8 +74,7 @@ void main() {
 	const vec2 reflection_uv = inverse_equirectangular(reflection);
 
 	/*	*/
-	const vec2 irradiance_uv = inverse_equirectangular(normalize(Mnormal));
-	const vec4 irradiance_color = texture(IrradianceTexture, irradiance_uv).rgba;
+	const vec4 irradiance_color = texture(IrradianceTexture, Mnormal).rgba;
 
 	/*	*/
 	const vec3 fresnel = FresnelSchlick(vec3(0.02) * ubo.fresnelPower, viewDir, normal);

@@ -14,3 +14,18 @@
  * all copies or substantial portions of the Software.
  */
 #pragma once
+
+#include "GLUIComponent.h"
+namespace glsample {
+
+	class Scene;
+
+	class SceneSettingsUI : public GLUIComponent<Scene> {
+	  public:
+		SceneSettingsUI(Scene &scene);
+
+		void draw() override;
+
+		Scene &getScene() const noexcept { return this->getRefSample(); }
+	};
+} // namespace glsample

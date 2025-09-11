@@ -10,9 +10,9 @@ layout(location = 1) smooth in vec4 gColor;
 layout(location = 2) in float ageTime;
 
 /*  */
-layout(binding = 0) uniform sampler2D spriteTexture;
+layout(set = 1, binding = 0) uniform sampler2D DiffuseTexture;
 
-#include "base.glsl"
+#include "vectorfield_base.glsl"
 
-void main() { fragColor = texture(spriteTexture, uv) * (ubo.color + gColor); }
+void main() { fragColor = texture(DiffuseTexture, uv) * (ubo.color + gColor); }
 

@@ -3,7 +3,7 @@ layout(constant_id = 1) const int NR_Particles = 8;
 #include "common.glsl"
 
 struct particle_t {
-	vec3 position;
+	vec3 position;	/*	*/
 	float time;
 	vec4 velocity; /*	velocity, mass*/
 };
@@ -40,7 +40,7 @@ struct motion_t {
 	float pad2;
 };
 
-layout(binding = 0) uniform UniformBufferBlock {
+layout(set = 0, binding = 0) uniform UniformBufferBlock {
 	mat4 model;
 	mat4 view;
 	mat4 proj;

@@ -15,23 +15,23 @@
  */
 #pragma once
 #include "FPSCounter.h"
-#include "GLRendererInterface.h"
+#include "GLSampleBase.h"
 #include "PostProcessing/ColorSpaceConverter.h"
 #include "PostProcessing/PostProcessingManager.h"
 #include "SDLInput.h"
 #include "SampleHelper.h"
-#include "TaskScheduler/IScheduler.h"
 #include <Core/Time.h>
 #include <IO/IFileSystem.h>
 #include <MIMIWindow.h>
 #include <Math3D/Math3D.h>
 #include <ProceduralGeometry.h>
+
 #include <cstddef>
 #include <cxxopts.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
 
-class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
+class FVDECLSPEC GLSampleWindow : public GLSampleBase {
   public:
 	GLSampleWindow();
 	GLSampleWindow &operator=(const GLSampleWindow &) = delete;
@@ -87,19 +87,6 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 
 	void captureScreenShot();
 
-	fragcore::IFileSystem *getFileSystem() const noexcept { return this->filesystem.get(); }
-	void setFileSystem(fragcore::IFileSystem *filesystem) noexcept {
-		this->filesystem = std::shared_ptr<fragcore::IFileSystem>(filesystem);
-	}
-
-	fragcore::IScheduler *getSchedular() const noexcept { return this->filesystem->getScheduler().get(); }
-
-	unsigned int getShaderVersion() const;
-
-	bool supportSPIRV() const;
-
-	/*	*/
-	const cxxopts::ParseResult &getResult() const noexcept { return this->parseResult; }
 	void setCommandResult(const cxxopts::ParseResult &result) {
 		this->parseResult = result;
 		this->internalInit();
@@ -108,12 +95,7 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	fragcore::Input &getInput() noexcept { return this->input; }
 	const fragcore::Input &getInput() const noexcept { return this->input; }
 
-	const fragcore::GLRendererInterface *getGLRenderInterface() const noexcept {
-		return &this->getRenderInterface()->as<const fragcore::GLRendererInterface>();
-	}
-	fragcore::GLRendererInterface *getGLRenderInterface() noexcept {
-		return &this->getRenderInterface()->as<fragcore::GLRendererInterface>();
-	}
+
 
 	void setColorSpace(const glsample::ColorSpace srgb);
 	glsample::ColorSpace getColorSpace() const noexcept;
@@ -221,12 +203,9 @@ class FVDECLSPEC GLSampleWindow : public nekomimi::MIMIWindow {
 	void internalInit();
 
   private:
-	cxxopts::ParseResult parseResult;
 	glsample::FPSCounter<float> fpsCounter;
 	fragcore::Time time;
 	fragcore::SDLInput input;
-
-	std::shared_ptr<fragcore::IFileSystem> filesystem; /*	*/
 
 	bool postProcessingEnabled = true;
 	std::shared_ptr<glsample::PostProcessingManager> postprocessingManager = nullptr;

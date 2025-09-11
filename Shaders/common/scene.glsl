@@ -9,6 +9,11 @@
 #include "material.glsl"
 #include "transformation.glsl"
 
+/*	Scene Options.	*/
+layout (constant_id = 12) const bool UseTexture = false;
+layout (constant_id = 13) const bool FlipTexture = false;
+layout (constant_id = 14) const bool UseTessellation = false;
+
 /*	*/
 layout(constant_id = 16) const int MAX_BONES = 512;
 layout(constant_id = 17) const int MAX_BONE_INFLUENCE = 4;
@@ -32,8 +37,8 @@ struct common_data {
 	mat4 view[3];
 	mat4 proj[3];
 
-	vec4 time;
-	// ivec4 frame;
+	vec4 time; /*	Delta, */
+			   // ivec4 frame;
 };
 
 struct Node {
@@ -41,8 +46,9 @@ struct Node {
 };
 
 struct light_settings {
-	// TODO: seperate for shadow data.
 
+	// ShadowLight shadows;
+	//  TODO: seperate for shadow data.
 	DirectionalLight directional[16];
 	PointLight point[64];
 	uint directionalCount;
@@ -66,6 +72,10 @@ layout(set = 1, binding = 3, std140) uniform UniformSkeletonBufferBlock { mat4 g
 skeletonUBO;
 
 /*	*/
+layout(set = 1, binding = 5, std140) uniform UniformSkeletonPrevBufferBlock { mat4 gBones[1024]; }
+skeletonUBOPrev;
+
+/*	*/
 layout(set = 1, binding = 4, std140) uniform UniformMaterialBufferBlock {
 	material materials[128];
 	tessellation_settings tessellation[128];
@@ -80,32 +90,53 @@ LightUBO;
 layout(set = 0, binding = 0) uniform sampler2D DiffuseTexture;
 layout(set = 0, binding = 1) uniform sampler2D NormalTexture;
 layout(set = 0, binding = 2) uniform sampler2D AlphaMaskedTexture;
-
 /*	Physical Based Material Textures.	*/
 layout(set = 0, binding = 3) uniform sampler2D RoughnessTexture;
 layout(set = 0, binding = 8) uniform sampler2D MetalicTexture;
 layout(set = 0, binding = 4) uniform sampler2D EmissionTexture;
 layout(set = 0, binding = 7) uniform sampler2D DisplacementTexture;
 layout(set = 0, binding = 6) uniform sampler2D AOTexture;
-
 /*	*/
-layout(set = 0, binding = 9) uniform sampler2D BackBufferTexture;
+layout(set = 2, binding = 9) uniform sampler2D BackBufferTexture;
 layout(set = 2, binding = 13) uniform sampler2D CameraDepthTexture;
 
 /*	Image Based Lightning Textures.	*/
 layout(set = 1, binding = 10) uniform samplerCube IrradianceTexture; /*	*/
 layout(set = 1, binding = 11) uniform sampler2D prefilterMap;		 /*	*/
 layout(set = 1, binding = 12) uniform sampler2D BRDFLUT;			 /*	*/
-
-/*	Light.	*/
+/*	Light Set.	*/
 layout(set = 3, binding = 20) uniform samplerCube PointShadowTexture[4];
 layout(set = 3, binding = 24) uniform sampler2DShadow DirectionalShadowTexture[4];
 
-mat4 getModel(const in int index) { return NodeUBO.node[index].model; }
-mat4 getModel() { return getModel(0); }
+float getElapsedTime() { return constantCommon.constant.time.x; }
+float getDeltaTime() { return constantCommon.constant.time.y; }
 
 /*	*/
-material getMaterial(const int index) { return MaterialUBO.materials[index]; }
+Camera getCamera() { return constantCommon.constant.camera; }
+Camera getCamera(const in uint index) { return constantCommon.constant.camera; }
+Frustum getFrustm() { return constantCommon.constant.frustum; }
+Frustum getFrustm(const in uint index) { return constantCommon.constant.frustum; }
+
+
+/*	Transformation based on Camera and common data.	*/
+// TODO: use transform functions here
+vec3 scene_world_to_view(const in vec3 x) { return (constantCommon.constant.camera.view * vec4(x, 1)).xyz; }
+
+
+mat4 getModel(const in uint index) { return NodeUBO.node[index].model; }
+mat4 getModel() { return getModel(0); }
+
+mat4 getPrevModel(const in uint index) { return NodePrevUBO.node[index].model; }
+
+vec3 getVelocity(const uint model_index, const in vec3 objectVertex) {
+	const vec3 prevVertex = (getModel(model_index) * vec4(objectVertex, 1)).xyz;
+	const vec3 currVertex = (getModel(model_index) * vec4(objectVertex, 1)).xyz;
+
+	return (prevVertex - currVertex);
+}
+
+/*	*/
+material getMaterial(const uint index) { return MaterialUBO.materials[index]; }
 material getMaterial() { return getMaterial(0); }
 
 /*	*/
@@ -116,10 +147,5 @@ uint getPointLightCount() { return LightUBO.light.pointCount; }
 DirectionalLight getDirectional(const in uint index) { return LightUBO.light.directional[index]; }
 PointLight getPointLight(const in uint index) { return LightUBO.light.point[index]; }
 
-/*	*/
-Camera getCamera() { return constantCommon.constant.camera; }
-
-// TODO: use transform functions here
-vec3 scene_world_to_view(const in vec3 x) { return (constantCommon.constant.camera.view * vec4(x, 1)).xyz; }
 
 #endif

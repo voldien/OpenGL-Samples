@@ -7,13 +7,13 @@
 
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
-#include "base.glsl"
+#include "vectorfield_base.glsl"
 
 /*	*/
-layout(std430, set = 0, binding = 1) readonly restrict buffer ReadBuffer { particle_t particle[]; }
+layout(std430, set = 1, binding = 1) readonly restrict buffer ReadBuffer { particle_t particle[]; }
 readBuffer;
 /*	*/
-layout(std430, set = 0, binding = 2) writeonly restrict buffer WriteBuffer { particle_t particle[]; }
+layout(std430, set = 1, binding = 2) writeonly restrict buffer WriteBuffer { particle_t particle[]; }
 writeBuffer;
 
 void main() {

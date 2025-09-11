@@ -49,7 +49,7 @@ namespace glsample {
 		/*	*/
 		MeshObject plan;   /*	Directional light.	*/
 		MeshObject sphere; /*	Point Light.*/
-		Scene* scene{};	   /*	World Scene.	*/
+		Scene *scene{};	   /*	World Scene.	*/
 		Skybox skybox;	   /*	*/
 
 		FrameBuffer deferredFramebuffer;
@@ -417,7 +417,13 @@ namespace glsample {
 		}
 
 		void onResize(int width, int height) override {
+			const TextureDesc depthStencil = {
+				.width = width,
+				.height = height,
+				.graphicFormat = GraphicFormat::Depth_24Bit_8Stencil,
+				.nrSamples = 0,
 
+			};
 			CommonUtil::updateFrameBuffer(&this->deferredFramebuffer,
 										  {{
 											   .width = width,
@@ -443,13 +449,7 @@ namespace glsample {
 											   .graphicFormat = GraphicFormat::R16G16B16A16_SNorm,
 											   .nrSamples = 0,
 										   }},
-										  {
-											  .width = width,
-											  .height = height,
-											  .graphicFormat = GraphicFormat::Depth_24Bit_8Stencil,
-											  .nrSamples = 0,
-
-										  });
+										  &depthStencil);
 
 			/*	*/
 			this->camera.setFar(2000.0f);

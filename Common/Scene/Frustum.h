@@ -55,21 +55,22 @@ namespace glsample {
 		/**
 		 * @brief Get the Plane object
 		 */
-		Plane<float> &getPlane(int index) { return this->planes[index]; }
-		const Plane<float> &getPlane(int index) const { return this->planes[index]; }
+		Plane<float> &getPlane(const int index) { return this->planes[index]; }
+		const Plane<float> &getPlane(const int index) const { return this->planes[index]; }
+		unsigned int getNrPlanes() const noexcept { return NPLANES; }
 
 		/**
 		 *	Comput the frustum planes,
 		 *	planes normal pointing positive towards the frustum volume.
 		 */
-		virtual void calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
-									   const Vector3 &right);
+		virtual void calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
+									   const glm::vec3 &right);
 
 		/**
 		 *	Check if point is inside the frustum.
 		 *	@Return eIn if inside frustum, eOut otherwise.
 		 */
-		virtual Intersection checkPoint(const Vector3 &pos) const noexcept;
+		virtual Intersection checkPoint(const glm::vec3 &pos) const noexcept;
 
 		/**
 		 * Check if AABB intersects frustum.
@@ -77,18 +78,18 @@ namespace glsample {
 		 * @param max
 		 * @return eIntersect if intersect the frustum, eOut otherwise.
 		 */
-		virtual Intersection intersectionAABB(const Vector3 &min, const Vector3 &max) const noexcept;
+		virtual Intersection intersectionAABB(const glm::vec3 &min, const glm::vec3 &max) const noexcept;
 
 		virtual Intersection intersectionAABB(const AABB &bounds) const noexcept;
 
-		virtual Intersection intersectionOBB(const Vector3 &u, const Vector3 &v, const Vector3 &w) const noexcept;
+		virtual Intersection intersectionOBB(const glm::vec3 &u, const glm::vec3 &v, const glm::vec3 &w) const noexcept;
 		virtual Intersection intersectionOBB(const OBB &obb) const noexcept;
 
 		/**
 		 *	Check if sphere intersects frustum.
 		 *	@Return
 		 */
-		virtual Intersection intersectionSphere(const Vector3 &pos, float radius) const noexcept;
+		virtual Intersection intersectionSphere(const glm::vec3 &position, float radius) const noexcept;
 		virtual Intersection intersectionSphere(const BoundingSphere &sphere) const noexcept;
 
 		/**

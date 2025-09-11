@@ -37,6 +37,7 @@ namespace glsample {
 		void render(FrameBuffer *framebuffer, unsigned int color_texture);
 
 	  private:
+
 		int bloom_blur_graphic_program = -1;
 		int overlay_program = -1;
 		int downsample_compute_program = -1;

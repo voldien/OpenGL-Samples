@@ -174,7 +174,7 @@ unsigned int TextureImporter::loadCubeMap(const std::vector<std::string> &paths,
 	return 0;
 }
 
-void TextureImporter::getFormat(const Image &image, unsigned int &format, unsigned int &dataType,
+void TextureImporter::getFormat(const fragcore::Image &image, unsigned int &format, unsigned int &dataType,
 								unsigned int &internalformat, const ColorSpace colorSpace,
 								const TextureCompression compression) {
 

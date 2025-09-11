@@ -34,8 +34,8 @@ namespace glsample {
 	  public:
 		Camera() noexcept;
 
-		void calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
-							   const Vector3 &right) override;
+		void calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
+							   const glm::vec3 &right) override;
 
 		void setAspect(const float aspect) noexcept;
 		float getAspect() const noexcept;

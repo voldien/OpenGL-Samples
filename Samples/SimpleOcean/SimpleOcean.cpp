@@ -29,7 +29,7 @@ namespace glsample {
 			this->addUIComponent(this->simpleOceanSettingComponent);
 
 			/*	Default camera position and orientation.	*/
-			this->camera.setPosition(glm::vec3(0,500.5f,0));
+			this->camera.setPosition(glm::vec3(0, 500.5f, 0));
 			this->camera.lookAt(glm::vec3(500.f, 100.0f, 500.0f));
 			this->camera.setNear(1.0f);
 			this->camera.setFar(4500.0f);
@@ -94,7 +94,8 @@ namespace glsample {
 		/*  Uniform buffers.    */
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer = 0;
-		const size_t nrUniformBuffer = 3;
+		static const size_t nrUniformBuffer = 3;
+		std::array<UBORange, nrUniformBuffer> UniformBuffers;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t oceanUniformSize = 0;
 
@@ -250,14 +251,20 @@ namespace glsample {
 
 			/*	*/
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeDiffuseIrradiance(this->reflection_texture, this->irradiance_texture, 256, 128);
+			util.computeDiffuseIrradianceCubeMap(this->reflection_texture, this->irradiance_texture, 32, 32);
 			/*	*/
 			this->color_texture = CommonUtil::createColorTexture(1, 1, Color(0, 1, 0, 1));
 
 			/*	*/
 			this->mistprocessing.initialize(this->getFileSystem());
 
+			/*	Allocate uniform buffers.	*/
+			this->UniformBuffers[0] = CommonUtil::getBuffer(this->getUniformPool(), this->uniformAlignBufferSize);
+			this->UniformBuffers[1] = CommonUtil::getBuffer(this->getUniformPool(), this->uniformAlignBufferSize);
+			this->UniformBuffers[2] = CommonUtil::getBuffer(this->getUniformPool(), this->uniformAlignBufferSize);
+
 			/*	Align uniform buffer in respect to driver requirement.	*/
+
 			GLint minMapBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			this->oceanUniformSize = Math::align<size_t>(sizeof(UniformOceanBufferBlock), (size_t)minMapBufferSize);
@@ -275,7 +282,7 @@ namespace glsample {
 			/*	Initilize Waves.	*/
 			for (size_t i = 0; i < nrMaxWaves; i++) {
 
-				float waveLength = (i * 2.2 + 1);
+				float waveLength = ((i * 2.2) + 1);
 				float waveAmplitude = 0.3f / (i + 1) * (0.05f + (nrMaxWaves - i) * 0.0008f);
 				float waveSpeed = (i + 1) * 0.1f;
 
@@ -283,7 +290,7 @@ namespace glsample {
 					glm::vec4(waveLength, waveAmplitude, waveSpeed, 1);
 
 				this->uniform_stage_buffer.ocean.waves[i].direction = glm::normalize(glm::vec4(
-					2 * fragcore::Math::random<float>() - 1.0, 2 * fragcore::Math::random<float>() - 1.0, 0, 0));
+					(2 * fragcore::Math::random<float>()) - 1.0, (2 * fragcore::Math::random<float>()) - 1.0, 0, 0));
 			}
 		}
 
@@ -336,7 +343,7 @@ namespace glsample {
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + 10);
-				glBindTexture(GL_TEXTURE_2D, this->irradiance_texture);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, this->irradiance_texture);
 
 				/*	*/
 				glActiveTexture(GL_TEXTURE0 + (int)GBuffer::Depth);
@@ -351,13 +358,13 @@ namespace glsample {
 				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
 				/*	*/
-
 				glCullFace(GL_BACK);
 				glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 				/*	Draw triangle.	*/
 				glBindVertexArray(this->plan.vao);
 				glDrawElements(GL_TRIANGLES, this->plan.nrIndicesElements, GL_UNSIGNED_INT, nullptr);
 
+				/*	*/
 				if (this->simpleOceanSettingComponent->showWireFrame) {
 
 					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

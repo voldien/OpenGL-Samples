@@ -1,18 +1,19 @@
 #include "Camera.h"
+#include "SampleHelper.h"
 
 using namespace glsample;
 
 Camera::Camera() noexcept { this->updateProjectionMatrix(); }
 
-void Camera::calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forward, const Vector3 &up,
-							   const Vector3 &right) {
+void Camera::calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
+							   const glm::vec3 &right) {
 
 	/*	*/
 	const float halfVSide = this->getFar() * ::tanf(Math::degToRad(this->getFOVDegree()) * 0.5f);
 	const float halfHSide = halfVSide * this->getAspect();
 
 	/*	*/
-	const Vector3 farDistance = this->getFar() * look_forward;
+	const glm::vec3 farDistance = this->getFar() * look_forward;
 
 	/*	*/ // TODO: impl
 	switch (getProjectionMode()) {
@@ -21,16 +22,16 @@ void Camera::calcFrustumPlanes(const Vector3 &position, const Vector3 &look_forw
 	case CameraProjectionMode::Perspective:
 
 		/*	*/
-		this->planes[NEAR_PLANE] = {position + this->getNear() * look_forward, look_forward};
-		this->planes[FAR_PLANE] = {position + farDistance, -look_forward};
+		this->planes[NEAR_PLANE] = {GLM2E(position + this->getNear() * look_forward), GLM2E(look_forward)};
+		this->planes[FAR_PLANE] = {GLM2E(position + farDistance), GLM2E(-look_forward)};
 
 		/*	*/
-		this->planes[RIGHT_PLANE] = {position, (farDistance - right * halfHSide).cross(up)};
-		this->planes[LEFT_PLANE] = {position, up.cross(farDistance + right * halfHSide)};
+		this->planes[RIGHT_PLANE] = {GLM2E(position), GLM2E(glm::cross(farDistance - right * halfHSide, up))};
+		this->planes[LEFT_PLANE] = {GLM2E(position), GLM2E(glm::cross(up, farDistance + right * halfHSide))};
 
 		/*	*/
-		this->planes[TOP_PLANE] = {position, right.cross(farDistance - up * halfVSide)};
-		this->planes[BOTTOM_PLANE] = {position, (farDistance + up * halfVSide).cross(right)};
+		this->planes[TOP_PLANE] = {GLM2E(position), GLM2E(glm::cross(right, farDistance - up * halfVSide))};
+		this->planes[BOTTOM_PLANE] = {GLM2E(position), GLM2E(glm::cross(farDistance + up * halfVSide, right))};
 		break;
 	default:
 		break;

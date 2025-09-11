@@ -14,9 +14,9 @@ layout(location = 4) in vec3 bitangent;
 #include "fog_frag.glsl"
 #include "terrain_base.glsl"
 
-//layout(binding = 1) uniform sampler2D DiffuseTexture;
-//layout(binding = 2) uniform sampler2D NormalTexture;
-//layout(binding = 6) uniform sampler2D IrradianceTexture;
+// layout(binding = 1) uniform sampler2D DiffuseTexture;
+// layout(binding = 2) uniform sampler2D NormalTexture;
+// layout(binding = 6) uniform sampler2D IrradianceTexture;
 
 void main() {
 
@@ -34,7 +34,6 @@ void main() {
 		computeBlinnDirectional(ubo.directional, alteredNormal, viewDir, ubo.shininess.r, ubo.specularColor.rgb);
 
 	/*	*/
-	const vec2 irradiance_uv = inverse_equirectangular(normalize(alteredNormal));
 	const vec4 irradiance_color = texture(IrradianceTexture, alteredNormal).rgba;
 
 	const vec4 ramp[4] = {vec4(0, 0.02, 0.05, 0.086), vec4(0.166239, 0.038374, 0.005713, 0.26), vec4(1, 1, 1, 0.527273),
