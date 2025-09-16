@@ -479,6 +479,7 @@ void GLSampleWindow::renderUI() {
 	/*	Main Update function.	*/
 	this->getInput().update();
 	this->update();
+	this->postprocessingManager->update(this->getTimer().deltaTime<float>());
 
 	/*	*/
 	if (this->debugGL) {

@@ -80,7 +80,7 @@ float ShadowCalculation(const in vec3 fragPosLightSpace, const in samplerCube Sh
 void main() {
 
 	const material mat = getMaterial(fAssigns.x);
-	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+	const global_rendering_settings glob_settings = getRenderingSettings();
 
 	const vec3 NewNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
 

@@ -476,7 +476,7 @@ namespace glsample {
 			this->uniformData.view = this->camera.getViewMatrix();
 
 			if (windCoeffSettingComponent->focusCamera) {
-				this->camera.setMode(Camera::CameraProjectionMode::Orthographic);
+				this->camera.setProjectionMode(Camera::CameraProjectionMode::Orthographic);
 
 				this->camera.setOrth(-boundingBox.getHalfSize().x(), boundingBox.getHalfSize().x(),
 									 -boundingBox.getHalfSize().y(), boundingBox.getHalfSize().y(),
@@ -493,7 +493,7 @@ namespace glsample {
 				this->uniformData.modelViewProjection =
 					this->uniformData.proj * this->uniformData.view * this->uniformData.model;
 			} else {
-				this->camera.setMode(Camera::CameraProjectionMode::Perspective);
+				this->camera.setProjectionMode(Camera::CameraProjectionMode::Perspective);
 				this->camera.setNear(0.15f);
 				this->camera.setFar(1000.0f);
 

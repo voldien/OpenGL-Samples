@@ -22,7 +22,7 @@ layout(location = 8) flat in ivec2 fAssigns;
 void main() {
 
 	const material mat = getMaterial(fAssigns.x);
-	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+	const global_rendering_settings glob_settings = getRenderingSettings();
 
 	vec3 viewDir = normalize(getCamera().position.xyz - FragIN_position);
 

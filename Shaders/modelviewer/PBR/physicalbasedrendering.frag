@@ -22,7 +22,7 @@ void main() {
 
 	/*	*/
 	const material mat = getMaterial(fAssigns.x);
-	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+	const global_rendering_settings glob_settings = getRenderingSettings();
 
 	/*	Material properties.	*/
 	const vec4 albedo = texture(DiffuseTexture, TexCoords);
@@ -54,7 +54,7 @@ void main() {
 
 		/*	Shadow.	*/
 		const vec4 LightSpaceVertex = getDirectional(light_index).lightShadow.lightSpaceMatrix * vec4(WorldPos, 1);
-		const float shadow = ShadowCalculation(getDirectional(light_index), DirectionalShadowTexture[light_index],
+		const float shadow = DirectionalShadowCalculation(getDirectional(light_index), DirectionalShadowTexture[light_index],
 											   SurfaceNormal, LightSpaceVertex);
 
 		DirectLight += lightSource * shadow;
@@ -73,15 +73,18 @@ void main() {
 	vec3 kDiffuse = 1.0 - kSpecular_F;
 	kDiffuse *= 1.0 - metallic;
 
-	/*	Diffuse.	*/
-	const vec4 diffuse_irradiance_color = vec4(texture(IrradianceTexture, SurfaceNormal).rgb, 1);
-	const vec3 diffuse_irradiance_color_contr =
-		glob_settings.ambientColor.rgb * diffuse_irradiance_color.rgb * mat.ambientColor.rgb;
 	const vec4 diffuseColor = albedo * mat.diffuseColor;
-	const vec3 diffuse = diffuse_irradiance_color_contr * diffuseColor.rgb;
 
 	vec3 indirectLight;
 	if (UseImageBasedLightning) {
+
+		/*	Diffuse.	*/
+		const vec4 diffuse_irradiance_color = vec4(texture(IrradianceTexture, SurfaceNormal).rgb, 1);
+		const vec3 diffuse_irradiance_color_contr =
+			glob_settings.ambientColor.rgb * diffuse_irradiance_color.rgb * mat.ambientColor.rgb;
+
+		const vec3 diffuse = diffuse_irradiance_color_contr * diffuseColor.rgb;
+
 		// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation
 		// to get the IBL specular part.
 		const float MAX_REFLECTION_LOD = 5.0;
@@ -105,8 +108,8 @@ void main() {
 	fragColor = vec4(color, 1.0);
 
 	/*	Alpha.	*/
-	fragColor.a *= diffuseColor.a;
-	fragColor.a *= texture(AlphaMaskedTexture, TexCoords).r;
+	const float alpha = diffuseColor.a * texture(AlphaMaskedTexture, TexCoords).r;
+	fragColor.a = mix(alpha, 1, kSpecular_F.x);
 	fragColor *= mat.transparency.rgba;
 
 	if (fragColor.a < mat.clip_.x) {

@@ -23,25 +23,43 @@ namespace glsample {
 
 	enum class NodeType { Node, Frustum, Camera, Renderer, Light, MaxNodeTypes };
 
+	class Spatial {
+	  public:
+		bool isEnabled();
+
+		void setActive(const bool state) { this->active = state; }
+		bool isActive() const noexcept { return this->active; }
+
+	  private:
+		bool active = true;
+	};
+
 	/**
 	 * @brief
 	 *
 	 */
-	class FVDECLSPEC Node : public glsample::TransformGLM, public fragcore::ITree<Node>, public fragcore::Object {
+	class FVDECLSPEC Node : public fragcore::ITree<Node>,
+							public Spatial,
+							public glsample::TransformGLM,
+							public fragcore::Object {
 	  public:
 		Node() = default;
 		~Node() override = default;
 
 	  public:
-		void setPosition(const glm::vec3 &position) noexcept;
+		void setPosition(const glm::vec3 &globalPosition) noexcept;
 		glm::vec3 getPosition() noexcept;
 		const glm::vec3 &getPosition() const noexcept;
 
-		void setScale(const glm::vec3 &scale) noexcept;
+		void setScale(const glm::vec3 &globalScale) noexcept;
 		glm::vec3 getScale() const noexcept;
 
 		const glm::quat &getRotation() const noexcept;
-		void setRotation(const glm::quat &quat) noexcept;
+		void setRotation(const glm::quat &globalRotationQuat) noexcept;
+
+		void setGlobalPositionDirect(const glm::vec3 &globalPosition) noexcept;
+		void setGlobalRotationDirect(const glm::quat &globalRotation) noexcept;
+		void setGlobalScaleDirect(const glm::vec3 &globalScale) noexcept;
 
 		/*	*/
 		Node *parent() const noexcept;
@@ -52,7 +70,7 @@ namespace glsample {
 
 		void setLocalPosition(const glm::vec3 &localPosition) noexcept;
 		void setLocalScale(const glm::vec3 &localScale) noexcept;
-		void setLocalRotation(const glm::quat &localRotation) noexcept;
+		void setLocalRotation(const glm::quat &localRotationQuat) noexcept;
 
 		glm::mat4 getGlobalMatrix() const noexcept;
 		glm::mat4 getLocalMatrix() const noexcept;
@@ -61,6 +79,8 @@ namespace glsample {
 		glm::mat4 getLocalViewMatrix() const noexcept;
 		glm::mat4 getRotationMatrix() const noexcept;
 		glm::mat4 getViewTranslationMatrix() const noexcept;
+
+		/*	Enable Disable.	*/
 
 	  public:
 		/*	*/

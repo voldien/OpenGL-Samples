@@ -47,7 +47,7 @@ namespace glsample {
 			int numSamples = 64;
 			float Density = 0.345;
 			float Decay = 0.88;
-			float Weight = 2.8;
+			float Weight = 0.85;
 			float Exposure = 4.2;
 			glm::vec3 lightPosition = glm::vec3(0.5f, 0.8, 0);
 			glm::vec4 color = glm::vec4(1, 1, 1, 1);

@@ -26,6 +26,7 @@ int ShaderLoader::loadGraphicProgram(const fragcore::ShaderCompiler::CompilerCon
 									 const std::vector<uint32_t> *tessela1ion_control,
 									 const std::vector<uint32_t> *tesselation_evolution) {
 
+	/*	Determine if SPIRV is supported.	*/
 	if (glSpecializeShaderARB) {
 		/*	Load SPIRV.	*/
 	} else {
@@ -96,30 +97,30 @@ int ShaderLoader::loadGraphicProgram(const std::vector<char> *vertex, const std:
 	}
 
 	if (vertex && vertex->size() > 0) {
-		shader_vertex = loadShader(*vertex, GL_VERTEX_SHADER_ARB);
+		shader_vertex = loadShaderFromSource(*vertex, GL_VERTEX_SHADER_ARB);
 		glAttachShader(program, shader_vertex);
 		fragcore::checkError();
 	}
 	if (fragment && fragment->size() > 0) {
-		shader_fragment = loadShader(*fragment, GL_FRAGMENT_SHADER_ARB);
+		shader_fragment = loadShaderFromSource(*fragment, GL_FRAGMENT_SHADER_ARB);
 		glAttachShader(program, shader_fragment);
 		fragcore::checkError();
 	}
 
 	if (geometry && geometry->size() > 0) {
-		shader_geometry = loadShader(*geometry, GL_GEOMETRY_SHADER_ARB);
+		shader_geometry = loadShaderFromSource(*geometry, GL_GEOMETRY_SHADER_ARB);
 		glAttachShader(program, shader_geometry);
 		fragcore::checkError();
 	}
 
 	if (tesselation_control && tesselation_control->size() > 0) {
-		shader_tesc = loadShader(*tesselation_control, GL_TESS_CONTROL_SHADER);
+		shader_tesc = loadShaderFromSource(*tesselation_control, GL_TESS_CONTROL_SHADER);
 		glAttachShader(program, shader_tesc);
 		fragcore::checkError();
 	}
 
 	if (tesselation_evolution && tesselation_evolution->size() > 0) {
-		shader_tese = loadShader(*tesselation_evolution, GL_TESS_EVALUATION_SHADER);
+		shader_tese = loadShaderFromSource(*tesselation_evolution, GL_TESS_EVALUATION_SHADER);
 		glAttachShader(program, shader_tese);
 		fragcore::checkError();
 	}
@@ -212,7 +213,7 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 	fragcore::checkError();
 
 	int lstatus = 0;
-	const int shader_compute = ShaderLoader::loadShader(*computePaths[0], GL_COMPUTE_SHADER);
+	const int shader_compute = ShaderLoader::loadShaderFromSource(*computePaths[0], GL_COMPUTE_SHADER);
 
 	/*	*/
 	glAttachShader(program, shader_compute);
@@ -243,9 +244,9 @@ int ShaderLoader::loadComputeProgram(const std::vector<const std::vector<char> *
 	return program;
 }
 
-int ShaderLoader::loadMeshProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
-								  const std::vector<uint32_t> *meshs, const std::vector<uint32_t> *tasks,
-								  const std::vector<uint32_t> *fragment) {
+int ShaderLoader::loadMeshGraphicProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
+										 const std::vector<uint32_t> *meshs, const std::vector<uint32_t> *tasks,
+										 const std::vector<uint32_t> *fragment) {
 	std::vector<char> mesh_source;
 	if (meshs) {
 
@@ -268,11 +269,11 @@ int ShaderLoader::loadMeshProgram(const fragcore::ShaderCompiler::CompilerConver
 		fragment_source.insert(fragment_source.end(), fragment_source_code.begin(), fragment_source_code.end());
 	}
 
-	return ShaderLoader::loadMeshProgram(&mesh_source, &task_source, &fragment_source);
+	return ShaderLoader::loadMeshGraphicProgram(&mesh_source, &task_source, &fragment_source);
 }
 
-int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vector<char> *tasks,
-								  const std::vector<char> *fragment) {
+int ShaderLoader::loadMeshGraphicProgram(const std::vector<char> *meshs, const std::vector<char> *tasks,
+										 const std::vector<char> *fragment) {
 	fragcore::resetErrorFlag();
 
 	const int program = glCreateProgram();
@@ -284,17 +285,17 @@ int ShaderLoader::loadMeshProgram(const std::vector<char> *meshs, const std::vec
 	int lstatus = 0;
 
 	/*	*/
-	shader_mesh = loadShader(*meshs, GL_MESH_SHADER_NV);
+	shader_mesh = loadShaderFromSource(*meshs, GL_MESH_SHADER_NV);
 	glAttachShader(program, shader_mesh);
 	fragcore::checkError();
 
 	/*	*/
-	shader_task = loadShader(*tasks, GL_TASK_SHADER_NV);
+	shader_task = loadShaderFromSource(*tasks, GL_TASK_SHADER_NV);
 	glAttachShader(program, shader_task);
 	fragcore::checkError();
 
 	/*	*/
-	shader_frag = loadShader(*fragment, GL_FRAGMENT_SHADER);
+	shader_frag = loadShaderFromSource(*fragment, GL_FRAGMENT_SHADER);
 	glAttachShader(program, shader_frag);
 	fragcore::checkError();
 
@@ -350,7 +351,7 @@ static void checkShaderError(int shader) {
 	}
 }
 
-int ShaderLoader::loadShader(const std::vector<char> &source, const int type) {
+int ShaderLoader::loadShaderFromSource(const std::vector<char> &source, const int type) {
 
 	/*	*/
 	const unsigned int spirv_magic_number = 0x07230203;
@@ -386,4 +387,9 @@ int ShaderLoader::loadShader(const std::vector<char> &source, const int type) {
 	/*	*/
 	checkShaderError(shader);
 	return shader;
+}
+
+int ShaderLoader::loadShaderFromBinary(const std::vector<char> &data, const int type,
+									   const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions) {
+	return -1;
 }

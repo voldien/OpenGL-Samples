@@ -7,35 +7,75 @@
 
 using namespace glsample;
 
-void Node::setPosition(const glm::vec3 &position) noexcept {
+void Node::setPosition(const glm::vec3 &globalPosition) noexcept {
 
-	const glm::vec3 position_offset = position - this->getPosition();
+	const int num_childrens = this->getNumChildren();
+	for (int child_index = 0; child_index < num_childrens; child_index++) {
 
-	for (int x = 0; x < this->getNumChildren(); x++) {
+		Node *child_node = dynamic_cast<Node *>(this->getChild(child_index));
+		assert(child_node);
+		assert(child_node != this);
 
-		Node *node = dynamic_cast<Node *>(this->getChild(x));
-		node->setPosition(node->getPosition() + position_offset);
+		const glm::vec3 position_offset = globalPosition - this->getPosition();
+		child_node->setPosition(child_node->getPosition() + position_offset);
 	}
 
-	TransformGLM::setPosition(position);
+	TransformGLM::setPosition(globalPosition);
 }
 glm::vec3 Node::getPosition() noexcept { return TransformGLM::getPosition(); }
 const glm::vec3 &Node::getPosition() const noexcept { return TransformGLM::getPosition(); }
 
-void Node::setScale(const glm::vec3 &scale) noexcept {
+void Node::setScale(const glm::vec3 &globalScale) noexcept {
 
-	const glm::vec3 scale_offset = scale - getScale();
+	const int num_childrens = this->getNumChildren();
+	for (int child_index = 0; child_index < num_childrens; child_index++) {
 
-	TransformGLM::setScale(scale);
+		Node *child_node = dynamic_cast<Node *>(this->getChild(child_index));
+		assert(child_node);
+		assert(child_node != this);
+
+		const glm::vec3 scale_ratio = globalScale / this->getScale();
+
+		child_node->setScale(child_node->getLocalScale() * globalScale);
+	}
+
+	TransformGLM::setScale(globalScale);
 }
 glm::vec3 Node::getScale() const noexcept { return TransformGLM::getScale(); }
 
 const glm::quat &Node::getRotation() const noexcept { return TransformGLM::getRotation(); }
-void Node::setRotation(const glm::quat &quat) noexcept { TransformGLM::setRotation(quat); }
+void Node::setRotation(const glm::quat &quat) noexcept {
+
+	const int num_childrens = this->getNumChildren();
+	for (int child_index = 0; child_index < num_childrens; child_index++) {
+
+		Node *child_node = dynamic_cast<Node *>(this->getChild(child_index));
+		assert(child_node);
+		assert(child_node != this);
+
+		glm::quat offset_rotation;
+
+		// const glm::vec3 scale_offset = scale / this->getScale();
+
+		// child_node->setScale(child_node->getPosition() * scale_offset);
+		// TransformGLM::setRotation(offset_rotation *);
+	}
+
+	TransformGLM::setRotation(quat);
+}
+
+void Node::setGlobalPositionDirect(const glm::vec3 &globalPosition) noexcept {
+	TransformGLM::setPosition(globalPosition);
+}
+void Node::setGlobalRotationDirect(const glm::quat &globalRotation) noexcept {
+	TransformGLM::setRotation(globalRotation);
+}
+void Node::setGlobalScaleDirect(const glm::vec3 &globalScale) noexcept { TransformGLM::setScale(globalScale); }
 
 Node *Node::parent() const noexcept { return dynamic_cast<Node *>(this->getParent()); }
 
 glm::mat4 Node::getGlobalMatrix() const noexcept {
+
 	glm::mat4 globalModel(1);
 	globalModel = glm::translate(globalModel, this->getPosition());
 	globalModel = globalModel * glm::toMat4(this->getRotation());
@@ -43,6 +83,7 @@ glm::mat4 Node::getGlobalMatrix() const noexcept {
 	return globalModel;
 }
 glm::mat4 Node::getLocalMatrix() const noexcept {
+
 	glm::mat4 localModel(1);
 	localModel = glm::translate(localModel, this->getLocalPosition());
 	localModel = localModel * glm::toMat4(this->getLocalRotation());
@@ -51,6 +92,7 @@ glm::mat4 Node::getLocalMatrix() const noexcept {
 }
 
 glm::mat4 Node::getViewMatrix() const noexcept {
+
 	glm::mat4 globalView(1);
 	globalView = glm::translate(globalView, -this->getPosition());
 	globalView = globalView * glm::toMat4(glm::inverse(this->getRotation()));
@@ -78,23 +120,31 @@ glm::mat4 Node::getViewTranslationMatrix() const noexcept { return glm::translat
 void Node::setLocalPosition(const glm::vec3 &localPosition) noexcept {
 	Node *parent = this->parent();
 
-	const glm::vec3 global_position = parent ? parent->getPosition() : glm::vec3(0);
-
-	this->setPosition(global_position + localPosition);
+	if (parent) {
+		const glm::vec3 global_scale = parent->getPosition();
+		this->setPosition(global_scale + localPosition);
+	} else {
+		this->setPosition(localPosition);
+	}
 }
 void Node::setLocalScale(const glm::vec3 &localScale) noexcept {
 	Node *parent = this->parent();
-
-	const glm::vec3 global_scale = parent ? parent->getScale() : glm::vec3(0);
-	this->setScale(global_scale + localScale);
+	if (parent) {
+		const glm::vec3 global_scale = parent->getScale();
+		this->setScale(global_scale * localScale);
+	} else {
+		this->setScale(localScale);
+	}
 }
 void Node::setLocalRotation(const glm::quat &localRotation) noexcept {
 	Node *parent = this->parent();
-	if (parent) {
-	}
 
-	const glm::quat global_rotation = parent ? parent->getRotation() : glm::quat();
-	this->setRotation(global_rotation * localRotation);
+	if (parent) {
+		const glm::quat global_rotation = parent->getRotation();
+		this->setRotation(global_rotation * localRotation);
+	} else {
+		this->setRotation(localRotation);
+	}
 }
 
 glm::vec3 Node::getLocalPosition() const noexcept {
@@ -109,16 +159,16 @@ glm::vec3 Node::getLocalPosition() const noexcept {
 glm::vec3 Node::getLocalScale() const noexcept {
 	Node *parent = this->parent();
 	if (parent) {
-		return this->getScale() - parent->getScale();
+		return this->getScale() * parent->getScale();
 	}
 	return this->getScale();
 }
 glm::quat Node::getLocalRotation() const noexcept {
 	Node *parent = this->parent();
+	// TODO: fix and verify.
 	if (parent) {
 		return parent->getRotation() * glm::inverse(getRotation());
 	}
 
-	// TODO: fix
 	return this->getRotation();
 }

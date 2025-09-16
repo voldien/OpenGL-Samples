@@ -5,14 +5,15 @@
 #extension GL_ARB_texture_cube_map_array : enable
 
 #include "common.glsl"
+#include"frustum.glsl"
 #include "light.glsl"
 #include "material.glsl"
 #include "transformation.glsl"
 
 /*	Scene Options.	*/
-layout (constant_id = 12) const bool UseTexture = false;
-layout (constant_id = 13) const bool FlipTexture = false;
-layout (constant_id = 14) const bool UseTessellation = false;
+layout(constant_id = 12) const bool UseClipping = false;
+layout(constant_id = 13) const bool FlipTexture = false;
+layout(constant_id = 14) const bool UseTessellation = false;
 
 /*	*/
 layout(constant_id = 16) const int MAX_BONES = 512;
@@ -117,11 +118,11 @@ Camera getCamera(const in uint index) { return constantCommon.constant.camera; }
 Frustum getFrustm() { return constantCommon.constant.frustum; }
 Frustum getFrustm(const in uint index) { return constantCommon.constant.frustum; }
 
+global_rendering_settings getRenderingSettings() { return constantCommon.constant.globalSettings; }
 
 /*	Transformation based on Camera and common data.	*/
 // TODO: use transform functions here
 vec3 scene_world_to_view(const in vec3 x) { return (constantCommon.constant.camera.view * vec4(x, 1)).xyz; }
-
 
 mat4 getModel(const in uint index) { return NodeUBO.node[index].model; }
 mat4 getModel() { return getModel(0); }
@@ -146,6 +147,8 @@ uint getPointLightCount() { return LightUBO.light.pointCount; }
 /*	*/
 DirectionalLight getDirectional(const in uint index) { return LightUBO.light.directional[index]; }
 PointLight getPointLight(const in uint index) { return LightUBO.light.point[index]; }
+
+
 
 
 #endif

@@ -31,6 +31,8 @@ namespace glsample {
 		void draw(glsample::FrameBuffer *framebuffer,
 				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
 
+		void update(const float deltaTime) override;
+
 		void renderUI() override;
 
 	  private:

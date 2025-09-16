@@ -27,7 +27,7 @@ layout(location = 5) in vec3 velocity;
 void main() {
 
 	const material mat = getMaterial();
-	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+	const global_rendering_settings glob_settings = getRenderingSettings();
 
 	/*	*/
 	Diffuse = texture(DiffuseTexture, uv).rgba * mat.diffuseColor;

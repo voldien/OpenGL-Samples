@@ -47,7 +47,7 @@ void ChromaticAberrationPostProcessing::initialize(fragcore::IFileSystem *filesy
 	glBindFragDataLocation(this->chromatic_abberation_graphic_program, 1, "fragColor");
 	glUseProgram(0);
 
-	setIntensity(1);
+	this->setIntensity(1);
 
 	this->vao = this->createVAO();
 }

@@ -81,7 +81,7 @@ float ShadowCalculationPCF(const DirectionalLight directionLight, const in vec4 
 void main() {
 
 	const material mat = getMaterial(fAssigns.x);
-	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+	const global_rendering_settings glob_settings = getRenderingSettings();
 
 	vec3 viewDir = normalize(getCamera().position.xyz - vertex);
 

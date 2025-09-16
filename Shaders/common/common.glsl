@@ -49,8 +49,30 @@ struct FogSettings {
 	float fogHeight;
 };
 
+/*	*/
 struct Frustum {
 	vec4 planes[6];
+};
+
+struct DrawElementsIndirectCommand {
+	uint count;
+	uint instanceCount;
+	uint firstIndex;
+	uint baseVertex;
+	uint baseInstance;
+};
+
+struct IndirectDrawArray {
+	uint count;			/*  */
+	uint instanceCount; /*  */
+	uint first;			/*  */
+	uint baseInstance;	/*  */
+};
+
+struct IndirectDispatchCommand {
+	uint num_groups_x;
+	uint num_groups_y;
+	uint num_groups_z;
 };
 
 vec3 equirectangular(const in vec2 xy) {
@@ -208,27 +230,6 @@ float getGuas2D(const in float x, const in float y, const in float variance) {
 vec2 pixelate_screenUV(const in vec2 screenUV, const in float pixel_size, const in vec2 aspect_ratio) {
 	return floor(screenUV * pixel_size * aspect_ratio) / (pixel_size * aspect_ratio);
 }
-
-struct DrawElementsIndirectCommand {
-	uint count;
-	uint instanceCount;
-	uint firstIndex;
-	uint baseVertex;
-	uint baseInstance;
-};
-
-struct IndirectDrawArray {
-	uint count;			/*  */
-	uint instanceCount; /*  */
-	uint first;			/*  */
-	uint baseInstance;	/*  */
-};
-
-struct IndirectDispatchCommand {
-	uint num_groups_x;
-	uint num_groups_y;
-	uint num_groups_z;
-};
 
 vec2 sphere_uv_mapping(const in vec3 normalized_direction) { return inverse_equirectangular(normalized_direction); }
 

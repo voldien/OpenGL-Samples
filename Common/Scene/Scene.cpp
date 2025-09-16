@@ -309,6 +309,11 @@ namespace glsample {
 		for (light_count = 0; light_count < getLights().size(); light_count++) {
 			Light *light = getLights()[light_count];
 
+			/*	*/
+			if (!light->isActive()) {
+				continue;
+			}
+
 			switch (light->getLightType()) {
 
 			case Light::LightType::Directional: {
@@ -322,11 +327,12 @@ namespace glsample {
 				lightData->lightDirection = glm::vec4(light_direction, 1);
 
 				/*	Shadow Setup.	*/
-				lightData->lightShadow.shadow[0] = light->getShadowStrength();
+				lightData->lightShadow.shadow[0] = light->hasShadow() ? light->getShadowStrength() : 0.0f;
 				lightData->lightShadow.shadow[1] = light->bias;
 
 				if (light->getShadowStrength() > 0) {
 
+					/*	*/
 					const float near_plane = -(dirLight->getShadowDistance());
 					const float far_plane = (dirLight->getShadowDistance());
 
@@ -334,6 +340,7 @@ namespace glsample {
 						-dirLight->getShadowDistance(), dirLight->getShadowDistance(), -dirLight->getShadowDistance(),
 						dirLight->getShadowDistance(), near_plane, far_plane);
 
+					/*	*/
 					const glm::mat4 lightView = glm::lookAt(
 						dirLight->getPosition(), dirLight->getPosition() + light_direction * 100.0f, dirLight->up());
 					const glm::mat4 lightSpaceMatrix = lightProjection * lightView;
@@ -407,6 +414,11 @@ namespace glsample {
 			for (size_t node_index = 0; node_index < this->getNodes().size(); node_index++) {
 
 				Node *node = this->getNodes()[node_index];
+
+				/*	Ignore if disabled.	*/
+				if (!node->isActive()) {
+					continue;
+				}
 
 				/*	Check if any of the meshes are visable. */
 				for (size_t mesh_index = 0; mesh_index < node->geometryObjectIndex.size(); mesh_index++) {
@@ -533,8 +545,7 @@ namespace glsample {
 			globalScene->camera.position = glm::vec4(light->getPosition(), 1.0f);
 			globalScene->camera.proj = light->getProjectionMatrix();
 			globalScene->camera.view = light->getViewMatrix();
-			globalScene->camera.viewProj =
-				light->shadowData.lightSpaceMatrix; // (globalScene->camera.proj * globalScene->camera.view);
+			globalScene->camera.viewProj = light->shadowData.lightSpaceMatrix;
 
 			/*	*/
 			globalScene->proj[0] = light->getProjectionMatrix();
@@ -595,6 +606,11 @@ namespace glsample {
 			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, domain.size(), domain.data());
 			for (auto itQ = nodeQueue.begin(); itQ != nodeQueue.end(); itQ++) {
 				const Node *node = (*itQ);
+				/*	Ignore if disabled.	*/
+				if (!node->isActive()) {
+					continue;
+				}
+
 				this->renderNode(node);
 			}
 			glPopDebugGroup();

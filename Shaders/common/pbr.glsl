@@ -108,12 +108,14 @@ float GeometrySchlickGGX(const in float NdotV, const in float roughness) {
 }
 
 float GeometrySmithGGXCorrelated(const in vec3 N, const in vec3 V, const in vec3 L, const in float roughness) {
+
 	const float NdotV = max(dot(N, V), 0.0);
 	const float NdotL = max(dot(N, L), 0.0);
 
 	const float a2 = roughness * roughness;
 	const float GGXV = NdotL * sqrt(NdotV * NdotV * (1.0 - a2) + a2);
 	const float GGXL = NdotV * sqrt(NdotL * NdotL * (1.0 - a2) + a2);
+
 	return 0.5 / (GGXV + GGXL);
 }
 
@@ -138,6 +140,8 @@ float GeometrySmith(const in vec3 N, const in vec3 V, const in vec3 L, const in 
 	return ggx1 * ggx2;
 }
 
+float Fd_Lambert() { return PI_INVERSE; }
+
 ///////////
 vec3 multiscattering_energy() {
 	return vec3(0);
@@ -147,19 +151,25 @@ vec3 multiscattering_energy() {
 }
 
 /***************************************************/
-// TODO:
-vec3 BSDF(const vec3 light_direction, const vec3 half_vector, const in vec3 ViewPixelDir, const in vec3 SurfaceNormal,
+// TODO: fix correct name and optimize with optional parameters during compilation.
+vec3 BSDF(const vec3 light_direction, const vec3 halfway_vector, const in vec3 ViewPixelDir, const in vec3 SurfaceNormal,
 		  const in float roughness, const in float metallic, const in vec3 F0, const in vec3 albedo) {
 
-	// Normal Distribution term (D)
-	float dTerm = DistributionGGX(SurfaceNormal, half_vector, roughness);
-	/* Geometry term (G)	*/
-	float gTerm = GeometrySmithGGXCorrelated(SurfaceNormal, ViewPixelDir, light_direction, roughness);
+	const float NoV = abs(dot(SurfaceNormal, ViewPixelDir)) + 1e-5;
+	const float NoL = clamp(dot(SurfaceNormal, light_direction), 0.0, 1.0);
+	const float NoH = clamp(dot(SurfaceNormal, halfway_vector), 0.0, 1.0);
+	const float LoH = clamp(dot(light_direction, halfway_vector), 0.0, 1.0);
+
+	/*	Normal Distribution term (D)	*/
+	float dTerm = DistributionGGX(SurfaceNormal, halfway_vector, roughness);
+	/* Geometry term (G)	*/ // TODO: add improved one
+	float gTerm = GeometrySmith(SurfaceNormal, ViewPixelDir, light_direction, roughness);
 	/*	Fresnel term (F)	*/
-	const vec3 fTerm = fresnelSchlick(max(dot(half_vector, ViewPixelDir), 0.0), F0);
+	const vec3 fTerm = fresnelSchlick(max(dot(halfway_vector, ViewPixelDir), 0.0), F0);
 
 	const float VoN = max(dot(ViewPixelDir, SurfaceNormal), 0.0);
 
+	/*	*/
 	const vec3 numerator = dTerm * fTerm * gTerm;
 	const float denominator = 4.0 * VoN * max(dot(light_direction, SurfaceNormal), 0.0);
 
@@ -171,9 +181,8 @@ vec3 BSDF(const vec3 light_direction, const vec3 half_vector, const in vec3 View
 	vec3 kDiffuse = vec3(1.0) - kSpecular;
 	kDiffuse *= 1.0 - metallic; // metallic materials should have no diffuse component
 
-	const float nDotL = max(dot(SurfaceNormal, light_direction), 0.0);
+	const vec3 diffuse = (kDiffuse * albedo) * Fd_Lambert();
 
-	const vec3 diffuse = (kDiffuse * albedo) * PI_INVERSE;
 	return diffuse + specular;
 }
 
@@ -188,31 +197,10 @@ vec3 computePBRPoint(const in PointLight light, const in vec3 worldPosition, con
 	const float attenuation = (1 / (distance * distance));
 	const vec3 radiance = light.color.rgb * attenuation * light.range;
 
-	// Normal Distribution term (D)
-	float dTerm = DistributionGGX(SurfaceNormal, halfway_vector, roughness);
+	const float nDotL = computeLightContributionFactor(SurfaceNormal, -light_direction);
 
-	/*	Fresnel term (F)	*/
-	// Determines the ratio of light reflected vs. absorbed
-	// const vec3 fTerm = FresnelSchlick(half_vector, ViewPixelDir, F0);
-	const vec3 fTerm = fresnelSchlick(max(dot(halfway_vector, ViewPixelDir), 0.0), F0);
-
-	/* Geometry term (G)	*/
-	float gTerm = GeometrySmithGGXCorrelated(SurfaceNormal, ViewPixelDir, light_direction, roughness);
-
-	const vec3 numerator = dTerm * fTerm * gTerm;
-	float denominator =
-		4.0 * max(dot(ViewPixelDir, SurfaceNormal), 0.0) * max(dot(light_direction, SurfaceNormal), 0.0);
-
-	// recall fTerm is the proportion of reflected light, so the result here is the specular
-	const vec3 specular = numerator / (denominator + 0.0001);
-
-	vec3 kSpecular = fTerm;
-	vec3 kDiffuse = vec3(1.0) - kSpecular;
-	kDiffuse *= 1.0 - metallic; // metallic materials should have no diffuse component
-
-	vec3 diffuse = kDiffuse * albedo * PI_INVERSE;
-	vec3 cookTorranceBrdf = diffuse + specular;
-	float nDotL = max(dot(SurfaceNormal, light_direction), 0.0);
+	const vec3 cookTorranceBrdf =
+		BSDF(light_direction, halfway_vector, ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo);
 
 	return cookTorranceBrdf * radiance * nDotL;
 }
@@ -223,35 +211,14 @@ vec3 computePBRDirectionLight(const in DirectionalLight light, const in vec3 Vie
 							  const in vec3 albedo) {
 
 	const vec3 light_direction = -light.direction.xyz;
-	const vec3 half_vector = normalize(ViewPixelDir + light_direction);
+	const vec3 halfway_vector = normalize(ViewPixelDir + light_direction);
 
 	const vec3 radiance = light.lightColor.rgb; // aka Li
 
-	// Normal Distribution term (D)
-	float dTerm = D_GGX(roughness, max(dot(half_vector, SurfaceNormal), 0), SurfaceNormal,
-						half_vector); // DistributionGGX(SurfaceNormal, half_vector, roughness);
-	/* Geometry term (G)	*/
-	float gTerm = GeometrySmithGGXCorrelated(SurfaceNormal, ViewPixelDir, light_direction, roughness);
-	/*	Fresnel term (F)	*/
-	const vec3 fTerm = fresnelSchlick(max(dot(half_vector, ViewPixelDir), 0.0), F0);
+	const float nDotL = computeLightContributionFactor(SurfaceNormal, -light_direction);
 
-	const float VoN = max(dot(ViewPixelDir, SurfaceNormal), 0.0);
-
-	const vec3 numerator = dTerm * fTerm * gTerm;
-	const float denominator = 4.0 * VoN * max(dot(light_direction, SurfaceNormal), 0.0);
-
-	// recall fTerm is the proportion of reflected light, so the result here is the specular
-	const float saturedDenominator = max(denominator, 0.0001);
-	const vec3 specular = numerator / saturedDenominator;
-
-	vec3 kSpecular = fTerm;
-	vec3 kDiffuse = vec3(1.0) - kSpecular;
-	kDiffuse *= 1.0 - metallic; // metallic materials should have no diffuse component
-
-	const float nDotL = max(dot(SurfaceNormal, light_direction), 0.0);
-
-	const vec3 diffuse = (kDiffuse * albedo) * PI_INVERSE;
-	const vec3 cookTorranceBrdf = diffuse + specular;
+	const vec3 cookTorranceBrdf =
+		BSDF(light_direction, halfway_vector, ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo);
 
 	return cookTorranceBrdf * radiance * nDotL;
 }

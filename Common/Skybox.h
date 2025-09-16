@@ -56,8 +56,8 @@ namespace glsample {
 		/**/
 		virtual void RenderImGUI();
 
-		unsigned int getTexture() const noexcept { return this->skybox_texture_panoramic; }
-		void setTexture(const unsigned int texture) noexcept { this->skybox_texture_panoramic = texture; }
+		unsigned int getTexture() const noexcept { return this->skybox_texture_cubemap_panoramic; }
+		void setTexture(const unsigned int texture) noexcept { this->skybox_texture_cubemap_panoramic = texture; }
 
 	  public: /*	*/
 		static int loadDefaultPanoramicProgram(fragcore::IFileSystem *filesystem);
@@ -69,13 +69,14 @@ namespace glsample {
 
 		int frameIndex = 0;
 
-		unsigned int skybox_texture_panoramic;
+		/*	Textures.	*/
+		unsigned int skybox_texture_cubemap_panoramic;
 		unsigned int skybox_sampler;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer;
-		static const size_t nrUniformBuffer = 3;
+		static constexpr size_t nrUniformBuffer = 3;
 		std::array<UBORange, nrUniformBuffer> UniformBuffers;
 		size_t uniformAlignSize = sizeof(uniform_buffer_block);
 

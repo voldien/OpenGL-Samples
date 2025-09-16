@@ -49,13 +49,15 @@ namespace glsample {
 		 * @brief
 		 *
 		 */
-		static int loadMeshProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
-								   const std::vector<uint32_t> *meshs, const std::vector<uint32_t> *tasks,
-								   const std::vector<uint32_t> *fragment);
-		static int loadMeshProgram(const std::vector<char> *meshs, const std::vector<char> *tasks,
-								   const std::vector<char> *fragment);
+		static int loadMeshGraphicProgram(const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions,
+										  const std::vector<uint32_t> *meshs, const std::vector<uint32_t> *tasks,
+										  const std::vector<uint32_t> *fragment);
+		static int loadMeshGraphicProgram(const std::vector<char> *meshs, const std::vector<char> *tasks,
+										  const std::vector<char> *fragment);
 
 	  private:
-		static int loadShader(const std::vector<char> &data, const int type);
+		static int loadShaderFromSource(const std::vector<char> &data, const int type);
+		static int loadShaderFromBinary(const std::vector<char> &data, const int type,
+										const fragcore::ShaderCompiler::CompilerConvertOption &compilerOptions);
 	};
 } // namespace glsample

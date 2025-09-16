@@ -16,7 +16,7 @@ void Camera::calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_
 	const glm::vec3 farDistance = this->getFar() * look_forward;
 
 	/*	*/ // TODO: impl
-	switch (getProjectionMode()) {
+	switch (this->getProjectionMode()) {
 	case CameraProjectionMode::Orthographic:
 		break;
 	case CameraProjectionMode::Perspective:
@@ -74,14 +74,14 @@ void Camera::setOrth(const float left, const float right, const float bottom, co
 
 const glm::mat4 &Camera::getProjectionMatrix() const noexcept { return this->proj; }
 
-void Camera::setMode(const CameraProjectionMode newMode) {
+void Camera::setProjectionMode(const CameraProjectionMode newMode) {
 	this->mode = newMode;
 	this->updateProjectionMatrix();
 }
 Camera::CameraProjectionMode Camera::getProjectionMode() const noexcept { return this->mode; }
 void Camera::updateProjectionMatrix() noexcept {
 
-	switch (getProjectionMode()) {
+	switch (this->getProjectionMode()) {
 	case CameraProjectionMode::Orthographic:
 		this->proj = glm::ortho(this->left, this->right, this->bottom, this->top, this->near, this->far);
 		break;

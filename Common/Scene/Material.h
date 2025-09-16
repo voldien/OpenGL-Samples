@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "Core/Object.h"
+#include "GLDataStructure.h"
 #include "Prerequisites.h"
 #include "ShaderPipeline.h"
 #include <glm/fwd.hpp>
@@ -75,6 +76,7 @@ namespace glsample {
 		// RenderQueue getRenderQueue() const;
 
 		ShaderPipeline &getPipeline() noexcept { return *this->pipeline; }
+		TessellationSettings &getTessellationSettings() { return this->tess; }
 
 	  public: /*  Get and set methods.  */
 		// int getInt(const char *name);
@@ -92,6 +94,7 @@ namespace glsample {
 		// void setVectorArray(const char *name, int nrElements, PVVector4 *elements);
 		// PVVector4 *getVectorArray(const char *name, int *nrElements);
 
+		/*	Contains a set of programs, with different options compiled against.	*/
 		ShaderPipeline *pipeline{};
 		unsigned int program = 0; // TODO: relocate.
 
@@ -113,6 +116,8 @@ namespace glsample {
 		bool culling_both_side_mode = false;
 		float clipping = 1;
 		/*	*/
+
+		TessellationSettings tess;
 
 		unsigned int shade_model = 0; /*	aiShadingMode	*/
 
@@ -161,5 +166,9 @@ namespace glsample {
 			   // std::vector<TextureObject*> textures; /*  */
 			   // ShaderObject* shader;                 /*	*/
 	};
+
+	// class FVDECLSPEC MaterialInstance : fragcore::Object {
+	//   public:
+	// };
 
 } // namespace glsample

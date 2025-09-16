@@ -27,9 +27,11 @@ namespace glsample {
 	class FVDECLSPEC Light : public Frustum {
 	  public:
 		enum class LightType {
-			Directional,
-			Point,
-			Spot,
+			Directional, /*	*/
+			Point,		 /*	*/
+			Spot,		 /*	*/
+			Area,		 /*	*/
+			MaxLightType /*	*/
 		};
 
 		glm::vec3 getDirectionalLight() const noexcept;
@@ -54,6 +56,8 @@ namespace glsample {
 		glm::vec4 getColor() const noexcept;
 		void setColor(const glm::vec4 &newColor);
 
+		bool hasShadow() const noexcept { return this->getShadowStrength() > 0 && this->getFrameBuffer(); }
+
 	  public:
 		LightType lightType = LightType::Directional;
 		glm::vec4 color = glm::vec4(1);
@@ -69,71 +73,12 @@ namespace glsample {
 
 	class FVDECLSPEC DirectionalLight : public Light {
 	  public:
-		DirectionalLight() {
-			this->setName("Directional Light");
-			this->lightType = LightType::Directional;
-			this->setShadowDistance(50.0f);
-			this->rotateTowards(glm::vec3(1));
-		}
+		DirectionalLight();
 
-		void setSize(const glm::ivec3 &size) override {
-
-			if (size[0] > 0 && size[1] > 0) {
-
-				GraphicFormat internal_depth_format = GraphicFormat::Depth_32Bit;
-				fragcore::TextureDesc desc;
-				desc.target = fragcore::TextureDesc::TextureTarget::Texture2D;
-				desc.width = size[0];
-				desc.height = size[1];
-				desc.depth = 1;
-				desc.graphicFormat = internal_depth_format;
-				desc.nrSamples = 0;
-
-				if (!this->getFrameBuffer()) {
-					shadowFrameBuffer = new FrameBuffer();
-					CommonUtil::createFrameBuffer(shadowFrameBuffer, 0);
-				}
-
-				if (this->getFrameBuffer()) {
-					CommonUtil::updateFrameBuffer(getFrameBuffer(), {}, &desc);
-				}
-			}
-		}
-
-		void setShadowDistance(float distance) override {
-			Light::setShadowDistance(distance);
-
-			const float near_plane = -(getShadowDistance());
-			const float far_plane = (getShadowDistance());
-			const glm::mat4 lightProjection =
-				glm::ortho(-getShadowDistance(), getShadowDistance(), -getShadowDistance(), getShadowDistance(),
-						   near_plane, far_plane);
-
-			const glm::vec3 light_direction = this->getDirectionalLight();
-
-			const glm::mat4 lightView =
-				glm::lookAt(this->getPosition(), this->getPosition() + this->getDirectionalLight(), this->up());
-			const glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-
-			shadowData.lightSpaceMatrix = lightSpaceMatrix;
-
-			this->calcFrustumPlanes(this->getPosition(), this->getDirectionalLight(), this->up(), this->right());
-		}
-
+		void setSize(const glm::ivec3 &size) override;
+		void setShadowDistance(float distance) override;
 		void calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
-							   const glm::vec3 &right) override {
-
-			const float distance = this->getShadowDistance();
-
-			this->planes[NEAR_PLANE] = {GLM2E(position - distance * look_forward), GLM2E(look_forward)};
-			this->planes[FAR_PLANE] = {GLM2E(position + distance * look_forward), GLM2E(-look_forward)};
-
-			this->planes[RIGHT_PLANE] = {GLM2E(position - distance * right), GLM2E(right)};
-			this->planes[LEFT_PLANE] = {GLM2E(position + distance * right), GLM2E(-right)};
-
-			this->planes[TOP_PLANE] = {GLM2E(position - distance * up), GLM2E(up)};
-			this->planes[BOTTOM_PLANE] = {GLM2E(position + distance * up), GLM2E(-up)};
-		}
+							   const glm::vec3 &right) override;
 	};
 
 	class FVDECLSPEC PointLight : public Light {

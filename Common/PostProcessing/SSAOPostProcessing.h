@@ -71,6 +71,8 @@ namespace glsample {
 		/*	Random direction texture.	*/
 		unsigned int random_texture = 0;
 		unsigned int white_texture = 0;
+
+		/*	*/
 		unsigned int vao = 0;
 	};
 } // namespace glsample

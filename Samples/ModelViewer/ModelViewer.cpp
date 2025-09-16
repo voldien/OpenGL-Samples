@@ -197,6 +197,9 @@ namespace glsample {
 			glClear(GL_DEPTH_BUFFER_BIT);
 
 			{
+				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Reflection);
+				glBindTexture(GL_TEXTURE_2D, this->skybox.getTexture());
+
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, this->diffuse_irradiance_cubemap_texture);
 

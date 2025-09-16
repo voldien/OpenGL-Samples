@@ -19,6 +19,7 @@ void SceneSettingsUI::draw() {
 
 			/*	*/
 			if (ImGui::Checkbox("Use Frustum Culling", &scene.getRenderingSettings().frustumSettings.useFrustum)) {
+				
 			}
 
 			bool showWireFrame =
@@ -89,6 +90,10 @@ void SceneSettingsUI::draw() {
 				}
 
 				ImGui::PushID(node_index);
+				bool active = currentNode->isActive();
+				if (ImGui::Checkbox("Active", &active)) {
+					currentNode->setActive(active);
+				}
 
 				if (currentNode->getParent()) {
 					ImGui::TextUnformatted("Has Parent");
@@ -135,6 +140,15 @@ void SceneSettingsUI::draw() {
 				ImGui::PushID(light_index + 1000);
 
 				Light *light = scene.getLights()[light_index];
+
+				bool active = light->isActive();
+				if (ImGui::Checkbox("Active", &active)) {
+					light->setActive(active);
+				}
+				ImGui::SameLine();
+				ImGui::TextUnformatted(light->getName().c_str());
+				const std::string lightType = std::string(magic_enum::enum_name(light->getLightType()));
+				ImGui::TextUnformatted(lightType.c_str());
 
 				ImGui::ColorEdit4("Color", &light->color[0], ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
@@ -193,6 +207,8 @@ void SceneSettingsUI::draw() {
 
 		if (ImGui::CollapsingHeader("Materials")) {
 			ImGui::Text("Count %lu", scene.getMaterials().size());
+
+			/*	*/
 			size_t material_index = 0;
 			for (; material_index < scene.getMaterials().size(); material_index++) {
 
@@ -300,6 +316,12 @@ void SceneSettingsUI::draw() {
 			}
 		}
 
+		if (ImGui::CollapsingHeader("Cameras")) {
+			size_t camera_index = 0;
+			for (; camera_index < scene.getCameras().size(); camera_index++) {
+			}
+		}
+
 		if (ImGui::CollapsingHeader("Textures")) {
 			size_t material_index = 0;
 			for (; material_index < scene.getMaterials().size(); material_index++) {
@@ -316,6 +338,10 @@ void SceneSettingsUI::draw() {
 
 				ImGui::TextUnformatted(animation->getName().c_str());
 				ImGui::Text("Animation Channels: %zu", animation->getCurves().size());
+
+				/*	Draw Each curves.	*/
+				for (size_t i = 0; i < animation->getCurves().size(); i++) {
+				}
 
 				ImGui::Button("Play");
 				ImGui::Button("Stop");

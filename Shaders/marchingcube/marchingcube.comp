@@ -21,7 +21,7 @@ vec3 createVert(vec3 p0, vec3 p1, float d0, float d1) {
 	}
 }
 
-uint contIndex(const uint x, const uint y, const uint z) { return chunk_size2 * z + chunk_size * y + x; }
+uint contIndex(const in uint x, const in uint y, const in uint z) { return chunk_size2 * z + chunk_size * y + x; }
 
 void createVerts(const in uvec3 voxel_index, inout vec3 pos[12], const in float vox_data[8]) {
 

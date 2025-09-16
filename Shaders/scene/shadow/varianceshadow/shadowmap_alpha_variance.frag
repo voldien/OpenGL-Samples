@@ -15,6 +15,7 @@ layout(location = 0) in vec2 TextureCoord;
 void main() {
 
 	const float alpha = texture(DiffuseTexture, TextureCoord).a * texture(AlphaMaskedTexture, TextureCoord).r;
+	
 	if (alpha < 0.5) {
 		discard;
 	} else {

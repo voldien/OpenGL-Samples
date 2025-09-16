@@ -55,10 +55,12 @@ namespace glsample {
 		const glm::mat4 &getProjectionMatrix() const noexcept;
 
 		// TODO: Refractor
-		enum class CameraProjectionMode { Orthographic, Perspective };
+		enum class CameraProjectionMode { Orthographic, Perspective, EquirecTangular };
 		// TODO: Refractor
-		void setMode(const CameraProjectionMode newMode);
+		void setProjectionMode(const CameraProjectionMode newMode);
 		CameraProjectionMode getProjectionMode() const noexcept;
+
+		/*	*/
 
 	  protected:
 		void updateProjectionMatrix() noexcept;

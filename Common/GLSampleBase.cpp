@@ -10,8 +10,8 @@ using namespace glsample;
 
 GLSampleBase::GLSampleBase() : nekomimi::MIMIWindow(nekomimi::GfxBackEnd::ImGUI_OpenGL) {
 
-	/*	*/
-	const size_t uniformPoolSize = static_cast<const size_t>(1024 * 1024 * 8);
+	/*	Preallocate uniform buffer pool.	*/
+	const size_t uniformPoolSize = static_cast<const size_t>(1024 * 1024 * 16);
 	this->uniformPool = CommonUtil::createBufferPool(GL_UNIFORM_BUFFER, uniformPoolSize);
 }
 

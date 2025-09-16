@@ -61,6 +61,7 @@ void ColorSpaceConverter::initialize(fragcore::IFileSystem *filesystem) {
 		this->kronos_neutral_pbr_program =
 			ShaderLoader::loadComputeProgram(compilerOptions, &compute_Kronas_PBR_binary);
 		this->filmic_program = ShaderLoader::loadComputeProgram(compilerOptions, &compute_filmic_binary);
+		
 	} else {
 	}
 

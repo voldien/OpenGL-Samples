@@ -2,10 +2,12 @@
 #define _COMMON_LIGHT_SHADOW_H_ 1
 #include "light.glsl"
 
+float calculteBias(const in vec3 SurfaceNormal, const in vec3 lightDirection, const in float bias) { return 0; }
+
 // TODO: rename
 /*	1 => No Shadow. 0 => Shadow.	*/
-float ShadowCalculation(const in DirectionalLight directionLight, const in sampler2DShadow ShadowTexture,
-						const in vec3 surfaceNormal, const in vec4 VertexLightSpace) {
+float DirectionalShadowCalculation(const in DirectionalLight directionLight, const in sampler2DShadow ShadowTexture,
+								   const in vec3 surfaceNormal, const in vec4 VertexLightSpace) {
 
 	/*	No Shadow Required.*/
 	if (directionLight.lightShadow.shadow.x <= 0) {
@@ -45,8 +47,8 @@ float ShadowCalculationPCF(const DirectionalLight directionLight, const in sampl
 		return 0;
 	}
 
-	const float pcf_radius = 1;
-	const int PCF_SAMPLES = 16;
+	const float pcf_radius = 1;	//TODO: add
+	const int PCF_SAMPLES = 16; // TODO: add constant or something.
 
 	// transform NDC to [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
@@ -78,6 +80,69 @@ float ShadowCalculationPCF(const DirectionalLight directionLight, const in sampl
 	const float shadowContribution = (shadowFactor / nrSamples);
 
 	return (1.0 - shadowContribution);
+}
+
+
+
+float ShadowPointCalculation(const in PointLight pointLight, const in vec3 surfaceNormal, const in vec3 cameraPosition,
+							 const in vec3 fragPosLightSpace, const in samplerCube ShadowTexture) {
+
+	const vec3 frag2Light = (fragPosLightSpace - pointLight.position);
+
+	float bias =
+		max(0.05 * (1.0 - dot(normalize(surfaceNormal), -normalize(frag2Light).xyz)), pointLight.lightShadow.shadow.y);
+
+	float currentDepth = length(frag2Light);
+
+	float shadowFactor = 0;
+	const ivec2 gMapSize = textureSize(ShadowTexture, 0);
+
+	/*	Outside the shadow range. -> default to light.	*/
+	if (currentDepth >= pointLight.range) {
+		return 1.0;
+	}
+
+	const float far_plane = 1000; // TODO: make it the shadow cubemap far instead
+	const float closestDepth = texture(ShadowTexture, frag2Light).r * far_plane;
+	return currentDepth - bias > closestDepth ? 0.0 : 1.0;
+}
+
+float ShadowPointCalculationPCF(const in PointLight pointLight, const in vec3 surfaceNormal,
+								const in vec3 cameraPosition, const in vec3 fragPosLightSpace,
+								const in samplerCube ShadowTexture) {
+
+	const vec3 frag2Light = (fragPosLightSpace - pointLight.position);
+
+	float bias =
+		max(0.05 * (1.0 - dot(normalize(surfaceNormal), -normalize(frag2Light).xyz)), pointLight.lightShadow.shadow.y);
+
+	float currentDepth = length(frag2Light);
+
+	float shadowFactor = 0;
+	const ivec2 gMapSize = textureSize(ShadowTexture, 0);
+
+	/*	Outside the shadow range. -> default to light.	*/
+	if (currentDepth >= pointLight.range) {
+		return 1.0;
+	}
+
+	return 1;
+
+	// 	const float far_plane = 1000; // TODO: make it the shadow cubemap far instead
+	// 	const float viewDistance = length(cameraPosition - fragPosLightSpace);
+	// 	const float diskRadius = (1.0 + (viewDistance / far_plane)) / ubo.diskRadius;
+	// 	const int samples = 20;
+
+	// 	[[unroll]] for (uint i = 0; i < samples; i++) {
+	// 		/*	*/
+	// 		float closestDepth = texture(ShadowTexture, frag2Light + ubo.PCFFilters[i].xyz * diskRadius).r;
+	// 		closestDepth *= far_plane; // undo mapping [0;1]
+
+	// 		shadowFactor += currentDepth - bias > closestDepth ? 0.0 : 1.0;
+	// 	}
+
+	// 	/*	*/
+	// 	return shadowFactor / float(samples);
 }
 
 #endif

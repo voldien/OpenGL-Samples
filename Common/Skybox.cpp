@@ -50,7 +50,7 @@ namespace glsample {
 		/*	Load geometry.	*/
 		CommonUtil::loadCube(this->SkyboxCube, 1, 1, 1);
 
-		this->skybox_texture_panoramic = texture;
+		this->skybox_texture_cubemap_panoramic = texture;
 		this->skybox_program = program;
 	}
 
@@ -108,10 +108,10 @@ namespace glsample {
 
 			/*	*/
 			if (glBindTextureUnit) {
-				glBindTextureUnit(0, this->skybox_texture_panoramic);
+				glBindTextureUnit(0, this->skybox_texture_cubemap_panoramic);
 			} else {
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, this->skybox_texture_panoramic);
+				glBindTexture(GL_TEXTURE_2D, this->skybox_texture_cubemap_panoramic);
 			}
 			glBindSampler(0, this->skybox_sampler);
 

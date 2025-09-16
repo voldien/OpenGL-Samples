@@ -30,14 +30,15 @@ namespace glsample {
 				  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets) override;
 
 		void renderUI() override;
- 
+
 	  private:
 		int fxaa_frag_program = -1;
 		unsigned int vao = 0;
+
 		/*	Settings.	*/
-		float span_max = 8.0f;
-		float reduce_min = (1.0 / 128.0);
-		float reduce_mul = (1.0 / 8.0);
+		float span_max = 8.0f;			  /*	Default.	*/
+		float reduce_min = (1.0 / 128.0); /*	Default.	*/
+		float reduce_mul = (1.0 / 8.0);	  /*	Default.	*/
 
 		int localWorkGroupSize[3];
 	};

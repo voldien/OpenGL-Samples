@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <glm/fwd.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <iostream>
 #include <sys/types.h>
 #include <thread>
@@ -53,7 +54,7 @@ static inline glm::mat4 aiMatrix4x4ToGlm(const aiMatrix4x4 *from) noexcept {
 static inline std::string aiStringToStdString(const aiString &from) { return std::string(from.data, from.length); }
 
 ModelImporter::ModelImporter(ModelImporter &&other) noexcept
-	: filepath(other.filepath), nodes(other.nodes), models(other.models), materials(other.materials),
+	: filepath(other.filepath), nodeReferences(other.nodeReferences), models(other.models), materials(other.materials),
 	  textures(other.textures), textureMapping(other.textureMapping), textureIndexMapping(other.textureIndexMapping),
 	  skeletons(other.skeletons), animations(other.animations), vertexBoneData(other.vertexBoneData),
 	  rootNode(other.rootNode), globalNodeTransform(other.globalNodeTransform) {
@@ -67,7 +68,7 @@ ModelImporter &ModelImporter::operator=(ModelImporter &&other) noexcept {
 	this->rootNode = other.rootNode;
 	this->filepath = other.filepath;
 
-	this->nodes = other.nodes;
+	this->nodeReferences = other.nodeReferences;
 	this->models = other.models;
 	this->materials = other.materials;
 	this->textures = other.textures;
@@ -127,7 +128,7 @@ void ModelImporter::clear() noexcept {
 	this->TexturePoolData.clear();
 
 	this->nodePool.clear();
-	this->nodes.clear();
+	this->nodeReferences.clear();
 	this->models.clear();
 	this->materials.clear();
 	this->textures.clear();
@@ -282,6 +283,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 	});
 
 	/*	*/
+	this->nodeReferences.reserve(2048); // TODO: calculate.
 	this->initNodeRoot(scene->mRootNode, nullptr);
 
 	/*	*/
@@ -308,6 +310,12 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 	for (size_t node_index = 0; node_index < ai_node->mNumChildren; node_index++) {
 		aiNode *child_node = ai_node->mChildren[node_index];
 
+		if (child_node->mMetaData) {
+			for (size_t i = 0; i < child_node->mMetaData->mNumProperties; i++) {
+				std::cout << child_node->mMetaData->mValues[i].mType << std::endl;
+			}
+		}
+
 		aiVector3f position, scale;
 		aiQuaternion rotation;
 
@@ -318,7 +326,7 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 		/*	Assigned parent.	*/
 		if (parent) {
 			pobject->parent = parent;
-			pobject->parent_index = this->nodes.size();
+			pobject->parent_index = this->nodeReferences.size() - 1;
 		} else {
 			pobject->parent = nullptr;
 		}
@@ -340,10 +348,21 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 			pobject->modelGlobalTransform = this->globalTransform() * pobject->modelLocalTransform;
 		}
 
+		glm::mat4 transformation; // your transformation matrix.
+		glm::vec3 gobalScale;
+		glm::quat globalRotation;
+		glm::vec3 translation;
+		glm::vec3 skew;
+		glm::vec4 perspective;
+		glm::decompose(pobject->modelGlobalTransform, gobalScale, globalRotation, translation, skew, perspective);
+		pobject->globalPosition = translation;
+		pobject->globalRotation = globalRotation;
+		pobject->globalScale = gobalScale;
+
 		pobject->name = std::string();
 		pobject->name = aiStringToStdString(ai_node->mChildren[node_index]->mName);
 
-		/*	*/
+		/*	Mesh Attached.	*/
 		if (ai_node->mChildren[node_index]->mMeshes) {
 
 			/*	*/
@@ -364,7 +383,7 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 		}
 
 		/*	*/
-		this->nodes.push_back(pobject);
+		this->nodeReferences.push_back(pobject);
 		this->nodeByName[pobject->name] = pobject;
 
 		/*	*/
@@ -788,7 +807,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 					material_obj->maskTextureIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_SPECULAR:
-					material_obj->specularIndex = texTableIndex;
+					material_obj->specularRoughnessIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_HEIGHT:
 					material_obj->heightbumpIndex = texTableIndex;
@@ -800,7 +819,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 					material_obj->emissionIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_SHININESS:
-					material_obj->specularIndex = texTableIndex;
+					material_obj->specularRoughnessIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_DISPLACEMENT:
 					material_obj->displacementIndex = texTableIndex;
@@ -821,13 +840,13 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 					material_obj->metalIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS:
-					material_obj->specularIndex = texTableIndex;
+					material_obj->specularRoughnessIndex = texTableIndex;
 					break;
 				case aiTextureType::aiTextureType_AMBIENT_OCCLUSION:
 					material_obj->ambientOcclusionIndex = texTableIndex;
 					break;
 				case aiTextureType_GLTF_METALLIC_ROUGHNESS:
-					material_obj->specularIndex = textureIndex; // TODO: Fix
+					material_obj->specularRoughnessIndex = textureIndex; // TODO: Fix
 					break;
 				case aiTextureType_UNKNOWN:
 				case aiTextureType::aiTextureType_LIGHTMAP:
@@ -894,8 +913,13 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 
 		/*	Physical Based Material Properties.	*/
 
-		bool use;
+		bool use = false;
 		if (ref_material->Get(AI_MATKEY_USE_COLOR_MAP, use) == aiReturn::aiReturn_SUCCESS) {
+		}
+		if (ref_material->Get(AI_MATKEY_USE_AO_MAP, use) == aiReturn::aiReturn_SUCCESS) {
+		}
+
+		if (ref_material->Get(AI_MATKEY_USE_EMISSIVE_MAP, use) == aiReturn::aiReturn_SUCCESS) {
 		}
 
 		if (ref_material->Get(AI_MATKEY_BASE_COLOR, color[0]) == aiReturn::aiReturn_SUCCESS) {
@@ -904,6 +928,8 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 		}
 
 		if (ref_material->Get(AI_MATKEY_USE_METALLIC_MAP, use) == aiReturn::aiReturn_SUCCESS) {
+		}
+		if (ref_material->Get(AI_MATKEY_USE_ROUGHNESS_MAP, use) == aiReturn::aiReturn_SUCCESS) {
 		}
 
 		/*	*/
@@ -1192,7 +1218,7 @@ std::vector<MaterialObject *> ModelImporter::getMaterials(const size_t texture_i
 		if (getMaterials()[i].heightbumpIndex == (int)texture_index) {
 			found = true;
 		}
-		if (getMaterials()[i].specularIndex == (int)texture_index) {
+		if (getMaterials()[i].specularRoughnessIndex == (int)texture_index) {
 			found = true;
 		}
 		if (getMaterials()[i].displacementIndex == (int)texture_index) {

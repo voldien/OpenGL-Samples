@@ -1,16 +1,23 @@
 #ifndef _COMMON_FRUSTUM_
 #define _COMMON_FRUSTUM_ 1
 
-struct plan {
+#include "common.glsl"
+
+struct HyperPlane {
 	vec3 normal; /*	*/
 	float d;	 /*	*/
 };
-struct Sphere {
+
+struct BoundingSphere {
 	vec3 center;
 	float radius;
 };
 
 struct AABB {
+	vec3 min, max;
+};
+
+struct BoundingBox {
 	vec3 center;
 	vec3 halfSize;
 };
@@ -28,8 +35,12 @@ bool isInClipSpace(const in vec4 vertex) {
 	return isInClipSpace(v0ClipSpace);
 }
 
-bool isPointInsidePlane(const in plan plan, const in vec3 point) { return true; }
+bool isPlaneInsidePlane(const in HyperPlane plan, const in vec3 point) { return true; }
 
-bool isSphereInsidePlane(const in plan plan, const in Sphere sphere) { return true; }
+bool isPointInsidePlane(const in HyperPlane plan, const in vec3 point) { return true; }
+
+bool isSphereInsidePlane(const in HyperPlane plan, const in BoundingSphere sphere) { return true; }
+
+bool isPlaneInsideFrustum(const in Frustum frustum, const in HyperPlane plan) { return true; }
 
 #endif

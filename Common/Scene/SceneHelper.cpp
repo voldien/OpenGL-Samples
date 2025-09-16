@@ -1,4 +1,5 @@
 #include "SceneHelper.h"
+#include "Importer/ModelImporter.h"
 #include "Scene/Node.h"
 
 using namespace glsample;
@@ -14,6 +15,7 @@ void SceneHelper::convertLightSystem(Scene &scene, const ModelImporter &importer
 
 		case 2: {
 			PointLight *point = new PointLight();
+			point->setName(lights[i].name);
 			point->setPosition(lights[i].position);
 			point->setColor(lights[i].mColorDiffuse);
 
@@ -22,6 +24,8 @@ void SceneHelper::convertLightSystem(Scene &scene, const ModelImporter &importer
 		default:
 		case 1: {
 			DirectionalLight *direction = new DirectionalLight();
+			direction->setName(lights[i].name);
+
 			direction->setPosition(lights[i].position);
 			direction->rotateTowards(lights[i].direction);
 			direction->setColor(lights[i].mColorDiffuse);
@@ -32,6 +36,13 @@ void SceneHelper::convertLightSystem(Scene &scene, const ModelImporter &importer
 		}
 
 		// lights[i].
+	}
+}
+void SceneHelper::convertCameraSystem(Scene &scene, const ModelImporter &importer) {
+
+	for (size_t i = 0; i < importer.getCameras().size(); i++) {
+		const CameraData &camera = importer.getCameras()[i];
+		scene.getCameras().push_back(new Camera());
 	}
 }
 
@@ -73,10 +84,12 @@ void SceneHelper::convertNodeSystem(Scene &scene, ModelImporter &importer) {
 		const NodeObject *node_Obj = importer.getNodes()[node_index];
 		Node *node = &scene.nodePool[node_index];
 
+		/*	*/
 		const int node_parent_index = node_Obj->parent_index;
+		assert(node_parent_index != node_index);
 		if (node_parent_index >= 0) {
 			Node *parent = &scene.nodePool[node_parent_index];
-			node->setParent(parent);
+			parent->addChild(node);
 		}
 
 		/*	*/
@@ -92,9 +105,9 @@ void SceneHelper::convertNodeSystem(Scene &scene, ModelImporter &importer) {
 void SceneHelper::convertNodeChildren(const NodeObject *node_Obj, Node *node) {
 	node->setName(node_Obj->name);
 
-	node->setPosition(node_Obj->localPosition);
-	node->setScale(node_Obj->localScale);
-	node->setRotation(node_Obj->localRotation);
+	node->setGlobalPositionDirect(node_Obj->globalPosition);
+	node->setGlobalScaleDirect(node_Obj->globalScale);
+	node->setGlobalRotationDirect(node_Obj->globalRotation);
 
 	node->bound = node_Obj->bound;
 

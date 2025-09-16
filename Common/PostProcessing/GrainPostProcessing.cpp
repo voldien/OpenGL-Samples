@@ -27,9 +27,11 @@ void GrainPostProcessing::initialize(fragcore::IFileSystem *filesystem) {
 
 	if (this->grain_graphic_program == -1) {
 		/*	*/
-		const std::vector<uint32_t> post_vertex_binary = fragcore::IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
+		const std::vector<uint32_t> post_vertex_binary =
+			fragcore::IOUtil::readFileData<uint32_t>(post_vertex_path, filesystem);
 		/*	*/
-		const std::vector<uint32_t> grain_fragment_binary = fragcore::IOUtil::readFileData<uint32_t>(grain_frag_path, filesystem);
+		const std::vector<uint32_t> grain_fragment_binary =
+			fragcore::IOUtil::readFileData<uint32_t>(grain_frag_path, filesystem);
 
 		fragcore::ShaderCompiler::CompilerConvertOption compilerOptions;
 		compilerOptions.target = fragcore::ShaderLanguage::GLSL;
@@ -60,10 +62,6 @@ void GrainPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 
 	glUseProgram(this->grain_graphic_program);
 
-	if (animate) {
-		grainSettings.time += 0.01f;
-	}
-
 	/*	*/
 	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.base.blend"), this->getIntensity());
 	glUniform1f(glGetUniformLocation(this->grain_graphic_program, "settings.time"), grainSettings.time);
@@ -85,11 +83,18 @@ void GrainPostProcessing::draw(glsample::FrameBuffer *framebuffer,
 	/*	Don't need to flip/swap framebuffer attachment. writes only ontop and not dependent on neightor pixel data.	*/
 }
 
+void GrainPostProcessing::update(const float deltaTime) {
+	/*	*/
+	if (animate) {
+		grainSettings.time += deltaTime;
+	}
+}
+
 void GrainPostProcessing::renderUI() {
 	ImGui::DragFloat("Time", &this->grainSettings.time);
 	ImGui::DragFloat("Intensity Strength", &this->grainSettings.intensity);
 
-	this->animate = ImGui::Checkbox("Animiate", &this->animate);
+	ImGui::Checkbox("Animiate", &this->animate);
 	ImGui::DragFloat("Speed", &this->grainSettings.speed);
 	ImGui::DragFloat("Scale", &this->grainSettings.scale);
 }

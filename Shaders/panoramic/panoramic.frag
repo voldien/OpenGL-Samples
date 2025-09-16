@@ -38,7 +38,7 @@ ubo;
 void main() {
 
 	const material mat = getMaterial();
-	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+	const global_rendering_settings glob_settings = getRenderingSettings();
 
 	const vec3 viewDir = normalize(ubo.camera.position.xyz - vertex);
 

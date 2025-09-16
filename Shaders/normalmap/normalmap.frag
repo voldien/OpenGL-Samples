@@ -44,7 +44,7 @@ ubo;
 void main() {
 
 	const material mat = getMaterial();
-	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+	const global_rendering_settings glob_settings = getRenderingSettings();
 
 	/*	Convert normal map texture to a vector.	*/
 	vec3 NormalMapBump = 2.0 * texture(NormalTexture, FragIN_uv).xyz - vec3(1.0, 1.0, 1.0);

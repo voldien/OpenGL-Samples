@@ -61,7 +61,7 @@ float ShadowCalculation(const DirectionalLight directionLight, const in vec4 fra
 void main() {
 
 	const material mat = getMaterial(fAssigns.x);
-	const global_rendering_settings glob_settings = constantCommon.constant.globalSettings;
+	const global_rendering_settings glob_settings = getRenderingSettings();
 
 	const vec3 SurfaceNormal = getNormalFromMap(NormalTexture, UV, vertex, normal, mat.clip_.y);
 

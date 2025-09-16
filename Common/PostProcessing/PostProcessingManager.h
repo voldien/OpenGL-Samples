@@ -40,6 +40,8 @@ namespace glsample {
 		void render(glsample::FrameBuffer *framebuffer,
 					const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets);
 
+		void update(const float deltaTime);
+
 		void populateCommonData() {}
 		void swapPostProcessing(int a, int b);
 

@@ -40,9 +40,8 @@ namespace glsample {
 		float gDispFactor = 1;
 	};
 
-	using MaterialInstance = struct material_instance_t {
+	using MaterialInstanceData = struct material_instance_t {
 		glm::mat4 model;
-
 		/*	Color attributes.	*/
 		glm::vec4 ambient;
 		glm::vec4 diffuse;
@@ -89,6 +88,7 @@ namespace glsample {
 	};
 
 	using CameraInstanceData = struct camera_instance_data_t {
+
 		/*	*/
 		camera_instance_data_t &operator=(const Camera &camera) {
 

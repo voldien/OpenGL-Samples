@@ -58,15 +58,16 @@ using VertexBoneBuffer = struct vertex_bone_buffer_t {
 };
 
 using MaterialTextureSampling = struct material_texture_sampling_t {
+	/*	*/
 	fragcore::TextureWrappingMode wrapping = fragcore::TextureWrappingMode::Repeat;
 	fragcore::TextureFilterMode filtering = fragcore::TextureFilterMode::Linear;
 	fragcore::TextureUVMappingMode uv_mapping = fragcore::TextureUVMappingMode::UV;
 };
 
 using MaterialObject = struct material_object_t : public AssetObject {
-	unsigned int program = 0; // TODO: relocate.
+	// unsigned int program = 0; // TODO: relocate.
 
-	// Material properties.
+	// Material color Attributes.
 	glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
 	glm::vec4 diffuse = glm::vec4(1);
 	glm::vec4 emission = glm::vec4(0);
@@ -74,7 +75,7 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	glm::vec4 transparent = glm::vec4(1);
 	glm::vec4 reflectivity = glm::vec4(1);
 
-	/*	*/
+	/*	Attributes.	*/
 	float shinininess = 1;
 	float bumpiness = 1;
 	float opacity = 1;
@@ -85,6 +86,7 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	float clipping = 1;
 	/*	*/
 
+	/*	*/
 	enum class ShadingModel : unsigned int {
 
 	};
@@ -96,16 +98,16 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	/*	Texture index.	*/
 	union {
 		struct {
-			int diffuseIndex = -1;			/*	*/
-			int normalIndex = -1;			/*	*/
-			int maskTextureIndex = -1;		/*	*/
-			int specularIndex = -1;			/*	*/
-			int emissionIndex = -1;			/*	*/
-			int reflectionIndex = -1;		/*	*/
-			int ambientOcclusionIndex = -1; /*	*/
-			int displacementIndex = -1;		/*	*/
-			int metalIndex = -1;			/*	*/
-			int heightbumpIndex = -1;		/*	*/
+			int diffuseIndex = -1;			 /*	*/
+			int normalIndex = -1;			 /*	*/
+			int maskTextureIndex = -1;		 /*	*/
+			int specularRoughnessIndex = -1; /*	*/
+			int emissionIndex = -1;			 /*	*/
+			int reflectionIndex = -1;		 /*	*/
+			int ambientOcclusionIndex = -1;	 /*	*/
+			int displacementIndex = -1;		 /*	*/
+			int metalIndex = -1;			 /*	*/
+			int heightbumpIndex = -1;		 /*	*/
 			int pad1 = -1;
 			int pad2 = -1;
 			int pad3 = -1;
@@ -139,6 +141,10 @@ using NodeObject = struct node_object_t : public AssetObject {
 	glm::vec3 localPosition;
 	glm::quat localRotation;
 	glm::vec3 localScale;
+
+	glm::vec3 globalPosition;
+	glm::quat globalRotation;
+	glm::vec3 globalScale;
 
 	/*	*/
 	glm::mat4 modelGlobalTransform;
@@ -316,7 +322,7 @@ class FVDECLSPEC ModelImporter {
 	NodeObject *getNodeByName(const std::string &name) const noexcept;
 
   public:
-	std::vector<NodeObject *> getNodes() const noexcept { return this->nodes; }
+	std::vector<NodeObject *> getNodes() const noexcept { return this->nodeReferences; }
 	const std::vector<ModelSystemObject> &getModels() const noexcept { return this->models; }
 	const NodeObject *getNodeRoot() const noexcept { return this->rootNode; }
 
@@ -328,6 +334,8 @@ class FVDECLSPEC ModelImporter {
 	std::vector<MaterialObject *> getMaterials(const size_t texture_index) noexcept;
 
 	const std::vector<LightObject> &getLights() const noexcept { return this->lights; }
+
+	const std::vector<CameraData> &getCameras() const noexcept { return this->cameras; }
 
 	const std::vector<AnimationObject> &getAnimation() const noexcept { return this->animations; }
 
@@ -344,25 +352,26 @@ class FVDECLSPEC ModelImporter {
 
 	std::string filepath;
 	const aiScene *sceneRef = nullptr;
+
+	/*	Nodes.	*/
 	std::vector<NodeObject> nodePool;
-	std::vector<NodeObject *> nodes;
+	std::vector<NodeObject *> nodeReferences;
 	std::map<std::string, NodeObject *> nodeByName;
 
 	std::vector<ModelSystemObject> models;
+	std::map<std::string, VertexBoneData> vertexBoneData;
+	std::vector<SkeletonSystem> skeletons;
+	std::vector<AnimationObject> animations;
+
 	std::vector<MaterialObject> materials;
-	/*	*/
+
+	/*	Texture Data and Mapping.	*/
 	fragcore::StackAllocator TexturePoolData;
 	std::vector<TextureAssetObject> textures;
 	std::map<std::string, TextureAssetObject *> textureMapping;
 	std::map<std::string, unsigned int> textureIndexMapping;
 
 	std::vector<CameraData> cameras;
-
-	std::vector<SkeletonSystem> skeletons;
-
-	std::vector<AnimationObject> animations;
-	std::map<std::string, VertexBoneData> vertexBoneData;
-
 	std::vector<LightObject> lights;
 
 	NodeObject *rootNode = nullptr;

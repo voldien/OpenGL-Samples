@@ -48,9 +48,10 @@ namespace glsample {
 		}
 
 		static void convertLightSystem(Scene &scene, const ModelImporter &importer);
-
+		static void convertCameraSystem(Scene &scene, const ModelImporter &importer);
 		static void convertMaterialSystem(Scene &scene, const ModelImporter &importer);
 		static void convertAnimationSystem(Scene &scene, const ModelImporter &importer);
+
 
 		static void convertNodeSystem(Scene &scene, ModelImporter &importer);
 		static void convertNodeChildren(const NodeObject *node0, Node *node);

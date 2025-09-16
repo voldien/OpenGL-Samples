@@ -51,6 +51,12 @@ void PostProcessingManager::render(
 	}
 }
 
+void PostProcessingManager::update(const float deltaTime) {
+	for (size_t i = 0; i < postProcessings.size(); i++) {
+		postProcessings[i]->update(deltaTime);
+	}
+}
+
 void PostProcessingManager::swapPostProcessing(int a, int b) {
 	a = fragcore::Math::clamp<int>(a, 0, this->postProcessings.size() - 1);
 	b = fragcore::Math::clamp<int>(b, 0, this->postProcessings.size() - 1);

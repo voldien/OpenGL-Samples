@@ -52,9 +52,8 @@ namespace glsample {
 			glm::mat4 modelView{};
 			glm::mat4 viewProjection{};
 			glm::mat4 modelViewProjection{};
-
+			
 			CameraInstanceData camera{};
-
 			TerrainSettings terrainSettings;
 
 			/*	Material	*/
@@ -92,6 +91,8 @@ namespace glsample {
 			UniformTerrainBufferBlock terrain;
 			// UniformOceanBufferBlock ocean;
 		} uniform_stage_buffer;
+
+
 
 		Skybox skybox;
 

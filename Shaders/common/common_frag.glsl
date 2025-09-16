@@ -1,6 +1,7 @@
 #ifndef _COMMON_FRAG_H_
 #define _COMMON_FRAG_H_ 1
 
+/*	Fragment stage extract normal,*/
 vec3 getNormalFromMap(const in sampler2D normalMap, const in vec2 TexCoords, const in vec3 WorldPos,
 					   const in vec3 Normal, const float bumpiness) {
 	/*	*/
@@ -18,6 +19,12 @@ vec3 getNormalFromMap(const in sampler2D normalMap, const in vec2 TexCoords, con
 	const mat3 TBN = mat3(T, B, N);
 
 	return normalize(TBN * tangentNormal);
+}
+
+void discardMethod(const in float alpha, const in float clip){
+	if(alpha < clip){
+		discard;
+	}
 }
 
 #endif

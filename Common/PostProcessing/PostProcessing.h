@@ -34,6 +34,8 @@ namespace glsample {
 		virtual void draw(glsample::FrameBuffer *framebuffer,
 						  const std::initializer_list<std::tuple<const GBuffer, unsigned int>> &render_targets);
 
+		virtual void update(const float deltaTime) {};
+
 		virtual void renderUI() {};
 
 		virtual bool isSupported() const noexcept { return true; }

@@ -64,7 +64,7 @@ namespace glsample {
 		Scene();
 		virtual ~Scene();
 
-	  public:
+	  public: /*	*/
 		virtual void init(IFileSystem *filesystem = nullptr);
 
 		virtual void release();
@@ -89,7 +89,7 @@ namespace glsample {
 
 		bool useDebug() const noexcept { return this->debugMode > DebugMode::None; }
 
-	  public:
+	  public: /*	Access Methods.	*/
 		const std::vector<Node *> &getNodes() const noexcept { return this->nodes; }
 		std::vector<Node *> &getNodes() noexcept { return this->nodes; }
 
@@ -98,7 +98,7 @@ namespace glsample {
 		std::vector<MaterialObject> &getMaterials() noexcept { return this->materials; }
 
 		std::vector<Light *> &getLights() noexcept { return this->lights; }
-		// std::vector<DirectionalLight *> getDirectionalLight() noexcept { return {}; }
+		const std::vector<Light *> &getLights() const noexcept { return this->lights; }
 
 		const std::vector<AnimationPlayer *> &getAnimation() const noexcept { return this->animations; }
 		std::vector<AnimationPlayer *> &getAnimation() noexcept { return this->animations; }
@@ -106,6 +106,11 @@ namespace glsample {
 		DirectionalLightData *getDirectionalLight(const size_t index = 0) noexcept {
 			return &this->stageLightData.getBase()->directional[index];
 		}
+
+		Camera *getActiveCamera() const noexcept { return nullptr; }
+		Camera *getCamera(const unsigned int index) const noexcept { return cameras.at(index); }
+		const std::vector<Camera *> &getCameras() const noexcept { return cameras; }
+		std::vector<Camera *> &getCameras() noexcept { return cameras; }
 
 	  protected:
 		virtual void bindTexture(const MaterialObject &material, const TextureTypeBinding texture_type);
@@ -115,8 +120,10 @@ namespace glsample {
 
 	  protected:
 		DebugDrawManager *debugDrawer = nullptr;
+
 		/*	*/
 		MaterialObject *currentBindedMaterial = nullptr;
+		Camera *currentActiveCamera = nullptr;
 
 		/*	TODO add queue structure.	*/
 		std::map<RenderQueue, std::deque<const Node *>> renderBucketQueue;
@@ -130,6 +137,7 @@ namespace glsample {
 		std::vector<MaterialObject> materials;
 		std::vector<AnimationPlayer *> animations;
 		std::vector<Light *> lights;
+		std::vector<Camera *> cameras;
 
 		std::vector<glm::mat4> worldMatricesCache;
 
@@ -174,6 +182,7 @@ namespace glsample {
 			unsigned int pointCount = 0;
 		};
 
+		// TODO: replace with structure data.
 		using MaterialData = struct _material_data_t {
 			glm::ivec4 info;				  /*	*/
 			glm::vec4 ambientColor;			  /*	*/
