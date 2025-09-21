@@ -1,4 +1,5 @@
 #include "CameraController.h"
+#include "Scene/Node.h"
 #include "flythrough_camera.h"
 #include <Input.h>
 #include <SDL2/SDL_events.h>
@@ -60,8 +61,12 @@ void CameraController::update(const float deltaTime) noexcept {
 
 	/*	*/
 	if (!alt && (this->enabled_Look || this->enabled_Navigation)) {
-		flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime,
+
+		glm::vec3 position = this->getPosition();
+		flythrough_camera_update(&position[0], &this->look[0], &this->up[0], &this->view[0][0], deltaTime,
 								 current_speed, 0.5f * activated, this->fov_degree, xDiff, yDiff, w, a, s, d, 0, 0, 0);
+
+		this->setPosition(position);
 
 		/*	*/
 		this->updateFrustum();
@@ -81,11 +86,6 @@ glm::mat4 CameraController::getViewTranslationMatrix() const noexcept {
 }
 
 const glm::vec3 &CameraController::getLookDirection() const noexcept { return this->look; }
-const glm::vec3 CameraController::getPosition() const noexcept { return this->pos; }
-void CameraController::setPosition(const glm::vec3 &position) noexcept {
-	this->pos = position;
-	this->update();
-}
 
 const glm::vec3 CameraController::getRotation() const noexcept { return {}; }
 void CameraController::setRotation(const glm::vec3 &rotation) noexcept {}
@@ -100,14 +100,17 @@ void CameraController::lookAt(const glm::vec3 &position) noexcept {
 bool CameraController::hasMoved() const noexcept { return true; }
 
 void CameraController::update() noexcept {
-	flythrough_camera_update(&this->pos[0], &this->look[0], &this->up[0], &this->view[0][0], 0, 0, 0.5f * activated,
+	glm::vec3 position = this->getPosition();
+	flythrough_camera_update(&position[0], &this->look[0], &this->up[0], &this->view[0][0], 0, 0, 0.5f * activated,
 							 this->fov_degree, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+	this->setPosition(position);
 }
 
 void CameraController::updateFrustum() {
 
 	/*	*/
-	const glm::vec3 position = this->pos;
+	const glm::vec3 position = getPosition();
 	const glm::vec3 look = glm::normalize(this->look);
 	const glm::vec3 up = glm::normalize(this->up);
 	const glm::vec3 right = glm::cross(look, up);

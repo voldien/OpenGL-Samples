@@ -22,6 +22,7 @@
 #include "SampleHelper.h"
 #include "Scene/Animation.h"
 #include "Scene/Light.h"
+#include "Scene/Material.h"
 #include "Scene/RenderQueue.h"
 #include "Scene/SceneSettingComponentUI.h"
 #include "Util/DebugDrawer.h"
@@ -71,21 +72,21 @@ namespace glsample {
 
 		virtual void update(const float deltaTime);
 
-		virtual void render(Camera *camera);
-		virtual void render(Light *light);
-		virtual void render();
+		virtual void render(Camera *camera, FrameBuffer *framebuffer = nullptr);
+		virtual void render(const Light *light);
+		virtual void render(FrameBuffer *framebuffer = nullptr);
 
 		virtual void renderUI();
 
 	  protected: /*	Internal backend methods.	*/
-		virtual void bindMaterial(const MaterialObject *material);
+		virtual void bindMaterial(const Material *material);
 		virtual void renderNode(const Node *node);
 
 		virtual void sortRenderQueue();
 
-		virtual void updateBuffers();
+		virtual void updateBuffers(); // TODO: add specific regions.
 
-		virtual void culling(Frustum *frustum); // TODO: add
+		virtual void culling(const Frustum *frustum); // TODO: add
 
 		bool useDebug() const noexcept { return this->debugMode > DebugMode::None; }
 
@@ -95,7 +96,7 @@ namespace glsample {
 
 		const std::vector<MeshObject> &getMeshes() const noexcept { return this->refGeometry; }
 		std::vector<MeshObject> &getMeshes() noexcept { return this->refGeometry; }
-		std::vector<MaterialObject> &getMaterials() noexcept { return this->materials; }
+		std::vector<Material> &getMaterials() noexcept { return this->materials; }
 
 		std::vector<Light *> &getLights() noexcept { return this->lights; }
 		const std::vector<Light *> &getLights() const noexcept { return this->lights; }
@@ -107,22 +108,22 @@ namespace glsample {
 			return &this->stageLightData.getBase()->directional[index];
 		}
 
-		Camera *getActiveCamera() const noexcept { return nullptr; }
+		Camera *getActiveCamera() const noexcept { return this->currentActiveCamera; }
 		Camera *getCamera(const unsigned int index) const noexcept { return cameras.at(index); }
 		const std::vector<Camera *> &getCameras() const noexcept { return cameras; }
 		std::vector<Camera *> &getCameras() noexcept { return cameras; }
 
 	  protected:
-		virtual void bindTexture(const MaterialObject &material, const TextureTypeBinding texture_type);
-		virtual int computeMaterialPriority(const MaterialObject &material) const noexcept;
-		virtual RenderQueue getQueueDomain(const MaterialObject &material) const noexcept;
+		virtual void bindTexture(const Material &material, const TextureTypeBinding texture_type);
+		virtual int computeMaterialPriority(const Material &material) const noexcept;
+		virtual RenderQueue getQueueDomain(const Material &material) const noexcept;
 		size_t getRoundRobinIndex() const noexcept { return this->renderPassFrameIndex % BufferRoundRobinSize; }
 
 	  protected:
 		DebugDrawManager *debugDrawer = nullptr;
 
 		/*	*/
-		MaterialObject *currentBindedMaterial = nullptr;
+		Material *currentBindedMaterial = nullptr;
 		Camera *currentActiveCamera = nullptr;
 
 		/*	TODO add queue structure.	*/
@@ -134,7 +135,7 @@ namespace glsample {
 		std::vector<Node> nodePool;
 		std::vector<MeshObject> refGeometry;
 		std::vector<TextureAssetObject> refTexture;
-		std::vector<MaterialObject> materials;
+		std::vector<Material> materials;
 		std::vector<AnimationPlayer *> animations;
 		std::vector<Light *> lights;
 		std::vector<Camera *> cameras;
@@ -146,23 +147,28 @@ namespace glsample {
 		// fragcore::PoolAllocator<Node> nodePool;
 		// fragcore::PoolAllocator<AnimationPlayer> animationss;
 
+		enum class FrustumCullingMode {
+			BoundingBoxAABB,
+			BoundingSphere,
+		};
+
 		using FrustumSettings = struct _frustum_settings_t {
 			bool useFrustum;
-			unsigned int FrustumCullingMode = 0;
+			FrustumCullingMode FrustumCullingMode = FrustumCullingMode::BoundingBoxAABB;
 		};
 
-		using GlobalRenderSettings = struct _global_rendering_settings_t {
+		unsigned int IrradianceTexture = 0;
+		using GlobalRenderSettingData = struct _global_rendering_settings_t {
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
-			unsigned int IrradianceTexture = 0;
-			FogSettings fogSettings;
-			unsigned int FrustumCullingMode = 0;
+			// ImageBasedLightningSettings imageBasedLightningSettings;
+			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 		};
 
-		using GlobalSceneState = struct common_constant_data_t {
+		using GlobalSceneStateData = struct common_constant_data_t {
 			// TODO: keep multi frame camera frustum.
 			CameraInstanceData camera;
 			FrustumInstance frustum{};
-			GlobalRenderSettings renderSettings = GlobalRenderSettings();
+			GlobalRenderSettingData renderSettings = GlobalRenderSettingData();
 
 			/*	*/
 			glm::mat4 proj[3]{};
@@ -201,12 +207,17 @@ namespace glsample {
 			DebugMode debugMode;
 		};
 
-		using LightSettings = struct light_settings_t {};
+		using ImageBasedLightningSettings = struct image_based_lightning_settings_t {
+			float intensity = 1;
+		};
+		using LightSettings = struct light_settings_t {
+			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
+			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
+		};
 
 		using RenderingSettings = struct rendering_settings_t {
 			unsigned int debugMode = DebugMode::None;
 			FrustumSettings frustumSettings;
-			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
 			FogSettings fogSettings;
 			LightSettings lightSettings;
 			bool preRender;
@@ -222,8 +233,8 @@ namespace glsample {
 		/*	*/
 		bool useCoherent = true;
 
-		static constexpr unsigned int BufferRoundRobinSize = 4;
-		StageBuffer<GlobalSceneState *, BufferRoundRobinSize> stageCommonRobin;
+		static constexpr unsigned int BufferRoundRobinSize = 3;
+		StageBuffer<GlobalSceneStateData *, BufferRoundRobinSize> stageCommonRobin;
 		StageBuffer<NodeData *, BufferRoundRobinSize> stageNodeDataRobin;
 		StageBuffer<NodeData *, BufferRoundRobinSize> stagePreNodeDataRobin;
 		StageBuffer<MaterialData *, BufferRoundRobinSize> stageMaterialDataRobin;

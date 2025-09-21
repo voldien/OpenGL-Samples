@@ -7,27 +7,25 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#extension GL_ARB_conservative_depth : enable
-#extension GL_EXT_conservative_depth : enable
-
 precision mediump float;
 precision mediump int;
 
+/*	*/
 layout(location = 0) in vec2 UV;
-
-#if defined(GL_EXT_conservative_depth) || defined(GL_ARB_conservative_depth)
-layout(depth_less) out float gl_FragDepth;
-#endif
+/*	*/
+layout(location = 8) flat in ivec2 fAssigns;
 
 #include "scene.glsl"
 
 void main() {
 
+	/*	*/
 	const float alpha = texture(DiffuseTexture, UV).a * texture(AlphaMaskedTexture, UV).r;
 
-	const material mat = getMaterial(0); // fAssigns.x
+	/*	*/
+	const material mat = getMaterial(fAssigns.x); //
 
-	const float clip = mat.clip_.x;
+	const float clip = mat.clip_.x * 0.5;
 	if (alpha < clip) {
 		discard;
 	} else {

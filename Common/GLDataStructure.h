@@ -1,5 +1,6 @@
 #pragma once
 #include "Math3D/LinAlg.h"
+#include "RenderDesc.h"
 #include "SampleHelper.h"
 #include "Scene/CameraController.h"
 #include <glm/fwd.hpp>
@@ -33,6 +34,14 @@ namespace glsample {
 		FogType fogType = FogType::Exp;
 		float fogIntensity = 1.0f;
 		float fogHeight = 0;
+	};
+
+	using GraphicShaderSettings = struct graphic_shader_settings_t {
+		fragcore::BlendEqu blend_func_mode = fragcore::BlendEqu::eNoEqu; /*	aiBlendMode*/
+		int wireframe_mode = 0;
+		CullingMode cullingMode;
+		bool culling_both_side_mode = false;
+		float clipping = 1;
 	};
 
 	using TessellationSettings = struct tessellation_settings_t {

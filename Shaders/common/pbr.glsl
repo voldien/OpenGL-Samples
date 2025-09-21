@@ -215,7 +215,7 @@ vec3 computePBRDirectionLight(const in DirectionalLight light, const in vec3 Vie
 
 	const vec3 radiance = light.lightColor.rgb; // aka Li
 
-	const float nDotL = computeLightContributionFactor(SurfaceNormal, -light_direction);
+	const float nDotL = computeLightContributionFactor(SurfaceNormal, light.direction.xyz);
 
 	const vec3 cookTorranceBrdf =
 		BSDF(light_direction, halfway_vector, ViewPixelDir, SurfaceNormal, roughness, metallic, F0, albedo);

@@ -48,11 +48,30 @@ void SceneHelper::convertCameraSystem(Scene &scene, const ModelImporter &importe
 
 void SceneHelper::convertMaterialSystem(Scene &scene, const ModelImporter &importer) {
 	// scene.getMaterials().resize(importer.getMaterials().size());
+	scene.getMaterials().resize(importer.getMaterials().size());
 	for (size_t i = 0; i < importer.getMaterials().size(); i++) {
 		const MaterialObject &mat = importer.getMaterials()[i];
 
-		Material material;
-		//	material.
+		Material &material = scene.materials[i];
+
+		material.ambient = mat.ambient;
+		material.diffuse = mat.diffuse;
+		material.emission = mat.emission;
+		material.specular = mat.specular;
+		material.transparent = mat.transparent;
+		material.reflectivity = mat.reflectivity;
+
+		material.shinininess = mat.shinininess;
+		material.bumpiness = mat.bumpiness;
+		material.opacity = mat.opacity;
+		material.metalic = mat.metalic;
+		material.blend_func_mode = mat.blend_func_mode; /*	aiBlendMode*/
+		material.wireframe_mode = mat.wireframe_mode;
+		material.culling_both_side_mode = mat.culling_both_side_mode;
+		material.clipping = mat.clipping;
+
+		std::memcpy(&material.texture_sampling[0], &mat.texture_sampling[0], sizeof(mat.texture_sampling));
+		material.texture_index = mat.texture_index;
 	}
 }
 

@@ -890,6 +890,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .depth = 1,
 										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
+										   .numlevel = 4,
 									   },
 									   {
 										   .width = framebuffer_Width,
@@ -897,6 +898,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .depth = 1,
 										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
+										   .numlevel = 4,
 
 									   },
 									   {
@@ -905,6 +907,7 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .depth = 1,
 										   .graphicFormat = internal_color_format,
 										   .nrSamples = 0,
+										   .numlevel = 4,
 									   }},
 									  &depthStencil);
 	}

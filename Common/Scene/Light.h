@@ -42,6 +42,10 @@ namespace glsample {
 		virtual void setShadowDistance(float distance);
 		float getShadowDistance() const noexcept;
 
+		virtual void setShadowFade(float fade);
+		float getShadowFade() const noexcept;
+
+
 		const glm::mat4 &getProjectionMatrix() const noexcept;
 
 		LightType getLightType() const noexcept;
@@ -65,9 +69,9 @@ namespace glsample {
 		LightDirectionalShadowData shadowData{};
 
 		float shadow = 1;
-		float bias = 0.0002f;
+		float bias = 0.0001f;
 		float shadowDistance = 50;
-		float pcf_radius = 1;
+		float pcf_radius = 0.2f;
 		FrameBuffer *shadowFrameBuffer = nullptr;
 	};
 

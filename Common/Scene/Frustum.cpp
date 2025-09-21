@@ -24,16 +24,16 @@ namespace glsample {
 	}
 
 	Frustum::Intersection Frustum::intersectionAABB(const AABB &bounds) const noexcept {
-		Frustum::Intersection result = Frustum::In;
 
+		/*	Iterate through each plane.	*/
 		for (unsigned int index_plane = 0; index_plane < this->getNrPlanes(); index_plane++) {
 
 			if (!fragcore::GeometryUtility::testPlanesAABB(this->getPlane(index_plane), bounds)) {
-				return Intersection::Out; // index_plane > 0 ? Intersection::Intersect : Intersection::Out;
+				return Intersection::Out;
 			}
 		}
 
-		return result;
+		return Frustum::In;
 	}
 
 	Frustum::Intersection Frustum::intersectionOBB(const glm::vec3 &u, const glm::vec3 &v,
@@ -48,10 +48,11 @@ namespace glsample {
 
 	Frustum::Intersection Frustum::intersectionSphere(const BoundingSphere &sphere) const noexcept {
 
+		/*	Iterate through each plane.	*/
 		for (unsigned int index_plane = 0; index_plane < this->getNrPlanes(); index_plane++) {
 
 			if (!fragcore::GeometryUtility::testPlanesSphere(this->getPlane(index_plane), sphere)) {
-				return Intersection::Out; // index_plane > 0 ? Intersection::Intersect : Intersection::Out;
+				return Intersection::Out;
 			}
 		}
 		return Intersection::In;

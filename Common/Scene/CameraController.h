@@ -38,7 +38,6 @@ namespace glsample {
 		void enableNavigation(const bool enable) noexcept;
 		void enableLook(const bool enable) noexcept;
 
-
 		const glm::mat4 &getViewMatrix() const noexcept;
 		glm::mat4 getRotationMatrix() const noexcept;
 		glm::mat4 getViewTranslationMatrix() const noexcept;
@@ -46,8 +45,6 @@ namespace glsample {
 		/*	Normalized.	*/
 		const glm::vec3 &getLookDirection() const noexcept;
 
-		const glm::vec3 getPosition() const noexcept;
-		void setPosition(const glm::vec3 &position) noexcept;
 
 		const glm::vec3 getRotation() const noexcept;
 		void setRotation(const glm::vec3 &rotation) noexcept;
@@ -78,7 +75,6 @@ namespace glsample {
 
 		glm::mat4 view{};
 
-		glm::vec3 pos = {0.0f, 1.0f, 0.0f};
 		glm::vec3 look = {0.0f, 0.0f, 1.0f};
 		glm::vec3 up = {0.0f, 1.0f, 0.0f};
 		Input *input;

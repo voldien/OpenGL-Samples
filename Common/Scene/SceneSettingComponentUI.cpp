@@ -1,5 +1,6 @@
 #include "SceneSettingComponentUI.h"
 #include "GLUIComponent.h"
+#include "RenderDesc.h"
 #include "Scene.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
@@ -19,7 +20,6 @@ void SceneSettingsUI::draw() {
 
 			/*	*/
 			if (ImGui::Checkbox("Use Frustum Culling", &scene.getRenderingSettings().frustumSettings.useFrustum)) {
-				
 			}
 
 			bool showWireFrame =
@@ -59,7 +59,9 @@ void SceneSettingsUI::draw() {
 		/*	*/
 		if (ImGui::CollapsingHeader("Global Rendering Settings")) {
 
-			ImGui::ColorEdit4("Global Ambient Color", &scene.getRenderingSettings().ambientColor[0],
+			ImGui::ColorEdit4("Global Ambient Color", &scene.getRenderingSettings().lightSettings.ambientColor[0],
+							  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
+			ImGui::ColorEdit4("Global Specular Color", &scene.getRenderingSettings().lightSettings.specularColor[0],
 							  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
 			{
@@ -186,8 +188,10 @@ void SceneSettingsUI::draw() {
 								 ImVec2(512, 512), ImVec2(1, 1), ImVec2(0, 0));
 				}
 
+				/*	*/
 				ImGui::DragFloat("Shadow Strength", &light->shadow, 1, 0.0f, 1.0f);
 				ImGui::DragFloat("Shadow Bias", &light->bias, 1, 0.0f, 1.0f, "%.5f");
+				ImGui::DragFloat("Shadow PCF Radius", &light->pcf_radius, 1, 0.0f, 10.0f, "%.5f");
 
 				float shadowDistance = light->getShadowDistance();
 				if (ImGui::DragFloat("Shadow Distance", &shadowDistance, 1, 0.0f, 10000000.0f, "%.5f")) {
@@ -212,9 +216,9 @@ void SceneSettingsUI::draw() {
 			size_t material_index = 0;
 			for (; material_index < scene.getMaterials().size(); material_index++) {
 
-				MaterialObject &mat = scene.getMaterials()[material_index];
+				Material &mat = scene.getMaterials()[material_index];
 				ImGui::PushID(material_index);
-				ImGui::TextUnformatted(scene.getMaterials()[material_index].name.c_str());
+				ImGui::TextUnformatted(scene.getMaterials()[material_index].getName().c_str());
 
 				ImGui::ColorEdit4("Ambient Color", &mat.ambient[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
@@ -233,6 +237,31 @@ void SceneSettingsUI::draw() {
 				ImGui::DragFloat("Shinininess", &mat.shinininess, 1, 0, 128);
 				ImGui::DragFloat("Bumpiness", &mat.bumpiness, 1, 0, 128);
 				ImGui::DragFloat("Metalic", &mat.metalic, 1, 0, 1);
+
+				ImGui::DragFloat("Displacement", &mat.getTessellationSettings().gDispFactor);
+
+				/*	Blend */
+				{
+					// TODO: enpasulted own method
+					const int texture_wrapping_item_selected_idx = (int)mat.getGraphicSettings().blend_func_mode;
+					const std::string combo_preview_value =
+						std::string(magic_enum::enum_name((fragcore::BlendEqu)texture_wrapping_item_selected_idx));
+					ImGuiComboFlags flags = 0;
+					if (ImGui::BeginCombo("Blend Mode", combo_preview_value.c_str(), flags)) {
+						for (int n = 0; n <= (int)fragcore::BlendEqu::Max; n++) {
+							const bool is_selected = (texture_wrapping_item_selected_idx == n);
+
+							if (ImGui::Selectable(magic_enum::enum_name((fragcore::BlendEqu)n).data(), is_selected)) {
+								mat.getGraphicSettings().blend_func_mode = (fragcore::BlendEqu)n;
+							}
+
+							if (is_selected) {
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						ImGui::EndCombo();
+					}
+				}
 
 				/*	Textures.	*/
 				for (size_t mat_tex_index = 0; mat_tex_index < mat.texture_index.size(); mat_tex_index++) {

@@ -1,6 +1,5 @@
 #pragma once
 #include "FragDef.h"
-#include "IO/FileSystem.h"
 #include "Scene/Scene.h"
 
 namespace glsample {
@@ -13,10 +12,10 @@ namespace glsample {
 
 	  public:
 		void init(IFileSystem *filesystem) override;
-		void bindMaterial(const MaterialObject *material) override;
+		void bindMaterial(const Material *material) override;
 
-		void render(Camera *camera) override;
-		void render() override;
+		void render(Camera *camera, FrameBuffer *framebuffer = nullptr) override;
+		void render(FrameBuffer *framebuffer = nullptr) override;
 
 	  protected:
 		bool UseShadowPass = false;
@@ -31,11 +30,11 @@ namespace glsample {
 		// const std::string fragmentDirectionalClippingShadowShaderPath =
 		// "Shaders/scene/shadow/scene_directional_shadow.vert.spv";
 
-		unsigned int shadow_directional;
-		unsigned int shadow_directional_alpha;
+		unsigned int shadow_directional{};
+		unsigned int shadow_directional_alpha{};
 
-		unsigned int shadow_point;
-		unsigned int shadow_point_alpha;
+		unsigned int shadow_point{};
+		unsigned int shadow_point_alpha{};
 
 		using VariableRateSettings = struct variable_rate_shading_t {
 			unsigned int variable_rate_color_program{};

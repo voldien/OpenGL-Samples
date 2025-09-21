@@ -8,6 +8,10 @@ namespace glsample {
 	  public:
 		unsigned int getProgram() const noexcept { return this->program; }
 
+		bool hasGeometry() const noexcept;
+		bool hasFragment() const noexcept;
+		bool hasTessellation() const noexcept;
+
 	  private:
 		unsigned int program;
 	};

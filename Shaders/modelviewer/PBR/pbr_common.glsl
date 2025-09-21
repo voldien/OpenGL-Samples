@@ -4,7 +4,7 @@
 #include "shadow.glsl"
 
 /*	Physical Based Rendering.	*/
-layout(constant_id = 32) const bool UseImageBasedLightning = true;
+layout(constant_id = 32) const bool UseImageBasedLightning = true;	//TODO: as number, for adding flags.
 layout(constant_id = 33) const int DistrubtionFunction = 1;
 
 struct OutputPatch {

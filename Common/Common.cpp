@@ -244,6 +244,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		const unsigned int height = target_desc.height;
 		const unsigned int depth = target_desc.depth;
 		const unsigned int multisamples = target_desc.nrSamples;
+		const unsigned int maxLODLevels = target_desc.numlevel;
 		const bool useMultiSampling = multisamples > 1;
 
 		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(target_desc.graphicFormat);
@@ -291,7 +292,11 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 			FVALIDATE_GL_CALL(glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f));
 			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_BASE_LEVEL, 0));
 
-			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_MAX_LEVEL, 0));
+			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_MAX_LEVEL, maxLODLevels));
+		}
+
+		if (maxLODLevels > 0) {
+			glGenerateMipmap(texture_type);
 		}
 
 		glBindTexture(texture_type, 0);
@@ -310,8 +315,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 	}
 
 	/*	Depth/stencil buffer.	*/
-	if(depthstencil)
-	{
+	if (depthstencil) {
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer->framebuffer);
 
 		const unsigned int multisamples = depthstencil->nrSamples;

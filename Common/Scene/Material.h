@@ -16,9 +16,14 @@
 #pragma once
 #include "Core/Object.h"
 #include "GLDataStructure.h"
+#include "Importer/ModelImporter.h"
 #include "Prerequisites.h"
+#include "RenderDesc.h"
+#include "SampleHelper.h"
+#include "Scene/RenderQueue.h"
 #include "ShaderPipeline.h"
 #include <glm/fwd.hpp>
+#include <vector>
 
 namespace glsample {
 
@@ -26,141 +31,110 @@ namespace glsample {
 	 *	Responsible for associated textures and
 	 *	shader.
 	 */
-	class FVDECLSPEC Material : fragcore::Object {
+	class FVDECLSPEC Material : public fragcore::Object {
 	  public:
-		Material() = default;
+		Material();
 		// Material(ShaderPipeline *shader, RendererResourcePool *pool);
 
-		// virtual void PushUniforms(UniformHandler &uniformObject, const Transform *) = 0;
-		// virtual void PushDescriptors(DescriptorsHandler &descriptorSet) = 0;
+		/*	*/
+		void bindBuffer(const unsigned int index, const UBORange &buffer);
+		void bindBuffer(const unsigned int index, const UBOObject &buffer, const size_t offset,
+						const size_t sizeInBytes);
 
-		// void setTexture(int index, TextureObject *tex);
-		// TextureObject *getTexture(int index);
+		void pushData(const void *pdata, const size_t data, const size_t offset = 0);
 
-		// void setMainColor(const Color &color);
-		// Color getMainColor() const;
+		void setTexture(const int index, glsample::Texture *texture);
+		glsample::Texture *getTexture(const int index);
 
-		// void setTextureOffset(int index, PVVector2 offset);
+		void setSampler(const int index, TextureSampler *sampler);
+		TextureSampler *getSampler(const int index);
 
-		// /**
-		//  *
-		//  * @param index
-		//  * @return
-		//  */
-		// PVVector2 getTextureOffset(int index) const;
+		RenderQueue getRenderQueue() const noexcept;
 
-		// /**
-		//  *
-		//  * @param index
-		//  * @param scale
-		//  */
-		// void setTextureScale(int index, PVVector2 scale);
-
-		// /**
-		//  *
-		//  * @param index
-		//  * @return
-		//  */
-		// PVVector2 getTextureScale(int index) const;
-
-		// /**
-		//  *	Bind material to current material on
-		//  *	the current thread.
-		//  */
-		// void bind();
-
-		// /**
-		//  *
-		//  * @return
-		//  */
-		// RenderQueue getRenderQueue() const;
-
+		void setPipeline(ShaderPipeline *pipeline);
 		ShaderPipeline &getPipeline() noexcept { return *this->pipeline; }
-		TessellationSettings &getTessellationSettings() { return this->tess; }
+
+		bool isTessellationEnabled() const noexcept { return this->tessellationSettings.gDispFactor && false; }
+
+		TessellationSettings &getTessellationSettings() { return this->tessellationSettings; }
+		const GraphicShaderSettings &getGraphicSettings() const noexcept { return this->graphicSettings; }
+		GraphicShaderSettings &getGraphicSettings() noexcept { return this->graphicSettings; }
 
 	  public: /*  Get and set methods.  */
-		// int getInt(const char *name);
-		// void setInt(const char *name, int value);
-
-		// void setIntArray(const char *name, int nrElements, int *elements);
-		// int *getIntArray(const char *name, int *nrElements);
-
-		// float getFloat(const char *name);
-		// void setFloat(const char *name, float value);
-
-		// void setFloatArray(const char *name, int nrElements, float *elements);
-		// float *getFloatArray(const char *name, int *nrElements);
-
-		// void setVectorArray(const char *name, int nrElements, PVVector4 *elements);
-		// PVVector4 *getVectorArray(const char *name, int *nrElements);
-
 		/*	Contains a set of programs, with different options compiled against.	*/
 		ShaderPipeline *pipeline{};
+		std::vector<ShaderPipeline *> subpasses;
 		unsigned int program = 0; // TODO: relocate.
 
+		std::vector<Texture *> textures;
+		/*	*/
+		std::map<std::string, unsigned int> name2Location;
+
 		// Material properties.
-		//	glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
-		//	glm::vec4 diffuse = glm::vec4(1);
-		//	glm::vec4 emission = glm::vec4(0);
-		//	glm::vec4 specular = glm::vec4(1);
-		//	glm::vec4 transparent = glm::vec4(1);
-		//	glm::vec4 reflectivity = glm::vec4(1);
-		//
+		glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
+		glm::vec4 diffuse = glm::vec4(1);
+		glm::vec4 emission = glm::vec4(0);
+		glm::vec4 specular = glm::vec4(1);
+		glm::vec4 transparent = glm::vec4(1);
+		glm::vec4 reflectivity = glm::vec4(1);
+
 		/*	*/
 		float shinininess = 1;
 		float bumpiness = 1;
 		float opacity = 1;
 		float metalic = 0;
-		int blend_func_mode = 0; /*	aiBlendMode*/
+
+		fragcore::BlendEqu blend_func_mode = fragcore::BlendEqu::eNoEqu; /*	aiBlendMode*/
 		int wireframe_mode = 0;
 		bool culling_both_side_mode = false;
 		float clipping = 1;
 		/*	*/
 
-		TessellationSettings tess;
+		TessellationSettings tessellationSettings;
+		GraphicShaderSettings graphicSettings;
 
 		unsigned int shade_model = 0; /*	aiShadingMode	*/
 
-		// MaterialTextureSampling texture_sampling[32];
+		MaterialTextureSampling texture_sampling[32];
 
 		/*	Texture index.	*/
-		// union {
-		// 	struct {
-		// 		int diffuseIndex = -1;			/*	*/
-		// 		int normalIndex = -1;			/*	*/
-		// 		int maskTextureIndex = -1;		/*	*/
-		// 		int specularIndex = -1;			/*	*/
-		// 		int emissionIndex = -1;			/*	*/
-		// 		int reflectionIndex = -1;		/*	*/
-		// 		int ambientOcclusionIndex = -1; /*	*/
-		// 		int displacementIndex = -1;		/*	*/
-		// 		int metalIndex = -1;			/*	*/
-		// 		int heightbumpIndex = -1;		/*	*/
-		// 		int pad1 = -1;
-		// 		int pad2 = -1;
-		// 		int pad3 = -1;
-		// 		int pad4 = -1;
-		// 		int pad5 = -1;
-		// 		int pad6 = -1;
-		// 		int pad7 = -1;
-		// 		int pad8 = -1;
-		// 		int pad9 = -1;
-		// 		int pad10 = -1;
-		// 		int pad11 = -1;
-		// 		int pad12 = -1;
-		// 		int pad13 = -1;
-		// 		int pad14 = -1;
-		// 		int pad15 = -1;
-		// 		int pad16 = -1;
-		// 		int pad17 = -1;
-		// 		int pad18 = -1;
-		// 		int pad19 = -1;
-		// 		int pad20 = -1;
-		// 		int pad21 = -1;
-		// 		int pad22 = -1;
-		// 	};
-		// 	std::array<int, 32> texture_index{}; /*	TextureType.	*/
-		// };
+		union {
+			struct {
+				int diffuseIndex = -1;			/*	*/
+				int normalIndex = -1;			/*	*/
+				int maskTextureIndex = -1;		/*	*/
+				int specularIndex = -1;			/*	*/
+				int emissionIndex = -1;			/*	*/
+				int reflectionIndex = -1;		/*	*/
+				int ambientOcclusionIndex = -1; /*	*/
+				int displacementIndex = -1;		/*	*/
+				int metalIndex = -1;			/*	*/
+				int heightbumpIndex = -1;		/*	*/
+				int pad1 = -1;
+				int pad2 = -1;
+				int pad3 = -1;
+				int pad4 = -1;
+				int pad5 = -1;
+				int pad6 = -1;
+				int pad7 = -1;
+				int pad8 = -1;
+				int pad9 = -1;
+				int pad10 = -1;
+				int pad11 = -1;
+				int pad12 = -1;
+				int pad13 = -1;
+				int pad14 = -1;
+				int pad15 = -1;
+				int pad16 = -1;
+				int pad17 = -1;
+				int pad18 = -1;
+				int pad19 = -1;
+				int pad20 = -1;
+				int pad21 = -1;
+				int pad22 = -1;
+			};
+			std::array<int, 32> texture_index; /*	TextureType.	*/
+		};
 
 	  private: /*	Attributes.	*/
 			   // std::vector<TextureObject*> textures; /*  */

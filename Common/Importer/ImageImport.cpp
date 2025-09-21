@@ -1,5 +1,7 @@
 #include "Importer/ImageImport.h"
 #include "FragDef.h"
+#include "GraphicFormat.h"
+#include "internal_object_type.h"
 #include <GL/glew.h>
 #include <GLHelper.h>
 #include <ImageLoader.h>
@@ -21,7 +23,8 @@ TextureImporter::TextureImporter(IFileSystem *filesystem) : filesystem(filesyste
 TextureImporter::~TextureImporter() { glDeleteBuffers(this->pbos.size(), this->pbos.data()); }
 
 unsigned int TextureImporter::loadImage2D(const std::string &path, const ColorSpace colorSpace,
-										  const TextureCompression compression) {
+										  const TextureCompression compression,
+										  const fragcore::GraphicFormat graphicInternalFormat) {
 
 	ImageLoader imageLoader;
 	Ref<IO> io = Ref<IO>(this->filesystem->openFile(path.c_str(), IO::IOMode::READ));
@@ -36,7 +39,8 @@ unsigned int TextureImporter::loadImage2D(const std::string &path, const ColorSp
 }
 
 unsigned int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpace colorSpace,
-											 const TextureCompression compression) {
+											 const TextureCompression compression,
+											 const fragcore::GraphicFormat graphicInternalFormat) {
 
 	GLenum target = GL_TEXTURE_2D;
 	GLuint texture = 0;
@@ -44,6 +48,9 @@ unsigned int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpac
 	GLenum format = 0, internalformat = 0, type = 0;
 
 	this->getFormat(image, format, type, internalformat, colorSpace, compression);
+	if (graphicInternalFormat != fragcore::GraphicFormat::NotSpecified) {
+		internalformat = GLHelper::getGraphicFormat(graphicInternalFormat);
+	}
 
 	/*	*/
 	const size_t power_of_2 = std::floor(std::log(Math::max(image.width(), image.height())) / std::log(2));

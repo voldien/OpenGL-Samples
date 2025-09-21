@@ -29,7 +29,7 @@ void main() {
 	}
 	const vec3 up = normalize(cross(normal, right));
 
-	const float sampleDelta = PI2 / 512u;
+	const float sampleDelta = PI2 / 1024u;
 
 	float nrSamples = 0.0;
 	for (float phi = 0.0; phi < PI2; phi += sampleDelta) {
@@ -48,7 +48,7 @@ void main() {
 			const vec2 panoramic_coordinate = sphere_uv_mapping(normalize(sampleVec));
 
 			/*	Sample from pre-filter downsampled environment texture.	*/
-			sub_irradiance += textureLod(SourceEnvTexture, panoramic_coordinate, 1).rgb * cos(theta) * sin(theta);
+			sub_irradiance += textureLod(SourceEnvTexture, panoramic_coordinate, 2).rgb * cos(theta) * sin(theta);
 
 			sub_irradiance_sample_count++;
 		}

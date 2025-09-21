@@ -5,14 +5,18 @@
 #extension GL_ARB_texture_cube_map_array : enable
 
 #include "common.glsl"
-#include"frustum.glsl"
+#include "frustum.glsl"
 #include "light.glsl"
 #include "material.glsl"
 #include "transformation.glsl"
 
-/*	Scene Options.	*/
-layout(constant_id = 12) const bool UseClipping = false;
-layout(constant_id = 13) const bool FlipTexture = false;
+#define SHADOW_MODE_HARD 0x1
+#define SHADOW_MODE_SOFT 0x2
+#define SHADOW_MODE_VARIANCE 0x4
+
+/*	Scene Rendering Options.	*/
+layout(constant_id = 12) const bool UseClipping = true;
+layout(constant_id = 13) const int ShadowMapMode = SHADOW_MODE_SOFT;	/*	*/
 layout(constant_id = 14) const bool UseTessellation = false;
 
 /*	*/
@@ -25,8 +29,8 @@ struct tessellation_settings {
 };
 
 struct global_rendering_settings {
-	vec4 ambientColor;
-	FogSettings fogSettings;
+	vec4 ambientColor;	/*	*/
+	vec4 specularColor;	/*	*/
 };
 
 struct common_data {
@@ -147,8 +151,5 @@ uint getPointLightCount() { return LightUBO.light.pointCount; }
 /*	*/
 DirectionalLight getDirectional(const in uint index) { return LightUBO.light.directional[index]; }
 PointLight getPointLight(const in uint index) { return LightUBO.light.point[index]; }
-
-
-
 
 #endif

@@ -13,10 +13,10 @@
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
  */
-#include "ModelImporter.h"
 #include "PBRScene.h"
 #include "SampleHelper.h"
 #include "Scene/Light.h"
+#include "Scene/RenderQueue.h"
 #include <IO/IOUtil.h>
 #include <ShaderLoader.h>
 #include <glm/fwd.hpp>
@@ -69,34 +69,42 @@ void PBRScene::init(IFileSystem *filesystem) {
 	/*	*/
 	const std::vector<uint32_t> vertex_directional_shadow_binary =
 		fragcore::IOUtil::readFileData<uint32_t>(vertexDirectionalShadowShaderPath, filesystem);
-	const std::vector<uint32_t> fragment_shadow_binary =
+	const std::vector<uint32_t> fragment_directional_shadow_binary =
 		fragcore::IOUtil::readFileData<uint32_t>(fragmentDirectionalShadowShaderPath, filesystem);
-	const std::vector<uint32_t> fragment_shadow_alpha_binary =
+	const std::vector<uint32_t> fragment_directional_shadow_alpha_binary =
 		fragcore::IOUtil::readFileData<uint32_t>(fragmentDirectionalShadowAlphaShaderPath, filesystem);
 
-	this->shadow_directional =
-		ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_directional_shadow_binary, &fragment_shadow_binary);
+	this->shadow_directional = ShaderLoader::loadGraphicProgram(compilerOptions, &vertex_directional_shadow_binary,
+																&fragment_directional_shadow_binary);
 	this->shadow_directional_alpha = ShaderLoader::loadGraphicProgram(
-		compilerOptions, &vertex_directional_shadow_binary, &fragment_shadow_alpha_binary);
+		compilerOptions, &vertex_directional_shadow_binary, &fragment_directional_shadow_alpha_binary);
 
 	/*	Convert material to be more PBR ready.	*/
 	for (size_t i = 0; i < getMaterials().size(); i++) {
-		MaterialObject *mat = &getMaterials()[i];
+		Material *mat = &getMaterials()[i];
 		if (mat->shinininess > 1) {
 			mat->shinininess *= (1.0f / 32.0f);
 		}
-		mat->specular = glm::vec4(1, 1, 1, 1);
+		//mat->specular = glm::vec4(1, 1, 1, 1);
 	}
 }
 
 void PBRScene::shadowPass() {
 
-	UseShadowPass = true;
-	glUseProgram(this->shadow_directional);
-	for (size_t i = 0; i < this->getLights().size(); i++) {
-		Light *light = getLights()[i];
+	/*	*/
+	GLint currentDrawFBO;
+	GLint currentReadFBO;
+	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentDrawFBO);
+	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &currentReadFBO);
 
-		if (light->getShadowStrength() > 0 && light->getFrameBuffer()) {
+	/*	*/
+	this->UseShadowPass = true;
+
+	/*	*/
+	for (size_t i = 0; i < this->getLights().size(); i++) {
+		const Light *light = getLights()[i];
+
+		if (light->isActive() && light->getShadowStrength() > 0 && light->getFrameBuffer()) {
 
 			FrameBuffer *framebuffer = light->getFrameBuffer();
 			const glm::ivec3 size = light->getSize();
@@ -108,14 +116,32 @@ void PBRScene::shadowPass() {
 			Scene::render(light);
 		}
 	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	UseShadowPass = false;
+
+	/*	Restore framebuffer state.	*/
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, currentDrawFBO);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, currentReadFBO);
+
+	this->UseShadowPass = false;
 }
 
-void PBRScene::render(Camera *camera) { Scene::render(camera); }
-void PBRScene::render() {
+void PBRScene::render(Camera *camera, FrameBuffer *framebuffer) {
+
+	/*	Render all light sources.	*/
+	{
+		if (camera) {
+			this->currentActiveCamera = camera;
+		}
+		this->shadowPass();
+	}
+
+	/*	*/
+	Scene::render(camera, framebuffer);
+}
+
+void PBRScene::render(FrameBuffer *framebuffer) {
 
 	for (size_t i = 0; i < this->getLights().size(); i++) {
+
 		FrameBuffer *frame = this->getLights()[i]->getFrameBuffer();
 
 		if (frame) {
@@ -125,14 +151,24 @@ void PBRScene::render() {
 		}
 	}
 
-	Scene::render();
+	Scene::render(framebuffer);
 }
 
-void PBRScene::bindMaterial(const MaterialObject *material) {
+void PBRScene::bindMaterial(const Material *material) {
 	Scene::bindMaterial(material);
 
 	if (UseShadowPass) {
+
+		RenderQueue queue = getQueueDomain(*material);
+		if (queue >= RenderQueue::AlphaTest) {
+			glUseProgram(this->shadow_directional_alpha);
+		} else {
+			glUseProgram(this->shadow_directional);
+		}
+
 		/*	*/
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDepthMask(GL_TRUE); /*		Allow Depth to written.	*/
 		if (material->culling_both_side_mode) {
 			glCullFace(GL_FRONT_AND_BACK);
 		} else {

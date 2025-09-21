@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "DataStructure/MemoryAddress.h"
+#include "RenderDesc.h"
 #include <Eigen/Eigen>
 #include <IO/IOUtil.h>
 #include <Math3D/AABB.h>
@@ -110,6 +111,17 @@ namespace glsample {
 	using UBOPool = struct uniform_buffer_pool_object_t {
 		UBOObject buffer{};
 		fragcore::MemoryAddress addresser;
+	};
+
+	using TextureSampler = struct texture_sampling_t {
+		unsigned int sampler;
+		fragcore::TextureWrappingMode wrapping = fragcore::TextureWrappingMode::Repeat;
+		fragcore::TextureFilterMode filtering = fragcore::TextureFilterMode::Linear;
+		fragcore::TextureUVMappingMode uv_mapping = fragcore::TextureUVMappingMode::UV;
+		unsigned int LODBias;
+		unsigned int minLOD;
+		unsigned int maxLOD;
+		unsigned int ansiotropy;
 	};
 
 	using Texture = struct texture_t {

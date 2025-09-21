@@ -8,6 +8,10 @@
 
 layout(early_fragment_tests) in;
 
+
+layout(location = 8) flat in ivec2 fAssigns;
+
+
 #if defined(GL_EXT_conservative_depth) || defined(GL_ARB_conservative_depth)
 layout(depth_less) out float gl_FragDepth;
 #endif

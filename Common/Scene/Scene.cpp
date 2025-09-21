@@ -22,7 +22,7 @@
 
 namespace glsample {
 
-	Scene::Scene() : settingUI(*this) {}
+	Scene::Scene() : settingUI(*this) { this->timer.start(); }
 
 	Scene::~Scene() = default;
 
@@ -123,20 +123,22 @@ namespace glsample {
 			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockBufferSize);
 
 			/*	*/
-			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(GlobalSceneState), minMapBufferSize);
+			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(GlobalSceneStateData), minMapBufferSize);
 			this->UBOStructure.common_size_total_align = this->UBOStructure.common_size_align * BufferRoundRobinSize;
 			this->UBOStructure.common_base_offset = 0;
 
 			/*	*/
-			this->UBOStructure.max_node_per_binding = 1024; // maxUniformBufferSize / sizeof(NodeData);
-			const size_t max_nodes = 4096;
-			const size_t NrNodes =
-				max_nodes * sizeof(NodeData); // TODO: change number based on the max bininded uniform size.
-			this->UBOStructure.node_size_align = Math::align<size_t>(NrNodes, minMapBufferSize);
+			this->UBOStructure.max_node_per_binding = maxUniformBlockBufferSize / sizeof(NodeData);
+			const size_t max_node_count_in_buffer = 4096 * 2;
+			const size_t nodeDataInBytes =
+				max_node_count_in_buffer *
+				sizeof(NodeData); // TODO: change number based on the max bininded uniform size.
+			this->UBOStructure.node_size_align = Math::align<size_t>(nodeDataInBytes, minMapBufferSize);
 			this->UBOStructure.node_size_total_align = this->UBOStructure.node_size_align * BufferRoundRobinSize;
 
 			/*	*/
-			const size_t max_bindable_materials = 4096;
+			const size_t max_bindable_materials = maxUniformBlockBufferSize / sizeof(MaterialData);
+			this->UBOStructure.max_material_per_block = max_bindable_materials;
 			this->UBOStructure.material_align_size =
 				Math::align<size_t>(max_bindable_materials * sizeof(MaterialData), minMapBufferSize);
 			this->UBOStructure.material_align_total_size =
@@ -168,10 +170,10 @@ namespace glsample {
 
 				/*	Create and map buffer.	*/
 				glBufferStorage(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
-				uint8_t *pdata = (unsigned char *)glMapBufferRange(
-					GL_UNIFORM_BUFFER, 0, total_ubo_size,
-					GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT |
-						GL_MAP_INVALIDATE_RANGE_BIT);
+				uint8_t *pdata =
+					(unsigned char *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, total_ubo_size,
+													  GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT |
+														  GL_MAP_FLUSH_EXPLICIT_BIT); // GL_MAP_UNSYNCHRONIZED_BIT |
 
 				/*	*/
 				{
@@ -181,9 +183,9 @@ namespace glsample {
 						this->UBOStructure.common_offsets[index] =
 							this->UBOStructure.common_base_offset + this->UBOStructure.common_size_align * index;
 						this->stageCommonRobin.buffers[index] =
-							(GlobalSceneState *)&pdata[this->UBOStructure.common_size_align * index];
+							(GlobalSceneStateData *)&pdata[this->UBOStructure.common_size_align * index];
 
-						*this->stageCommonRobin.buffers[index] = GlobalSceneState();
+						*this->stageCommonRobin.buffers[index] = GlobalSceneStateData();
 					}
 				}
 
@@ -248,7 +250,7 @@ namespace glsample {
 
 		/*	*/
 		this->timer.update(); // TODO: forward deltaTime
-		this->stageCommonRobin.getBuffer(this->getRoundRobinIndex())->time[0] = this->timer.getElapsed<float>();
+		this->stageCommonRobin.getBuffer(this->getRoundRobinIndex())->time[0] += deltaTime;
 		this->stageCommonRobin.getBuffer(this->getRoundRobinIndex())->time[1] = deltaTime;
 
 		/*	Update animations.	*/
@@ -271,9 +273,10 @@ namespace glsample {
 		const size_t light_offset = this->UBOStructure.light_offsets[this->getRoundRobinIndex()];
 
 		/*	Update global scene.	*/
-		GlobalSceneState *globalSceneState = this->stageCommonRobin.buffers[getRoundRobinIndex()];
-		globalSceneState->renderSettings.fogSettings = this->settings.fogSettings;
-		globalSceneState->renderSettings.ambientColor = this->settings.ambientColor;
+		GlobalSceneStateData *globalSceneState = this->stageCommonRobin.buffers[getRoundRobinIndex()];
+		// globalSceneState->renderSettings.fogSettings = this->settings.fogSettings;
+		globalSceneState->renderSettings.ambientColor = this->settings.lightSettings.ambientColor;
+		globalSceneState->renderSettings.specularColor = this->settings.lightSettings.specularColor;
 
 		/*	*/
 		NodeData *baseNodeData = this->stageNodeDataRobin.buffers[getRoundRobinIndex()];
@@ -295,7 +298,8 @@ namespace glsample {
 				glm::vec3(this->materials[material_index].specular), this->materials[material_index].shinininess);
 			materialBase[material_index].emission = this->materials[material_index].emission;
 			materialBase[material_index].transparency = this->materials[material_index].transparent;
-			materialBase[material_index].clip_[0] = this->materials[material_index].clipping;
+			materialBase[material_index].clip_[0] =
+				materialBase[material_index].transparency.a < 1 ? 0 : this->materials[material_index].clipping;
 			materialBase[material_index].clip_[1] = this->materials[material_index].bumpiness;
 			materialBase[material_index].clip_[2] = this->materials[material_index].metalic;
 		}
@@ -329,6 +333,7 @@ namespace glsample {
 				/*	Shadow Setup.	*/
 				lightData->lightShadow.shadow[0] = light->hasShadow() ? light->getShadowStrength() : 0.0f;
 				lightData->lightShadow.shadow[1] = light->bias;
+				lightData->lightShadow.shadow[2] = light->getShadowFade();
 
 				if (light->getShadowStrength() > 0) {
 
@@ -341,8 +346,10 @@ namespace glsample {
 						dirLight->getShadowDistance(), near_plane, far_plane);
 
 					/*	*/
-					const glm::mat4 lightView = glm::lookAt(
-						dirLight->getPosition(), dirLight->getPosition() + light_direction * 100.0f, dirLight->up());
+					const glm::vec3 dir_position =
+						this->getActiveCamera() ? this->getActiveCamera()->getPosition() : dirLight->getPosition();
+					const glm::mat4 lightView =
+						glm::lookAt(dir_position, dir_position + light_direction * 100.0f, dirLight->up());
 					const glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
 					light->shadowData.lightSpaceMatrix = lightSpaceMatrix;
@@ -393,7 +400,7 @@ namespace glsample {
 		}
 	}
 
-	void Scene::culling(Frustum *frustum) {
+	void Scene::culling(const Frustum *frustum) {
 
 		/*	*/
 		this->visableNodes.clear();
@@ -423,18 +430,21 @@ namespace glsample {
 				/*	Check if any of the meshes are visable. */
 				for (size_t mesh_index = 0; mesh_index < node->geometryObjectIndex.size(); mesh_index++) {
 
-					if (true) {
+					/*	*/
+					switch (this->settings.frustumSettings.FrustumCullingMode) {
+					case FrustumCullingMode::BoundingSphere: {
 
+						/*	*/
 						const AABB aabb = fragcore::AABB::createMinMax(
 							Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
 							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2]));
 
-						const Vector3 sphere_world_position =
-							(GLM2E<float, 4, 4>(node->modelGlobalTransform) *
-							 Vector4(aabb.getCenter().x(), aabb.getCenter().y(), aabb.getCenter().z(), 1.0f))
-								.head(3);
+						const glm::vec4 sphere_world_position =
+							node->getGlobalMatrix() *
+							glm::vec4(aabb.getCenter().x(), aabb.getCenter().y(), aabb.getCenter().z(), 1);
 
-						BoundingSphere sphere = BoundingSphere(sphere_world_position, aabb.getHalfSize().norm());
+						const BoundingSphere sphere =
+							BoundingSphere(GLM2E(sphere_world_position).head(3), aabb.getHalfSize().norm());
 
 						if (frustum->intersectionSphere(sphere) != Frustum::Out) {
 							/*	*/
@@ -442,7 +452,8 @@ namespace glsample {
 							break;
 						}
 
-					} else {
+					} break;
+					case FrustumCullingMode::BoundingBoxAABB: {
 
 						/*	Compute world space AABB.	*/
 						const AABB aabb = GeometryUtility::computeBoundingBox(
@@ -451,11 +462,15 @@ namespace glsample {
 								Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
 							GLM2E<float, 4, 4>(node->modelGlobalTransform));
 
+						/*	*/
 						if (frustum->intersectionAABB(aabb) != Frustum::Out) {
 							/*	*/
 							objects[omp_get_thread_num()].push_back(node);
 							break;
 						}
+					} break;
+					default:
+						break;
 					}
 				}
 			}
@@ -463,18 +478,20 @@ namespace glsample {
 			for (size_t i = 0; i < objects.size(); i++) {
 				this->visableNodes.insert(this->visableNodes.end(), objects[i].begin(), objects[i].end());
 			}
-
 		} else {
 			this->visableNodes = this->getNodes();
 		}
 	}
 
-	void Scene::render(Camera *camera) {
+	void Scene::render(Camera *camera, FrameBuffer *framebuffer) {
+
 		/* Optionally populate */
 
 		// TODO: fix camera argument.
 		if (camera) {
-			GlobalSceneState *globalScene = this->stageCommonRobin.buffers[getRoundRobinIndex()];
+			this->currentActiveCamera = camera;
+
+			GlobalSceneStateData *globalScene = this->stageCommonRobin.buffers[getRoundRobinIndex()];
 			globalScene->camera = *camera;
 			CameraController *cameraController = dynamic_cast<CameraController *>(
 				camera); // TODO: remove controller once the camera start using the base Node
@@ -483,9 +500,19 @@ namespace glsample {
 			/*	*/
 			globalScene->proj[0] = camera->getProjectionMatrix();
 		}
-
 		/*	*/
 		this->culling(camera);
+
+		// TODO: sort materials and geometry.
+		this->sortRenderQueue();
+
+		this->updateBuffers();
+
+		/*	*/
+		if (framebuffer) {
+			glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->framebuffer);
+			glViewport(0, 0, framebuffer->attachmentSize[0].x, framebuffer->attachmentSize[0].y);
+		}
 
 		/*	*/
 		this->render();
@@ -534,40 +561,42 @@ namespace glsample {
 		}
 	}
 
-	void Scene::render(Light *light) {
+	void Scene::render(const Light *light) {
 
-		if (light) {
-			GlobalSceneState *globalScene = this->stageCommonRobin.buffers[getRoundRobinIndex()];
-
-			/*	*/
-			globalScene->camera.far = light->getShadowDistance();
-			globalScene->camera.near = 0;
-			globalScene->camera.position = glm::vec4(light->getPosition(), 1.0f);
-			globalScene->camera.proj = light->getProjectionMatrix();
-			globalScene->camera.view = light->getViewMatrix();
-			globalScene->camera.viewProj = light->shadowData.lightSpaceMatrix;
-
-			/*	*/
-			globalScene->proj[0] = light->getProjectionMatrix();
-
-			this->updateBuffers(); // TODO: update only camera
+		if (!light) {
+			return;
 		}
+
+		GlobalSceneStateData *globalScene = this->stageCommonRobin.buffers[getRoundRobinIndex()];
+
+		/*	*/
+		globalScene->camera.far = light->getShadowDistance();
+		globalScene->camera.near = 0;
+		globalScene->camera.position = glm::vec4(light->getPosition(), 1.0f);
+		globalScene->camera.proj = light->getProjectionMatrix();
+		globalScene->camera.view = light->getViewMatrix();
+		globalScene->camera.viewProj = light->shadowData.lightSpaceMatrix;
+
+		/*	*/
+		globalScene->proj[0] = light->getProjectionMatrix();
 
 		/*	*/
 		this->culling(light);
+
+		// TODO: sort materials and geometry.
+		this->sortRenderQueue();
+
+		this->updateBuffers(); // TODO: update only camera
 
 		/*	*/
 		this->render();
 	}
 
-	void Scene::render() {
+	void Scene::render(FrameBuffer *framebuffer) {
 
 		/*	Reset States.	*/
 		this->currentNodeIndex = 0;
 		this->currentBindedMaterial = nullptr;
-
-		// TODO: sort materials and geometry.
-		this->sortRenderQueue();
 
 		// TODO: merge by shared geometries.
 
@@ -642,7 +671,7 @@ namespace glsample {
 		this->renderPassFrameIndex++;
 	}
 
-	void Scene::bindTexture(const MaterialObject &material, const TextureTypeBinding texture_type) {
+	void Scene::bindTexture(const Material &material, const TextureTypeBinding texture_type) {
 
 		/*	*/
 		const unsigned int textureMapIndex = texture_type;
@@ -687,10 +716,15 @@ namespace glsample {
 		glBindSampler(textureMapIndex, this->samplers[textureMapIndex]);
 	}
 
-	void Scene::bindMaterial(const MaterialObject *material) {
+	void Scene::bindMaterial(const Material *material) {
 
 		/*	Only bind if different material the current material binded.	*/
 		if (this->currentBindedMaterial != material) {
+
+			// TODO: change to use
+			if (material->program > 0) {
+				glUseProgram(material->program);
+			}
 
 			this->bindTexture(*material, TextureTypeBinding::Diffuse);
 			this->bindTexture(*material, TextureTypeBinding::Normal);
@@ -716,14 +750,24 @@ namespace glsample {
 			glPolygonMode(GL_FRONT_AND_BACK, material->wireframe_mode ? GL_LINE : GL_FILL);
 
 			/*	*/
-			if (domain == RenderQueue::Transparent) {
+			if (domain >= RenderQueue::Transparent) {
 				/*	*/
 				glEnable(GL_BLEND);
 				glEnable(GL_DEPTH_TEST);
 				glDepthMask(GL_FALSE);
 
 				/*	*/
-				material->blend_func_mode;
+				switch (material->blend_func_mode) {
+				case fragcore::BlendEqu::eNoEqu:
+				case fragcore::BlendEqu::Addition:
+				case fragcore::BlendEqu::Subtract:
+				case fragcore::BlendEqu::ReverseSubtract:
+				case fragcore::BlendEqu::Min:
+				case fragcore::BlendEqu::Max:
+				default:
+					break;
+				}
+				/*	*/
 				// glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -747,7 +791,7 @@ namespace glsample {
 			}
 
 			/*	*/
-			this->currentBindedMaterial = (MaterialObject *)material;
+			this->currentBindedMaterial = (Material *)material;
 		}
 	}
 
@@ -757,12 +801,15 @@ namespace glsample {
 		if ((currentNodeIndex % this->UBOStructure.max_node_per_binding) == 0) {
 
 			/*	*/
-			const unsigned int node_block_offset_base = currentNodeIndex / this->UBOStructure.max_node_per_binding;
-			const size_t node_total_offset = this->UBOStructure.node_offsets[this->getRoundRobinIndex()] +
-											 (node_block_offset_base * 65536); // TODO:fix constants.
+			const size_t node_block_offset_base = currentNodeIndex / this->UBOStructure.max_node_per_binding;
 
-			const size_t node_prev_total_offset = this->UBOStructure.node_prev_offsets[this->getRoundRobinIndex()] +
-												  (node_block_offset_base * 65536); // TODO:fix constants.
+			const size_t node_total_offset =
+				this->UBOStructure.node_offsets[this->getRoundRobinIndex()] +
+				(node_block_offset_base * this->UBOStructure.max_node_per_binding * sizeof(NodeData));
+
+			const size_t node_prev_total_offset =
+				this->UBOStructure.node_prev_offsets[this->getRoundRobinIndex()] +
+				(node_block_offset_base * this->UBOStructure.max_node_per_binding * sizeof(NodeData));
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_buffer_binding,
 							  this->UBOStructure.node_and_common_uniform_buffer, node_total_offset,
@@ -784,23 +831,32 @@ namespace glsample {
 
 			/*	Setup material.	*/
 			const int material_index = node->materialIndex[geo_index];
-			{
+			const Material &material = this->materials[material_index];
+			this->bindMaterial(&material);
 
-				const MaterialObject &material = this->materials[material_index];
-				this->bindMaterial(&material);
-			}
-
+			/*	Setup Material.	*/
 			const int mesh_index = node->geometryObjectIndex[geo_index];
 			const MeshObject &refMesh = this->refGeometry[mesh_index];
 			glBindVertexArray(refMesh.vao);
 
 			/*	Material, model matrix.	*/
 			glVertexAttribI2i(8, material_index, currentNodeIndex % this->UBOStructure.max_node_per_binding);
-			/*	*/
-			glDrawElementsBaseVertex(fragcore::GLHelper::getPrimitive(refMesh.primitiveType), refMesh.nrIndicesElements,
-									 GL_UNSIGNED_INT, (void *)(sizeof(unsigned int) * refMesh.indices_offset),
-									 refMesh.vertex_offset);
 
+			if (material.isTessellationEnabled()) {
+
+				/*	*/
+				glPatchParameteri(GL_PATCH_VERTICES, 3);
+				glDrawElementsBaseVertex(fragcore::GLHelper::getPrimitive(Primitive::Patchs), refMesh.nrIndicesElements,
+										 GL_UNSIGNED_INT, (void *)(sizeof(unsigned int) * refMesh.indices_offset),
+										 refMesh.vertex_offset);
+
+			} else {
+
+				/*	*/
+				glDrawElementsBaseVertex(
+					fragcore::GLHelper::getPrimitive(refMesh.primitiveType), refMesh.nrIndicesElements, GL_UNSIGNED_INT,
+					(void *)(sizeof(unsigned int) * refMesh.indices_offset), refMesh.vertex_offset);
+			}
 			// glBindVertexArray(0);
 		}
 
@@ -827,12 +883,12 @@ namespace glsample {
 
 			if (validMaterialIndex) {
 
-				const MaterialObject *material = &this->materials[node->materialIndex[0]];
+				const Material *material = &this->materials[node->materialIndex[0]];
 				assert(material);
 
 				const RenderQueue domain = getQueueDomain(*material);
 
-				renderBucketQueue[domain].push_back(node);
+				this->renderBucketQueue[domain].push_back(node);
 
 				if (domain >= RenderQueue::Transparent) {
 					this->renderQueue.push_back(node);
@@ -859,17 +915,20 @@ namespace glsample {
 		/*	Sort Transparent Objects. Based on distance.	*/
 	}
 
-	int Scene::computeMaterialPriority(const MaterialObject &material) const noexcept {
+	int Scene::computeMaterialPriority(const Material &material) const noexcept {
 		const bool use_clipping = material.maskTextureIndex >= 0 && material.maskTextureIndex < refTexture.size();
 		const bool useBlending = material.opacity < 1.0f;
 
 		return (useBlending * 1000) + (use_clipping * 100);
 	}
 
-	RenderQueue Scene::getQueueDomain(const MaterialObject &material) const noexcept {
+	RenderQueue Scene::getQueueDomain(const Material &material) const noexcept {
+
+		/*	*/
 		const bool useGeometryAlpha = material.clipping < 1;
 		const bool useBlending = material.transparent[3] < 1.0f ||
 								 (material.texture_index[TextureTypeBinding::AlphaMask] >= 0 && !useGeometryAlpha);
+
 		const bool useWireframe = material.wireframe_mode;
 
 		if (useWireframe) {

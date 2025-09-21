@@ -1,4 +1,5 @@
 #include "ImportHelper.h"
+#include "GraphicFormat.h"
 #include "IO/FileIO.h"
 #include "ImageImport.h"
 #include "ModelImporter.h"
@@ -9,7 +10,7 @@
 #include <ProceduralGeometry.h>
 #include <cstdint>
 #include <exception>
-//#include <half.hpp>
+// #include <half.hpp>
 #include <iostream>
 #include <ostream>
 
@@ -245,6 +246,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 		if (tex.data == nullptr) {
 
 			try {
+				/*	*/
 				std::cout << "Loading " << tex.filepath << std::endl;
 				fragcore::Ref<fragcore::IO> refIO =
 					fragcore::Ref<fragcore::IO>(new fragcore::FileIO(tex.filepath, FileIO::READ));
@@ -287,7 +289,6 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 
 					Image image = imageLoader.loadImage(refIO);
 					images[texture_index] = std::move(image);
-					// tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
 
 				} catch (std::exception &ex) {
 					std::cerr << "Failed to load: " << ex.what() << std::endl;
@@ -301,7 +302,6 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				image.setPixelData(tex.data, image.getSize());
 				images[texture_index] = std::move(image);
 				/*	*/
-				// tex.texture = textureImporter.loadImage2DRaw(image, colorSpace, compression);
 			}
 		}
 
@@ -309,12 +309,14 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 	}
 
 	std::cout << "Start Transfering ImageData to GPU" << std::endl;
+	
 #pragma omp master
 	for (size_t texture_index = 0; texture_index < images.size(); texture_index++) {
 
 		TextureAssetObject &tex = Reftextures[texture_index];
 		ColorSpace colorSpace = ColorSpace::RawLinear;
 		const TextureCompression compression = TextureCompression::Default;
+		fragcore::GraphicFormat format = fragcore::GraphicFormat::NotSpecified;
 
 		std::vector<MaterialObject *> materials = modelLoader.getMaterials(texture_index);
 
@@ -324,17 +326,24 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 			if (materials[0]->diffuseIndex == texture_index) {
 				colorSpace = ColorSpace::SRGB;
 			}
-			//TODO: add support to package the normal.
 			if (materials[0]->normalIndex == texture_index) {
-				/*	*/
+				format = fragcore::GraphicFormat::R8G8_UNorm;
+			}
+			if (materials[0]->emissionIndex == texture_index) {
+				format = fragcore::GraphicFormat::E5B9G9R9_UFloatPack32;
 			}
 		}
 
-		/*	*/
-		tex.texture = textureImporter.loadImage2DRaw(images[texture_index], colorSpace, compression);
+		/*	Load texture only if image data is valid.	*/
+		const Image &image = images[texture_index];
+		if (image.getSize() > 0) {
+			tex.texture = textureImporter.loadImage2DRaw(images[texture_index], colorSpace, compression, format);
+		} else {
+			tex.texture = 0;
+		}
 
 		/*	*/
-		if (tex.texture >= 0) {
+		if (tex.texture > 0) {
 			glObjectLabel(GL_TEXTURE, tex.texture, tex.filepath.size(), tex.filepath.data());
 		}
 	}

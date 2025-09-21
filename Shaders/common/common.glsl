@@ -102,7 +102,7 @@ vec3 getTBN(const in vec3 InNormal, const in vec3 InTangent, const in sampler2D 
 			const in float normalStrength, const in vec2 uv) {
 
 	/*	*/
-	vec3 tangentNormal = texture(NormalTexture, uv).xyz * 2.0 - 1.0;
+	vec3 tangentNormal = vec3(texture(NormalTexture, uv).xy * 2.0 - 1.0, 1);
 	tangentNormal.xy *= normalStrength;
 
 	tangentNormal = normalize(tangentNormal);

@@ -4,7 +4,6 @@
 
 float calculteBias(const in vec3 SurfaceNormal, const in vec3 lightDirection, const in float bias) { return 0; }
 
-// TODO: rename
 /*	1 => No Shadow. 0 => Shadow.	*/
 float DirectionalShadowCalculation(const in DirectionalLight directionLight, const in sampler2DShadow ShadowTexture,
 								   const in vec3 surfaceNormal, const in vec4 VertexLightSpace) {
@@ -17,11 +16,11 @@ float DirectionalShadowCalculation(const in DirectionalLight directionLight, con
 	// perform perspective divide
 	vec4 projCoords = VertexLightSpace.xyzw / VertexLightSpace.w;
 
-	if (VertexLightSpace.w > 1.0) {
+	if (VertexLightSpace.w > 1.0 || projCoords.z > 1.0) {
 		return 1;
 	}
 
-	/*	transform from NDC to Screen Space [0,1] range	*/ // ? z ??
+	/*	transform from NDC to Screen Space [0,1] range	*/
 	projCoords.xyz = projCoords.xyz * 0.5 + 0.5;
 
 	const float light_shadow_bias = directionLight.lightShadow.shadow[1];
@@ -40,20 +39,21 @@ float DirectionalShadowCalculation(const in DirectionalLight directionLight, con
 float ShadowCalculationPCF(const DirectionalLight directionLight, const in sampler2DShadow ShadowTexture,
 						   const in vec3 surfaceNormal, const in vec4 VertexLightSpace) {
 
+	ShadowLight shadow = directionLight.lightShadow;
+	const float pcf_radius = shadow.shadow[2];
+	const int PCF_SAMPLES = 16; // TODO: add constant or something.
+
 	// perform perspective divide
 	vec4 projCoords = VertexLightSpace.xyzw / VertexLightSpace.w;
 
 	if (VertexLightSpace.w > 1.0 || projCoords.z > 1.0) {
-		return 0;
+		return 1;
 	}
-
-	const float pcf_radius = 1;	//TODO: add
-	const int PCF_SAMPLES = 16; // TODO: add constant or something.
 
 	// transform NDC to [0,1] range
 	projCoords = projCoords * 0.5 + 0.5;
 
-	const float light_shadow_bias = directionLight.lightShadow.shadow[1];
+	const float light_shadow_bias = shadow.shadow[1];
 	const float bias = clamp(
 		light_shadow_bias * (1.0 - dot(normalize(surfaceNormal), normalize(-directionLight.direction).xyz)), 0.0000, 1);
 	projCoords.z *= (1 - bias);
@@ -61,28 +61,27 @@ float ShadowCalculationPCF(const DirectionalLight directionLight, const in sampl
 	float shadowFactor = 0;
 	const ivec2 gMapSize = textureSize(ShadowTexture, 0);
 
-	const float xOffset = 1.0 / gMapSize.x * pcf_radius;
-	const float yOffset = 1.0 / gMapSize.y * pcf_radius;
+	const float xOffset = (1.0 / gMapSize.x) * pcf_radius;
+	const float yOffset = (1.0 / gMapSize.y) * pcf_radius;
 
 	const float nrSamples = float(PCF_SAMPLES) * float(PCF_SAMPLES);
 
-	/*	*/
+	/*	*/	//TODO: check equation
 	[[unroll]] for (int y = -PCF_SAMPLES / 2; y <= PCF_SAMPLES / 2; y++) {
 		[[unroll]] for (int x = -PCF_SAMPLES / 2; x <= PCF_SAMPLES / 2; x++) {
 
 			const vec2 Offsets = vec2(x * xOffset, y * yOffset);
 
 			const vec3 UVC = vec3(projCoords.xy + Offsets, projCoords.z + EPSILON);
-			shadowFactor += texture(ShadowTexture, UVC);
+			shadowFactor += 1 - texture(ShadowTexture, UVC);
 		}
 	}
 
 	const float shadowContribution = (shadowFactor / nrSamples);
 
-	return (1.0 - shadowContribution);
+	const float shadowStrength = directionLight.lightShadow.shadow[0];
+	return  clamp( 1 - (1 - (1 - shadowContribution * shadowStrength)), 0, 1);
 }
-
-
 
 float ShadowPointCalculation(const in PointLight pointLight, const in vec3 surfaceNormal, const in vec3 cameraPosition,
 							 const in vec3 fragPosLightSpace, const in samplerCube ShadowTexture) {

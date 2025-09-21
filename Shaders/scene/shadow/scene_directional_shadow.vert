@@ -10,9 +10,10 @@ layout(location = 1) in vec2 TextureCoord;
 layout(location = 8) in ivec2 vAssigns;
 
 layout(location = 0) out vec2 UV;
+/*	*/
+layout(location = 8) flat out ivec2 fAssigns; /*	invariant*/
 
 #include "common.glsl"
-#include "phongblinn.glsl"
 #include "scene.glsl"
 
 void main() {
@@ -22,4 +23,7 @@ void main() {
 
 	gl_Position = viewProj * model * vec4(Vertex, 1.0);
 	UV = TextureCoord;
+
+	/*	*/
+	fAssigns = vAssigns;
 }

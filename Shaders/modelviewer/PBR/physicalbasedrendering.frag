@@ -3,6 +3,9 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
+precision mediump float;
+precision mediump int;
+
 layout(location = 0) out vec4 fragColor;
 
 layout(location = 0) in vec3 WorldPos;
@@ -26,15 +29,14 @@ void main() {
 
 	/*	Material properties.	*/
 	const vec4 albedo = texture(DiffuseTexture, TexCoords);
-	const float metallic = texture(MetalicTexture, TexCoords).r * mat.clip_.z;
-	const float roughness = clamp(texture(RoughnessTexture, TexCoords).r * mat.specular_roughness.a, 0.0001, 1);
+	const float metallic = texture(MetalicTexture, TexCoords).b * mat.clip_.z;
+	const float roughness = clamp(texture(RoughnessTexture, TexCoords).g * mat.specular_roughness.a, 0.0001, 1);
 	const float ao = texture(AOTexture, TexCoords).r;
 	const vec3 emissive = mat.emission.rgb * texture(EmissionTexture, TexCoords).rgb;
 
 	/*	input lighting data	*/
-	const vec3 SurfaceNormal =
-		getTBN(Normal, Tangent, NormalTexture, mat.clip_.y,
-			   TexCoords); // getNormalFromMap(NormalTexture, TexCoords, WorldPos, Normal, mat.clip_.y);
+	const vec3 SurfaceNormal = getTBN(Normal, Tangent, NormalTexture, mat.clip_.y, TexCoords);
+	// getNormalFromMap(NormalTexture, TexCoords, WorldPos, Normal, mat.clip_.y);
 	vec3 ViewPixelDir = normalize(getCamera().position.xyz - WorldPos);
 	vec3 ViewPixelReflectDir = normalize(reflect(-ViewPixelDir, SurfaceNormal));
 
@@ -54,8 +56,15 @@ void main() {
 
 		/*	Shadow.	*/
 		const vec4 LightSpaceVertex = getDirectional(light_index).lightShadow.lightSpaceMatrix * vec4(WorldPos, 1);
-		const float shadow = DirectionalShadowCalculation(getDirectional(light_index), DirectionalShadowTexture[light_index],
-											   SurfaceNormal, LightSpaceVertex);
+
+		float shadow = 1;
+		if (ShadowMapMode == SHADOW_MODE_HARD) {
+			shadow = DirectionalShadowCalculation(getDirectional(light_index), DirectionalShadowTexture[light_index],
+												  SurfaceNormal, LightSpaceVertex);
+		} else if (ShadowMapMode == SHADOW_MODE_SOFT) {
+			shadow = ShadowCalculationPCF(getDirectional(light_index), DirectionalShadowTexture[light_index],
+										  SurfaceNormal, LightSpaceVertex);
+		}
 
 		DirectLight += lightSource * shadow;
 	}
@@ -97,6 +106,7 @@ void main() {
 
 		vec3 specular = prefilteredColor * (kSpecular_F * brdf.x + brdf.y);
 		specular *= mat.specular_roughness.rgb;
+		specular *= glob_settings.specularColor.rgb;
 
 		indirectLight = (kDiffuse * diffuse + specular) * ao;
 	} else {
@@ -108,11 +118,14 @@ void main() {
 	fragColor = vec4(color, 1.0);
 
 	/*	Alpha.	*/
-	const float alpha = diffuseColor.a * texture(AlphaMaskedTexture, TexCoords).r;
+	const float alpha = diffuseColor.a * texture(AlphaMaskedTexture, TexCoords).r * mat.transparency.a;
 	fragColor.a = mix(alpha, 1, kSpecular_F.x);
-	fragColor *= mat.transparency.rgba;
+	fragColor.rgb *= mat.transparency.rgb;
 
-	if (fragColor.a < mat.clip_.x) {
-		discard;
+	if (UseClipping) {
+		const float clipRange = mat.clip_.x;
+		if (fragColor.a < clipRange) {
+			discard;
+		}
 	}
 }

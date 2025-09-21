@@ -111,6 +111,9 @@ namespace glsample {
 		ModelImporter modelLoader(FileSystem::getFileSystem());
 		modelLoader.loadContent(modelPath, 0);
 		this->scene = SceneHelper::loadFrom<PBRScene>(modelLoader);
+		for(size_t i = 0; i < this->scene->getMaterials().size(); i++){
+			this->scene->getMaterials()[i].program = physical_based_rendering_program;
+		}
 
 		/*	*/
 		CommonUtil::createFrameBuffer(&this->renderTarget, (unsigned int)GBuffer::Velocity + 1);
@@ -183,10 +186,6 @@ namespace glsample {
 
 	void ModelViewer::draw() {
 
-		/*	Shadow Pass.	*/
-		{ this->scene->shadowPass(); }
-
-		this->scene->update(this->getTimer().deltaTime<float>());
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, this->getDefaultFramebuffer());
 			size_t width = 0, height = 0;
@@ -210,7 +209,7 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->reflection_prefilter_texture);
 
 				glUseProgram(this->physical_based_rendering_program);
-				this->scene->render(&this->camera);
+				this->scene->render(&this->camera, this->getDefaultFrameBufferObj());
 				glUseProgram(0);
 			}
 
@@ -221,6 +220,7 @@ namespace glsample {
 	void ModelViewer::update() {
 		/*	*/
 		this->camera.update(getTimer().deltaTime<float>());
+		this->scene->update(this->getTimer().deltaTime<float>());
 	}
 
 	class PhysicalBasedRenderingGLSample : public GLSample<ModelViewer> {

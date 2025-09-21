@@ -3,7 +3,7 @@
 
 struct ShadowLight {
 	mat4 lightSpaceMatrix;
-	vec4 shadow; /*	Shadow, bias, filtering radius,	*/
+	vec4 shadow; /*	Shadow Strength, bias, filtering radius,	*/
 };
 
 struct DirectionalLight {
@@ -23,9 +23,9 @@ struct PointLight {
 	float qudratic_attenuation;
 };
 
-float computeLightContributionFactor(const in vec3 direction, const in vec3 normalInput) {
+float computeLightContributionFactor(const in vec3 direction, const in vec3 normal) {
 	/*	*/
-	return max(0.0, dot(-direction, normalInput));
+	return max(0.0, dot(-direction, normal));
 }
 
 #endif

@@ -38,8 +38,6 @@ namespace glsample {
 
 			convertNodeSystem(*scene, importer);
 
-			scene->materials = importer.getMaterials();
-
 			convertLightSystem(*scene, importer);
 			convertAnimationSystem(*scene, importer);
 			convertMaterialSystem(*scene, importer);
@@ -51,7 +49,6 @@ namespace glsample {
 		static void convertCameraSystem(Scene &scene, const ModelImporter &importer);
 		static void convertMaterialSystem(Scene &scene, const ModelImporter &importer);
 		static void convertAnimationSystem(Scene &scene, const ModelImporter &importer);
-
 
 		static void convertNodeSystem(Scene &scene, ModelImporter &importer);
 		static void convertNodeChildren(const NodeObject *node0, Node *node);

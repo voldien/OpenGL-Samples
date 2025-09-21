@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "../Common.h"
+#include "GraphicFormat.h"
 #include "TaskScheduler.h"
 #include <IO/FileSystem.h>
 #include <ImageLoader.h>
@@ -44,14 +45,20 @@ namespace glsample {
 		TextureImporter(fragcore::IFileSystem *filesystem);
 		virtual ~TextureImporter();
 
-		unsigned int loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::RawLinear,
-								 const TextureCompression compression = TextureCompression::None);
-		void loadImage2DAsync(unsigned int &texRef, const std::string &path,
-							  const ColorSpace colorSpace = ColorSpace::RawLinear,
-							  const TextureCompression compression = TextureCompression::None);
+		unsigned int
+		loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::RawLinear,
+					const TextureCompression compression = TextureCompression::None,
+					const fragcore::GraphicFormat graphicInternalFormat = fragcore::GraphicFormat::NotSpecified);
+		void
+		loadImage2DAsync(unsigned int &texRef, const std::string &path,
+						 const ColorSpace colorSpace = ColorSpace::RawLinear,
+						 const TextureCompression compression = TextureCompression::None,
+						 const fragcore::GraphicFormat graphicInternalFormat = fragcore::GraphicFormat::NotSpecified);
 
-		unsigned int loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::RawLinear,
-									const TextureCompression compression = TextureCompression::None);
+		unsigned int
+		loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::RawLinear,
+					   const TextureCompression compression = TextureCompression::None,
+					   const fragcore::GraphicFormat graphicInternalFormat = fragcore::GraphicFormat::NotSpecified);
 
 		void loadImage2DRawAsync(unsigned int &texRef, const fragcore::Image &image,
 								 const ColorSpace colorSpace = ColorSpace::RawLinear,
@@ -66,8 +73,8 @@ namespace glsample {
 								 const TextureCompression compression = TextureCompression::None);
 
 	  protected:
-		void getFormat(const fragcore::Image &image, unsigned int &format, unsigned int &dataType, unsigned int &internalformat,
-					   const ColorSpace colorSpace = ColorSpace::RawLinear,
+		void getFormat(const fragcore::Image &image, unsigned int &format, unsigned int &dataType,
+					   unsigned int &internalformat, const ColorSpace colorSpace = ColorSpace::RawLinear,
 					   const TextureCompression compression = TextureCompression::None);
 
 	  private:

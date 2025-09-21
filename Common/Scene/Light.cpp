@@ -10,6 +10,9 @@ void Light::setShadowStrength(float strength) { this->shadow = strength; }
 void Light::setShadowDistance(float distance) { this->shadowDistance = distance; }
 float Light::getShadowDistance() const noexcept { return this->shadowDistance; }
 
+void Light::setShadowFade(float fade) { this->pcf_radius = fade; }
+float Light::getShadowFade() const noexcept { return this->pcf_radius; }
+
 const glm::mat4 &Light::getProjectionMatrix() const noexcept { return this->shadowData.lightSpaceMatrix; }
 
 Light::LightType Light::getLightType() const noexcept { return this->lightType; }

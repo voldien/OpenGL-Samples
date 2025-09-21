@@ -27,7 +27,7 @@ namespace glsample {
 
 		void init(IFileSystem *filesystem) override { Scene::init(filesystem); }
 
-		void bindMaterial(const MaterialObject *material) override {
+		void bindMaterial(const Material *material) override {
 			if (!shadowPass) {
 				Scene::bindMaterial(material);
 			}

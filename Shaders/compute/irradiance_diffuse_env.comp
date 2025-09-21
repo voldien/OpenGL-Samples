@@ -26,7 +26,7 @@ void main() {
 	}
 
 	/*	LOD downsampled mipmaps.	(Optional)*/
-	const float LOD = clamp(14 - log2(imageSize(targetIrradianceTexture).x), 0, 4);
+	const float LOD = clamp(14 - log2(imageSize(targetIrradianceTexture).x), 0, 8);
 
 	/*	*/
 	const ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
