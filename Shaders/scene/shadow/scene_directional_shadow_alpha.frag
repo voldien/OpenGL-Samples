@@ -17,13 +17,14 @@ layout(location = 8) flat in ivec2 fAssigns;
 
 #include "scene.glsl"
 
+layout(early_fragment_tests) in;
+
 void main() {
 
 	/*	*/
 	const float alpha = texture(DiffuseTexture, UV).a * texture(AlphaMaskedTexture, UV).r;
-
 	/*	*/
-	const material mat = getMaterial(fAssigns.x); //
+	const material mat = getMaterial(fAssigns.x);
 
 	const float clip = mat.clip_.x * 0.5;
 	if (alpha < clip) {

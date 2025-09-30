@@ -130,6 +130,7 @@ namespace glsample {
 		unsigned int width{};
 		unsigned int height{};
 		unsigned int depth = 1;
+		unsigned int numSamples = 1;
 	};
 
 	using FrameBuffer = struct framebuffer_t {
@@ -140,5 +141,17 @@ namespace glsample {
 		unsigned int nrAttachments = 0;
 		unsigned int depthIndex = 31; /*	Last attachment reserved for the depth/stencil.	*/
 	};
+
+		/*	*/
+	using DrawArraysIndirectCommand = fragcore::IndirectDrawArray;
+	using DrawElementsIndirectCommand = fragcore::IndirectDrawElement;
+	using DrawDispatchIndirectCommand = fragcore::IndirectDispatch;
+
+	/*	*/
+	using TextureDesc = fragcore::TextureDesc;
+	using SamplerDesc = fragcore::SamplerDesc;
+
+
+
 
 } // namespace glsample

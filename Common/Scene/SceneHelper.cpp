@@ -1,5 +1,6 @@
 #include "SceneHelper.h"
 #include "Importer/ModelImporter.h"
+#include "Scene/Material.h"
 #include "Scene/Node.h"
 
 using namespace glsample;
@@ -47,12 +48,14 @@ void SceneHelper::convertCameraSystem(Scene &scene, const ModelImporter &importe
 }
 
 void SceneHelper::convertMaterialSystem(Scene &scene, const ModelImporter &importer) {
-	// scene.getMaterials().resize(importer.getMaterials().size());
+
 	scene.getMaterials().resize(importer.getMaterials().size());
+
 	for (size_t i = 0; i < importer.getMaterials().size(); i++) {
 		const MaterialObject &mat = importer.getMaterials()[i];
 
 		Material &material = scene.materials[i];
+		material.setName(mat.name);
 
 		material.ambient = mat.ambient;
 		material.diffuse = mat.diffuse;
@@ -65,13 +68,19 @@ void SceneHelper::convertMaterialSystem(Scene &scene, const ModelImporter &impor
 		material.bumpiness = mat.bumpiness;
 		material.opacity = mat.opacity;
 		material.metalic = mat.metalic;
-		material.blend_func_mode = mat.blend_func_mode; /*	aiBlendMode*/
-		material.wireframe_mode = mat.wireframe_mode;
-		material.culling_both_side_mode = mat.culling_both_side_mode;
-		material.clipping = mat.clipping;
+		material.getGraphicSettings().wireframe_mode = mat.wireframe_mode;
+
+		material.getGraphicSettings().clipping = mat.clipping;
+
+		material.getGraphicSettings().cullingMode = mat.culling_both_side_mode;
+		material.getGraphicSettings().blend_equ = mat.blend_equ_mode;
+		material.getGraphicSettings().blend_color_func = mat.blend_func_mode;
+		material.getGraphicSettings().DepthWrite = mat.depth_write;
 
 		std::memcpy(&material.texture_sampling[0], &mat.texture_sampling[0], sizeof(mat.texture_sampling));
 		material.texture_index = mat.texture_index;
+
+		material.getGraphicSettings().queue = Material::getDefaultQueueDomain(material);
 	}
 }
 
@@ -93,11 +102,12 @@ void SceneHelper::convertAnimationSystem(Scene &scene, const ModelImporter &impo
 void SceneHelper::convertNodeSystem(Scene &scene, ModelImporter &importer) {
 
 	/*  */
-	const size_t nr_nodes = importer.getNodes().size();
-	scene.nodePool = std::vector<Node>(nr_nodes);
+	const size_t importer_number_nodes = importer.getNodes().size();
+	const size_t base_node_index = scene.getNodes().size();
+	scene.nodePool = std::vector<Node>(importer_number_nodes + 1);
 
 	/*	Convert nodes.	*/
-	for (size_t node_index = 0; node_index < nr_nodes; node_index++) {
+	for (size_t node_index = 0; node_index < importer_number_nodes; node_index++) {
 
 		/*	*/
 		const NodeObject *node_Obj = importer.getNodes()[node_index];
@@ -115,9 +125,31 @@ void SceneHelper::convertNodeSystem(Scene &scene, ModelImporter &importer) {
 		convertNodeChildren(node_Obj, node);
 	}
 
-	scene.getNodes().resize(nr_nodes);
-	for (size_t node_index = 0; node_index < nr_nodes; node_index++) {
-		scene.getNodes()[node_index] = &scene.nodePool[node_index];
+	scene.getNodes().resize(importer_number_nodes + 1);
+	for (size_t node_index = 0; node_index < importer_number_nodes; node_index++) {
+		scene.getNodes()[base_node_index + node_index] = &scene.nodePool[node_index];
+	}
+
+	/*	Add Parent nodes to the root node.	*/
+	scene.getNodes()[scene.getNodes().size() - 1] = &scene.nodePool[scene.nodePool.size() - 1];
+
+	Node *node = scene.getNodes()[scene.getNodes().size() - 1];
+	node->setName("Root Node");
+	scene.rootNode = node;
+
+	node->setScale(glm::vec3(1));
+	node->setPosition(glm::vec3(0));
+
+	for (size_t i = 0; i < scene.getNodes().size(); i++) {
+		Node *activeNode = scene.getNodes()[i];
+		if (activeNode == scene.getRootNode()) {
+			continue;
+		}
+
+		/*	*/
+		if (activeNode->getParent() == nullptr) {
+			scene.getRootNode()->addChild(activeNode);
+		}
 	}
 }
 

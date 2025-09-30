@@ -30,6 +30,11 @@ namespace glsample {
 		void setActive(const bool state) { this->active = state; }
 		bool isActive() const noexcept { return this->active; }
 
+		enum State {
+			Static,
+			Dynamic,
+		};
+
 	  private:
 		bool active = true;
 	};
@@ -81,6 +86,8 @@ namespace glsample {
 		glm::mat4 getViewTranslationMatrix() const noexcept;
 
 		/*	Enable Disable.	*/
+
+	  public:
 
 	  public:
 		/*	*/

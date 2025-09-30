@@ -14,10 +14,15 @@
 #define SHADOW_MODE_SOFT 0x2
 #define SHADOW_MODE_VARIANCE 0x4
 
+#define RENDERING_MODE_EARLY_DEPTH 0x1
+#define RENDERING_MODE_CLIPPING 0x2
+
 /*	Scene Rendering Options.	*/
 layout(constant_id = 12) const bool UseClipping = true;
 layout(constant_id = 13) const int ShadowMapMode = SHADOW_MODE_SOFT;	/*	*/
 layout(constant_id = 14) const bool UseTessellation = false;
+layout(constant_id = 15) const uint RenderingMode = 0;
+
 
 /*	*/
 layout(constant_id = 16) const int MAX_BONES = 512;

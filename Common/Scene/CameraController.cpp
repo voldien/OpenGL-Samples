@@ -67,6 +67,8 @@ void CameraController::update(const float deltaTime) noexcept {
 								 current_speed, 0.5f * activated, this->fov_degree, xDiff, yDiff, w, a, s, d, 0, 0, 0);
 
 		this->setPosition(position);
+		const glm::quat rotation = glm::quatLookAt(glm::normalize(this->getLookDirection()), glm::normalize(this->getUp()));
+		this->setRotation(rotation);
 
 		/*	*/
 		this->updateFrustum();
@@ -87,9 +89,6 @@ glm::mat4 CameraController::getViewTranslationMatrix() const noexcept {
 
 const glm::vec3 &CameraController::getLookDirection() const noexcept { return this->look; }
 
-const glm::vec3 CameraController::getRotation() const noexcept { return {}; }
-void CameraController::setRotation(const glm::vec3 &rotation) noexcept {}
-
 const glm::vec3 &CameraController::getUp() const noexcept { return this->up; }
 
 void CameraController::lookAt(const glm::vec3 &position) noexcept {
@@ -109,7 +108,7 @@ void CameraController::update() noexcept {
 
 void CameraController::updateFrustum() {
 
-	/*	*/
+	/*	Extract Base Matrix axis.	*/
 	const glm::vec3 position = getPosition();
 	const glm::vec3 look = glm::normalize(this->look);
 	const glm::vec3 up = glm::normalize(this->up);

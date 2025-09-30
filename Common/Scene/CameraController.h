@@ -45,10 +45,6 @@ namespace glsample {
 		/*	Normalized.	*/
 		const glm::vec3 &getLookDirection() const noexcept;
 
-
-		const glm::vec3 getRotation() const noexcept;
-		void setRotation(const glm::vec3 &rotation) noexcept;
-
 		const glm::vec3 &getUp() const noexcept;
 
 		void lookAt(const glm::vec3 &position) noexcept;

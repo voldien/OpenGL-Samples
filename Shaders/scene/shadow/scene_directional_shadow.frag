@@ -6,12 +6,11 @@
 #extension GL_ARB_conservative_depth : enable
 #extension GL_EXT_conservative_depth : enable
 
-layout(early_fragment_tests) in;
-
 
 layout(location = 8) flat in ivec2 fAssigns;
 
 
+layout(early_fragment_tests) in;
 #if defined(GL_EXT_conservative_depth) || defined(GL_ARB_conservative_depth)
 layout(depth_less) out float gl_FragDepth;
 #endif

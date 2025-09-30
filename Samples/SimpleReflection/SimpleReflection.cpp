@@ -157,7 +157,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->skybox_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::RawLinear);
-			this->skybox.Init(this->skybox_texture, this->skybox_program);
+			this->skybox.init(this->skybox_texture, this->skybox_program);
 
 			/*	Align uniform buffer in respect to driver requirement.	*/
 			GLint minMapBufferSize = 0;
@@ -316,7 +316,7 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			this->skybox.Render(this->camera);
+			this->skybox.render(this->camera);
 
 			// Transfer the result.
 			{

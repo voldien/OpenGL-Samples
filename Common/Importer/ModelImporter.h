@@ -80,9 +80,12 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	float bumpiness = 1;
 	float opacity = 1;
 	float metalic = 0;
-	fragcore::BlendEqu blend_func_mode = fragcore::BlendEqu::eNoEqu; /*	aiBlendMode*/
+	fragcore::BlendEqu blend_equ_mode = fragcore::BlendEqu::NoEqu;				 /*	aiBlendMode*/
+	fragcore::BlendFunc blend_func_mode = fragcore::BlendFunc::OneMinusSrcAlpha; /*	aiBlendMode*/
 	int wireframe_mode = 0;
-	bool culling_both_side_mode = false;
+	fragcore::CullingMode culling_both_side_mode = fragcore::CullingMode::Back;
+	bool depth_write = true;
+	float refrectI = 1;
 	float clipping = 1;
 	/*	*/
 

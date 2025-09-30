@@ -28,11 +28,17 @@ namespace glsample {
 		Overlay = 3000,		 /*  */
 	};
 
-	static const std::array<RenderQueue, 6> &getQueueTypes() noexcept {
+	static const std::array<RenderQueue, 6> &getQueueTypesOrdered() noexcept {
 		static const std::array<RenderQueue, 6> order = {RenderQueue::Background,  RenderQueue::Geometry,
 														 RenderQueue::AlphaTest,   RenderQueue::GeometryLast,
 														 RenderQueue::Transparent, RenderQueue::Overlay};
 
 		return order;
+	}
+
+	static const std::array<const char *, 6> &getRenderQueueSymbols() noexcept {
+		static const std::array<const char *, 6> symbols = {"Background",	"Geometry",	   "AlphaTest",
+															"Geometrylast", "Transparent", "Overlay"};
+		return symbols;
 	}
 } // namespace glsample

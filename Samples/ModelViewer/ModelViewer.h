@@ -35,7 +35,6 @@ namespace glsample {
 
 		/*	*/
 		PBRScene *scene;
-		Skybox skybox;
 
 		/*	Image Based Textures.	*/
 		unsigned int diffuse_irradiance_cubemap_texture{};

@@ -1,7 +1,6 @@
 #include "Importer/ImageImport.h"
 #include "FragDef.h"
 #include "GraphicFormat.h"
-#include "internal_object_type.h"
 #include <GL/glew.h>
 #include <GLHelper.h>
 #include <ImageLoader.h>
@@ -111,6 +110,20 @@ unsigned int TextureImporter::loadImage2DRaw(const Image &image, const ColorSpac
 	this->current_pbo = (this->current_pbo + 1) % pbos.size();
 
 	return texture;
+}
+
+fragcore::ASyncHandle TextureImporter::loadImage2DAsync(unsigned int &texRef, const std::string &path,
+														const ColorSpace colorSpace,
+														const TextureCompression compression,
+														const fragcore::GraphicFormat graphicInternalFormat) {
+	return 0;
+}
+
+fragcore::ASyncHandle TextureImporter::loadImage2DRawAsync(unsigned int &texRef, const fragcore::Image &image,
+														   const ColorSpace colorSpace,
+														   const TextureCompression compression,
+														   const fragcore::GraphicFormat graphicInternalFormat) {
+	return 0;
 }
 
 unsigned int TextureImporter::loadCubeMap(const std::string &px, const std::string &nx, const std::string &py,

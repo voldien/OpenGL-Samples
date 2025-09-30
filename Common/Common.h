@@ -22,15 +22,6 @@
 
 namespace glsample {
 
-	/*	*/
-	using DrawArraysIndirectCommand = fragcore::IndirectDrawArray;
-	using DrawElementsIndirectCommand = fragcore::IndirectDrawElement;
-	using DrawDispatchIndirectCommand = fragcore::IndirectDispatch;
-
-	/*	*/
-	using TextureDesc = fragcore::TextureDesc;
-	using SamplerDesc = fragcore::SamplerDesc;
-
 	using MeshObject = struct geometry_object_t {
 		/*	*/
 		unsigned int vao = 0;

@@ -7,6 +7,39 @@
 
 using namespace glsample;
 
+inline void nodeActive(Node &node) noexcept {
+	bool active = node.isActive();
+	if (ImGui::Checkbox("Active", &active)) {
+		node.setActive(active);
+	}
+}
+
+template <typename T>
+void enumComboBox(const char *lable, const T currentSelected, const size_t maxEnums,
+				  std::function<void(const T selected)> onSelected) {
+
+	const int item_selected_idx = (int)currentSelected;
+
+	std::string combo_preview_value = std::string(magic_enum::enum_name(currentSelected));
+
+	const ImGuiComboFlags flags = 0;
+	ImGui::SetNextItemWidth(256);
+	if (ImGui::BeginCombo(lable, combo_preview_value.c_str(), flags)) {
+		for (size_t nth_enum = 0; nth_enum < maxEnums; nth_enum++) {
+			const bool is_selected = (item_selected_idx == nth_enum);
+
+			if (ImGui::Selectable(magic_enum::enum_name((T)nth_enum).data(), is_selected)) {
+				onSelected((T)nth_enum);
+			}
+
+			if (is_selected) {
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+	}
+}
+
 SceneSettingsUI::SceneSettingsUI(Scene &scene) : GLUIComponent<Scene>(scene, "Scene Settings") {}
 
 void SceneSettingsUI::draw() {
@@ -16,33 +49,35 @@ void SceneSettingsUI::draw() {
 	/*	*/
 	if (ImGui::CollapsingHeader("Scene Settings")) {
 
-		if (ImGui::CollapsingHeader("Rendering Settings")) {
+		if (ImGui::TreeNode("Rendering Settings")) {
 
 			/*	*/
 			if (ImGui::Checkbox("Use Frustum Culling", &scene.getRenderingSettings().frustumSettings.useFrustum)) {
 			}
+			enumComboBox<FrustumCullingMode>(
+				"Frustum Culling Mode", scene.getRenderingSettings().frustumSettings.FrustumCullingMode,
+				(int)FrustumCullingMode::MaxCullingMode,
+				[&](auto mode) { scene.getRenderingSettings().frustumSettings.FrustumCullingMode = mode; });
 
-			bool showWireFrame =
-				(scene.getRenderingSettings().debugMode & DebugMode::Wireframe) == DebugMode::Wireframe;
+			if (ImGui::Checkbox("Use Z Depth Early Pass",
+								&scene.getRenderingSettings().preDepthRenderingSettings.get_value())) {
+			}
+
+			bool showWireFrame = (scene.getDebugMode() & DebugMode::Wireframe) == DebugMode::Wireframe;
 			if (ImGui::Checkbox("Show Wireframe", &showWireFrame)) {
 				if (showWireFrame) {
-					scene.getRenderingSettings().debugMode =
-						Math::addFlag<unsigned int>(scene.getRenderingSettings().debugMode, DebugMode::Wireframe);
+					scene.getDebugMode() = Bitwise::addFlag<DebugMode>(scene.getDebugMode(), DebugMode::Wireframe);
 				} else {
-					scene.getRenderingSettings().debugMode =
-						Math::removeFlag<unsigned int>(scene.getRenderingSettings().debugMode, DebugMode::Wireframe);
+					scene.getDebugMode() = Bitwise::removeFlag<DebugMode>(scene.getDebugMode(), DebugMode::Wireframe);
 				}
 			}
 
-			bool showBoundingBox =
-				(scene.getRenderingSettings().debugMode & DebugMode::BoundingBox) == DebugMode::BoundingBox;
+			bool showBoundingBox = (scene.getDebugMode() & DebugMode::BoundingBox) == DebugMode::BoundingBox;
 			if (ImGui::Checkbox("Show BoundingBox", &showBoundingBox)) {
 				if (showBoundingBox) {
-					scene.getRenderingSettings().debugMode =
-						Math::addFlag<unsigned int>(scene.getRenderingSettings().debugMode, DebugMode::BoundingBox);
+					scene.getDebugMode() = Bitwise::addFlag<DebugMode>(scene.getDebugMode(), DebugMode::BoundingBox);
 				} else {
-					scene.getRenderingSettings().debugMode =
-						Math::removeFlag<unsigned int>(scene.getRenderingSettings().debugMode, DebugMode::BoundingBox);
+					scene.getDebugMode() = Bitwise::removeFlag<DebugMode>(scene.getDebugMode(), DebugMode::BoundingBox);
 				}
 			}
 
@@ -50,6 +85,8 @@ void SceneSettingsUI::draw() {
 				/*	*/
 				ImGui::TextUnformatted("Debug Drawer");
 			}
+
+			ImGui::TreePop();
 		}
 
 		if (ImGui::TreeNode("Advanced, with Selectable nodes")) {
@@ -78,30 +115,12 @@ void SceneSettingsUI::draw() {
 			}
 		}
 
-		/*	*/
-		// TODO: add tree structure
-		if (ImGui::TreeNode("Nodes")) {
-			ImGui::Text("Count %lu", scene.getNodes().size());
+		{
 
-			for (size_t node_index = 0; node_index < scene.getNodes().size(); node_index++) {
-
-				Node *currentNode = scene.getNodes()[node_index];
-
-				if (node_index == 0) {
-					ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-				}
-
-				ImGui::PushID(node_index);
-				bool active = currentNode->isActive();
-				if (ImGui::Checkbox("Active", &active)) {
-					currentNode->setActive(active);
-				}
-
-				if (currentNode->getParent()) {
-					ImGui::TextUnformatted("Has Parent");
-					ImGui::SameLine();
-					ImGui::TextUnformatted(currentNode->getParent()->ptr()->getName().c_str());
-				}
+			/*	*/
+			auto nodeFunc = [scene](Node *currentNode) {
+				ImGui::PushID(currentNode->getUID() + 1000);
+				nodeActive(*currentNode);
 
 				ImGui::TextUnformatted(currentNode->getName().c_str());
 
@@ -124,13 +143,33 @@ void SceneSettingsUI::draw() {
 				if (ImGui::DragFloat3("Scale", &local_scale[0])) {
 					currentNode->setLocalScale(local_scale);
 				}
+
+				ImGui::Text("Materials %zu", currentNode->materialIndex.size());
+				ImGui::Text("Meshes %zu", currentNode->geometryObjectIndex.size());
+
 				ImGui::Separator();
 
 				ImGui::PopID();
-			}
+			};
 
-			/*	*/
-			ImGui::TreePop();
+			auto nodeTreeFunc = [scene, nodeFunc](Node *currentNode) {
+				for (size_t i = 0; i < currentNode->getNumChildren(); i++) {
+					nodeFunc(currentNode->getChild(i)->ptr());
+				}
+			};
+
+			Node *rootNode = scene.getRootNode();
+			if (ImGui::CollapsingHeader("Scene Graph") && rootNode) {
+				ImGui::Text("Count %lu", scene.getNodes().size());
+
+				ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+
+				nodeFunc(rootNode);
+
+				nodeTreeFunc(rootNode);
+
+				/*	*/
+			}
 		}
 
 		if (ImGui::CollapsingHeader("Light Settings")) {
@@ -143,10 +182,9 @@ void SceneSettingsUI::draw() {
 
 				Light *light = scene.getLights()[light_index];
 
-				bool active = light->isActive();
-				if (ImGui::Checkbox("Active", &active)) {
-					light->setActive(active);
-				}
+				/*	*/
+				nodeActive(*light);
+
 				ImGui::SameLine();
 				ImGui::TextUnformatted(light->getName().c_str());
 				const std::string lightType = std::string(magic_enum::enum_name(light->getLightType()));
@@ -233,35 +271,52 @@ void SceneSettingsUI::draw() {
 				ImGui::ColorEdit4("Specular Color", &mat.specular[0],
 								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
-				ImGui::DragFloat("Clipping", &mat.clipping, 1, 0, 1);
-				ImGui::DragFloat("Shinininess", &mat.shinininess, 1, 0, 128);
-				ImGui::DragFloat("Bumpiness", &mat.bumpiness, 1, 0, 128);
-				ImGui::DragFloat("Metalic", &mat.metalic, 1, 0, 1);
+				ImGui::DragFloat("Clipping", &mat.getGraphicSettings().clipping, 1, 0, 1);
+				ImGui::DragFloat("Shinininess", &mat.shinininess, 1, 0, 0);
+				ImGui::DragFloat("Bumpiness", &mat.bumpiness, 1, 0, 0);
+				ImGui::SliderFloat("Metalic", &mat.metalic, 0, 1);
 
 				ImGui::DragFloat("Displacement", &mat.getTessellationSettings().gDispFactor);
 
-				/*	Blend */
-				{
-					// TODO: enpasulted own method
-					const int texture_wrapping_item_selected_idx = (int)mat.getGraphicSettings().blend_func_mode;
-					const std::string combo_preview_value =
-						std::string(magic_enum::enum_name((fragcore::BlendEqu)texture_wrapping_item_selected_idx));
-					ImGuiComboFlags flags = 0;
-					if (ImGui::BeginCombo("Blend Mode", combo_preview_value.c_str(), flags)) {
-						for (int n = 0; n <= (int)fragcore::BlendEqu::Max; n++) {
-							const bool is_selected = (texture_wrapping_item_selected_idx == n);
+				/*	*/
+				ImGui::Checkbox("Write Depth", &mat.getGraphicSettings().DepthWrite);
+				enumComboBox<fragcore::BlendEqu>(
+					"Blend Equation Mode", mat.getGraphicSettings().blend_equ, static_cast<size_t>(BlendEqu::Max) + 1,
+					[&mat](const auto selected) { mat.getGraphicSettings().blend_equ = selected; });
+				enumComboBox<fragcore::BlendFunc>(
+					"Blend Function Mode", mat.getGraphicSettings().blend_color_func,
+					static_cast<size_t>(BlendFunc::ConstantAlpha) + 1,
+					[&mat](const auto selected) { mat.getGraphicSettings().blend_color_func = selected; });
+				enumComboBox<fragcore::DepthFunc>(
+					"Depth Function", mat.getGraphicSettings().DepthFunc, static_cast<size_t>(DepthFunc::Never) + 1,
+					[&mat](const auto selected) { mat.getGraphicSettings().DepthFunc = selected; });
+				enumComboBox<fragcore::CullingMode>(
+					"Culling Mode", mat.getGraphicSettings().cullingMode,
+					static_cast<size_t>(CullingMode::FrontAndBack) + 1,
+					[&mat](const auto selected) { mat.getGraphicSettings().cullingMode = selected; });
 
-							if (ImGui::Selectable(magic_enum::enum_name((fragcore::BlendEqu)n).data(), is_selected)) {
-								mat.getGraphicSettings().blend_func_mode = (fragcore::BlendEqu)n;
-							}
-
-							if (is_selected) {
-								ImGui::SetItemDefaultFocus();
-							}
-						}
-						ImGui::EndCombo();
-					}
+				ImGui::SetNextItemWidth(256);
+				ImGui::DragInt("Render Queue", (int *)&mat.getGraphicSettings().queue);
+				ImGui::SameLine();
+				if (ImGui::Button("Set Domain")) {
+					ImGui::OpenPopup("set_domain_popup");
 				}
+				if (ImGui::BeginPopup("set_domain_popup")) {
+					ImGui::SeparatorText("Domains");
+					// for (size_t post_select_index = 0; post_select_index < manager->getNrPostProcessing();
+					// 	 post_select_index++) {
+					// 	ImGui::BeginDisabled(post_select_index == post_index);
+					// 	if (ImGui::Selectable(std::to_string(post_select_index).c_str())) {
+					// 		manager->swapPostProcessing(post_select_index, post_index);
+					// 	}
+					// 	ImGui::EndDisabled();
+					//}
+					ImGui::EndPopup();
+				}
+
+				// enumComboBox<RenderQueue>("Render Queue", mat.getGraphicSettings().queue,
+				// 						  static_cast<size_t>(RenderQueue::Overlay) + 1,
+				// 						  [&mat](const auto selected) { mat.getGraphicSettings().queue = selected; });
 
 				/*	Textures.	*/
 				for (size_t mat_tex_index = 0; mat_tex_index < mat.texture_index.size(); mat_tex_index++) {
@@ -285,62 +340,23 @@ void SceneSettingsUI::draw() {
 						ImGui::Text("%s (%ld)", texType.c_str(), mat_tex_index);
 						ImGui::SameLine();
 
-						{
-							const int texture_wrapping_item_selected_idx =
-								(int)mat.texture_sampling[mat_tex_index].wrapping;
+						ImGui::BeginGroup();
+						enumComboBox<fragcore::TextureWrappingMode>(
+							"Texture Wrapping", mat.texture_sampling[mat_tex_index].wrapping,
+							static_cast<size_t>(fragcore::TextureWrappingMode::ClampBorder) + 1,
+							[&](auto selected) { mat.texture_sampling[mat_tex_index].wrapping = selected; });
 
-							/*	*/
-							const std::string combo_preview_value = std::string(magic_enum::enum_name(
-								(fragcore::TextureWrappingMode)texture_wrapping_item_selected_idx));
-							ImGuiComboFlags flags = 0;
-							if (ImGui::BeginCombo("Texture Wrapping", combo_preview_value.c_str(), flags)) {
-								for (int n = 0; n <= (int)fragcore::TextureWrappingMode::ClampBorder; n++) {
-									const bool is_selected = (texture_wrapping_item_selected_idx == n);
+						enumComboBox<fragcore::TextureFilterMode>(
+							"Texture Filtering", mat.texture_sampling[mat_tex_index].filtering,
+							static_cast<size_t>(fragcore::TextureFilterMode::Trilinear) + 1,
+							[&](auto selected) { mat.texture_sampling[mat_tex_index].filtering = selected; });
 
-									if (ImGui::Selectable(
-											magic_enum::enum_name((fragcore::TextureWrappingMode)n).data(),
-											is_selected)) {
-										mat.texture_sampling[mat_tex_index].wrapping = (fragcore::TextureWrappingMode)n;
-									}
-
-									if (is_selected) {
-										ImGui::SetItemDefaultFocus();
-									}
-								}
-								ImGui::EndCombo();
-							}
-						}
-
-						ImGui::SameLine();
-
-						{
-							const int texture_filtering_item_selected_idx =
-								(int)mat.texture_sampling[mat_tex_index].filtering;
-
-							/*	*/
-							const std::string combo_preview_filter_value = std::string(magic_enum::enum_name(
-								(fragcore::TextureFilterMode)texture_filtering_item_selected_idx));
-							ImGuiComboFlags flags = 0;
-							if (ImGui::BeginCombo("Texture Filtering", combo_preview_filter_value.c_str(), flags)) {
-								for (int n = 0; n <= (int)fragcore::TextureFilterMode::Trilinear; n++) {
-									const bool is_selected = (texture_filtering_item_selected_idx == n);
-
-									if (ImGui::Selectable(magic_enum::enum_name((fragcore::TextureFilterMode)n).data(),
-														  is_selected)) {
-										mat.texture_sampling[mat_tex_index].filtering = (fragcore::TextureFilterMode)n;
-									}
-
-									if (is_selected) {
-										ImGui::SetItemDefaultFocus();
-									}
-								}
-								ImGui::EndCombo();
-							}
-						}
+						ImGui::EndGroup();
 
 						ImGui::PopID();
 					}
 				}
+				ImGui::Separator();
 				ImGui::PopID();
 			}
 		}
@@ -348,6 +364,22 @@ void SceneSettingsUI::draw() {
 		if (ImGui::CollapsingHeader("Cameras")) {
 			size_t camera_index = 0;
 			for (; camera_index < scene.getCameras().size(); camera_index++) {
+				Camera *camera = scene.getCameras()[camera_index];
+
+				nodeActive(*camera);
+				float fov = camera->getFOVDegree();
+				if (ImGui::SliderFloat("FOV", &fov, 0, 90)) {
+					camera->setFOVDegree(fov);
+				}
+				float near = camera->getNear();
+				if (ImGui::DragFloat("Near", &near, 1, 0.015f)) {
+					camera->setNear(near);
+				}
+
+				float far = camera->getFar();
+				if (ImGui::DragFloat("Far", &far, 1, camera->getNear())) {
+					camera->setFar(far);
+				}
 			}
 		}
 

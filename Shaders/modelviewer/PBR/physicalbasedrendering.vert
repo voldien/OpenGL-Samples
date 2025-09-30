@@ -23,7 +23,7 @@ layout(location = 8) flat invariant out ivec2 fAssigns;
 
 void main() {
 
-	const mat4 model = getModel(vAssigns.y);
+	const mat4 model = getModel(vAssigns.y + gl_InstanceID);
 	const mat4 viewProj = getCamera().viewProj;
 
 	/*	*/

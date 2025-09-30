@@ -30,6 +30,7 @@
 #include <cxxopts.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <utility>
 
 class FVDECLSPEC GLSampleWindow : public GLSampleBase {
   public:
@@ -95,8 +96,6 @@ class FVDECLSPEC GLSampleWindow : public GLSampleBase {
 	fragcore::Input &getInput() noexcept { return this->input; }
 	const fragcore::Input &getInput() const noexcept { return this->input; }
 
-
-
 	void setColorSpace(const glsample::ColorSpace srgb);
 	glsample::ColorSpace getColorSpace() const noexcept;
 
@@ -118,9 +117,11 @@ class FVDECLSPEC GLSampleWindow : public GLSampleBase {
   public:
 	void createDefaultFrameBuffer();
 	void updateDefaultFramebuffer();
+
 	unsigned int getDefaultFramebuffer() const noexcept;
 	glsample::FrameBuffer *getDefaultFrameBufferObj() { return this->defaultFramebuffer.get(); }
 	const glsample::FrameBuffer *getDefaultFrameBufferObj() const noexcept { return this->defaultFramebuffer.get(); }
+	glsample::FrameBuffer *getActiveFrameBufferObj() noexcept;
 
 	bool getIsPostProcessingEnabled() const noexcept { return this->postProcessingEnabled; }
 	void setPostProcessingEnabled(bool enabled) noexcept { this->postProcessingEnabled = enabled; }
@@ -174,7 +175,14 @@ class FVDECLSPEC GLSampleWindow : public GLSampleBase {
 	}
 
 	/*	*/
+	using QueryDebugTarget = struct query_debug_target {
+		size_t targetAPI;
+		size_t value;
+	};
+
 	using DebugInfo = struct debug_info_t {
+		// TODO: add optional
+		std::tuple<bool, QueryDebugTarget> debugSamples;
 		size_t debug_prev_frame_sample_count = 0;
 		size_t debug_prev_frame_primitive_count = 0;
 		size_t debug_prev_frame_cs_invocation_count = 0;
@@ -186,6 +194,7 @@ class FVDECLSPEC GLSampleWindow : public GLSampleBase {
 		size_t time_resolution = static_cast<long>(1000) * 1000;
 	};
 	DebugInfo debugInfo;
+	const DebugInfo &getDebugInfo() const noexcept { return this->debugInfo; }
 
 	/*	SuperSampling Anti-Aliasing */
 	bool useSSAA = false;

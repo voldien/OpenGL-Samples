@@ -319,7 +319,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
-			skybox.Init(skytexture, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
+			skybox.init(skytexture, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
 
 			this->scene = SceneHelper::loadFrom(modelLoader);
 
@@ -542,7 +542,7 @@ namespace glsample {
 
 				glUseProgram(0);
 
-				skybox.Render(this->camera);
+				skybox.render(this->camera);
 			}
 
 			/*	Draw post processing effect - Screen Space Ambient Occlusion.	*/

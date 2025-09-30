@@ -21,6 +21,8 @@ layout(location = 8) flat in ivec2 fAssigns;
 
 float computeLODFromRoughness(const in float perceptualRoughness) { return perceptualRoughness; }
 
+// layout(early_fragment_tests) in;
+
 void main() {
 
 	/*	*/
@@ -119,9 +121,10 @@ void main() {
 
 	/*	Alpha.	*/
 	const float alpha = diffuseColor.a * texture(AlphaMaskedTexture, TexCoords).r * mat.transparency.a;
-	fragColor.a = mix(alpha, 1, kSpecular_F.x);
+	fragColor.a = alpha; // TODO: fix tranmission and alpha. mix(alpha, 1, kSpecular_F.x);
 	fragColor.rgb *= mat.transparency.rgb;
 
+	/*	*/
 	if (UseClipping) {
 		const float clipRange = mat.clip_.x;
 		if (fragColor.a < clipRange) {

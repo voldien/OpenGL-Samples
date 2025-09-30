@@ -289,7 +289,7 @@ namespace glsample {
 			/*	load Skybox Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			unsigned int skytexture = textureImporter.loadImage2D(panoramicPath);
-			skybox.Init(skytexture, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
+			skybox.init(skytexture, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
 
 			/*	Load Light geometry.	*/
 			{
@@ -340,7 +340,7 @@ namespace glsample {
 				glUseProgram(this->graphic_program);
 				this->scene->render(this->mainCameraNodeQueue);
 				glUseProgram(0);
-				this->skybox.Render(this->camera);
+				this->skybox.render(this->camera);
 
 				if (this->frustumCullingSettingComponent->showBoundsInMainView) {
 					auto copyNode = this->secondCameraNodeQueue;
@@ -380,7 +380,7 @@ namespace glsample {
 					auto copy_observer_camera_node = this->secondCameraNodeQueue;
 					this->scene->render(copy_observer_camera_node);
 					glUseProgram(0);
-					this->skybox.Render(this->camera_observe_frustum);
+					this->skybox.render(this->camera_observe_frustum);
 
 					if (this->frustumCullingSettingComponent->showFrustum) {
 						glUseProgram(this->bounding_program);

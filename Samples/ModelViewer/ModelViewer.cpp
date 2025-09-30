@@ -96,12 +96,11 @@ namespace glsample {
 		/*	load Textures	*/
 		TextureImporter textureImporter(this->getFileSystem());
 		const unsigned int skybox_texture = textureImporter.loadImage2D(panoramicPath);
-		skybox.Init(skybox_texture, this->skybox_program);
 
 		/*	*/
 		MiscProcessingUtil util(this->getFileSystem());
-		util.computeDiffuseIrradianceCubeMap(skybox.getTexture(), this->diffuse_irradiance_cubemap_texture, 32, 32);
-		util.computeReflectanceIrradiance(skybox.getTexture(), this->reflection_prefilter_texture, 2048, 1024);
+		util.computeDiffuseIrradianceCubeMap(skybox_texture, this->diffuse_irradiance_cubemap_texture, 32, 32);
+		util.computeReflectanceIrradiance(skybox_texture, this->reflection_prefilter_texture, 2048, 1024);
 		util.computeBRDFIntegrationMap(this->brdf_integration_map_texture, 512, 512);
 
 		/*	Invoke flush and start computing while loading geometry data.	*/
@@ -111,9 +110,10 @@ namespace glsample {
 		ModelImporter modelLoader(FileSystem::getFileSystem());
 		modelLoader.loadContent(modelPath, 0);
 		this->scene = SceneHelper::loadFrom<PBRScene>(modelLoader);
-		for(size_t i = 0; i < this->scene->getMaterials().size(); i++){
+		for (size_t i = 0; i < this->scene->getMaterials().size(); i++) {
 			this->scene->getMaterials()[i].program = physical_based_rendering_program;
 		}
+		this->scene->getRenderingSettings().skybox.init(skybox_texture, this->skybox_program);
 
 		/*	*/
 		CommonUtil::createFrameBuffer(&this->renderTarget, (unsigned int)GBuffer::Velocity + 1);
@@ -197,7 +197,7 @@ namespace glsample {
 
 			{
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Reflection);
-				glBindTexture(GL_TEXTURE_2D, this->skybox.getTexture());
+				glBindTexture(GL_TEXTURE_2D, this->scene->getRenderingSettings().skybox.getTexture());//TODO: relocate
 
 				glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Irradiance);
 				glBindTexture(GL_TEXTURE_CUBE_MAP, this->diffuse_irradiance_cubemap_texture);
@@ -209,11 +209,9 @@ namespace glsample {
 				glBindTexture(GL_TEXTURE_2D, this->reflection_prefilter_texture);
 
 				glUseProgram(this->physical_based_rendering_program);
-				this->scene->render(&this->camera, this->getDefaultFrameBufferObj());
+				this->scene->render(&this->camera, this->getActiveFrameBufferObj());
 				glUseProgram(0);
 			}
-
-			this->skybox.Render(this->camera);
 		}
 	}
 

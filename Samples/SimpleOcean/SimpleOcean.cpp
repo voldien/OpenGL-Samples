@@ -247,7 +247,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			this->reflection_texture = textureImporter.loadImage2D(panoramicPath, ColorSpace::RawLinear);
-			this->skybox.Init(this->reflection_texture, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
+			this->skybox.init(this->reflection_texture, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
 
 			/*	*/
 			MiscProcessingUtil util(this->getFileSystem());
@@ -306,7 +306,7 @@ namespace glsample {
 			glClear(GL_DEPTH_BUFFER_BIT);
 
 			/*	Skybox	*/
-			this->skybox.Render(this->camera);
+			this->skybox.render(this->camera);
 
 			/*	Ocean.	*/
 			{

@@ -16,6 +16,7 @@
 #pragma once
 #include "../Common.h"
 #include "GraphicFormat.h"
+#include "IO/ASyncIO.h"
 #include "TaskScheduler.h"
 #include <IO/FileSystem.h>
 #include <ImageLoader.h>
@@ -49,20 +50,22 @@ namespace glsample {
 		loadImage2D(const std::string &path, const ColorSpace colorSpace = ColorSpace::RawLinear,
 					const TextureCompression compression = TextureCompression::None,
 					const fragcore::GraphicFormat graphicInternalFormat = fragcore::GraphicFormat::NotSpecified);
-		void
-		loadImage2DAsync(unsigned int &texRef, const std::string &path,
-						 const ColorSpace colorSpace = ColorSpace::RawLinear,
-						 const TextureCompression compression = TextureCompression::None,
-						 const fragcore::GraphicFormat graphicInternalFormat = fragcore::GraphicFormat::NotSpecified);
 
 		unsigned int
 		loadImage2DRaw(const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::RawLinear,
 					   const TextureCompression compression = TextureCompression::None,
 					   const fragcore::GraphicFormat graphicInternalFormat = fragcore::GraphicFormat::NotSpecified);
 
-		void loadImage2DRawAsync(unsigned int &texRef, const fragcore::Image &image,
-								 const ColorSpace colorSpace = ColorSpace::RawLinear,
-								 const TextureCompression compression = TextureCompression::None);
+		fragcore::ASyncHandle
+		loadImage2DAsync(unsigned int &texRef, const std::string &path,
+						 const ColorSpace colorSpace = ColorSpace::RawLinear,
+						 const TextureCompression compression = TextureCompression::None,
+						 const fragcore::GraphicFormat graphicInternalFormat = fragcore::GraphicFormat::NotSpecified);
+
+		fragcore::ASyncHandle loadImage2DRawAsync(
+			unsigned int &texRef, const fragcore::Image &image, const ColorSpace colorSpace = ColorSpace::RawLinear,
+			const TextureCompression compression = TextureCompression::None,
+			const fragcore::GraphicFormat graphicInternalFormat = fragcore::GraphicFormat::NotSpecified);
 
 		unsigned int loadCubeMap(const std::string &px, const std::string &nx, const std::string &py,
 								 const std::string &ny, const std::string &pz, const std::string &nz,

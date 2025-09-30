@@ -15,9 +15,10 @@
  */
 #pragma once
 #include "Common.h"
-#include "Core/UIDObject.h"
 #include "FragDef.h"
 #include "GLDataStructure.h"
+#include "Scene/Material.h"
+#include "Scene/Node.h"
 #include <Exception.hpp>
 #include <IO/FileSystem.h>
 #include <IO/IOUtil.h>
@@ -34,7 +35,7 @@ namespace glsample {
 	 * @brief
 	 *
 	 */
-	class FVDECLSPEC Skybox : public UIDObject {
+	class FVDECLSPEC Skybox : public Node {
 	  public:
 		struct uniform_buffer_block {
 			glm::mat4 modelViewProjection;
@@ -47,14 +48,14 @@ namespace glsample {
 		Skybox(Skybox &&) = delete;
 		Skybox &operator=(const Skybox &) = delete;
 		Skybox &operator=(Skybox &&) = delete;
-		virtual ~Skybox();
+		~Skybox() override;
 
-		virtual void Init(unsigned int texture, unsigned int program);
+		virtual void init(unsigned int texture, unsigned int program);
 
-		virtual void Render(const CameraController &camera);
-		virtual void Render(const glm::mat4 &viewProj);
+		virtual void render(const Camera &camera) noexcept;
+		virtual void render(const glm::mat4 &viewProj) noexcept;
 		/**/
-		virtual void RenderImGUI();
+		virtual void renderImGUI();
 
 		unsigned int getTexture() const noexcept { return this->skybox_texture_cubemap_panoramic; }
 		void setTexture(const unsigned int texture) noexcept { this->skybox_texture_cubemap_panoramic = texture; }
@@ -72,6 +73,8 @@ namespace glsample {
 		/*	Textures.	*/
 		unsigned int skybox_texture_cubemap_panoramic;
 		unsigned int skybox_sampler;
+
+		Material material;
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;

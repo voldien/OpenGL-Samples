@@ -3,6 +3,7 @@
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 #include "Scene/CameraController.h"
+#include "Scene/RenderQueue.h"
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
 
@@ -36,10 +37,17 @@ namespace glsample {
 		float fogHeight = 0;
 	};
 
-	using GraphicShaderSettings = struct graphic_shader_settings_t {
-		fragcore::BlendEqu blend_func_mode = fragcore::BlendEqu::eNoEqu; /*	aiBlendMode*/
-		int wireframe_mode = 0;
-		CullingMode cullingMode;
+	// TODO: relocate
+	using GraphicShaderSettings = struct graphic_shader_settings_t { // Property Maybe ?
+		fragcore::BlendEqu blend_equ = fragcore::BlendEqu::NoEqu;	 /*	aiBlendMode*/
+		fragcore::BlendFunc blend_color_func = fragcore::BlendFunc::One;
+		CullingMode cullingMode = CullingMode::Back;
+		DepthFunc DepthFunc = DepthFunc::Less;
+		bool DepthWrite{};
+		RenderQueue queue;
+
+		int wireframe_mode = 0; // TODO; change to fill mode
+
 		bool culling_both_side_mode = false;
 		float clipping = 1;
 	};

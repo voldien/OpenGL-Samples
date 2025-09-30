@@ -320,7 +320,7 @@ namespace glsample {
 			/*	load Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			unsigned int skytexture = textureImporter.loadImage2D(panoramicPath);
-			skybox.Init(skytexture, this->skybox_program);
+			skybox.init(skytexture, this->skybox_program);
 
 			/*	Load scene from model importer.	*/
 			ModelImporter modelLoader = ModelImporter(this->getFileSystem());
@@ -620,7 +620,7 @@ namespace glsample {
 			}
 
 			/*	*/
-			this->skybox.Render(this->camera);
+			this->skybox.render(this->camera);
 
 			/*	Blit image targets to screen.	*/
 			// TODO: relocate logic.

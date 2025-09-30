@@ -25,10 +25,18 @@
 #include "Scene/Material.h"
 #include "Scene/RenderQueue.h"
 #include "Scene/SceneSettingComponentUI.h"
+#include "Skybox.h"
 #include "Util/DebugDrawer.h"
 #include <deque>
 
 namespace glsample {
+
+	enum class FrustumCullingMode {
+		None,
+		BoundingBoxAABB,
+		BoundingSphere,
+		MaxCullingMode,
+	};
 
 	enum TextureTypeBinding : unsigned int {
 		Diffuse = 0,					 /*	*/
@@ -65,8 +73,8 @@ namespace glsample {
 		Scene();
 		virtual ~Scene();
 
-	  public: /*	*/
-		virtual void init(IFileSystem *filesystem = nullptr);
+	  public:												  /*	*/
+		virtual void init(IFileSystem *filesystem = nullptr); // TODO: add sample base reference for shared resources.
 
 		virtual void release();
 
@@ -74,29 +82,37 @@ namespace glsample {
 
 		virtual void render(Camera *camera, FrameBuffer *framebuffer = nullptr);
 		virtual void render(const Light *light);
-		virtual void render(FrameBuffer *framebuffer = nullptr);
+		virtual void render(FrameBuffer *framebuffer = nullptr); // Additional parameters.
 
 		virtual void renderUI();
 
 	  protected: /*	Internal backend methods.	*/
-		virtual void bindMaterial(const Material *material);
+		virtual void
+		bindMaterial(const Material *material); /*	TODO: Pass additional formation for determine what to bind.	*/
+		virtual void bindMaterialTextures(const Material *material);
+
 		virtual void renderNode(const Node *node);
 
-		virtual void sortRenderQueue();
+		virtual void sortRenderQueue(); /*	TODO: add options.	*/
 
 		virtual void updateBuffers(); // TODO: add specific regions.
 
-		virtual void culling(const Frustum *frustum); // TODO: add
+		virtual void culling(const Frustum *frustum); // TODO: add, options
 
 		bool useDebug() const noexcept { return this->debugMode > DebugMode::None; }
 
 	  public: /*	Access Methods.	*/
+		const Node *getRootNode() const noexcept { return this->rootNode; }
+		Node *getRootNode() noexcept { return this->rootNode; }
+
 		const std::vector<Node *> &getNodes() const noexcept { return this->nodes; }
 		std::vector<Node *> &getNodes() noexcept { return this->nodes; }
 
 		const std::vector<MeshObject> &getMeshes() const noexcept { return this->refGeometry; }
 		std::vector<MeshObject> &getMeshes() noexcept { return this->refGeometry; }
+
 		std::vector<Material> &getMaterials() noexcept { return this->materials; }
+		const std::vector<Material> &getMaterials() const noexcept { return this->materials; }
 
 		std::vector<Light *> &getLights() noexcept { return this->lights; }
 		const std::vector<Light *> &getLights() const noexcept { return this->lights; }
@@ -107,16 +123,19 @@ namespace glsample {
 		DirectionalLightData *getDirectionalLight(const size_t index = 0) noexcept {
 			return &this->stageLightData.getBase()->directional[index];
 		}
+		const DirectionalLightData *getDirectionalLight(const size_t index = 0) const noexcept {
+			return &this->stageLightData.getBase()->directional[index];
+		}
 
 		Camera *getActiveCamera() const noexcept { return this->currentActiveCamera; }
 		Camera *getCamera(const unsigned int index) const noexcept { return cameras.at(index); }
+
 		const std::vector<Camera *> &getCameras() const noexcept { return cameras; }
 		std::vector<Camera *> &getCameras() noexcept { return cameras; }
 
 	  protected:
 		virtual void bindTexture(const Material &material, const TextureTypeBinding texture_type);
 		virtual int computeMaterialPriority(const Material &material) const noexcept;
-		virtual RenderQueue getQueueDomain(const Material &material) const noexcept;
 		size_t getRoundRobinIndex() const noexcept { return this->renderPassFrameIndex % BufferRoundRobinSize; }
 
 	  protected:
@@ -126,11 +145,29 @@ namespace glsample {
 		Material *currentBindedMaterial = nullptr;
 		Camera *currentActiveCamera = nullptr;
 
+		using RenderBatch = struct render_batch_t {
+			MeshObject *mesh;
+			unsigned int instances;
+			Node* begin;
+			RenderQueue queue;
+		};
+
+		using RenderPiplineSorter = struct render_pipeline_sorter_t {
+			std::map<Material *, std::vector<RenderBatch>> renderBatches;
+			std::map<RenderQueue, std::deque<const Node *>> renderQueueDomainBucket;
+			std::array<std::deque<const Node *>, 6> renderQueue;
+		};
+
 		/*	TODO add queue structure.	*/
-		std::map<RenderQueue, std::deque<const Node *>> renderBucketQueue;
-		std::deque<const Node *> renderQueue;
+		// TODO: add batch struct.
+		RenderPiplineSorter renderPipelineSorter;
+		std::map<RenderQueue, std::deque<const Node *>> renderQueueDomainBucket;
+
+		/*	*/
+		std::array<std::deque<const Node *>, 6> renderQueue;
 		std::vector<Node *> visableNodes;
 
+		Node *rootNode = nullptr;
 		std::vector<Node *> nodes;
 		std::vector<Node> nodePool;
 		std::vector<MeshObject> refGeometry;
@@ -140,17 +177,14 @@ namespace glsample {
 		std::vector<Light *> lights;
 		std::vector<Camera *> cameras;
 
-		std::vector<glm::mat4> worldMatricesCache;
+		/*	*/
+		std::map<size_t, glm::mat4> worldMatricesCache;
+		std::map<size_t, AABB> worldAABBCache;
 
 		// PoolAllocator<DirectionalLight> DirLightPool;
 		// PoolAllocator<PointLight> PointLightPool;
 		// fragcore::PoolAllocator<Node> nodePool;
 		// fragcore::PoolAllocator<AnimationPlayer> animationss;
-
-		enum class FrustumCullingMode {
-			BoundingBoxAABB,
-			BoundingSphere,
-		};
 
 		using FrustumSettings = struct _frustum_settings_t {
 			bool useFrustum;
@@ -203,24 +237,34 @@ namespace glsample {
 		std::array<unsigned int, 16> default_textures = {0};
 		std::array<unsigned int, 16> samplers = {0};
 
-		using Debug = struct debug_t {
+		/*	*/
+		using DebugSettings = struct debug_t {
 			DebugMode debugMode;
+			enum class CryptoMatte {
+				Material,
+				Object,
+			};
 		};
 
 		using ImageBasedLightningSettings = struct image_based_lightning_settings_t {
 			float intensity = 1;
+			/*	Type of */
 		};
+
 		using LightSettings = struct light_settings_t {
 			glm::vec4 ambientColor = glm::vec4(1, 1, 1, 1);
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 		};
 
+		using PreDepthRenderingSettings = struct pre_depth_rendering_settings : fragcore::Property<bool, size_t> {};
+
 		using RenderingSettings = struct rendering_settings_t {
-			unsigned int debugMode = DebugMode::None;
+			bool enabledTessellation = false; // TODO: make to struct with more parameters.
 			FrustumSettings frustumSettings;
 			FogSettings fogSettings;
 			LightSettings lightSettings;
-			bool preRender;
+			PreDepthRenderingSettings preDepthRenderingSettings;
+			Skybox skybox;
 		};
 
 		fragcore::Time timer;
@@ -234,7 +278,8 @@ namespace glsample {
 		bool useCoherent = true;
 
 		static constexpr unsigned int BufferRoundRobinSize = 3;
-		StageBuffer<GlobalSceneStateData *, BufferRoundRobinSize> stageCommonRobin;
+		StageBuffer<GlobalSceneStateData *, BufferRoundRobinSize> stageCameraCommonRobin;
+		StageBuffer<GlobalSceneStateData *, BufferRoundRobinSize> stageLightCommonRobin;
 		StageBuffer<NodeData *, BufferRoundRobinSize> stageNodeDataRobin;
 		StageBuffer<NodeData *, BufferRoundRobinSize> stagePreNodeDataRobin;
 		StageBuffer<MaterialData *, BufferRoundRobinSize> stageMaterialDataRobin;
@@ -301,8 +346,10 @@ namespace glsample {
 		const RenderingSettings &getRenderingSettings() const noexcept { return this->settings; }
 		RenderingSettings &getRenderingSettings() noexcept { return this->settings; }
 
-		std::vector<TextureAssetObject> &getTextures() noexcept { return this->refTexture; }
+		DebugMode getDebugMode() const noexcept { return this->debugMode; }
+		DebugMode &getDebugMode() noexcept { return this->debugMode; }
 
+		std::vector<TextureAssetObject> &getTextures() noexcept { return this->refTexture; }
 		DebugDrawManager *getDebugDrawer() noexcept { return this->debugDrawer; }
 	};
 } // namespace glsample

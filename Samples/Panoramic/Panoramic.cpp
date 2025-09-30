@@ -285,7 +285,7 @@ namespace glsample {
 			/*	load Skybox Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
-			this->skybox.Init(skytexture, this->skybox_program);
+			this->skybox.init(skytexture, this->skybox_program);
 
 			MiscProcessingUtil util(this->getFileSystem());
 			util.computeDiffuseIrradiance(skytexture, this->irradiance_texture, 256, 128);

@@ -1,4 +1,6 @@
 #include "Material.h"
+#include "RenderDesc.h"
+#include "Scene.h"
 #include "Scene/RenderQueue.h"
 
 using namespace glsample;
@@ -15,4 +17,31 @@ TextureSampler *Material::getSampler(const int index) { return nullptr; }
 
 void Material::setPipeline(ShaderPipeline *pipeline) { /*  Extract information.    */ }
 
-glsample::RenderQueue Material::getRenderQueue() const noexcept { return RenderQueue::Geometry; }
+glsample::RenderQueue Material::getRenderQueue() const noexcept { return this->getGraphicSettings().queue; }
+
+glsample::RenderQueue Material::getDefaultQueueDomain(const Material &material) noexcept {
+
+	/*	*/
+	const bool useAlphaClipping = (material.getGraphicSettings().clipping > 0.0f);
+	const bool useBlending = material.transparent[3] < 1.0f ||
+							 (material.texture_index[TextureTypeBinding::AlphaMask] >= 0 && !useAlphaClipping) || material.getGraphicSettings().blend_color_func > BlendFunc::One;
+
+	material.getGraphicSettings().blend_color_func;
+	material.getGraphicSettings().blend_equ;
+
+	const bool useWireframe = material.getGraphicSettings().wireframe_mode;
+
+	if (useWireframe) {
+		return RenderQueue::Overlay;
+	}
+
+	if (useBlending && !useAlphaClipping) {
+		return RenderQueue::Transparent;
+	}
+
+	if (useAlphaClipping) {
+		return RenderQueue::AlphaTest;
+	}
+
+	return RenderQueue::Geometry;
+}

@@ -84,10 +84,6 @@ namespace glsample {
 		float opacity = 1;
 		float metalic = 0;
 
-		fragcore::BlendEqu blend_func_mode = fragcore::BlendEqu::eNoEqu; /*	aiBlendMode*/
-		int wireframe_mode = 0;
-		bool culling_both_side_mode = false;
-		float clipping = 1;
 		/*	*/
 
 		TessellationSettings tessellationSettings;
@@ -139,6 +135,9 @@ namespace glsample {
 	  private: /*	Attributes.	*/
 			   // std::vector<TextureObject*> textures; /*  */
 			   // ShaderObject* shader;                 /*	*/
+
+	  public:
+		static RenderQueue getDefaultQueueDomain(const Material &material) noexcept;
 	};
 
 	// class FVDECLSPEC MaterialInstance : fragcore::Object {

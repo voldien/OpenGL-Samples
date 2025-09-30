@@ -141,6 +141,22 @@ float GeometrySmith(const in vec3 N, const in vec3 V, const in vec3 L, const in 
 }
 
 float Fd_Lambert() { return PI_INVERSE; }
+float Fd_OrenNayar(const in vec3 lightDirection, const in vec3 viewDirection, const in vec3 surfaceNormal,
+				   const in float roughness, const in float albedo) {
+
+	float LdotV = dot(lightDirection, viewDirection);
+	float NdotL = dot(lightDirection, surfaceNormal);
+	float NdotV = dot(surfaceNormal, viewDirection);
+
+	float s = LdotV - NdotL * NdotV;
+	float t = mix(1.0, max(NdotL, NdotV), step(0.0, s));
+
+	float sigma2 = roughness * roughness;
+	float A = 1.0 + sigma2 * (albedo / (sigma2 + 0.13) + 0.5 / (sigma2 + 0.33));
+	float B = 0.45 * sigma2 / (sigma2 + 0.09);
+
+	return albedo * max(0.0, NdotL) * (A + B * s / t) / PI;
+}
 
 ///////////
 vec3 multiscattering_energy() {
@@ -152,8 +168,9 @@ vec3 multiscattering_energy() {
 
 /***************************************************/
 // TODO: fix correct name and optimize with optional parameters during compilation.
-vec3 BSDF(const vec3 light_direction, const vec3 halfway_vector, const in vec3 ViewPixelDir, const in vec3 SurfaceNormal,
-		  const in float roughness, const in float metallic, const in vec3 F0, const in vec3 albedo) {
+vec3 BSDF(const vec3 light_direction, const vec3 halfway_vector, const in vec3 ViewPixelDir,
+		  const in vec3 SurfaceNormal, const in float roughness, const in float metallic, const in vec3 F0,
+		  const in vec3 albedo) {
 
 	const float NoV = abs(dot(SurfaceNormal, ViewPixelDir)) + 1e-5;
 	const float NoL = clamp(dot(SurfaceNormal, light_direction), 0.0, 1.0);

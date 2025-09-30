@@ -81,7 +81,7 @@ namespace glsample {
 		/*	load Textures	*/
 		TextureImporter textureImporter(this->getFileSystem());
 		unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
-		this->skybox.Init(skytexture, this->skybox_program);
+		this->skybox.init(skytexture, this->skybox_program);
 
 		MiscProcessingUtil util(this->getFileSystem());
 		util.computeDiffuseIrradiance(skytexture, this->irradiance_texture, 256, 128);
@@ -132,7 +132,7 @@ namespace glsample {
 			glUseProgram(0);
 		}
 
-		this->skybox.Render(this->cameraController);
+		this->skybox.render(this->cameraController);
 	}
 
 	void ModelBase::update() {

@@ -715,6 +715,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 		material_obj->name = aiStringToStdString(name);
 	}
 
+	bool containsAlphaBlend = false;
 	/*	load all texture assoicated with material.	*/
 	for (size_t textureUsageType = aiTextureType::aiTextureType_DIFFUSE;
 		 textureUsageType < aiTextureType::aiTextureType_UNKNOWN; textureUsageType++) {
@@ -734,6 +735,16 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 			if (ref_material->Get(AI_MATKEY_TEXFLAGS(textureUsageType, textureIndex), textureFlag) ==
 				aiReturn::aiReturn_SUCCESS) {
 				/*	*/
+				switch (textureFlag) {
+				case aiTextureFlags_Invert:
+					break;
+				case aiTextureFlags_UseAlpha:
+					containsAlphaBlend = true;
+					break;
+				case aiTextureFlags_IgnoreAlpha:
+				case _aiTextureFlags_Force32Bit:
+					break;
+				}
 			}
 
 			/*	*/
@@ -790,7 +801,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 					case aiTextureMapping_BOX:
 					case aiTextureMapping_PLANE:
 					case aiTextureMapping_OTHER:
-					case _aiTextureMapping_Force32Bit:
+					case _aiTextureMapping_Force32Bit: /*	*/
 						break;
 					}
 
@@ -958,6 +969,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 
 			// float tmp;
 			if (ref_material->Get(AI_MATKEY_REFRACTI, tmp) == aiReturn::aiReturn_SUCCESS) {
+				material_obj->refrectI = tmp;
 			}
 
 			if (ref_material->Get(AI_MATKEY_METALLIC_FACTOR, tmp) == aiReturn::aiReturn_SUCCESS) {
@@ -989,29 +1001,53 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 			material_obj->bumpiness = tmp;
 		}
 
+		bool twosided = false;
+		if (ref_material->Get(AI_MATKEY_TWOSIDED, twosided) == aiReturn::aiReturn_SUCCESS) {
+			if (twosided) {
+				material_obj->culling_both_side_mode = CullingMode::None;
+			} else {
+				material_obj->culling_both_side_mode = CullingMode::Back;
+			}
+		}
+
+		const float alphaBlending = material_obj->diffuse[3] * material_obj->transparent[3];
+		const float tranmission_factor =
+			material_obj->transparent[0] * material_obj->transparent[1] * material_obj->transparent[2];
+		/*	If Blend function specified.	*/
 		aiBlendMode blendfunc;
 		if (ref_material->Get(AI_MATKEY_BLEND_FUNC, blendfunc) == aiReturn::aiReturn_SUCCESS) {
 
 			switch (blendfunc) {
 			case aiBlendMode_Default:
-				material_obj->blend_func_mode = BlendEqu::eNoEqu;
+				material_obj->blend_equ_mode = BlendEqu::Addition;
+				material_obj->blend_func_mode = BlendFunc::OneMinusSrcAlpha;
 				break;
 			case aiBlendMode_Additive:
-				material_obj->blend_func_mode = BlendEqu::Addition;
+				material_obj->blend_equ_mode = BlendEqu::Addition;
+				material_obj->blend_func_mode = BlendFunc::SrcColor;
 				break;
 			case _aiBlendMode_Force32Bit:
 				break;
 			}
-		}
+			/*	*/
+			material_obj->clipping = 0.0f; /*	No clipping, use blending instead.	*/
+			material_obj->depth_write = false;
 
-		bool twosided = false;
-		if (ref_material->Get(AI_MATKEY_TWOSIDED, twosided) == aiReturn::aiReturn_SUCCESS) {
-			if (twosided) {
-				//	material_obj->culling_both_side_mode = CullingMode::Back;
+		} else {
+
+			/*	*/
+			if (alphaBlending < 1.0f || tranmission_factor < 1.0f) {
+				material_obj->blend_equ_mode = BlendEqu::Addition;
+				material_obj->blend_func_mode = BlendFunc::SrcColor;
+				material_obj->clipping = 0.0f; /*	No clipping, use blending instead.	*/
+				material_obj->depth_write = false;
+				material_obj->culling_both_side_mode = CullingMode::None;
 			} else {
-				//	material_obj->culling_both_side_mode = CullingMode::FrontAndBack;
+				material_obj->blend_equ_mode = BlendEqu::NoEqu;
+				material_obj->blend_func_mode = BlendFunc::Zero;
+				material_obj->clipping = 0.4f; // containsAlphaBlend ? 0.1f : 0.0f; /*	use clipping if alpha used.	*/
+				material_obj->depth_write = true;
 			}
-			material_obj->culling_both_side_mode = twosided;
 		}
 
 		int use_wireframe = 0;

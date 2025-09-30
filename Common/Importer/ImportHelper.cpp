@@ -348,5 +348,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 		}
 	}
 
+	glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
+
 	textures = Reftextures;
 }

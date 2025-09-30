@@ -236,7 +236,7 @@ namespace glsample {
 			const int skybox_program = Skybox::loadDefaultPanoramicProgram(this->getFileSystem());
 			/*	load Textures	*/
 			const unsigned int skytexture = textureImporter.loadImage2D(panoramicPath);
-			skybox.Init(skytexture, skybox_program);
+			skybox.init(skytexture, skybox_program);
 
 			/*	Load planet texture.	*/
 			this->planet_diffuse_texture = textureImporter.loadImage2D(planetDiffusePath);
@@ -374,7 +374,7 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			this->skybox.Render(this->camera);
+			this->skybox.render(this->camera);
 		}
 
 		void update() override {

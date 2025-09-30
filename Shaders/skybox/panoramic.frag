@@ -22,6 +22,8 @@ ubo;
 
 #include "common.glsl"
 
+layout(early_fragment_tests) in;
+
 void main() {
 
 	const vec2 uv = inverse_equirectangular(normalize(vVertex));

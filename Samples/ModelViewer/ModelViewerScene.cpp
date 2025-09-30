@@ -79,17 +79,20 @@ void PBRScene::init(IFileSystem *filesystem) {
 	this->shadow_directional_alpha = ShaderLoader::loadGraphicProgram(
 		compilerOptions, &vertex_directional_shadow_binary, &fragment_directional_shadow_alpha_binary);
 
-	/*	Convert material to be more PBR ready.	*/
+	/*	Convert material to be more PBR ready.	*/ // TODO: fix and determine
 	for (size_t i = 0; i < getMaterials().size(); i++) {
 		Material *mat = &getMaterials()[i];
 		if (mat->shinininess > 1) {
 			mat->shinininess *= (1.0f / 32.0f);
 		}
-		//mat->specular = glm::vec4(1, 1, 1, 1);
+		// mat->specular = glm::vec4(1, 1, 1, 1);
 	}
 }
 
 void PBRScene::shadowPass() {
+
+	const std::string debugDomain = "Shadow Pass";
+	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, debugDomain.size(), debugDomain.data());
 
 	/*	*/
 	GLint currentDrawFBO;
@@ -122,6 +125,8 @@ void PBRScene::shadowPass() {
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, currentReadFBO);
 
 	this->UseShadowPass = false;
+
+	glPopDebugGroup();
 }
 
 void PBRScene::render(Camera *camera, FrameBuffer *framebuffer) {
@@ -155,11 +160,18 @@ void PBRScene::render(FrameBuffer *framebuffer) {
 }
 
 void PBRScene::bindMaterial(const Material *material) {
-	Scene::bindMaterial(material);
+	if (!UseShadowPass) {
+		Scene::bindMaterial(material);
+	}
 
-	if (UseShadowPass) {
+	if (this->currentBindedMaterial != material) {
 
-		RenderQueue queue = getQueueDomain(*material);
+		this->bindTexture(*material, TextureTypeBinding::Diffuse);
+		this->bindTexture(*material, TextureTypeBinding::AlphaMask);
+		/*	Get Active Light Source.	*/
+
+		/*	*/
+		RenderQueue queue = material->getRenderQueue();
 		if (queue >= RenderQueue::AlphaTest) {
 			glUseProgram(this->shadow_directional_alpha);
 		} else {
@@ -169,13 +181,22 @@ void PBRScene::bindMaterial(const Material *material) {
 		/*	*/
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glDepthMask(GL_TRUE); /*		Allow Depth to written.	*/
-		if (material->culling_both_side_mode) {
-			glCullFace(GL_FRONT_AND_BACK);
-		} else {
+
+		/*	Culling Mode.	*/
+		switch (material->getGraphicSettings().cullingMode) {
+		case fragcore::CullingMode::Front:
+		case fragcore::CullingMode::Back:
+		case fragcore::CullingMode::FrontAndBack:
+			glEnable(GL_CULL_FACE);
 			glCullFace(GL_FRONT);
+			break;
+		default:
+		case fragcore::CullingMode::None:
+			glDisable(GL_CULL_FACE);
+			glCullFace(GL_FRONT_AND_BACK);
+			break;
 		}
 
-		glEnable(GL_CULL_FACE);
 		glDisable(GL_BLEND);
 	}
 }

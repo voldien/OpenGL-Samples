@@ -1,20 +1,25 @@
 #include "Scene.h"
 #include "../Common.h"
+#include "Core/SystemInfo.h"
 #include "IO/IFileSystem.h"
 #include "Importer/ModelImporter.h"
+#include "Math/Bitwise.h"
 #include "Math3D/Color.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 #include "Scene/CameraController.h"
 #include "Scene/Frustum.h"
+#include "Scene/RenderQueue.h"
 #include "Util/DebugDrawer.h"
 #include <GL/glew.h>
+#include <GLHelper.h>
+#include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <glm/common.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
-#include <internal_object_type.h>
 #include <iostream>
 #include <omp.h>
 #include <ostream>
@@ -41,12 +46,15 @@ namespace glsample {
 			}
 		}
 
+		/*	Release uniform buffers*/
+
 		/*	*/
 		for (size_t tex_index = 0; tex_index < this->refTexture.size(); tex_index++) {
 			if (glIsTexture(this->refTexture[tex_index].texture)) {
 				glDeleteTextures(1, &this->refTexture[tex_index].texture);
 			}
 		}
+		/*	Release internal default textures.	*/
 		for (size_t tex_index = 0; tex_index < this->default_textures.size(); tex_index++) {
 			if (glIsTexture(this->default_textures[tex_index])) {
 				glDeleteTextures(1, &this->default_textures[tex_index]);
@@ -70,7 +78,7 @@ namespace glsample {
 		/*	*/
 		// this->DirLightPool.resize(64);
 		// this->PointLightPool.resize(64);
-		this->visableNodes.reserve(2048);
+		this->visableNodes.reserve(4096);
 
 		/*	Create default textures.	*/
 		{
@@ -129,7 +137,7 @@ namespace glsample {
 
 			/*	*/
 			this->UBOStructure.max_node_per_binding = maxUniformBlockBufferSize / sizeof(NodeData);
-			const size_t max_node_count_in_buffer = 4096 * 2;
+			const size_t max_node_count_in_buffer = static_cast<long>(4096) * 2;
 			const size_t nodeDataInBytes =
 				max_node_count_in_buffer *
 				sizeof(NodeData); // TODO: change number based on the max bininded uniform size.
@@ -178,14 +186,14 @@ namespace glsample {
 				/*	*/
 				{
 					// this->stageCommonBufferBase = (GlobalSceneState *)&pdata[0];
-					for (size_t index = 0; index < stageCommonRobin.buffers.size(); index++) {
+					for (size_t index = 0; index < stageCameraCommonRobin.buffers.size(); index++) {
 
 						this->UBOStructure.common_offsets[index] =
 							this->UBOStructure.common_base_offset + this->UBOStructure.common_size_align * index;
-						this->stageCommonRobin.buffers[index] =
+						this->stageCameraCommonRobin.buffers[index] =
 							(GlobalSceneStateData *)&pdata[this->UBOStructure.common_size_align * index];
 
-						*this->stageCommonRobin.buffers[index] = GlobalSceneStateData();
+						*this->stageCameraCommonRobin.buffers[index] = GlobalSceneStateData();
 					}
 				}
 
@@ -200,7 +208,7 @@ namespace glsample {
 
 						this->UBOStructure.node_prev_offsets[index] =
 							this->UBOStructure.node_base_offset +
-							this->UBOStructure.node_size_align * ((index + 2) % stageCommonRobin.buffers.size());
+							this->UBOStructure.node_size_align * ((index + 2) % stageCameraCommonRobin.buffers.size());
 
 						this->stageNodeDataRobin.buffers[index] =
 							(NodeData *)&baseNode[index * this->UBOStructure.node_size_align];
@@ -211,7 +219,7 @@ namespace glsample {
 				{
 					uint8_t *baseMaterial = &pdata[this->UBOStructure.material_base_offset];
 
-					for (size_t index = 0; index < stageCommonRobin.buffers.size(); index++) {
+					for (size_t index = 0; index < stageCameraCommonRobin.buffers.size(); index++) {
 
 						this->UBOStructure.mateiral_offsets[index] =
 							this->UBOStructure.material_base_offset + this->UBOStructure.material_align_size * index;
@@ -244,14 +252,16 @@ namespace glsample {
 
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 		}
+
+		// this->rootNode = (this->nodePool.back());
 	}
 
 	void Scene::update(const float deltaTime) {
 
-		/*	*/
-		this->timer.update(); // TODO: forward deltaTime
-		this->stageCommonRobin.getBuffer(this->getRoundRobinIndex())->time[0] += deltaTime;
-		this->stageCommonRobin.getBuffer(this->getRoundRobinIndex())->time[1] = deltaTime;
+		/*	Update Time */
+		this->timer.update();
+		this->stageCameraCommonRobin.getBuffer(this->getRoundRobinIndex())->time[0] += deltaTime;
+		this->stageCameraCommonRobin.getBuffer(this->getRoundRobinIndex())->time[1] = deltaTime;
 
 		/*	Update animations.	*/
 		for (size_t anim_index = 0; anim_index < this->animations.size(); anim_index++) {
@@ -261,7 +271,6 @@ namespace glsample {
 		}
 
 		/*	*/
-		this->stageCommonRobin.buffers[getRoundRobinIndex()]->time[0] = deltaTime;
 		this->updateBuffers();
 	}
 
@@ -273,17 +282,18 @@ namespace glsample {
 		const size_t light_offset = this->UBOStructure.light_offsets[this->getRoundRobinIndex()];
 
 		/*	Update global scene.	*/
-		GlobalSceneStateData *globalSceneState = this->stageCommonRobin.buffers[getRoundRobinIndex()];
-		// globalSceneState->renderSettings.fogSettings = this->settings.fogSettings;
+		GlobalSceneStateData *globalSceneState = this->stageCameraCommonRobin.buffers[getRoundRobinIndex()];
 		globalSceneState->renderSettings.ambientColor = this->settings.lightSettings.ambientColor;
 		globalSceneState->renderSettings.specularColor = this->settings.lightSettings.specularColor;
 
 		/*	*/
 		NodeData *baseNodeData = this->stageNodeDataRobin.buffers[getRoundRobinIndex()];
 		size_t node_index = 0;
-		auto copyQueue = renderQueue; // TODO: fix performance
-		for (const Node *node : copyQueue) {
-			baseNodeData[node_index++].model = node->getGlobalMatrix(); // modelGlobalTransform;
+		for (size_t i = 0; i < renderQueue.size(); i++) {
+			auto copyQueue = renderQueue; // TODO: fix performance
+			for (const Node *node : copyQueue[i]) {
+				baseNodeData[node_index++].model = node->getGlobalMatrix();
+			}
 		}
 
 		/*	Update Materials.	*/
@@ -298,82 +308,86 @@ namespace glsample {
 				glm::vec3(this->materials[material_index].specular), this->materials[material_index].shinininess);
 			materialBase[material_index].emission = this->materials[material_index].emission;
 			materialBase[material_index].transparency = this->materials[material_index].transparent;
-			materialBase[material_index].clip_[0] =
-				materialBase[material_index].transparency.a < 1 ? 0 : this->materials[material_index].clipping;
+			materialBase[material_index].clip_[0] = materialBase[material_index].transparency.a < 1
+														? 0
+														: this->materials[material_index].getGraphicSettings().clipping;
 			materialBase[material_index].clip_[1] = this->materials[material_index].bumpiness;
 			materialBase[material_index].clip_[2] = this->materials[material_index].metalic;
 		}
 
 		/*	Update Lights.	*/
-		LightData *stageLightBase = this->stageLightData.buffers[getRoundRobinIndex()];
+		{
+			LightData *stageLightBase = this->stageLightData.buffers[getRoundRobinIndex()];
 
-		stageLightBase->directionalCount = 0;
-		stageLightBase->pointCount = 0;
-		size_t light_count = 0;
-		for (light_count = 0; light_count < getLights().size(); light_count++) {
-			Light *light = getLights()[light_count];
+			stageLightBase->directionalCount = 0;
+			stageLightBase->pointCount = 0;
+			size_t light_count = 0;
+			for (light_count = 0; light_count < getLights().size(); light_count++) {
+				Light *light = getLights()[light_count];
 
-			/*	*/
-			if (!light->isActive()) {
-				continue;
-			}
-
-			switch (light->getLightType()) {
-
-			case Light::LightType::Directional: {
-
-				DirectionalLight *dirLight = dynamic_cast<DirectionalLight *>(light);
-				DirectionalLightData *lightData = &stageLightBase->directional[stageLightBase->directionalCount];
-
-				const glm::vec3 light_direction = dirLight->getDirectionalLight();
-
-				lightData->lightColor = light->color;
-				lightData->lightDirection = glm::vec4(light_direction, 1);
-
-				/*	Shadow Setup.	*/
-				lightData->lightShadow.shadow[0] = light->hasShadow() ? light->getShadowStrength() : 0.0f;
-				lightData->lightShadow.shadow[1] = light->bias;
-				lightData->lightShadow.shadow[2] = light->getShadowFade();
-
-				if (light->getShadowStrength() > 0) {
-
-					/*	*/
-					const float near_plane = -(dirLight->getShadowDistance());
-					const float far_plane = (dirLight->getShadowDistance());
-
-					const glm::mat4 lightProjection = glm::ortho(
-						-dirLight->getShadowDistance(), dirLight->getShadowDistance(), -dirLight->getShadowDistance(),
-						dirLight->getShadowDistance(), near_plane, far_plane);
-
-					/*	*/
-					const glm::vec3 dir_position =
-						this->getActiveCamera() ? this->getActiveCamera()->getPosition() : dirLight->getPosition();
-					const glm::mat4 lightView =
-						glm::lookAt(dir_position, dir_position + light_direction * 100.0f, dirLight->up());
-					const glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-
-					light->shadowData.lightSpaceMatrix = lightSpaceMatrix;
-					lightData->lightShadow.lightSpaceMatrix = lightSpaceMatrix;
+				/*	*/
+				if (!light->isActive()) {
+					continue;
 				}
 
-				stageLightBase->directionalCount++;
-			} break;
-			case Light::LightType::Point: {
-				PointLight *pointLight = dynamic_cast<PointLight *>(light);
-				PointLightInstance *lightData = &stageLightBase->pointLight[stageLightBase->pointCount];
+				switch (light->getLightType()) {
 
-				lightData->color = light->color;
-				lightData->position = pointLight->getPosition();
-				lightData->range = pointLight->getRange();
+				case Light::LightType::Directional: {
 
-				if (light->shadow > 0) {
+					DirectionalLight *dirLight = dynamic_cast<DirectionalLight *>(light);
+					DirectionalLightData *lightData = &stageLightBase->directional[stageLightBase->directionalCount];
+
+					const glm::vec3 light_direction = dirLight->getDirectionalLight();
+
+					lightData->lightColor = light->color;
+					lightData->lightDirection = glm::vec4(light_direction, 1);
+
+					/*	Shadow Setup.	*/
+					lightData->lightShadow.shadow[0] = light->hasShadow() ? light->getShadowStrength() : 0.0f;
+					lightData->lightShadow.shadow[1] = light->bias;
+					lightData->lightShadow.shadow[2] = light->getShadowFade();
+
+					if (light->getShadowStrength() > 0) {
+
+						/*	*/
+						const float near_plane = -(dirLight->getShadowDistance());
+						const float far_plane = (dirLight->getShadowDistance());
+
+						const glm::mat4 lightProjection = glm::ortho(
+							-dirLight->getShadowDistance(), dirLight->getShadowDistance(),
+							-dirLight->getShadowDistance(), dirLight->getShadowDistance(), near_plane, far_plane);
+
+						/*	*/
+						const glm::vec3 dir_position = this->getActiveCamera()
+														   ? glm::ceil(this->getActiveCamera()->getPosition())
+														   : dirLight->getPosition();
+						const glm::mat4 lightView =
+							glm::lookAt(dir_position, dir_position + light_direction * 100.0f, dirLight->up());
+						const glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+						light->shadowData.lightSpaceMatrix = lightSpaceMatrix;
+						lightData->lightShadow.lightSpaceMatrix = lightSpaceMatrix;
+					}
+
+					stageLightBase->directionalCount++;
+				} break;
+				case Light::LightType::Point: {
+					PointLight *pointLight = dynamic_cast<PointLight *>(light);
+					PointLightInstance *lightData = &stageLightBase->pointLight[stageLightBase->pointCount];
+
+					lightData->color = light->color;
+					lightData->position = pointLight->getPosition();
+					lightData->range = pointLight->getRange();
+
+					if (light->shadow > 0) {
+					}
+
+					stageLightBase->pointCount++;
+				} break;
+				default:
+				case Light::LightType::Spot:
+					break;
 				}
-
-				stageLightBase->pointCount++;
-			} break;
-			default:
-			case Light::LightType::Spot:
-				break;
 			}
 		}
 
@@ -395,6 +409,7 @@ namespace glsample {
 			glFlushMappedBufferRange(GL_UNIFORM_BUFFER, light_offset, this->UBOStructure.light_align_size);
 
 			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
+
 		} else {
 			// TODO: add
 		}
@@ -410,14 +425,16 @@ namespace glsample {
 
 			/*	*/
 			// TODO: multi thread
-			const size_t num_threads = 6;
+			const size_t num_threads = SystemInfo::getCPUCoreCount() / 4;
 			static std::vector<std::vector<Node *>> objects(num_threads, std::vector<Node *>());
 			for (size_t i = 0; i < objects.size(); i++) {
 				objects[i].clear();
 				objects[i].reserve(1024);
 			}
 
-#pragma omp parallel for collapse(1) num_threads(num_threads)
+			// TODO: get all parent nodes.
+			this->getRootNode();
+#pragma omp parallel for num_threads(num_threads)
 			for (size_t node_index = 0; node_index < this->getNodes().size(); node_index++) {
 
 				Node *node = this->getNodes()[node_index];
@@ -478,7 +495,11 @@ namespace glsample {
 			for (size_t i = 0; i < objects.size(); i++) {
 				this->visableNodes.insert(this->visableNodes.end(), objects[i].begin(), objects[i].end());
 			}
+
 		} else {
+
+			/*	Remove if disabled.	*/
+
 			this->visableNodes = this->getNodes();
 		}
 	}
@@ -491,7 +512,7 @@ namespace glsample {
 		if (camera) {
 			this->currentActiveCamera = camera;
 
-			GlobalSceneStateData *globalScene = this->stageCommonRobin.buffers[getRoundRobinIndex()];
+			GlobalSceneStateData *globalScene = this->stageCameraCommonRobin.buffers[getRoundRobinIndex()];
 			globalScene->camera = *camera;
 			CameraController *cameraController = dynamic_cast<CameraController *>(
 				camera); // TODO: remove controller once the camera start using the base Node
@@ -515,12 +536,22 @@ namespace glsample {
 		}
 
 		/*	*/
+		if (getRenderingSettings().preDepthRenderingSettings) {
+			/*	*/
+			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+			this->render();
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		}
+
+		this->getRenderingSettings().skybox.render(*camera);
+
+		/*	*/
 		this->render();
 
 		/*	*/
 		if (useDebug()) {
 
-			const bool renderWireframe = Math::isFlagSet<unsigned int>(debugMode, DebugMode::Wireframe);
+			const bool renderWireframe = Bitwise::isFlagSet<unsigned int>(debugMode, DebugMode::Wireframe);
 			if (renderWireframe) {
 				const std::string debugDomain = "Wireframe";
 				glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, debugDomain.size(), debugDomain.data());
@@ -533,7 +564,7 @@ namespace glsample {
 				glPopDebugGroup();
 			}
 
-			const bool renderBoundingShapes = Math::isFlagSet<unsigned int>(debugMode, DebugMode::BoundingBox);
+			const bool renderBoundingShapes = Bitwise::isFlagSet<unsigned int>(debugMode, DebugMode::BoundingBox);
 			if (renderBoundingShapes) {
 				const std::string debugDomain = "Debug";
 				glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, debugDomain.size(), debugDomain.data());
@@ -546,7 +577,7 @@ namespace glsample {
 				/*	*/
 				for (auto it = order.begin(); it != order.end(); it++) {
 					// RenderQueue renderQueue = (*it).first;
-					std::deque<const Node *> nodeQueue = this->renderBucketQueue[(*it)];
+					std::deque<const Node *> nodeQueue = this->renderQueueDomainBucket[(*it)];
 					for (auto itQ = nodeQueue.begin(); itQ != nodeQueue.end(); itQ++) {
 
 						const Node *node = (*itQ);
@@ -567,7 +598,7 @@ namespace glsample {
 			return;
 		}
 
-		GlobalSceneStateData *globalScene = this->stageCommonRobin.buffers[getRoundRobinIndex()];
+		GlobalSceneStateData *globalScene = this->stageCameraCommonRobin.buffers[getRoundRobinIndex()];
 
 		/*	*/
 		globalScene->camera.far = light->getShadowDistance();
@@ -625,17 +656,27 @@ namespace glsample {
 												RenderQueue::Transparent, RenderQueue::Overlay};
 
 		/*	*/
-		for (auto it = order.begin(); it != order.end(); it++) {
+
+		std::list<std::deque<const Node *>> lists;
+		for (auto it = renderQueueDomainBucket.begin(); it != renderQueueDomainBucket.end(); it++) {
+			lists.push_back((*it).second);
+		}
+
+		unsigned int domainIndex = 0;
+		for (auto *it = this->renderQueue.begin(); it != renderQueue.end(); it++) {
 			// RenderQueue renderQueue = (*it).first;
-			std::deque<const Node *> nodeQueue = this->renderBucketQueue[(*it)];
+			/*	Makes a copy, to prevent the original gettinged emptied.	*/
+			std::deque<const Node *> nodeQueue = (*it);
 
 			/*	*/
-			const std::string domain = fmt::format("{}", (int)(*it));
+			const std::string domain = fmt::format("{} {}", getRenderQueueSymbols()[domainIndex], (domainIndex++));
 
 			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, domain.size(), domain.data());
 			for (auto itQ = nodeQueue.begin(); itQ != nodeQueue.end(); itQ++) {
 				const Node *node = (*itQ);
+
 				/*	Ignore if disabled.	*/
+				// TODO: remove, make it the frustum culling to decide this.
 				if (!node->isActive()) {
 					continue;
 				}
@@ -645,22 +686,22 @@ namespace glsample {
 			glPopDebugGroup();
 		}
 
-		for (auto it = this->renderQueue.begin(); it != this->renderQueue.end(); it++) {
-			const Node *node = (*it);
-			// this->renderNode(node);
+		for (auto *it = this->renderQueue.begin(); it != this->renderQueue.end(); it++) {
+			// const Node *node = (*it);
+			//  this->renderNode(node);
 		}
 
 		/*	*/
 		if (this->debugMode & DebugMode::Wireframe) {
 			/*	*/
-			for (const Node *node : this->renderQueue) {
-				/*	*/
-				// const Node *node = this->renderQueue[x];
-				// this->renderNode(node);
-			}
+			// for (const Node *node : this->renderQueue) {
+			/*	*/
+			// const Node *node = this->renderQueue[x];
+			// this->renderNode(node);
+			//}
 		}
 
-		/*	Reset some OpenGL States.	*/
+		/*	Reset some OpenGL States.	*/ // TODO: remove once
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -694,6 +735,7 @@ namespace glsample {
 			const MaterialTextureSampling &sampling = material.texture_sampling[materialTextureIndex];
 
 			/*	*/
+
 			glSamplerParameteri(this->samplers[textureMapIndex], GL_TEXTURE_MIN_FILTER,
 								sampling.filtering == TextureFilterMode::Nearset ? GL_NEAREST_MIPMAP_NEAREST
 																				 : GL_LINEAR_MIPMAP_LINEAR);
@@ -726,14 +768,7 @@ namespace glsample {
 				glUseProgram(material->program);
 			}
 
-			this->bindTexture(*material, TextureTypeBinding::Diffuse);
-			this->bindTexture(*material, TextureTypeBinding::Normal);
-			this->bindTexture(*material, TextureTypeBinding::AlphaMask);
-			this->bindTexture(*material, TextureTypeBinding::Emission);
-			this->bindTexture(*material, TextureTypeBinding::AmbientOcclusion);
-			this->bindTexture(*material, TextureTypeBinding::Displacement);
-			this->bindTexture(*material, TextureTypeBinding::Specular_Roughness);
-			this->bindTexture(*material, TextureTypeBinding::Metal);
+			this->bindMaterialTextures(material);
 
 			// this->bindTexture(material, TextureType::Irradiance); //TODO: enable once material has been binded
 			// with irradiance texture
@@ -741,58 +776,110 @@ namespace glsample {
 			this->bindTexture(*material, TextureTypeBinding::DepthBuffer);
 
 			/*	*/
-			const RenderQueue domain = getQueueDomain(*material);
+			const RenderQueue domain = material->getGraphicSettings().queue;
 
 			glDisable(GL_STENCIL_TEST);
 			glDepthFunc(GL_LESS);
 
 			/*	*/
-			glPolygonMode(GL_FRONT_AND_BACK, material->wireframe_mode ? GL_LINE : GL_FILL);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+			/*	*/
+			glDepthMask(material->getGraphicSettings().DepthWrite ? GL_TRUE : GL_FALSE);
+			if (material->getGraphicSettings().DepthFunc != DepthFunc::NoCompare) {
+				glEnable(GL_DEPTH_TEST);
+			} else {
+				glDisable(GL_DEPTH_TEST);
+			}
 
 			/*	*/
 			if (domain >= RenderQueue::Transparent) {
 				/*	*/
 				glEnable(GL_BLEND);
-				glEnable(GL_DEPTH_TEST);
-				glDepthMask(GL_FALSE);
-
-				/*	*/
-				switch (material->blend_func_mode) {
-				case fragcore::BlendEqu::eNoEqu:
-				case fragcore::BlendEqu::Addition:
-				case fragcore::BlendEqu::Subtract:
-				case fragcore::BlendEqu::ReverseSubtract:
-				case fragcore::BlendEqu::Min:
-				case fragcore::BlendEqu::Max:
-				default:
-					break;
-				}
 				/*	*/
 				// glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-				glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				/*	*/
+				switch (material->getGraphicSettings().blend_color_func) {
+				case fragcore::BlendFunc::Zero:
+				case fragcore::BlendFunc::One:
+				case fragcore::BlendFunc::SrcColor:
+				case fragcore::BlendFunc::OneMinusSrcColor:
+				case fragcore::BlendFunc::SrcAlpha:
+				case fragcore::BlendFunc::OneMinusSrcAlpha:
+					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+					break;
+				case fragcore::BlendFunc::ConstantAlpha:
+					break;
+				}
+
+				/*	*/
+				switch (material->getGraphicSettings().blend_equ) {
+				case fragcore::BlendEqu::NoEqu:
+				case fragcore::BlendEqu::Addition:
+					glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+					break;
+				case fragcore::BlendEqu::Subtract:
+					glBlendEquationSeparate(GL_FUNC_SUBTRACT, GL_FUNC_SUBTRACT);
+					break;
+				case fragcore::BlendEqu::ReverseSubtract:
+				case fragcore::BlendEqu::Min:
+					glBlendEquationSeparate(GL_MIN, GL_MIN);
+					break;
+				case fragcore::BlendEqu::Max:
+					glBlendEquationSeparate(GL_MAX, GL_MAX);
+					break;
+				}
 
 			} else {
 				/*	*/
 				glDisable(GL_BLEND);
-				glEnable(GL_DEPTH_TEST);
-				glDepthMask(GL_TRUE);
 			}
 
-			/*	*/
-			if (material->culling_both_side_mode) {
-				glDisable(GL_CULL_FACE);
-				glCullFace(GL_FRONT_AND_BACK);
-			} else {
+			/*	Culling Mode.	*/
+			switch (material->getGraphicSettings().cullingMode) {
+			case fragcore::CullingMode::Front:
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_FRONT);
+				break;
+			case fragcore::CullingMode::Back:
 				glEnable(GL_CULL_FACE);
 				glCullFace(GL_BACK);
+				break;
+			case fragcore::CullingMode::FrontAndBack:
+				glEnable(GL_CULL_FACE);
+				glCullFace(GL_FRONT_AND_BACK);
+				break;
+			case fragcore::CullingMode::None:
+				glDisable(GL_CULL_FACE);
+				glCullFace(GL_FRONT_AND_BACK);
+				break;
 			}
 
 			/*	*/
 			this->currentBindedMaterial = (Material *)material;
 		}
+	}
+
+	void Scene::bindMaterialTextures(const Material *material) {
+
+		this->bindTexture(*material, TextureTypeBinding::Diffuse);
+		this->bindTexture(*material, TextureTypeBinding::Normal);
+		this->bindTexture(*material, TextureTypeBinding::AlphaMask);
+		this->bindTexture(*material, TextureTypeBinding::Emission);
+		this->bindTexture(*material, TextureTypeBinding::AmbientOcclusion);
+		this->bindTexture(*material, TextureTypeBinding::Displacement);
+		this->bindTexture(*material, TextureTypeBinding::Specular_Roughness);
+		this->bindTexture(*material, TextureTypeBinding::Metal);
+		// this->bindTexture(material, TextureType::Irradiance); //TODO: enable once material has been binded
+		// with irradiance texture
+		// this->bindTexture(*material, TextureTypeBinding::Reflection);
+
+		// glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Reflection);
+		// glBindTexture(GL_TEXTURE_2D, this->getRenderingSettings().skybox.getTexture()); // TODO: relocate
+
+		this->bindTexture(*material, TextureTypeBinding::DepthBuffer);
 	}
 
 	void Scene::renderNode(const Node *node) {
@@ -842,14 +929,14 @@ namespace glsample {
 			/*	Material, model matrix.	*/
 			glVertexAttribI2i(8, material_index, currentNodeIndex % this->UBOStructure.max_node_per_binding);
 
-			if (material.isTessellationEnabled()) {
+			/*	*/
+			if (this->getRenderingSettings().enabledTessellation && material.isTessellationEnabled()) {
 
 				/*	*/
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
 				glDrawElementsBaseVertex(fragcore::GLHelper::getPrimitive(Primitive::Patchs), refMesh.nrIndicesElements,
 										 GL_UNSIGNED_INT, (void *)(sizeof(unsigned int) * refMesh.indices_offset),
 										 refMesh.vertex_offset);
-
 			} else {
 
 				/*	*/
@@ -866,40 +953,58 @@ namespace glsample {
 
 	void Scene::sortRenderQueue() {
 
-		this->renderQueue.clear();
-		this->renderBucketQueue.clear();
-
 		/*	*/
-		for (size_t x = 0; x < this->visableNodes.size(); x++) {
+		for (size_t i = 0; i < this->renderQueue.size(); i++) {
+			this->renderQueue[i].clear();
+		}
+		this->renderQueueDomainBucket.clear();
+
+		std::vector<Node *> visableNode2Sort = this->visableNodes;
+
+		/*	*/ // TODO: sort by node tree.
+		for (size_t x = 0; x < visableNode2Sort.size(); x++) {
 
 			/*	*/
-			const Node *node = this->visableNodes[x];
+			const Node *node = visableNode2Sort[x];
+
+			/*	Exclude if no material associated.	*/
 			if (node->materialIndex.empty()) {
 				continue;
 			}
 
-			/*	*/
-			const bool validMaterialIndex = node->materialIndex[0] < this->materials.size();
+			for (size_t material_index = 0; material_index < node->materialIndex.size(); material_index++) {
 
-			if (validMaterialIndex) {
+				/*	*/
+				const size_t material_pool_index = node->materialIndex[material_index];
+				const bool validMaterialIndex = material_pool_index < this->getMaterials().size();
 
-				const Material *material = &this->materials[node->materialIndex[0]];
-				assert(material);
+				if (validMaterialIndex) {
 
-				const RenderQueue domain = getQueueDomain(*material);
+					const Material *material = &this->getMaterials()[material_pool_index];
+					assert(material);
 
-				this->renderBucketQueue[domain].push_back(node);
+					/*	*/
+					/*	TODO domain clamping.	*/
+					const RenderQueue domain = material->getRenderQueue();
 
-				if (domain >= RenderQueue::Transparent) {
-					this->renderQueue.push_back(node);
+					this->renderQueueDomainBucket[domain].push_back(node);
+
 				} else {
-					this->renderQueue.push_front(node);
+					std::cerr << "Invalid Material " << node->getName() << std::endl;
 				}
-
-			} else {
-				std::cerr << "Invalid Material " << node->getName() << std::endl;
 			}
 		}
+
+		for (size_t domain_index = 0; domain_index < getQueueTypesOrdered().size(); domain_index++) {
+			const RenderQueue domain = getQueueTypesOrdered()[domain_index];
+
+			std::deque<const Node *> queue = this->renderQueueDomainBucket[domain];
+			this->renderQueue[domain_index] = queue;
+		}
+
+		/*	*/
+
+		/*	Sort Based on Distance from Camera, front to back.	*/
 
 		/*	Sort Transparent Objects. Based on priority.	*/
 		// std::sort(vec.begin(), vec.end(), [this, &index, &edges](const int_iter it1, const int_iter it2) -> bool {
@@ -908,7 +1013,7 @@ namespace glsample {
 
 		//				int priority = computeMaterialPriority(*material);
 
-		renderBucketQueue[RenderQueue::Transparent];
+		// renderQueueDomainBucket[RenderQueue::Transparent];
 
 		/*	Sort based on Shared mesh objects.	*/
 
@@ -920,30 +1025,6 @@ namespace glsample {
 		const bool useBlending = material.opacity < 1.0f;
 
 		return (useBlending * 1000) + (use_clipping * 100);
-	}
-
-	RenderQueue Scene::getQueueDomain(const Material &material) const noexcept {
-
-		/*	*/
-		const bool useGeometryAlpha = material.clipping < 1;
-		const bool useBlending = material.transparent[3] < 1.0f ||
-								 (material.texture_index[TextureTypeBinding::AlphaMask] >= 0 && !useGeometryAlpha);
-
-		const bool useWireframe = material.wireframe_mode;
-
-		if (useWireframe) {
-			return RenderQueue::Overlay;
-		}
-
-		if (useBlending) {
-			return RenderQueue::Transparent;
-		}
-
-		if (useGeometryAlpha) {
-			return RenderQueue::AlphaTest;
-		}
-
-		return RenderQueue::Geometry;
 	}
 
 	void Scene::renderUI() { this->settingUI.draw(); }

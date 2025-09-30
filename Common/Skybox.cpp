@@ -1,5 +1,6 @@
 #include "Skybox.h"
 #include "Common.h"
+#include "Scene/Camera.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <IO/IOUtil.h>
@@ -22,7 +23,7 @@ namespace glsample {
 		glDeleteSamplers(1, &this->skybox_sampler);
 	}
 
-	void Skybox::Init(unsigned int texture, unsigned int program) {
+	void Skybox::init(unsigned int texture, unsigned int program) {
 
 		/*	*/
 		GLint minMapBufferSize = 0;
@@ -54,11 +55,11 @@ namespace glsample {
 		this->skybox_program = program;
 	}
 
-	void Skybox::Render(const CameraController &camera) {
-		this->Render((camera.getProjectionMatrix() * glm::inverse(camera.getRotationMatrix())));
+	void Skybox::render(const Camera &camera) noexcept {
+		this->render((camera.getProjectionMatrix() * glm::inverse(camera.getRotationMatrix())));
 	}
 
-	void Skybox::Render(const glm::mat4 &viewProj) {
+	void Skybox::render(const glm::mat4 &viewProj) noexcept {
 
 		if (!this->isEnabled) {
 			return;
@@ -154,7 +155,7 @@ namespace glsample {
 		this->frameIndex = (this->frameIndex + 1) % this->nrUniformBuffer;
 	}
 
-	void Skybox::RenderImGUI() {
+	void Skybox::renderImGUI() {
 
 		ImGui::PushID(10);
 		if (ImGui::CollapsingHeader("Skybox Settings", &this->skybox_settings_visable,

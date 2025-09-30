@@ -4,7 +4,6 @@
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 #include <ProceduralGeometry.h>
-#include <internal_object_type.h>
 
 using namespace glsample;
 using namespace fragcore;
@@ -149,6 +148,9 @@ void CommonUtil::loadCube(MeshObject &cubeMesh, const float scale, const int seg
 
 	glBindVertexArray(0);
 
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
 	cubeMesh.nrIndicesElements = indices.size();
 	cubeMesh.indices_offset = 0;
 	cubeMesh.vertex_offset = 0;
@@ -244,8 +246,9 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		const unsigned int height = target_desc.height;
 		const unsigned int depth = target_desc.depth;
 		const unsigned int multisamples = target_desc.nrSamples;
-		const unsigned int maxLODLevels = target_desc.numlevel;
 		const bool useMultiSampling = multisamples > 1;
+		const unsigned int maxLODLevels = target_desc.numlevel;
+		const bool fixedSampling = target_desc.fixedSamples;
 
 		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(target_desc.graphicFormat);
 
@@ -267,7 +270,11 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 					  texture_attachment_name.data());
 
 		if (useMultiSampling) {
-			glTexImage2DMultisample(texture_type, multisamples, internal_format, width, height, GL_TRUE);
+			if (depth > 1) {
+			} else {
+				glTexImage2DMultisample(texture_type, multisamples, internal_format, width, height, GL_TRUE);
+			}
+
 		} else {
 			if (depth > 1) {
 				glTexImage3D(texture_type, 0, internal_format, width, height, depth, 0, GL_RGBA, GL_UNSIGNED_BYTE,
@@ -291,12 +298,12 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_MAX_LOD, 0));
 			FVALIDATE_GL_CALL(glTexParameterf(texture_type, GL_TEXTURE_LOD_BIAS, 0.0f));
 			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_BASE_LEVEL, 0));
-
 			FVALIDATE_GL_CALL(glTexParameteri(texture_type, GL_TEXTURE_MAX_LEVEL, maxLODLevels));
-		}
 
-		if (maxLODLevels > 0) {
-			glGenerateMipmap(texture_type);
+			/*	*/
+			if (maxLODLevels > 1) {
+				glGenerateMipmap(texture_type);
+			}
 		}
 
 		glBindTexture(texture_type, 0);
@@ -322,8 +329,11 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		const unsigned int depth_width = depthstencil->width;
 		const unsigned int depth_height = depthstencil->height;
 		const unsigned int depth_depth = depthstencil->depth;
+		const bool useMultiSampling = multisamples > 1;
+		const bool fixedSampling = depthstencil->fixedSamples;
 		const GLenum internal_format = fragcore::GLHelper::getGraphicFormat(depthstencil->graphicFormat);
 
+		/*	*/
 		GLenum texture_type = fragcore::GLHelper::getTextureTarget(depthstencil->target);
 		if (multisamples > 1) {
 			texture_type = GL_TEXTURE_2D_MULTISAMPLE;
@@ -331,8 +341,15 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 
 		/*	*/
 		glBindTexture(texture_type, framebuffer->attachments[framebuffer->depthIndex]);
-		if (multisamples > 0) {
-			glTexImage2DMultisample(texture_type, multisamples, internal_format, depth_width, depth_height, GL_TRUE);
+		if (useMultiSampling) {
+			switch (texture_type) {
+			case GL_TEXTURE_2D_MULTISAMPLE:
+				glTexImage2DMultisample(texture_type, multisamples, internal_format, depth_width, depth_height,
+										fixedSampling);
+			default:
+				break;
+			}
+
 		} else {
 			switch (texture_type) {
 			case GL_TEXTURE_2D:
@@ -353,7 +370,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		framebuffer->attachmentSize[framebuffer->depthIndex] = {depth_width, depth_height, depth_depth};
 
 		/*	*/
-		if (multisamples <= 1) {
+		if (!useMultiSampling) {
 
 			const float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 			glTexParameterfv(texture_type, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -376,6 +393,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 		glBindTexture(texture_type, 0);
 		switch (texture_type) {
 		case GL_TEXTURE_2D:
+		case GL_TEXTURE_2D_MULTISAMPLE:
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_type,
 								   framebuffer->attachments[framebuffer->depthIndex], 0);
 			break;
@@ -383,6 +401,8 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 			glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, framebuffer->attachments[framebuffer->depthIndex],
 								 0);
 			break;
+		default:
+					throw RuntimeException("Failed to bind texture attachment for framebuffer, {}", -1);
 		}
 	}
 

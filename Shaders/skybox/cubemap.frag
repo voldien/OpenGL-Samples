@@ -18,6 +18,8 @@ layout(set = 0, binding = 0, std140) uniform UniformBufferBlock {
 }
 ubo;
 
+layout(early_fragment_tests) in;
+
 void main() {
 
 	fragColor = texture(TextureCubeMap, vVertex) * ubo.tintColor;

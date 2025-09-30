@@ -86,6 +86,38 @@ void DebugDrawManager::updateBuffers() {
 	for (size_t i = 0; i < this->commands.size(); i++) {
 		const Queue<DebugDrawCommand *> &commandQueue = this->commands[i];
 		const size_t nrCommands = commandQueue.getSize();
+
+		if (nrCommands <= 0) {
+		}
+
+		DebugData *getDebugData = &this->StageBuffers.getBuffer(0);
+
+		for (size_t j = 0; j < commandQueue.getSize(); j++) {
+			const DebugDrawCommand *command = commandQueue[j];
+			getDebugData->color = command->color;
+
+			switch (command->type) {
+			case DrawType::LINE:
+				break;
+			case DrawType::CROSS:
+				break;
+			case DrawType::SPHERE:
+				break;
+			case DrawType::CIRCLE:
+				break;
+			case DrawType::TRIANGLE:
+				break;
+			case DrawType::AABB:
+
+				break;
+			case DrawType::OBB:
+				break;
+			case DrawType::MAX_DRAW_TYPE:
+				break;
+			}
+		}
+
+		/*	Update Draw Parameters.	*/
 	}
 }
 

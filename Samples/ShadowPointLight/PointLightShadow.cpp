@@ -249,7 +249,7 @@ namespace glsample {
 
 			/*	load Skybox Textures	*/
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
-			this->skybox.Init(skytexture, this->skybox_program);
+			this->skybox.init(skytexture, this->skybox_program);
 
 			{
 				/*	Clamp texture size to valid size.	*/
@@ -424,7 +424,7 @@ namespace glsample {
 				this->scene->render(&this->camera);
 			}
 
-			skybox.Render(this->camera);
+			skybox.render(this->camera);
 		}
 
 		void update() override {

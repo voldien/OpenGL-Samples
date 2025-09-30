@@ -195,7 +195,7 @@ void MiscProcessingUtil::computeDiffuseIrradianceCubeMap(unsigned int env_textur
 	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
 
 	Skybox skybox;
-	skybox.Init(env_texture_panoramic_source, irradiance_diffuse_cubemap_program);
+	skybox.init(env_texture_panoramic_source, irradiance_diffuse_cubemap_program);
 
 	/*	Render frames.	*/
 
@@ -222,7 +222,7 @@ void MiscProcessingUtil::computeDiffuseIrradianceCubeMap(unsigned int env_textur
 							   irradiance_cubemap_texture_target, 0);
 		glClear(GL_COLOR_BUFFER_BIT);
 		/*	Render Mesh.	*/
-		skybox.Render(captureViews[face_index]);
+		skybox.render(captureViews[face_index]);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

@@ -138,7 +138,7 @@ namespace glsample {
 			util.computeReflectanceIrradiance(this->skybox_texture_panoramic, this->reflectance_irradiance_texture,
 											  2048, 1024);
 
-			skybox.Init(this->skybox_texture_panoramic, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
+			skybox.init(this->skybox_texture_panoramic, Skybox::loadDefaultPanoramicProgram(this->getFileSystem()));
 
 			/*	*/
 			GLint minMapBufferSize = 0;
@@ -196,7 +196,7 @@ namespace glsample {
 				glBindVertexArray(0);
 			}
 
-			this->skybox.Render(this->camera);
+			this->skybox.render(this->camera);
 		}
 
 		void update() override {

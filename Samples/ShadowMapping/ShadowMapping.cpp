@@ -72,7 +72,7 @@ namespace glsample {
 		size_t shadowHeight = static_cast<long>(4096) * 2;
 
 		SceneShadow *scene{};
-		Skybox skybox;
+ 
 
 		unsigned int diffuse_irradiance_cubemap_texture{};
 
@@ -295,13 +295,14 @@ namespace glsample {
 			this->scene = SceneHelper::loadFrom<SceneShadow>(*modelLoader);
 			this->scene->getLights().push_back(new DirectionalLight());
 
+
 			/*	load Skybox Textures	*/
 			TextureImporter textureImporter(this->getFileSystem());
 			unsigned int skytexture = textureImporter.loadImage2D(skyboxPath);
-			this->skybox.Init(skytexture, this->skybox_program);
+			this->scene->getRenderingSettings().skybox.init(skytexture, this->skybox_program);
 
 			MiscProcessingUtil util(this->getFileSystem());
-			util.computeDiffuseIrradianceCubeMap(skybox.getTexture(), this->diffuse_irradiance_cubemap_texture, 64, 64);
+			util.computeDiffuseIrradianceCubeMap(this->scene->getRenderingSettings().skybox.getTexture(), this->diffuse_irradiance_cubemap_texture, 64, 64);
 		}
 
 		void onResize(int width, int height) override {
@@ -378,7 +379,7 @@ namespace glsample {
 				glUseProgram(0);
 			}
 
-			this->skybox.Render(this->camera);
+		 
 		}
 
 		void update() override {

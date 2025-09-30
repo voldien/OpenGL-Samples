@@ -57,7 +57,7 @@ namespace glsample {
 			if (ImGui::DragFloat3("Position", &position[0])) {
 				cameraController.setPosition(position);
 			}
-			glm::vec3 rotation = cameraController.getRotation();
+			glm::vec3 rotation = cameraController.getRotationEular();
 			if (ImGui::DragFloat3("Rotation", &rotation[0])) {
 				cameraController.setRotation(rotation);
 			}
