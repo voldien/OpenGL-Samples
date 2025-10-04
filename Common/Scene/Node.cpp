@@ -45,6 +45,7 @@ void Node::setScale(const glm::vec3 &globalScale) noexcept {
 glm::vec3 Node::getScale() const noexcept { return TransformGLM::getScale(); }
 
 const glm::quat &Node::getRotation() const noexcept { return TransformGLM::getRotation(); }
+glm::vec3 Node::getRotationEular() const noexcept { return TransformGLM::getRotationEular(); }
 void Node::setRotation(const glm::quat &quat) noexcept {
 
 	const int num_childrens = this->getNumChildren();
@@ -57,10 +58,13 @@ void Node::setRotation(const glm::quat &quat) noexcept {
 		assert(child_node);
 		assert(child_node != this);
 
-		TransformGLM::setRotation(child_node->getRotation() * rotate_offset);
+		child_node->setRotation(child_node->getRotation() * rotate_offset);
 	}
 
 	TransformGLM::setRotation(quat);
+}
+void Node::setRotationEular(const glm::vec3 &globalEularRotation) noexcept {
+	Node::setRotation(glm::quat(globalEularRotation));
 }
 
 void Node::setGlobalPositionDirect(const glm::vec3 &globalPosition) noexcept {

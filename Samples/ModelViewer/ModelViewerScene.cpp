@@ -198,5 +198,7 @@ void PBRScene::bindMaterial(const Material *material) {
 		}
 
 		glDisable(GL_BLEND);
+
+		this->currentBindedMaterial = (Material*)material;
 	}
 }

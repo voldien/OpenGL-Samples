@@ -142,16 +142,10 @@ namespace glsample {
 		unsigned int depthIndex = 31; /*	Last attachment reserved for the depth/stencil.	*/
 	};
 
-		/*	*/
-	using DrawArraysIndirectCommand = fragcore::IndirectDrawArray;
-	using DrawElementsIndirectCommand = fragcore::IndirectDrawElement;
-	using DrawDispatchIndirectCommand = fragcore::IndirectDispatch;
+
 
 	/*	*/
 	using TextureDesc = fragcore::TextureDesc;
 	using SamplerDesc = fragcore::SamplerDesc;
-
-
-
 
 } // namespace glsample

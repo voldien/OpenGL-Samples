@@ -1,5 +1,6 @@
 #include "SceneHelper.h"
 #include "Importer/ModelImporter.h"
+#include "RenderDesc.h"
 #include "Scene/Material.h"
 #include "Scene/Node.h"
 
@@ -68,7 +69,7 @@ void SceneHelper::convertMaterialSystem(Scene &scene, const ModelImporter &impor
 		material.bumpiness = mat.bumpiness;
 		material.opacity = mat.opacity;
 		material.metalic = mat.metalic;
-		material.getGraphicSettings().wireframe_mode = mat.wireframe_mode;
+		material.getGraphicSettings().fillMode = mat.wireframe_mode ? FillMode::Line : FillMode::Fill;
 
 		material.getGraphicSettings().clipping = mat.clipping;
 

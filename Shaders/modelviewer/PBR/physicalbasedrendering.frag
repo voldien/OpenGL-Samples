@@ -120,9 +120,10 @@ void main() {
 	fragColor = vec4(color, 1.0);
 
 	/*	Alpha.	*/
-	const float alpha = diffuseColor.a * texture(AlphaMaskedTexture, TexCoords).r * mat.transparency.a;
-	fragColor.a = alpha; // TODO: fix tranmission and alpha. mix(alpha, 1, kSpecular_F.x);
-	fragColor.rgb *= mat.transparency.rgb;
+	const vec3 tranmissionFactor = mix(mat.transparency.rgb, vec3(1), kSpecular_F.x);
+	const float alphaOpacity = diffuseColor.a * texture(AlphaMaskedTexture, TexCoords).r * mat.transparency.a;
+	fragColor.a = alphaOpacity * (tranmissionFactor.r * tranmissionFactor.g * tranmissionFactor.b);
+	fragColor.rgb *= tranmissionFactor;
 
 	/*	*/
 	if (UseClipping) {

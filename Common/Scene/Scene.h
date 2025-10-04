@@ -148,7 +148,7 @@ namespace glsample {
 		using RenderBatch = struct render_batch_t {
 			MeshObject *mesh;
 			unsigned int instances;
-			Node* begin;
+			Node *begin;
 			RenderQueue queue;
 		};
 
@@ -181,9 +181,9 @@ namespace glsample {
 		std::map<size_t, glm::mat4> worldMatricesCache;
 		std::map<size_t, AABB> worldAABBCache;
 
-		// PoolAllocator<DirectionalLight> DirLightPool;
-		// PoolAllocator<PointLight> PointLightPool;
-		// fragcore::PoolAllocator<Node> nodePool;
+		// fragcore::PoolAllocator<DirectionalLight> DirLightPool;
+		// fragcore::PoolAllocator<PointLight> PointLightPool;
+		// fragcore::PoolAllocator<Node> nodePoolS;
 		// fragcore::PoolAllocator<AnimationPlayer> animationss;
 
 		using FrustumSettings = struct _frustum_settings_t {
@@ -237,6 +237,15 @@ namespace glsample {
 		std::array<unsigned int, 16> default_textures = {0};
 		std::array<unsigned int, 16> samplers = {0};
 
+		using RenderingStatistic = struct rendering_statistic_t {
+			unsigned int bindedMaterials = 0;
+			unsigned int bindedTextures = 0;
+			unsigned int bindedSamplers = 0;
+			unsigned int bindedUniforms = 0;
+			unsigned int bindedGeometry = 0;
+			unsigned int bindedPrograms = 0;
+		};
+
 		/*	*/
 		using DebugSettings = struct debug_t {
 			DebugMode debugMode;
@@ -244,6 +253,7 @@ namespace glsample {
 				Material,
 				Object,
 			};
+			RenderingStatistic statistic;
 		};
 
 		using ImageBasedLightningSettings = struct image_based_lightning_settings_t {
@@ -256,15 +266,21 @@ namespace glsample {
 			glm::vec4 specularColor = glm::vec4(1, 1, 1, 1);
 		};
 
+		using OcclusionAccelleration = struct occlusion_accelleration_t {};
+
+		using OcclusionSettings = struct occlusion_settings_t {};
+
 		using PreDepthRenderingSettings = struct pre_depth_rendering_settings : fragcore::Property<bool, size_t> {};
 
 		using RenderingSettings = struct rendering_settings_t {
 			bool enabledTessellation = false; // TODO: make to struct with more parameters.
 			FrustumSettings frustumSettings;
-			FogSettings fogSettings;
 			LightSettings lightSettings;
 			PreDepthRenderingSettings preDepthRenderingSettings;
 			Skybox skybox;
+			// Render queue settings
+			bool sortDistance;
+			bool mergeInstances;
 		};
 
 		fragcore::Time timer;
@@ -343,6 +359,8 @@ namespace glsample {
 		static const unsigned int frameChainCount = 3;
 
 	  public:
+		std::array<unsigned int, 16> &getSamplers() noexcept { return this->samplers; }
+
 		const RenderingSettings &getRenderingSettings() const noexcept { return this->settings; }
 		RenderingSettings &getRenderingSettings() noexcept { return this->settings; }
 

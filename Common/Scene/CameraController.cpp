@@ -20,6 +20,11 @@ CameraController::CameraController() : input(new SDLInput()) {}
 
 void CameraController::update(const float deltaTime) noexcept {
 
+	/*	*/
+	if (!isActive()) {
+		return;
+	}
+
 	const Uint8 *state = SDL_GetKeyboardState(nullptr);
 
 	bool w = state[SDL_SCANCODE_W];
@@ -67,7 +72,8 @@ void CameraController::update(const float deltaTime) noexcept {
 								 current_speed, 0.5f * activated, this->fov_degree, xDiff, yDiff, w, a, s, d, 0, 0, 0);
 
 		this->setPosition(position);
-		const glm::quat rotation = glm::quatLookAt(glm::normalize(this->getLookDirection()), glm::normalize(this->getUp()));
+		const glm::quat rotation =
+			glm::quatLookAt(glm::normalize(this->getLookDirection()), glm::normalize(this->getUp()));
 		this->setRotation(rotation);
 
 		/*	*/

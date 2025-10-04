@@ -50,7 +50,7 @@ template <> const glm::vec3 &TransformGLM::getPosition() const noexcept { return
 template <> void TransformGLM::setScale(const glm::vec3 &scale) noexcept { this->scale = scale; }
 template <> glm::vec3 TransformGLM::getScale() const noexcept { return this->scale; }
 
-template <> void TransformGLM::setRotation(const glm::quat &quat) noexcept { this->quat = quat; }
+template <> void TransformGLM::setRotation(const glm::quat &GlobalRotation) noexcept { this->quat = GlobalRotation; }
 template <> const glm::quat &TransformGLM::getRotation() const noexcept { return this->quat; }
 template <> glm::vec3 TransformGLM::getRotationEular() const noexcept { return glm::eulerAngles(this->quat); }
 

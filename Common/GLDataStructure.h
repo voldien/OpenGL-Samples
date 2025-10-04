@@ -17,6 +17,11 @@ namespace glsample {
 		Height	/*	*/
 	};
 
+	/*	*/
+	using DrawArraysIndirectCommand = fragcore::IndirectDrawArray;
+	using DrawElementsIndirectCommand = fragcore::IndirectDrawElement;
+	using DrawDispatchIndirectCommand = fragcore::IndirectDispatch;
+
 	using GammaCorrectionSettings = struct gamme_correct_settings_t {
 		float exposure = 1.0f;
 		float gamma = 2.2f;
@@ -38,17 +43,16 @@ namespace glsample {
 	};
 
 	// TODO: relocate
-	using GraphicShaderSettings = struct graphic_shader_settings_t { // Property Maybe ?
-		fragcore::BlendEqu blend_equ = fragcore::BlendEqu::NoEqu;	 /*	aiBlendMode*/
-		fragcore::BlendFunc blend_color_func = fragcore::BlendFunc::One;
+	using GraphicShaderSettings = struct graphic_shader_settings_t {	 // Property Maybe ?
+		fragcore::BlendEqu blend_equ = fragcore::BlendEqu::NoEqu;		 /*	*/
+		fragcore::BlendFunc blend_color_func = fragcore::BlendFunc::One; /*	*/
 		CullingMode cullingMode = CullingMode::Back;
 		DepthFunc DepthFunc = DepthFunc::Less;
 		bool DepthWrite{};
 		RenderQueue queue;
 
-		int wireframe_mode = 0; // TODO; change to fill mode
+		FillMode fillMode;
 
-		bool culling_both_side_mode = false;
 		float clipping = 1;
 	};
 
@@ -104,6 +108,7 @@ namespace glsample {
 		float quadratic_attenuation = 0.025f;
 	};
 
+	/*	*/
 	using CameraInstanceData = struct camera_instance_data_t {
 
 		/*	*/
@@ -168,6 +173,7 @@ namespace glsample {
 		glm::mat4 inverseProj = glm::mat4(1);
 	};
 
+	/*	*/
 	using FrustumInstance = struct frustum_instance_t {
 		frustum_instance_t() = default;
 		frustum_instance_t(const Frustum &frustum) {

@@ -1,9 +1,12 @@
 #include "SceneSettingComponentUI.h"
+
 #include "GLUIComponent.h"
 #include "RenderDesc.h"
 #include "Scene.h"
+#include "Scene/RenderQueue.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
+#include <Math/Bitwise.h>
 
 using namespace glsample;
 
@@ -20,7 +23,7 @@ void enumComboBox(const char *lable, const T currentSelected, const size_t maxEn
 
 	const int item_selected_idx = (int)currentSelected;
 
-	std::string combo_preview_value = std::string(magic_enum::enum_name(currentSelected));
+	const std::string combo_preview_value = std::string(magic_enum::enum_name(currentSelected));
 
 	const ImGuiComboFlags flags = 0;
 	ImGui::SetNextItemWidth(256);
@@ -81,16 +84,29 @@ void SceneSettingsUI::draw() {
 				}
 			}
 
-			if (scene.getDebugDrawer()) {
-				/*	*/
-				ImGui::TextUnformatted("Debug Drawer");
+			ImGui::SeparatorText("Rendering Queue Sorting Settings");
+
+			bool distanceSort = false;
+			if (ImGui::Checkbox("Sort Distance", &distanceSort)) {
+			}
+
+			bool mergeInstance = false;
+			if (ImGui::Checkbox("Merge Instances", &mergeInstance)) {
+			}
+
+			bool bucketMaterial = false;
+			if (ImGui::Checkbox("Material Bucket Sorting", &bucketMaterial)) {
 			}
 
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNode("Advanced, with Selectable nodes")) {
-			ImGui::TreePop();
+		if (ImGui::CollapsingHeader("Debug Settings")) {
+			if (scene.getDebugDrawer()) {
+				ImGui::SeparatorText("Debug Drawer");
+				/*	*/
+				ImGui::TextUnformatted("Debug Drawer");
+			}
 		}
 
 		/*	*/
@@ -101,61 +117,52 @@ void SceneSettingsUI::draw() {
 			ImGui::ColorEdit4("Global Specular Color", &scene.getRenderingSettings().lightSettings.specularColor[0],
 							  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
 
-			{
-				ImGui::TextUnformatted("Global Fog");
-
-				// ImGui::Checkbox("Use Fog", &scene.getRenderingSettings().fogSettings.fogType);
-				ImGui::DragInt("Fog Type", (int *)&scene.getRenderingSettings().fogSettings.fogType);
-				ImGui::ColorEdit4("Fog Color", &scene.getRenderingSettings().fogSettings.fogColor[0],
-								  ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR);
-				ImGui::DragFloat("Fog Density", &scene.getRenderingSettings().fogSettings.fogDensity);
-				ImGui::DragFloat("Fog Intensity", &scene.getRenderingSettings().fogSettings.fogIntensity);
-				ImGui::DragFloat("Fog Start", &scene.getRenderingSettings().fogSettings.fogStart);
-				ImGui::DragFloat("Fog End", &scene.getRenderingSettings().fogSettings.fogEnd);
-			}
+			scene.getRenderingSettings().skybox.renderImGUI();
 		}
 
 		{
+			std::function<void(Node *)> nodeTreeFunc;
 
 			/*	*/
-			auto nodeFunc = [scene](Node *currentNode) {
+			nodeTreeFunc = [scene, &nodeTreeFunc](Node *currentNode) {
 				ImGui::PushID(currentNode->getUID() + 1000);
-				nodeActive(*currentNode);
 
-				ImGui::TextUnformatted(currentNode->getName().c_str());
+				if (ImGui::TreeNode(currentNode->getName().c_str())) {
+					nodeActive(*currentNode);
 
-				glm::vec3 localPosition = currentNode->getLocalPosition();
-				if (ImGui::DragFloat3("Position", &localPosition[0])) {
-					currentNode->setLocalPosition(localPosition);
+					glm::vec3 localPosition = currentNode->getLocalPosition();
+					if (ImGui::DragFloat3("Position", &localPosition[0])) {
+						currentNode->setLocalPosition(localPosition);
+					}
+
+					glm::quat quat_local_rotation = currentNode->getLocalRotation();
+					if (ImGui::DragFloat4("Rotation (Quat)", &quat_local_rotation[0])) {
+						currentNode->setLocalRotation(quat_local_rotation);
+					}
+
+					glm::vec3 eular_rotation = currentNode->getRotationEular() * (float)Math::Rad2Deg;
+					if (ImGui::DragFloat3("Rotation (Eular)", &eular_rotation[0])) {
+						currentNode->setRotationEular(eular_rotation * (float)Math::Deg2Rad);
+					}
+
+					glm::vec3 local_scale = currentNode->getLocalScale();
+					if (ImGui::DragFloat3("Scale", &local_scale[0])) {
+						currentNode->setLocalScale(local_scale);
+					}
+
+					ImGui::Text("Materials %zu", currentNode->materialIndex.size());
+					ImGui::Text("Meshes %zu", currentNode->geometryObjectIndex.size());
+
+					ImGui::Separator();
+
+					for (size_t node_index = 0; node_index < currentNode->getNumChildren(); node_index++) {
+						nodeTreeFunc(currentNode->getChild(node_index)->ptr());
+					}
+
+					ImGui::TreePop();
 				}
-
-				glm::quat quat_local_rotation = currentNode->getLocalRotation();
-				if (ImGui::DragFloat4("Rotation (Quat)", &quat_local_rotation[0])) {
-					currentNode->setLocalRotation(quat_local_rotation);
-				}
-
-				glm::vec3 eular_rotation = currentNode->getRotationEular();
-				if (ImGui::DragFloat3("Rotation (Eular)", &eular_rotation[0])) {
-					currentNode->setRotationEular(eular_rotation);
-				}
-
-				glm::vec3 local_scale = currentNode->getLocalScale();
-				if (ImGui::DragFloat3("Scale", &local_scale[0])) {
-					currentNode->setLocalScale(local_scale);
-				}
-
-				ImGui::Text("Materials %zu", currentNode->materialIndex.size());
-				ImGui::Text("Meshes %zu", currentNode->geometryObjectIndex.size());
-
-				ImGui::Separator();
 
 				ImGui::PopID();
-			};
-
-			auto nodeTreeFunc = [scene, nodeFunc](Node *currentNode) {
-				for (size_t i = 0; i < currentNode->getNumChildren(); i++) {
-					nodeFunc(currentNode->getChild(i)->ptr());
-				}
 			};
 
 			Node *rootNode = scene.getRootNode();
@@ -164,11 +171,7 @@ void SceneSettingsUI::draw() {
 
 				ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 
-				nodeFunc(rootNode);
-
 				nodeTreeFunc(rootNode);
-
-				/*	*/
 			}
 		}
 
@@ -294,6 +297,9 @@ void SceneSettingsUI::draw() {
 					"Culling Mode", mat.getGraphicSettings().cullingMode,
 					static_cast<size_t>(CullingMode::FrontAndBack) + 1,
 					[&mat](const auto selected) { mat.getGraphicSettings().cullingMode = selected; });
+				enumComboBox<fragcore::FillMode>(
+					"Fill Mode", mat.getGraphicSettings().fillMode, static_cast<size_t>(fragcore::FillMode::Point) + 1,
+					[&mat](const auto selected) { mat.getGraphicSettings().fillMode = selected; });
 
 				ImGui::SetNextItemWidth(256);
 				ImGui::DragInt("Render Queue", (int *)&mat.getGraphicSettings().queue);
@@ -303,20 +309,19 @@ void SceneSettingsUI::draw() {
 				}
 				if (ImGui::BeginPopup("set_domain_popup")) {
 					ImGui::SeparatorText("Domains");
-					// for (size_t post_select_index = 0; post_select_index < manager->getNrPostProcessing();
-					// 	 post_select_index++) {
-					// 	ImGui::BeginDisabled(post_select_index == post_index);
-					// 	if (ImGui::Selectable(std::to_string(post_select_index).c_str())) {
-					// 		manager->swapPostProcessing(post_select_index, post_index);
-					// 	}
-					// 	ImGui::EndDisabled();
-					//}
+					for (size_t renderQueue_select_index = 0; renderQueue_select_index < getRenderQueueSymbols().size();
+						 renderQueue_select_index++) {
+
+						if (ImGui::Selectable(getRenderQueueSymbols()[renderQueue_select_index])) {
+							mat.getGraphicSettings().queue = getQueueTypesOrdered()[renderQueue_select_index];
+						}
+					}
 					ImGui::EndPopup();
 				}
-
-				// enumComboBox<RenderQueue>("Render Queue", mat.getGraphicSettings().queue,
-				// 						  static_cast<size_t>(RenderQueue::Overlay) + 1,
-				// 						  [&mat](const auto selected) { mat.getGraphicSettings().queue = selected; });
+				ImGui::SameLine();
+				if (ImGui::Button("Update Domain")) {
+					mat.getGraphicSettings().queue = Material::getDefaultQueueDomain(mat);
+				}
 
 				/*	Textures.	*/
 				for (size_t mat_tex_index = 0; mat_tex_index < mat.texture_index.size(); mat_tex_index++) {
@@ -350,6 +355,19 @@ void SceneSettingsUI::draw() {
 							"Texture Filtering", mat.texture_sampling[mat_tex_index].filtering,
 							static_cast<size_t>(fragcore::TextureFilterMode::Trilinear) + 1,
 							[&](auto selected) { mat.texture_sampling[mat_tex_index].filtering = selected; });
+
+						float min_lod = NAN;
+						glGetSamplerParameterfv(scene.getSamplers()[mat_tex_index], GL_TEXTURE_MIN_LOD, &min_lod);
+						ImGui::SetNextItemWidth(256);
+						if (ImGui::DragFloat("Min LOD", &min_lod)) {
+							glSamplerParameteri(scene.getSamplers()[mat_tex_index], GL_TEXTURE_MIN_LOD, min_lod);
+						}
+						float max_lod = NAN;
+						glGetSamplerParameterfv(scene.getSamplers()[mat_tex_index], GL_TEXTURE_MAX_LOD, &max_lod);
+						ImGui::SetNextItemWidth(256);
+						if (ImGui::DragFloat("Max LOD", &max_lod)) {
+							glSamplerParameteri(scene.getSamplers()[mat_tex_index], GL_TEXTURE_MAX_LOD, max_lod);
+						}
 
 						ImGui::EndGroup();
 

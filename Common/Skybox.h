@@ -78,7 +78,7 @@ namespace glsample {
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer = 0;
 		static constexpr size_t nrUniformBuffer = 3;
 		std::array<UBORange, nrUniformBuffer> UniformBuffers;
 		size_t uniformAlignSize = sizeof(uniform_buffer_block);

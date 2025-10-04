@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <glm/ext/quaternion_geometric.hpp>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -360,6 +361,7 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 		pobject->globalPosition = translation;
 		pobject->globalRotation = globalRotation;
 		pobject->globalScale = gobalScale;
+
 
 		pobject->name = std::string();
 		pobject->name = aiStringToStdString(ai_node->mChildren[node_index]->mName);
@@ -1038,14 +1040,14 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 			/*	*/
 			if (alphaBlending < 1.0f || tranmission_factor < 1.0f) {
 				material_obj->blend_equ_mode = BlendEqu::Addition;
-				material_obj->blend_func_mode = BlendFunc::SrcColor;
+				material_obj->blend_func_mode = BlendFunc::OneMinusSrcAlpha;
 				material_obj->clipping = 0.0f; /*	No clipping, use blending instead.	*/
 				material_obj->depth_write = false;
 				material_obj->culling_both_side_mode = CullingMode::None;
 			} else {
 				material_obj->blend_equ_mode = BlendEqu::NoEqu;
 				material_obj->blend_func_mode = BlendFunc::Zero;
-				material_obj->clipping = 0.4f; // containsAlphaBlend ? 0.1f : 0.0f; /*	use clipping if alpha used.	*/
+				material_obj->clipping = 0.4f; //containsAlphaBlend ? 0.4f : 0.0f; /*	use clipping if alpha used.	*/
 				material_obj->depth_write = true;
 			}
 		}

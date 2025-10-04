@@ -53,6 +53,5 @@ namespace glsample {
 		std::vector<uint32_t> post_enabled;
 
 		GLSampleBase &base;
-
 	};
 } // namespace glsample

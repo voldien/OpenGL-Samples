@@ -39,16 +39,14 @@ namespace glsample {
 		bool active = true;
 	};
 
-	/**
-	 * @brief
-	 *
+	/*
 	 */
 	class FVDECLSPEC Node : public fragcore::ITree<Node>,
 							public Spatial,
 							public glsample::TransformGLM,
 							public fragcore::Object {
 	  public:
-		Node() = default;
+		Node() { this->quat = glm::quat(1, 0, 0, 0); }
 		~Node() override = default;
 
 	  public:
@@ -60,7 +58,10 @@ namespace glsample {
 		glm::vec3 getScale() const noexcept;
 
 		const glm::quat &getRotation() const noexcept;
+		glm::vec3 getRotationEular() const noexcept;
+
 		void setRotation(const glm::quat &globalRotationQuat) noexcept;
+		void setRotationEular(const glm::vec3 &globalEularRotation) noexcept;
 
 		void setGlobalPositionDirect(const glm::vec3 &globalPosition) noexcept;
 		void setGlobalRotationDirect(const glm::quat &globalRotation) noexcept;
@@ -86,8 +87,6 @@ namespace glsample {
 		glm::mat4 getViewTranslationMatrix() const noexcept;
 
 		/*	Enable Disable.	*/
-
-	  public:
 
 	  public:
 		/*	*/

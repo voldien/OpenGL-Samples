@@ -3,13 +3,11 @@
 #include "RenderPipelineSettings.h"
 #include "Scene/Scene.h"
 
-// #include <Geometry.h>
-
 namespace glsample {
 	using namespace fragcore;
+
 	/**
-	 *	Responsible for rendering scene to default
-	 *	framebuffer.
+	 *
 	 */
 	class FVDECLSPEC IRenderPipelineBase : public Object {
 		friend class RenderPipelineFactory;
@@ -23,7 +21,7 @@ namespace glsample {
 		virtual void draw(Scene *scene, FrameBuffer *frame) = 0;
 
 		virtual void draw(Camera *camera, FrameBuffer *framebuffer = nullptr);
-		virtual void draw(const Light *light);
+		virtual void draw(const Light *light, FrameBuffer *framebuffer = nullptr);
 		virtual void draw(FrameBuffer *framebuffer = nullptr);
 
 		virtual void update(const float deltaTime);
@@ -40,7 +38,7 @@ namespace glsample {
 
 		// virtual void setViewport(int width, int height, IRenderer *render) = 0;
 
-		virtual RenderQueue getSupportedQueue() const = 0;
+		virtual std::vector<RenderQueue> getSupportedQueue() const = 0;
 
 	  protected:
 		Ref<RenderPipelineSettings> renderQuality;

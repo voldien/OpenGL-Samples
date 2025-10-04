@@ -23,13 +23,14 @@ glsample::RenderQueue Material::getDefaultQueueDomain(const Material &material) 
 
 	/*	*/
 	const bool useAlphaClipping = (material.getGraphicSettings().clipping > 0.0f);
-	const bool useBlending = material.transparent[3] < 1.0f ||
-							 (material.texture_index[TextureTypeBinding::AlphaMask] >= 0 && !useAlphaClipping) || material.getGraphicSettings().blend_color_func > BlendFunc::One;
 
-	material.getGraphicSettings().blend_color_func;
-	material.getGraphicSettings().blend_equ;
+	/*	*/
+	const bool useBlending = ((material.transparent[3] < 1.0f || material.diffuse[3] < 1.0f) ||
+							 (material.texture_index[TextureTypeBinding::AlphaMask] >= 0)) &&
+							 material.getGraphicSettings().blend_color_func > BlendFunc::One;
 
-	const bool useWireframe = material.getGraphicSettings().wireframe_mode;
+	/*	*/
+	const bool useWireframe = material.getGraphicSettings().fillMode != FillMode::Fill;
 
 	if (useWireframe) {
 		return RenderQueue::Overlay;

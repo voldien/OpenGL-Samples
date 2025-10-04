@@ -235,6 +235,6 @@ class FVDECLSPEC GLSampleWindow : public GLSampleBase {
 	int preHeight = -1;
 
   protected:
-	std::shared_ptr<spdlog::logger> logger;
+	std::unique_ptr<spdlog::logger> logger;
 	void *rdoc_api = nullptr;
 };

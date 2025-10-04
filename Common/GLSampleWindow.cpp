@@ -142,12 +142,14 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 				plotResult("Frag invocation", plots[4]);
 				plotResult("Vertex invocation", plots[5]);
 				plotResult("Geometry invocation", plots[6]);
-				ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
-				ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
+
 				ImGui::EndDisabled();
 				ImGui::EndGroup();
 				ImGui::TreePop();
 			}
+
+			ImGui::Text("FrameCount %zu", this->getRefSample().getFrameCount());
+			ImGui::Text("Frame Index %zu", this->getRefSample().getFrameBufferIndex());
 
 			ImGui::Separator();
 
@@ -207,12 +209,35 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 						}
 					}
 
+					/*	*/
 					float min_sample = 0;
 					glGetFloatv(GL_MIN_SAMPLE_SHADING_VALUE, &min_sample);
 					ImGui::SetNextItemWidth(250);
 					if (ImGui::SliderFloat("Min Sample", &min_sample, 0, 1)) {
-						glEnable(GL_SAMPLE_SHADING);
+						if (min_sample > 0) {
+							glEnable(GL_SAMPLE_SHADING);
+						} else {
+							glDisable(GL_SAMPLE_SHADING);
+						}
 						glMinSampleShading(min_sample);
+					}
+
+					/*	*/
+					float sample_coverage_value = 0;
+					GLboolean coverage_invert = 0;
+					glGetFloatv(GL_SAMPLE_COVERAGE_VALUE, &sample_coverage_value);
+					glGetBooleanv(GL_SAMPLE_COVERAGE_INVERT, &coverage_invert);
+					ImGui::SetNextItemWidth(250);
+					if (ImGui::SliderFloat("Sample Coverage", &sample_coverage_value, 0, 1)) {
+						glSampleCoverage(sample_coverage_value, coverage_invert);
+					}
+					ImGui::SameLine();
+					if (ImGui::Checkbox("Invert", (bool *)&coverage_invert)) {
+						glSampleCoverage(sample_coverage_value, coverage_invert);
+					}
+
+					/*	*/
+					if (glFramebufferSampleLocationsfvARB) {
 					}
 
 					ImGui::Button("Apply");
@@ -263,6 +288,7 @@ class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
 
 			if (ImGui::TreeNode("Presentation Settings")) {
 
+				ImGui::SeparatorText("Display Syncronization");
 				bool isVsync = this->getRefSample().getVSync();
 				if (ImGui::Checkbox("VSync", &isVsync)) {
 					this->getRefSample().vsync(isVsync);
@@ -429,7 +455,7 @@ GLSampleWindow::GLSampleWindow() : preWidth(this->width()), preHeight(this->heig
 	stdout_sink->set_pattern("%g:%# [%^%l%$] %v");
 
 	/*	*/
-	this->logger = std::shared_ptr<spdlog::logger>(new spdlog::logger("glsample", {stdout_sink}));
+	this->logger = std::unique_ptr<spdlog::logger>(new spdlog::logger("glsample", {stdout_sink}));
 	this->logger->set_level(spdlog::level::trace);
 
 	/*	*/

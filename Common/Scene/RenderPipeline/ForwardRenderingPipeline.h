@@ -1,17 +1,17 @@
 #pragma once
 #include "GLSampleBase.h"
-#include "renderingpipelinebase.h"
+#include "Renderingpipelinebase.h"
 
 // TOOD rename namespace
 namespace glsample {
 	using namespace fragcore;
+
 	/**
 	 *	Responsible for rendering scene to default
 	 *	framebuffer.
 	 */
 	class FVDECLSPEC RenderPipelineForward : public RenderPipelineBase {
 	  public:
-
 		void draw(Scene *scene, FrameBuffer *frame) override;
 		//
 		//	void setViewport(int width, int height ) override;
@@ -37,10 +37,10 @@ namespace glsample {
 		//	                         IRenderer* render);
 
 	  public:
-		RenderPipelineForward(GLSampleBase& base);
+		RenderPipelineForward(GLSampleBase &base);
 		~RenderPipelineForward() override;
 
 	  protected: /*	Prevent one from creating an instance of this class.	*/
 	};
 
-} // namespace raylainengine
+} // namespace glsample

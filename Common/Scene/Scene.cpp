@@ -23,6 +23,7 @@
 #include <iostream>
 #include <omp.h>
 #include <ostream>
+#include <set>
 #include <sys/types.h>
 
 namespace glsample {
@@ -420,12 +421,34 @@ namespace glsample {
 		/*	*/
 		this->visableNodes.clear();
 
+		static std::vector<Node *> activeNodes;
+		activeNodes.clear();
+
+		std::function<void(const Node *, std::vector<Node *> &)> addIfActive;
+
+		addIfActive = [&addIfActive](const Node *root, std::vector<Node *> &active) {
+			for (size_t i = 0; i < root->getNumChildren(); i++) {
+				Node *node = root->getChild(i)->ptr();
+				if (node->isActive()) {
+					active.push_back(node);
+					addIfActive(node, activeNodes);
+				}
+			}
+		};
+
+		/*	Extract Active Nodes.	*/
+		Node *root = getRootNode();
+		if (root->isActive()) {
+			addIfActive(root, activeNodes);
+		}
+
 		/*	Frustum Culling.	*/
 		if (this->settings.frustumSettings.useFrustum && frustum) {
 
 			/*	*/
 			// TODO: multi thread
 			const size_t num_threads = SystemInfo::getCPUCoreCount() / 4;
+			// TODO: make a single array.
 			static std::vector<std::vector<Node *>> objects(num_threads, std::vector<Node *>());
 			for (size_t i = 0; i < objects.size(); i++) {
 				objects[i].clear();
@@ -433,16 +456,10 @@ namespace glsample {
 			}
 
 			// TODO: get all parent nodes.
-			this->getRootNode();
 #pragma omp parallel for num_threads(num_threads)
-			for (size_t node_index = 0; node_index < this->getNodes().size(); node_index++) {
+			for (size_t node_index = 0; node_index < activeNodes.size(); node_index++) {
 
-				Node *node = this->getNodes()[node_index];
-
-				/*	Ignore if disabled.	*/
-				if (!node->isActive()) {
-					continue;
-				}
+				Node *node = activeNodes[node_index];
 
 				/*	Check if any of the meshes are visable. */
 				for (size_t mesh_index = 0; mesh_index < node->geometryObjectIndex.size(); mesh_index++) {
@@ -492,6 +509,7 @@ namespace glsample {
 				}
 			}
 
+			/*	*/
 			for (size_t i = 0; i < objects.size(); i++) {
 				this->visableNodes.insert(this->visableNodes.end(), objects[i].begin(), objects[i].end());
 			}
@@ -499,8 +517,7 @@ namespace glsample {
 		} else {
 
 			/*	Remove if disabled.	*/
-
-			this->visableNodes = this->getNodes();
+			this->visableNodes = activeNodes;
 		}
 	}
 
@@ -669,7 +686,8 @@ namespace glsample {
 			std::deque<const Node *> nodeQueue = (*it);
 
 			/*	*/
-			const std::string domain = fmt::format("{} {}", getRenderQueueSymbols()[domainIndex], (domainIndex++));
+			const std::string domain = fmt::format("{} {}", getRenderQueueSymbols()[domainIndex], (domainIndex));
+			domainIndex++;
 
 			glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, domain.size(), domain.data());
 			for (auto itQ = nodeQueue.begin(); itQ != nodeQueue.end(); itQ++) {
@@ -735,7 +753,6 @@ namespace glsample {
 			const MaterialTextureSampling &sampling = material.texture_sampling[materialTextureIndex];
 
 			/*	*/
-
 			glSamplerParameteri(this->samplers[textureMapIndex], GL_TEXTURE_MIN_FILTER,
 								sampling.filtering == TextureFilterMode::Nearset ? GL_NEAREST_MIPMAP_NEAREST
 																				 : GL_LINEAR_MIPMAP_LINEAR);
@@ -798,7 +815,6 @@ namespace glsample {
 				glEnable(GL_BLEND);
 				/*	*/
 				// glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 				/*	*/
 				switch (material->getGraphicSettings().blend_color_func) {
@@ -811,6 +827,8 @@ namespace glsample {
 					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 					break;
 				case fragcore::BlendFunc::ConstantAlpha:
+					break;
+				default:
 					break;
 				}
 
@@ -829,6 +847,8 @@ namespace glsample {
 					break;
 				case fragcore::BlendEqu::Max:
 					glBlendEquationSeparate(GL_MAX, GL_MAX);
+					break;
+				default:
 					break;
 				}
 
@@ -962,6 +982,8 @@ namespace glsample {
 		std::vector<Node *> visableNode2Sort = this->visableNodes;
 
 		/*	*/ // TODO: sort by node tree.
+		std::map<size_t, Node *> materialBuckets;
+		std::map<size_t, std::set<const Material *>> materialsInDomain;
 		for (size_t x = 0; x < visableNode2Sort.size(); x++) {
 
 			/*	*/
@@ -981,12 +1003,14 @@ namespace glsample {
 				if (validMaterialIndex) {
 
 					const Material *material = &this->getMaterials()[material_pool_index];
+
 					assert(material);
 
 					/*	*/
 					/*	TODO domain clamping.	*/
 					const RenderQueue domain = material->getRenderQueue();
 
+					materialsInDomain[domain].insert(material);
 					this->renderQueueDomainBucket[domain].push_back(node);
 
 				} else {
@@ -995,11 +1019,25 @@ namespace glsample {
 			}
 		}
 
+// multi thread.
+//#pragma omp parallel for
 		for (size_t domain_index = 0; domain_index < getQueueTypesOrdered().size(); domain_index++) {
 			const RenderQueue domain = getQueueTypesOrdered()[domain_index];
 
 			std::deque<const Node *> queue = this->renderQueueDomainBucket[domain];
+
+			std::sort(queue.begin(), queue.end(), [&](const Node *a, const Node *b) {
+				return getMaterials()[a->materialIndex[0]].getUID() > getMaterials()[b->materialIndex[0]].getUID();
+			});
+
 			this->renderQueue[domain_index] = queue;
+		}
+
+		if (this->getRenderingSettings().sortDistance) {
+
+		}
+
+		if (this->getRenderingSettings().mergeInstances) {
 		}
 
 		/*	*/
