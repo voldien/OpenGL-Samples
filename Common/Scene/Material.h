@@ -18,7 +18,6 @@
 #include "GLDataStructure.h"
 #include "Importer/ModelImporter.h"
 #include "Prerequisites.h"
-#include "RenderDesc.h"
 #include "SampleHelper.h"
 #include "Scene/RenderQueue.h"
 #include "ShaderPipeline.h"

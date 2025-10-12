@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=OpenGLSamples
+Exec=entrypoint.sh %U
+Icon=opengl-sample-icon
+Categories=Utility
+GenericName=Debug/Analysis Tool
+Keywords=opengl;

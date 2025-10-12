@@ -19,7 +19,6 @@ OPTION(BUILD_WITH_UBSAN "Enable Undefined Behavior Sanitizer." OFF)
 OPTION(BUILD_WITH_ASAN "Enable AddressSanitizer." OFF)
 OPTION(BUILD_WITH_PEDANTIC "Enable Pedantic Compilation" OFF)
 
-
 IF(PKG_CONFIG_FOUND)
 	MESSAGE(STATUS "Found pkg-config: ${PKG_CONFIG_EXECUTABLE} -- version ${PKG_CONFIG_VERSION_STRING}.")
 	PKG_CHECK_MODULES(SDL2 QUIET sdl2)
@@ -47,7 +46,6 @@ IF(CMAKE_BUILD_TYPE MATCHES Debug)
 	ADD_DEFINITIONS(-g3 -O0)
 ENDIF()
 
-
 # AVX If supported
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/extern/nekomimi/extern/fragcore/cmake-modules")
 FIND_PACKAGE(AVX)
@@ -64,7 +62,6 @@ IF(BUILD_WITH_PEDANTIC)
 	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${PEDANTIC_COMPILE_FLAGS}")
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PEDANTIC_COMPILE_FLAGS}")
 ENDIF()
-
 
 # ###########################################
 # Backend libraries

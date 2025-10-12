@@ -169,8 +169,8 @@ namespace glsample {
 												   this->UBOStructure.material_align_total_size;
 
 			/*	*/
-			glGenBuffers(1, &this->UBOStructure.node_and_common_uniform_buffer);
-			glBindBuffer(GL_UNIFORM_BUFFER, this->UBOStructure.node_and_common_uniform_buffer);
+			glGenBuffers(1, &this->UBOStructure.shared_uniform_buffer);
+			glBindBuffer(GL_UNIFORM_BUFFER, this->UBOStructure.shared_uniform_buffer);
 
 			if (glBufferStorage) {
 
@@ -392,7 +392,7 @@ namespace glsample {
 			}
 		}
 
-		glBindBuffer(GL_UNIFORM_BUFFER, this->UBOStructure.node_and_common_uniform_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, this->UBOStructure.shared_uniform_buffer);
 
 		/*	*/
 		if (useCoherent) {
@@ -659,12 +659,12 @@ namespace glsample {
 			const size_t light_offset = this->UBOStructure.light_offsets[this->getRoundRobinIndex()];
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.common_buffer_binding,
-							  this->UBOStructure.node_and_common_uniform_buffer, common_offset,
+							  this->UBOStructure.shared_uniform_buffer, common_offset,
 							  this->UBOStructure.common_size_align);
 
 			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.light_buffer_binding,
-							  this->UBOStructure.node_and_common_uniform_buffer, light_offset,
+							  this->UBOStructure.shared_uniform_buffer, light_offset,
 							  this->UBOStructure.light_align_total_size);
 		}
 
@@ -918,18 +918,20 @@ namespace glsample {
 				this->UBOStructure.node_prev_offsets[this->getRoundRobinIndex()] +
 				(node_block_offset_base * this->UBOStructure.max_node_per_binding * sizeof(NodeData));
 
+			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_buffer_binding,
-							  this->UBOStructure.node_and_common_uniform_buffer, node_total_offset,
+							  this->UBOStructure.shared_uniform_buffer, node_total_offset,
 							  this->UBOStructure.node_size_align);
 
+			/*	*/
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.node_prev_buffer_binding,
-							  this->UBOStructure.node_and_common_uniform_buffer, node_prev_total_offset,
+							  this->UBOStructure.shared_uniform_buffer, node_prev_total_offset,
 							  this->UBOStructure.node_size_align);
 
 			/*	*/
 			const size_t material_offset = this->UBOStructure.mateiral_offsets[this->getRoundRobinIndex()];
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->UBOStructure.material_buffer_binding,
-							  this->UBOStructure.node_and_common_uniform_buffer, material_offset,
+							  this->UBOStructure.shared_uniform_buffer, material_offset,
 							  this->UBOStructure.material_align_size);
 		}
 
@@ -946,25 +948,25 @@ namespace glsample {
 			const MeshObject &refMesh = this->refGeometry[mesh_index];
 			glBindVertexArray(refMesh.vao);
 
-			/*	Material, model matrix.	*/
+			/*	Material index, model matrix index.	*/
 			glVertexAttribI2i(8, material_index, currentNodeIndex % this->UBOStructure.max_node_per_binding);
 
 			/*	*/
+			const size_t nrInstances = 1;
 			if (this->getRenderingSettings().enabledTessellation && material.isTessellationEnabled()) {
 
 				/*	*/
 				glPatchParameteri(GL_PATCH_VERTICES, 3);
-				glDrawElementsBaseVertex(fragcore::GLHelper::getPrimitive(Primitive::Patchs), refMesh.nrIndicesElements,
-										 GL_UNSIGNED_INT, (void *)(sizeof(unsigned int) * refMesh.indices_offset),
-										 refMesh.vertex_offset);
+				glDrawElementsInstancedBaseVertex(
+					fragcore::GLHelper::getPrimitive(Primitive::Patchs), refMesh.nrIndicesElements, GL_UNSIGNED_INT,
+					(void *)(sizeof(unsigned int) * refMesh.indices_offset), nrInstances, refMesh.vertex_offset);
 			} else {
 
 				/*	*/
-				glDrawElementsBaseVertex(
+				glDrawElementsInstancedBaseVertex(
 					fragcore::GLHelper::getPrimitive(refMesh.primitiveType), refMesh.nrIndicesElements, GL_UNSIGNED_INT,
-					(void *)(sizeof(unsigned int) * refMesh.indices_offset), refMesh.vertex_offset);
+					(void *)(sizeof(unsigned int) * refMesh.indices_offset), nrInstances, refMesh.vertex_offset);
 			}
-			// glBindVertexArray(0);
 		}
 
 		/*	Update internal states*/
@@ -1006,7 +1008,6 @@ namespace glsample {
 
 					assert(material);
 
-					/*	*/
 					/*	TODO domain clamping.	*/
 					const RenderQueue domain = material->getRenderQueue();
 
@@ -1019,50 +1020,31 @@ namespace glsample {
 			}
 		}
 
-// multi thread.
-//#pragma omp parallel for
+		// multi thread.
+		// #pragma omp parallel for
 		for (size_t domain_index = 0; domain_index < getQueueTypesOrdered().size(); domain_index++) {
 			const RenderQueue domain = getQueueTypesOrdered()[domain_index];
 
 			std::deque<const Node *> queue = this->renderQueueDomainBucket[domain];
 
-			std::sort(queue.begin(), queue.end(), [&](const Node *a, const Node *b) {
-				return getMaterials()[a->materialIndex[0]].getUID() > getMaterials()[b->materialIndex[0]].getUID();
-			});
+			if (this->getRenderingSettings().sortSharedMaterials) {
+
+				std::sort(queue.begin(), queue.end(), [&](const Node *a, const Node *b) {
+					return getMaterials()[a->materialIndex[0]].getUID() > getMaterials()[b->materialIndex[0]].getUID();
+				});
+			}
 
 			this->renderQueue[domain_index] = queue;
 		}
 
-		if (this->getRenderingSettings().sortDistance) {
-
-		}
-
 		if (this->getRenderingSettings().mergeInstances) {
+			/*	Sort based on Shared mesh objects.	*/
 		}
 
-		/*	*/
-
-		/*	Sort Based on Distance from Camera, front to back.	*/
-
-		/*	Sort Transparent Objects. Based on priority.	*/
-		// std::sort(vec.begin(), vec.end(), [this, &index, &edges](const int_iter it1, const int_iter it2) -> bool {
-		// 	index[it1 - int_vec.begin()] < index[it2 - int_vec.begin()];
-		// });
-
-		//				int priority = computeMaterialPriority(*material);
-
-		// renderQueueDomainBucket[RenderQueue::Transparent];
-
-		/*	Sort based on Shared mesh objects.	*/
-
-		/*	Sort Transparent Objects. Based on distance.	*/
-	}
-
-	int Scene::computeMaterialPriority(const Material &material) const noexcept {
-		const bool use_clipping = material.maskTextureIndex >= 0 && material.maskTextureIndex < refTexture.size();
-		const bool useBlending = material.opacity < 1.0f;
-
-		return (useBlending * 1000) + (use_clipping * 100);
+		if (this->getRenderingSettings().sortDistance) {
+			/*	Sort Opque Objects. Based on distance.	*/
+			/*	Sort Transparent Objects. Based on distance.	*/
+		}
 	}
 
 	void Scene::renderUI() { this->settingUI.draw(); }

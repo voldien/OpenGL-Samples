@@ -50,6 +50,7 @@ namespace glsample {
 		DepthFunc DepthFunc = DepthFunc::Less;
 		bool DepthWrite{};
 		RenderQueue queue;
+		Primitive primitiveMode;
 
 		FillMode fillMode;
 

@@ -86,15 +86,15 @@ void SceneSettingsUI::draw() {
 
 			ImGui::SeparatorText("Rendering Queue Sorting Settings");
 
-			bool distanceSort = false;
+			bool distanceSort = scene.getRenderingSettings().sortDistance;
 			if (ImGui::Checkbox("Sort Distance", &distanceSort)) {
 			}
 
-			bool mergeInstance = false;
+			bool mergeInstance = scene.getRenderingSettings().mergeInstances;
 			if (ImGui::Checkbox("Merge Instances", &mergeInstance)) {
 			}
 
-			bool bucketMaterial = false;
+			bool bucketMaterial = scene.getRenderingSettings().sortSharedMaterials;
 			if (ImGui::Checkbox("Material Bucket Sorting", &bucketMaterial)) {
 			}
 

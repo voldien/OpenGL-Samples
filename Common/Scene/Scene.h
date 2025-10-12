@@ -135,7 +135,6 @@ namespace glsample {
 
 	  protected:
 		virtual void bindTexture(const Material &material, const TextureTypeBinding texture_type);
-		virtual int computeMaterialPriority(const Material &material) const noexcept;
 		size_t getRoundRobinIndex() const noexcept { return this->renderPassFrameIndex % BufferRoundRobinSize; }
 
 	  protected:
@@ -279,8 +278,9 @@ namespace glsample {
 			PreDepthRenderingSettings preDepthRenderingSettings;
 			Skybox skybox;
 			// Render queue settings
-			bool sortDistance;
-			bool mergeInstances;
+			bool sortDistance = true;
+			bool mergeInstances = true;
+			bool sortSharedMaterials = true;
 		};
 
 		fragcore::Time timer;
@@ -316,7 +316,7 @@ namespace glsample {
 
 			UBOObject uniform_buffer{};
 
-			unsigned int node_and_common_uniform_buffer{}; // TODO: removed and replace with uniform_buffer;
+			unsigned int shared_uniform_buffer{}; // TODO: removed and replace with uniform_buffer;
 
 			unsigned int node_base_offset = 0;
 			std::array<unsigned int, BufferRoundRobinSize> node_offsets{};
