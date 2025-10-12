@@ -3,7 +3,7 @@
 
 # OpenGL Sample Repository - Work In Progress
 
-![github_opengl_thumbnail](https://github.com/user-attachments/assets/d3b6f060-8d80-479c-8543-b5a49bca78be)
+![github_opengl_thumbnail](https://github.com/user-attachments/assets/21da8ec2-0478-4eb4-af75-07ee0f0da078)
 
 A collection of OpenGL Samples, work in progress, for personal educational purposes.
 
@@ -138,6 +138,11 @@ Usage:
 ![AmbientOcclusion](https://github.com/voldien/OpenGL-Samples/assets/9608088/8ed5a638-2432-4800-8ead-2c5f4881fffc)
 
 ### **Physical Based Rendering**
+
+![Physical Based Rendering](https://github.com/user-attachments/assets/4cd3321a-36ea-412c-aa32-f580c2f20fb5)
+![Physical Based Rendering](https://github.com/user-attachments/assets/05a059a0-0502-4cf2-bf9b-ad09d4a93b5d)
+![Physical Based Rendering](https://github.com/user-attachments/assets/87806574-88d5-4bb5-a853-86e082dd9a1f)
+
 
 ### [**Panoramic**](Samples/Panoramic/)
 
