@@ -1,6 +1,8 @@
 #ifndef _MODELVIEWER_INPUT_
 #define _MODELVIEWER_INPUT_ 1
 
+#include"modelviewer_common.glsl"
+
 layout(location = 0) in vec3 Vertex;
 layout(location = 1) in vec2 TextureCoord;
 layout(location = 2) in vec3 Normal;

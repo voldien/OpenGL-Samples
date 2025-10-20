@@ -7,10 +7,10 @@
 #include "Math3D/Color.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
-#include "Scene/CameraController.h"
 #include "Scene/Frustum.h"
 #include "Scene/RenderQueue.h"
 #include "Util/DebugDrawer.h"
+#include "Util/GLDebugDrawer.h"
 #include <GL/glew.h>
 #include <GLHelper.h>
 #include <cstddef>
@@ -21,6 +21,7 @@
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <iostream>
+#include <list>
 #include <omp.h>
 #include <ostream>
 #include <set>
@@ -72,7 +73,7 @@ namespace glsample {
 		}
 
 		if (filesystem) {
-			this->debugDrawer = new DebugDrawManager(filesystem);
+			this->debugDrawer = new GLDebugDrawManager(filesystem);
 		}
 		/*	Create Internal shaders.	*/
 
@@ -424,30 +425,33 @@ namespace glsample {
 		static std::vector<Node *> activeNodes;
 		activeNodes.clear();
 
-		std::function<void(const Node *, std::vector<Node *> &)> addIfActive;
+		{
 
-		addIfActive = [&addIfActive](const Node *root, std::vector<Node *> &active) {
-			for (size_t i = 0; i < root->getNumChildren(); i++) {
-				Node *node = root->getChild(i)->ptr();
-				if (node->isActive()) {
-					active.push_back(node);
-					addIfActive(node, activeNodes);
+			std::function<void(const Node *, std::vector<Node *> &)> addIfActive;
+
+			/*	*/
+			addIfActive = [&addIfActive](const Node *root, std::vector<Node *> &active) {
+				for (size_t i = 0; i < root->getNumChildren(); i++) {
+					Node *node = root->getChild(i)->ptr();
+					if (node->isActive()) {
+						active.push_back(node);
+						addIfActive(node, activeNodes);
+					}
 				}
-			}
-		};
+			};
 
-		/*	Extract Active Nodes.	*/
-		Node *root = getRootNode();
-		if (root->isActive()) {
-			addIfActive(root, activeNodes);
+			/*	Extract Active Nodes.	*/
+			Node *root = getRootNode();
+			if (root->isActive()) {
+				addIfActive(root, activeNodes);
+			}
 		}
 
 		/*	Frustum Culling.	*/
 		if (this->settings.frustumSettings.useFrustum && frustum) {
 
 			/*	*/
-			// TODO: multi thread
-			const size_t num_threads = SystemInfo::getCPUCoreCount() / 4;
+			const static size_t num_threads = Math::max<size_t>(SystemInfo::getCPUCoreCount() / 4, 1);
 			// TODO: make a single array.
 			static std::vector<std::vector<Node *>> objects(num_threads, std::vector<Node *>());
 			for (size_t i = 0; i < objects.size(); i++) {
@@ -455,14 +459,17 @@ namespace glsample {
 				objects[i].reserve(1024);
 			}
 
-			// TODO: get all parent nodes.
-#pragma omp parallel for num_threads(num_threads)
+#pragma omp parallel for num_threads(num_threads) default(shared) schedule(static, 16)
 			for (size_t node_index = 0; node_index < activeNodes.size(); node_index++) {
 
 				Node *node = activeNodes[node_index];
 
-				/*	Check if any of the meshes are visable. */
 				for (size_t mesh_index = 0; mesh_index < node->geometryObjectIndex.size(); mesh_index++) {
+				}
+
+				/*	Check if any of the meshes are visable. */
+				for (size_t mesh_index = 0; mesh_index < Math::clamp<size_t>(node->geometryObjectIndex.size(), 0, 1);
+					 mesh_index++) {
 
 					/*	*/
 					switch (this->settings.frustumSettings.FrustumCullingMode) {
@@ -474,11 +481,10 @@ namespace glsample {
 							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2]));
 
 						const glm::vec4 sphere_world_position =
-							node->getGlobalMatrix() *
-							glm::vec4(aabb.getCenter().x(), aabb.getCenter().y(), aabb.getCenter().z(), 1);
+							node->getGlobalMatrix() * glm::vec4(aabb.getCenter(), 1);
 
 						const BoundingSphere sphere =
-							BoundingSphere(GLM2E(sphere_world_position).head(3), aabb.getHalfSize().norm());
+							BoundingSphere(sphere_world_position, glm::length(aabb.getHalfSize()));
 
 						if (frustum->intersectionSphere(sphere) != Frustum::Out) {
 							/*	*/
@@ -494,7 +500,7 @@ namespace glsample {
 							fragcore::AABB::createMinMax(
 								Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
 								Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
-							GLM2E<float, 4, 4>(node->modelGlobalTransform));
+							node->modelGlobalTransform);
 
 						/*	*/
 						if (frustum->intersectionAABB(aabb) != Frustum::Out) {
@@ -510,6 +516,7 @@ namespace glsample {
 			}
 
 			/*	*/
+			#pragma omp single
 			for (size_t i = 0; i < objects.size(); i++) {
 				this->visableNodes.insert(this->visableNodes.end(), objects[i].begin(), objects[i].end());
 			}
@@ -531,9 +538,6 @@ namespace glsample {
 
 			GlobalSceneStateData *globalScene = this->stageCameraCommonRobin.buffers[getRoundRobinIndex()];
 			globalScene->camera = *camera;
-			CameraController *cameraController = dynamic_cast<CameraController *>(
-				camera); // TODO: remove controller once the camera start using the base Node
-			globalScene->camera = *cameraController;
 
 			/*	*/
 			globalScene->proj[0] = camera->getProjectionMatrix();

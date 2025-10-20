@@ -5,6 +5,7 @@
 #extension GL_ARB_shading_language_include : enable
 #extension GL_GOOGLE_include_directive : enable
 
+//TODO: relocate file to correct folder.
 layout(location = 0) out float fragColor;
 
 layout(location = 0) in vec2 screenUV;

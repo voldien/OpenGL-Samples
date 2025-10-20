@@ -1,3 +1,7 @@
+
+#include <array>
+#include <cstdint>
+
 #include "Common.h"
 #include "GLSampleSession.h"
 #include "Math3D/Math3D.h"
@@ -11,10 +15,10 @@
 #include <ModelImporter.h>
 #include <PhysicInterface.h>
 #include <ShaderLoader.h>
-#include <array>
 #include <bulletPhysicInterface.h>
-#include <cstdint>
+
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
 namespace glsample {
@@ -487,13 +491,13 @@ namespace glsample {
 				size_t offset = 0;
 				for (size_t i = 0; i < rigidbodies_box.size(); i++) {
 					glm::mat4 model = glm::mat4(1);
-					model = glm::translate(model, glm::vec3(rigidbodies_box[i]->getPosition().x(),
-															rigidbodies_box[i]->getPosition().y(),
-															rigidbodies_box[i]->getPosition().z()));
+					model = glm::translate(model, glm::vec3(rigidbodies_box[i]->getPosition().x,
+															rigidbodies_box[i]->getPosition().y,
+															rigidbodies_box[i]->getPosition().z));
 
-					const glm::quat roat(
-						rigidbodies_box[i]->getOrientation().w(), rigidbodies_box[i]->getOrientation().x(),
-						rigidbodies_box[i]->getOrientation().y(), rigidbodies_box[i]->getOrientation().z());
+					const glm::quat roat(rigidbodies_box[i]->getOrientation().w, rigidbodies_box[i]->getOrientation().x,
+										 rigidbodies_box[i]->getOrientation().y,
+										 rigidbodies_box[i]->getOrientation().z);
 
 					model = model * glm::toMat4(roat);
 
@@ -503,13 +507,13 @@ namespace glsample {
 
 				for (size_t i = 0; i < rigidbodies_sphere.size(); i++) {
 					glm::mat4 model = glm::mat4(1);
-					model = glm::translate(model, glm::vec3(rigidbodies_sphere[i]->getPosition().x(),
-															rigidbodies_sphere[i]->getPosition().y(),
-															rigidbodies_sphere[i]->getPosition().z()));
+					model = glm::translate(model, glm::vec3(rigidbodies_sphere[i]->getPosition().x,
+															rigidbodies_sphere[i]->getPosition().y,
+															rigidbodies_sphere[i]->getPosition().z));
 
 					const glm::quat roat(
-						rigidbodies_sphere[i]->getOrientation().w(), rigidbodies_sphere[i]->getOrientation().x(),
-						rigidbodies_sphere[i]->getOrientation().y(), rigidbodies_sphere[i]->getOrientation().z());
+						rigidbodies_sphere[i]->getOrientation().w, rigidbodies_sphere[i]->getOrientation().x,
+						rigidbodies_sphere[i]->getOrientation().y, rigidbodies_sphere[i]->getOrientation().z);
 
 					model = model * glm::toMat4(roat);
 
@@ -529,7 +533,7 @@ namespace glsample {
 			if (this->getInput().getMouseDown(Input::MouseButton::LEFT_BUTTON)) {
 				for (size_t i = 0; i < rigidbodies_box.size(); i++) {
 					const glm::vec3 force = camera.getLookDirection() * 150.0f;
-					rigidbodies_box[i]->addForce(GLM2E(force));
+					rigidbodies_box[i]->addForce(force);
 				}
 			}
 

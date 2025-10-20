@@ -55,16 +55,16 @@ namespace glsample {
 		/**
 		 * @brief Get the Plane object
 		 */
-		Plane<float> &getPlane(const int index) { return this->planes[index]; }
-		const Plane<float> &getPlane(const int index) const { return this->planes[index]; }
-		unsigned int getNrPlanes() const noexcept { return NPLANES; }
+		Plane<float> &getPlane(const int index) noexcept { return this->planes[index]; }
+		const Plane<float> &getPlane(const int index) const noexcept { return this->planes[index]; }
+		constexpr unsigned int getNrPlanes() const noexcept { return NPLANES; }
 
 		/**
 		 *	Comput the frustum planes,
 		 *	planes normal pointing positive towards the frustum volume.
 		 */
 		virtual void calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
-									   const glm::vec3 &right);
+									   const glm::vec3 &right) noexcept ;
 
 		/**
 		 *	Check if point is inside the frustum.
@@ -79,7 +79,6 @@ namespace glsample {
 		 * @return eIntersect if intersect the frustum, eOut otherwise.
 		 */
 		virtual Intersection intersectionAABB(const glm::vec3 &min, const glm::vec3 &max) const noexcept;
-
 		virtual Intersection intersectionAABB(const AABB &bounds) const noexcept;
 
 		virtual Intersection intersectionOBB(const glm::vec3 &u, const glm::vec3 &v, const glm::vec3 &w) const noexcept;
@@ -87,20 +86,17 @@ namespace glsample {
 
 		/**
 		 *	Check if sphere intersects frustum.
-		 *	@Return
 		 */
 		virtual Intersection intersectionSphere(const glm::vec3 &position, float radius) const noexcept;
 		virtual Intersection intersectionSphere(const BoundingSphere &sphere) const noexcept;
 
 		/**
 		 *	Check if plane intersects frustum.
-		 *	@Return
 		 */
 		virtual Intersection intersectPlane(const Plane<float> &plane) const noexcept;
 
 		/**
 		 *	Check if frustum intersects frustum.
-		 *	@Return
 		 */
 		virtual Intersection intersectionFrustum(const Frustum &frustum) const noexcept;
 

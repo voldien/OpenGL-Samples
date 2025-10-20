@@ -32,8 +32,9 @@ namespace glsample {
 		DebugDrawManager(fragcore::IFileSystem *filesystem);
 		~DebugDrawManager() override = default;
 
-		// TODO reduce argument.
-		void draw(Camera *camera, FrameBuffer *frame);
+		// TODO: virtual to allow specific render api to handle the command
+		//  TODO reduce argument.
+		virtual void draw(Camera *camera, FrameBuffer *frame) = 0;
 		//	RenderQueue getSupportedQueue() const override; /*  Render as overlay only. */
 
 		void updateBuffers();
@@ -60,7 +61,6 @@ namespace glsample {
 		virtual void addOBB(const OBB &obb, const glm::vec4 &color, float duration = 0.0f, bool depthEnabled = true);
 
 	  protected:
-	  private:
 		enum class DrawType { LINE, CROSS, SPHERE, CIRCLE, TRIANGLE, AABB, OBB, MAX_DRAW_TYPE };
 
 		using DebugDrawCommand = struct DebugDrawCommand_t {
@@ -124,13 +124,5 @@ namespace glsample {
 		/*	*/
 		std::map<unsigned int, Queue<DebugDrawCommand *>> commands; /*  */
 		fragcore::StackBufferedAllocator stackAllocator;
-		std::vector<MeshObject> debugGeometrys; /*  Geometry of the debug objects. - multiple sub geometries.   */
-
-		Material material;
-
-		/*	*/
-		StageBuffer<DebugData, 3> StageBuffers;
-		UBOPool ubo_pool;
-		UBOPool storageBufferPool;
 	};
 } // namespace glsample

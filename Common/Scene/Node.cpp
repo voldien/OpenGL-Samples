@@ -3,6 +3,7 @@
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/fwd.hpp>
 #include <glm/gtc/quaternion.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
 using namespace glsample;
@@ -87,6 +88,7 @@ glm::mat4 Node::getGlobalMatrix() const noexcept {
 glm::mat4 Node::getLocalMatrix() const noexcept {
 
 	glm::mat4 localModel(1);
+	/*	*/
 	localModel = glm::translate(localModel, this->getLocalPosition());
 	localModel = localModel * glm::toMat4(this->getLocalRotation());
 	localModel = glm::scale(localModel, this->getLocalScale());
@@ -96,8 +98,10 @@ glm::mat4 Node::getLocalMatrix() const noexcept {
 glm::mat4 Node::getViewMatrix() const noexcept {
 
 	glm::mat4 globalView(1);
-	globalView = glm::translate(globalView, -this->getPosition());
+	/*	*/
 	globalView = globalView * glm::toMat4(glm::inverse(this->getRotation()));
+	globalView = glm::translate(globalView, -this->getPosition());
+
 	globalView = glm::scale(globalView, this->getScale());
 
 	return globalView;
@@ -106,6 +110,7 @@ glm::mat4 Node::getViewMatrix() const noexcept {
 glm::mat4 Node::getLocalViewMatrix() const noexcept {
 
 	glm::mat4 localView(1);
+	/*	*/
 	localView = glm::translate(localView, -this->getLocalPosition());
 	localView = localView * glm::toMat4(glm::inverse(this->getLocalRotation()));
 	localView = glm::scale(localView, this->getLocalScale());
@@ -117,6 +122,12 @@ glm::mat4 Node::getRotationMatrix() const noexcept {
 	// glm::quat rotation = glm::quatLookAt(glm::normalize(this->forward()), glm::normalize(this->up()));
 	return glm::toMat4(this->getRotation());
 }
+
+glm::mat4 Node::getLocalRotationMatrix() const noexcept {
+	// glm::quat rotation = glm::quatLookAt(glm::normalize(this->forward()), glm::normalize(this->up()));
+	return glm::toMat4(this->getLocalRotation());
+}
+
 glm::mat4 Node::getViewTranslationMatrix() const noexcept { return glm::translate(glm::mat4(1), -this->getPosition()); }
 
 void Node::setLocalPosition(const glm::vec3 &localPosition) noexcept {

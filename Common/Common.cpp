@@ -165,7 +165,7 @@ int CommonUtil::createColorTexture(unsigned int width, unsigned int height, cons
 
 	FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)&texRef));
 	FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, texRef));
-	FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_FLOAT, color.data()));
+	FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_FLOAT, &color[0]));
 
 	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST));
 	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
@@ -192,7 +192,7 @@ int CommonUtil::createColorTexture16F(unsigned int width, unsigned int height, c
 
 	FVALIDATE_GL_CALL(glGenTextures(1, (GLuint *)&texRef));
 	FVALIDATE_GL_CALL(glBindTexture(GL_TEXTURE_2D, texRef));
-	FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, color.data()));
+	FVALIDATE_GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, &color[0]));
 
 	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST));
 	FVALIDATE_GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
@@ -402,7 +402,7 @@ void CommonUtil::updateFrameBuffer(FrameBuffer *framebuffer, const std::initiali
 								 0);
 			break;
 		default:
-					throw RuntimeException("Failed to bind texture attachment for framebuffer, {}", -1);
+			throw RuntimeException("Failed to bind texture attachment for framebuffer, {}", -1);
 		}
 	}
 

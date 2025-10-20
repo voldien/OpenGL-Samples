@@ -1,5 +1,4 @@
 #include "CameraController.h"
-#include "Scene/Node.h"
 #include "flythrough_camera.h"
 #include <Input.h>
 #include <SDL2/SDL_events.h>
@@ -11,12 +10,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/rotate_vector.hpp>
 
 using namespace glsample;
 
-CameraController::CameraController() : input(new SDLInput()) {}
+CameraController::CameraController() : input(new SDLInput()) { this->setScale(glm::vec3(1)); }
 
 void CameraController::update(const float deltaTime) noexcept {
 
@@ -110,6 +109,8 @@ void CameraController::update() noexcept {
 							 this->fov_degree, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 	this->setPosition(position);
+	const glm::quat rotation = glm::quatLookAt(glm::normalize(this->getLookDirection()), glm::normalize(this->getUp()));
+	this->setRotation(rotation);
 }
 
 void CameraController::updateFrustum() {

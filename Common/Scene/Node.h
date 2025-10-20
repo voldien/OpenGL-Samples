@@ -17,6 +17,7 @@
 
 #include "Core/Object.h"
 #include "DataStructure/ITree.h"
+#include "Math3D/LinAlg.h"
 #include "Transform.h"
 
 namespace glsample {
@@ -29,6 +30,8 @@ namespace glsample {
 
 		void setActive(const bool state) { this->active = state; }
 		bool isActive() const noexcept { return this->active; }
+
+		virtual NodeType getNodeType() const noexcept = 0;
 
 		enum State {
 			Static,
@@ -84,9 +87,13 @@ namespace glsample {
 		glm::mat4 getViewMatrix() const noexcept;
 		glm::mat4 getLocalViewMatrix() const noexcept;
 		glm::mat4 getRotationMatrix() const noexcept;
+		glm::mat4 getLocalRotationMatrix() const noexcept;
 		glm::mat4 getViewTranslationMatrix() const noexcept;
 
 		/*	Enable Disable.	*/
+
+	  public:
+		NodeType getNodeType() const noexcept override { return NodeType::Node; }
 
 	  public:
 		/*	*/

@@ -17,14 +17,17 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <glm/ext/quaternion_geometric.hpp>
-#include <glm/fwd.hpp>
-#include <glm/geometric.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
+
 #include <iostream>
 #include <sys/types.h>
 #include <thread>
 #include <utility>
+
+#include <glm/ext/quaternion_geometric.hpp>
+#include <glm/fwd.hpp>
+#include <glm/geometric.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
 
 namespace fs = std::filesystem;
 using namespace fragcore;
@@ -85,21 +88,37 @@ ModelImporter &ModelImporter::operator=(ModelImporter &&other) noexcept {
 
 class CustomProgress : public Assimp::ProgressHandler {
   public:
+	CustomProgress(std::function<bool(float progress)> func) : func(func) {}
+
 	bool Update(float percentage = -1.f) override {
-		std::cout << "\33[2K\r" << "Loading Model: " << percentage * 100.0f << "/100" << std::flush;
-		return true;
+		if (this->func) {
+			return this->func(percentage);
+		}
+		return false;
 	}
+
+	std::function<bool(float progress)> func;
 };
 
-void ModelImporter::loadContent(const std::string &path, unsigned long int supportFlag) {
+void ModelImporter::loadContent(const std::string &path, unsigned long int supportFlag,
+								const ModelImporterOptions &override_options) {
 	Assimp::Importer importer;
 
 	this->filepath = fs::path(fileSystem->getAbsolutePath(path.c_str())).parent_path();
 
+	/*	Progress Bar.	*/
 	importer.SetPropertyBool(AI_CONFIG_GLOB_MEASURE_TIME, false);
-	importer.SetProgressHandler(new CustomProgress());
+	if (!override_options.progress_callback) {
+		importer.SetProgressHandler(new CustomProgress([](float percentage) {
+			std::cout << "\33[2K\r" << "Loading Model: " << percentage * 100.0f << "/100" << std::flush;
+			return true;
+		}));
+	} else {
+		importer.SetProgressHandler(new CustomProgress(override_options.progress_callback));
+	}
 
 	size_t flags = aiProcessPreset_TargetRealtime_Fast | aiProcess_GenBoundingBoxes | aiProcess_PopulateArmatureData;
+
 	if (false) {
 		flags = aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_GenBoundingBoxes |
 				aiProcess_PopulateArmatureData | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
@@ -112,6 +131,7 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 		throw RuntimeException("Failed to load file: {} - Error: {}", path, importer.GetErrorString());
 	}
 
+	/*	*/
 	std::cout << std::endl;
 	std::cout << "Number Lights: " << this->sceneRef->mNumLights << std::endl;
 	std::cout << "Number Cameras: " << this->sceneRef->mNumCameras << std::endl;
@@ -119,7 +139,9 @@ void ModelImporter::loadContent(const std::string &path, unsigned long int suppo
 	std::cout << "Number Textures: " << this->sceneRef->mNumTextures << std::endl;
 	std::cout << "Number Animations: " << this->sceneRef->mNumAnimations << std::endl;
 	std::cout << "Number Skeletons: " << this->sceneRef->mNumSkeletons << std::endl;
+	std::cout << "Number Meshes: " << this->sceneRef->mNumMeshes << std::endl;
 
+	/*	*/
 	this->globalNodeTransform = aiMatrix4x4ToGlm(&this->sceneRef->mRootNode->mTransformation);
 
 	this->initScene(this->sceneRef);
@@ -197,37 +219,37 @@ void ModelImporter::initScene(const aiScene *scene) {
 	});
 
 	/*	*/
-	const size_t nr_threads = fragcore::Math::clamp<size_t>(scene->mNumMeshes / 4, 1, SystemInfo::getCPUCoreCount());
+	const size_t init_num_mesh_per_chunk = 32;
+	const size_t nr_threads =
+		fragcore::Math::clamp<size_t>(scene->mNumMeshes / init_num_mesh_per_chunk, 1, SystemInfo::getCPUCoreCount());
+
+	/*	Calculate the number of meshes per thread, including the remainder.	*/
+	const size_t num_mesh_per_thread = (scene->mNumMeshes / nr_threads) + (scene->mNumMeshes % nr_threads != 0 ? 1 : 0);
 	std::vector<std::thread> model_threads(nr_threads);
 
-	for (size_t x = 0; x < scene->mNumMeshes; x++) {
+	// GeometryUtility geometryUtil;
 
-		this->initMesh(scene->mMeshes[x], x);
-	}
-	// TODO: fix
 	/*	Multithread the loading of all the geometry data.	*/
-	//	#pragma omp parallel for schedule(static, 1)
-	/*
 	for (size_t index_thread = 0; index_thread < model_threads.size(); index_thread++) {
 
-		const size_t start_mesh = (scene->mNumMeshes / nr_threads) * index_thread;
-		size_t num_mesh = (scene->mNumMeshes / nr_threads);
-		if (index_thread == model_threads.size() - 1) {
-			num_mesh *= 2;
+		const size_t start_mesh = num_mesh_per_thread * index_thread;
+		size_t num_mesh = num_mesh_per_thread;
+		if (index_thread == model_threads.size() - 1) { /*	Last reminder thread.	*/
+			num_mesh = scene->mNumMeshes % num_mesh_per_thread;
 		}
 
 		model_threads[index_thread] = std::thread([&, start_mesh, num_mesh]() {
 			if (scene->HasMeshes()) {
 
-				for (size_t x = start_mesh; x < fragcore::Math::min<size_t>(start_mesh + num_mesh, scene->mNumMeshes);
-					 x++) {
+				const size_t mesh_max_index = fragcore::Math::min<size_t>(start_mesh + num_mesh, scene->mNumMeshes);
+				for (size_t mesh_index = start_mesh; mesh_index < mesh_max_index; mesh_index++) {
 
-					this->initMesh(scene->mMeshes[x], x);
+					this->initMesh(scene->mMeshes[mesh_index], mesh_index);
+					/*	Process the mesh additionally.	*/
 				}
 			}
 		});
-	}*/
-	// #pragma omp
+	}
 
 	/*	*/
 	std::thread process_light_camera_thread([&]() {
@@ -262,7 +284,6 @@ void ModelImporter::initScene(const aiScene *scene) {
 			}
 		}
 	});
-	// process_animation_light_camera_thread.detach();
 
 	/*	*/
 	nodePool.resize(4096);
@@ -271,7 +292,7 @@ void ModelImporter::initScene(const aiScene *scene) {
 	process_light_camera_thread.join();
 
 	for (size_t i = 0; i < model_threads.size(); i++) {
-		//	model_threads[i].join();
+		model_threads[i].join();
 	}
 
 	std::thread process_material_thread([&]() {
@@ -361,7 +382,6 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 		pobject->globalPosition = translation;
 		pobject->globalRotation = globalRotation;
 		pobject->globalScale = gobalScale;
-
 
 		pobject->name = std::string();
 		pobject->name = aiStringToStdString(ai_node->mChildren[node_index]->mName);
@@ -883,6 +903,29 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 		if (ref_material->Get(AI_MATKEY_SHADING_MODEL, model) == aiReturn::aiReturn_SUCCESS) {
 			material_obj->shade_model = model;
 		}
+		switch (model) {
+		default:
+		case _aiShadingMode_Force32Bit:
+		case aiShadingMode_Flat:
+			material_obj->shadingModel = MaterialObject::ShadingModel::Lambert;
+			break;
+		case aiShadingMode_Gouraud:
+		case aiShadingMode_Phong:
+			material_obj->shadingModel = MaterialObject::ShadingModel::Phong;
+			break;
+		case aiShadingMode_Blinn:
+			material_obj->shadingModel = MaterialObject::ShadingModel::Blinn;
+			break;
+		case aiShadingMode_Toon:
+		case aiShadingMode_OrenNayar:
+		case aiShadingMode_Minnaert:
+		case aiShadingMode_CookTorrance:
+		case aiShadingMode_NoShading:
+		case aiShadingMode_Fresnel:
+		case aiShadingMode_PBR_BRDF:
+			material_obj->shadingModel = MaterialObject::ShadingModel::PhysicalBased;
+			break;
+		}
 
 		if (model <= aiShadingMode_Blinn) {
 			if (ref_material->Get(AI_MATKEY_COLOR_AMBIENT, color[0]) == aiReturn::aiReturn_SUCCESS) {
@@ -1047,7 +1090,7 @@ MaterialObject *ModelImporter::initMaterial(aiMaterial *ref_material, size_t mat
 			} else {
 				material_obj->blend_equ_mode = BlendEqu::NoEqu;
 				material_obj->blend_func_mode = BlendFunc::Zero;
-				material_obj->clipping = 0.4f; //containsAlphaBlend ? 0.4f : 0.0f; /*	use clipping if alpha used.	*/
+				material_obj->clipping = 0.4f; // containsAlphaBlend ? 0.4f : 0.0f; /*	use clipping if alpha used.	*/
 				material_obj->depth_write = true;
 			}
 		}
@@ -1262,9 +1305,11 @@ struct Face {
 void ModelImporter::convert2Adjcent(const aiMesh *paiMesh, std::vector<unsigned int> &Indices) {}
 
 NodeObject *ModelImporter::getNodeByName(const std::string &name) const noexcept {
+	/*	*/
 	if (this->nodeByName.find(name) != this->nodeByName.end()) {
 		return nodeByName.at(name);
 	}
+	/*	Not found.	*/
 	return nullptr;
 }
 

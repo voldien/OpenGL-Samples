@@ -19,7 +19,7 @@ layout(location = 3) out vec3 tangent;
 /*	*/
 layout(location = 8) flat invariant out ivec2 fAssigns;
 
-#include "pbr_common.glsl"
+#include "../modelviewer_common.glsl"
 
 void main() {
 

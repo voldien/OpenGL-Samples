@@ -21,11 +21,13 @@
 #include <IO/IFileSystem.h>
 #include <Math3D/AABB.h>
 
+#include <array>
 #include <cassert>
 #include <cstddef>
+#include <functional>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <assimp/Importer.hpp>
 #include <assimp/anim.h>
@@ -41,7 +43,7 @@
 #include <assimp/types.h>
 #include <assimp/vector3.h>
 
-namespace glsample {}
+namespace assetimporter {}
 
 using AssetObject = struct asset_object_t {
 	std::string name;
@@ -58,6 +60,7 @@ using VertexBoneBuffer = struct vertex_bone_buffer_t {
 };
 
 using MaterialTextureSampling = struct material_texture_sampling_t {
+
 	/*	*/
 	fragcore::TextureWrappingMode wrapping = fragcore::TextureWrappingMode::Repeat;
 	fragcore::TextureFilterMode filtering = fragcore::TextureFilterMode::Linear;
@@ -65,8 +68,6 @@ using MaterialTextureSampling = struct material_texture_sampling_t {
 };
 
 using MaterialObject = struct material_object_t : public AssetObject {
-	// unsigned int program = 0; // TODO: relocate.
-
 	// Material color Attributes.
 	glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
 	glm::vec4 diffuse = glm::vec4(1);
@@ -90,10 +91,14 @@ using MaterialObject = struct material_object_t : public AssetObject {
 	/*	*/
 
 	/*	*/
-	enum class ShadingModel : unsigned int {
+	enum class ShadingModel {
+		Lambert,
+		Blinn,
+		Phong,
+		PhysicalBased,
 
 	};
-
+	ShadingModel shadingModel;
 	unsigned int shade_model = 0; /*	aiShadingMode	*/
 
 	MaterialTextureSampling texture_sampling[32];
@@ -284,7 +289,26 @@ using LightObject = struct alignas(32) light_object_t : public AssetObject {
 
 class FVDECLSPEC ModelImporter {
   public:
-	ModelImporter(fragcore::IFileSystem *fileSystem) : fileSystem(fileSystem) {}
+	// enum ImportAssetType {
+	// 	Nodes,
+	// 	Meshes,
+	// 	Textures,
+	// 	Material,
+	// 	Animations,
+	// 	Bone,
+	// };
+	enum ImporterOptions {
+		GeometryOptimization,
+	};
+
+	using ModelImporterOptions = struct model_importer_options {
+		//	ImportAssetType importTypes = IMport;
+		//	size_t import_options{};
+		std::function<bool(float)> progress_callback;
+	};
+
+	ModelImporter(fragcore::IFileSystem *fileSystem, const ModelImporterOptions &options = ModelImporterOptions())
+		: fileSystem(fileSystem) {}
 	ModelImporter(const ModelImporter &other) = default;
 	ModelImporter(ModelImporter &&other) noexcept;
 	virtual ~ModelImporter() { this->clear(); }
@@ -292,37 +316,46 @@ class FVDECLSPEC ModelImporter {
 	ModelImporter &operator=(const ModelImporter &other) = default;
 	ModelImporter &operator=(ModelImporter &&other) noexcept;
 
-	virtual void loadContent(const std::string &path, unsigned long int supportFlag);
+	virtual void loadContent(const std::string &path, unsigned long int supportFlag = 0,
+							 const ModelImporterOptions &override_options = ModelImporterOptions());
 	virtual void clear() noexcept;
 
-	fragcore::IFileSystem *getFileSystem() const noexcept { return this->fileSystem; }
+	virtual fragcore::IFileSystem *getFileSystem() const noexcept { return this->fileSystem; }
 
   protected:
-	void initScene(const aiScene *scene);
+	/*	*/
+	virtual void initScene(const aiScene *scene);
 
-	/**
-	 *
-	 */
-	void initNodeRoot(const aiNode *nodes, NodeObject *parent = nullptr);
+	/*	*/
+	virtual void initNodeRoot(const aiNode *nodes, NodeObject *parent = nullptr);
 
-	MaterialObject *initMaterial(aiMaterial *material, size_t index);
+	/*	*/
+	virtual MaterialObject *initMaterial(aiMaterial *material, size_t index);
 
-	ModelSystemObject *initMesh(const aiMesh *mesh, unsigned int index);
+	/*	*/
+	virtual ModelSystemObject *initMesh(const aiMesh *mesh, unsigned int index);
 
-	SkeletonSystem *initBoneSkeleton(const aiMesh *mesh, unsigned int index);
+	/*	*/
+	virtual SkeletonSystem *initBoneSkeleton(const aiMesh *mesh, unsigned int index);
 
-	TextureAssetObject *initTexture(aiTexture *texture, unsigned int index);
-	size_t getTextureRequiredSize(const aiTexture *texture) const noexcept;
+	/*	*/
+	virtual TextureAssetObject *initTexture(aiTexture *texture, unsigned int index);
+	virtual size_t getTextureRequiredSize(const aiTexture *texture) const noexcept;
 
-	AnimationObject *initAnimation(const aiAnimation *animation, unsigned int index);
-	//
+	/*	*/
+	virtual AnimationObject *initAnimation(const aiAnimation *animation, unsigned int index);
 
-	LightObject *initLight(const aiLight *light, unsigned int index);
-	void loadTexturesFromMaterials(aiMaterial *material);
+	/*	*/
+	virtual LightObject *initLight(const aiLight *light, unsigned int index);
 
-	void convert2Adjcent(const aiMesh *mesh, std::vector<unsigned int> &indices);
+	/*	*/
+	virtual void loadTexturesFromMaterials(aiMaterial *material);
 
-	NodeObject *getNodeByName(const std::string &name) const noexcept;
+	/*	*/
+	virtual void convert2Adjcent(const aiMesh *mesh, std::vector<unsigned int> &indices);
+
+	/*	*/
+	virtual NodeObject *getNodeByName(const std::string &name) const noexcept;
 
   public:
 	std::vector<NodeObject *> getNodes() const noexcept { return this->nodeReferences; }
@@ -352,7 +385,7 @@ class FVDECLSPEC ModelImporter {
 
   private:
 	fragcore::IFileSystem *fileSystem = nullptr;
-
+	ModelImporterOptions options;
 	std::string filepath;
 	const aiScene *sceneRef = nullptr;
 

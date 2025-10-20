@@ -115,17 +115,20 @@ namespace glsample {
 		/*	*/
 		camera_instance_data_t &operator=(const Camera &camera) {
 
-			this->position = glm::vec4(camera.getPosition(), 1);
-			this->viewDir = glm::vec4(camera.forward(), 1);
-			this->view = camera.getViewMatrix();
-			this->proj = camera.getProjectionMatrix();
-			this->viewProj = this->proj * this->view;
-			this->viewInv = glm::inverse(camera.getViewMatrix());
-			this->inverseProj = glm::inverse(camera.getProjectionMatrix());
-			this->viewProjInv = glm::inverse(this->viewProj);
-
 			this->near = camera.getNear();
 			this->far = camera.getFar();
+			this->position = glm::vec4(camera.getPosition(), 0);
+			this->viewDir = glm::vec4(camera.forward(), 0);
+
+			this->view = camera.getViewMatrix();
+			this->proj = camera.getProjectionMatrix();
+			this->viewRot = camera.getRotationMatrix();
+
+			this->viewInv = glm::inverse(this->view);
+			this->inverseProj = glm::inverse(this->proj);
+
+			this->viewProj = this->proj * this->view;
+			this->viewProjInv = glm::inverse(this->viewProj);
 
 			return *this;
 		}
@@ -137,13 +140,13 @@ namespace glsample {
 			this->near = camera.getNear();
 			this->far = camera.getFar();
 			this->proj = camera.getProjectionMatrix();
+			this->view = camera.getViewMatrix();
+
 			this->inverseProj = glm::inverse(this->proj);
 			this->position = glm::vec4(camera.getPosition(), 0);
 
-			this->near = camera.getNear();
-			this->far = camera.getFar();
 			this->viewDir = glm::vec4(camera.getLookDirection(), 0);
-			this->view = camera.getViewMatrix();
+
 			this->viewInv = glm::inverse(this->view);
 
 			this->viewRot = camera.getRotationMatrix();
@@ -180,8 +183,8 @@ namespace glsample {
 		frustum_instance_t(const Frustum &frustum) {
 
 			for (unsigned int plane_index = 0; plane_index < frustum.getNrPlanes(); plane_index++) {
-				planes[plane_index] = glm::vec4(E2GLM(frustum.getPlane(plane_index).getNormal()),
-												frustum.getPlane(plane_index).distance());
+				planes[plane_index] =
+					glm::vec4(frustum.getPlane(plane_index).getNormal(), frustum.getPlane(plane_index).distance());
 			}
 		}
 

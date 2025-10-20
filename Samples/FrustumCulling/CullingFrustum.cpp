@@ -16,6 +16,7 @@
 #include <ModelImporter.h>
 #include <ShaderLoader.h>
 #include <cstdint>
+#include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <queue>
@@ -297,7 +298,7 @@ namespace glsample {
 
 				std::vector<ProceduralGeometry::Vertex> frustumVertices;
 				/*	Update frustum geometry.	*/
-				const Matrix4x4 proj = GLM2E(camera.getProjectionMatrix());
+				const Matrix4x4 proj = camera.getProjectionMatrix();
 				ProceduralGeometry::createFrustum(frustumVertices, proj);
 			}
 		}
@@ -309,7 +310,7 @@ namespace glsample {
 			this->camera_observe_frustum.setAspect((float)width / (float)height);
 
 			/*	Update frustum geometry.	*/
-			const Matrix4x4 proj = GLM2E(camera.getProjectionMatrix());
+			const Matrix4x4 proj = camera.getProjectionMatrix();
 			std::vector<ProceduralGeometry::Vertex> frustumVertices;
 			ProceduralGeometry::createFrustum(frustumVertices, proj);
 		}
@@ -450,10 +451,10 @@ namespace glsample {
 						fragcore::AABB::createMinMax(
 							Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
 							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
-						GLM2E<float, 4, 4>(node->modelGlobalTransform));
+						node->modelGlobalTransform);
 
 					if (this->frustumCullingSettingComponent->useSphereCulling) {
-						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), aabb.getHalfSize().norm());
+						BoundingSphere sphere = BoundingSphere(aabb.getCenter(), glm::length(aabb.getHalfSize()));
 
 						if (this->camera.intersectionSphere(sphere) == Frustum::In ||
 							!this->frustumCullingSettingComponent->useFrustumCulling) {
@@ -514,11 +515,11 @@ namespace glsample {
 						fragcore::AABB::createMinMax(
 							Vector3(node->bound.aabb.min[0], node->bound.aabb.min[1], node->bound.aabb.min[2]),
 							Vector3(node->bound.aabb.max[0], node->bound.aabb.max[1], node->bound.aabb.max[2])),
-						GLM2E<float, 4, 4>(node->modelGlobalTransform));
+						node->modelGlobalTransform);
 
 					glm::mat4 localBoundMatrix = glm::mat4(1);
-					localBoundMatrix = glm::translate(localBoundMatrix, E2GLM<float, 3>(aabb.getCenter()));
-					localBoundMatrix = glm::scale(localBoundMatrix, E2GLM<float, 3>(aabb.getHalfSize()));
+					localBoundMatrix = glm::translate(localBoundMatrix, aabb.getCenter());
+					localBoundMatrix = glm::scale(localBoundMatrix, aabb.getHalfSize());
 
 					const glm::mat4 model = node->modelGlobalTransform * localBoundMatrix;
 					const glm::vec4 color = glm::vec4((node->materialIndex[0] * 0.1f) + 0.2, 1,

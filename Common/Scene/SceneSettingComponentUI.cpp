@@ -4,6 +4,7 @@
 #include "RenderDesc.h"
 #include "Scene.h"
 #include "Scene/RenderQueue.h"
+#include "Util/ImGuiUtil.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include <Math/Bitwise.h>
@@ -14,32 +15,6 @@ inline void nodeActive(Node &node) noexcept {
 	bool active = node.isActive();
 	if (ImGui::Checkbox("Active", &active)) {
 		node.setActive(active);
-	}
-}
-
-template <typename T>
-void enumComboBox(const char *lable, const T currentSelected, const size_t maxEnums,
-				  std::function<void(const T selected)> onSelected) {
-
-	const int item_selected_idx = (int)currentSelected;
-
-	const std::string combo_preview_value = std::string(magic_enum::enum_name(currentSelected));
-
-	const ImGuiComboFlags flags = 0;
-	ImGui::SetNextItemWidth(256);
-	if (ImGui::BeginCombo(lable, combo_preview_value.c_str(), flags)) {
-		for (size_t nth_enum = 0; nth_enum < maxEnums; nth_enum++) {
-			const bool is_selected = (item_selected_idx == nth_enum);
-
-			if (ImGui::Selectable(magic_enum::enum_name((T)nth_enum).data(), is_selected)) {
-				onSelected((T)nth_enum);
-			}
-
-			if (is_selected) {
-				ImGui::SetItemDefaultFocus();
-			}
-		}
-		ImGui::EndCombo();
 	}
 }
 

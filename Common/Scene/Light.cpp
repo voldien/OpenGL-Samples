@@ -82,16 +82,16 @@ void DirectionalLight::setShadowDistance(float distance) {
 }
 
 void DirectionalLight::calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
-										 const glm::vec3 &right) {
+										 const glm::vec3 &right) noexcept {
 
 	const float distance = this->getShadowDistance();
 
-	this->planes[NEAR_PLANE] = {GLM2E(position - distance * look_forward), GLM2E(look_forward)};
-	this->planes[FAR_PLANE] = {GLM2E(position + distance * look_forward), GLM2E(-look_forward)};
+	this->planes[NEAR_PLANE] = {position - distance * look_forward, look_forward};
+	this->planes[FAR_PLANE] = {position + distance * look_forward, -look_forward};
 
-	this->planes[RIGHT_PLANE] = {GLM2E(position - distance * right), GLM2E(right)};
-	this->planes[LEFT_PLANE] = {GLM2E(position + distance * right), GLM2E(-right)};
+	this->planes[RIGHT_PLANE] = {position - distance * right, right};
+	this->planes[LEFT_PLANE] = {position + distance * right, -right};
 
-	this->planes[TOP_PLANE] = {GLM2E(position - distance * up), GLM2E(up)};
-	this->planes[BOTTOM_PLANE] = {GLM2E(position + distance * up), GLM2E(-up)};
+	this->planes[TOP_PLANE] = {position - distance * up, up};
+	this->planes[BOTTOM_PLANE] = {position + distance * up, -up};
 }

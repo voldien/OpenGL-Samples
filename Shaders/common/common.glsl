@@ -11,7 +11,7 @@
 #include "transformation.glsl"
 
 /*	Application constant.	*/
-layout(constant_id = 0) const float EPSILON = 1.19209e-07;
+const float EPSILON = 1.19209e-07;
 
 struct Camera {
 	float near;	  /*	*/

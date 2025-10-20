@@ -40,6 +40,14 @@ namespace glsample {
 					unsigned int normal_texture);
 
 	  private:
+		enum class AmbientOcclusion {
+			SSAO,
+			HBAO,
+			HDAO,
+		};
+
+		AmbientOcclusion ambientOcclusion = AmbientOcclusion::SSAO;
+
 		bool downScale = false;
 		bool useDepthOnly = true;
 

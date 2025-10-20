@@ -14,8 +14,12 @@
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
+
 #include <glm/trigonometric.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+
+// #include <glm/gtx/quaternion.hpp>
 
 namespace glsample {
 
@@ -66,7 +70,7 @@ namespace glsample {
 
 		/*	*/
 		MeshObject instanceGeometry;
-		AABB boundingBox;
+		AABB boundingBox{};
 
 		/*	*/
 		unsigned int instance_program{};
@@ -140,8 +144,8 @@ namespace glsample {
 
 				Vector3 size = this->getRefSample().boundingBox.getHalfSize();
 				Vector3 center = this->getRefSample().boundingBox.getCenter();
-				ImGui::DragFloat3("Model Max Bounding Box", size.data());
-				ImGui::DragFloat3("Bounding Box Center", center.data());
+				ImGui::DragFloat3("Model Max Bounding Box", &size[0]);
+				ImGui::DragFloat3("Bounding Box Center", &center[0]);
 
 				glm::vec3 average_position_offset =
 					this->getRefSample().resultStage.averagePosition / this->getRefSample().resultStage.area;
@@ -279,12 +283,12 @@ namespace glsample {
 					fragcore::AABB::createMinMax(
 						Vector3(modelRef.bound.aabb.min[0], modelRef.bound.aabb.min[1], modelRef.bound.aabb.min[2]),
 						Vector3(modelRef.bound.aabb.max[0], modelRef.bound.aabb.max[1], modelRef.bound.aabb.max[2])),
-					GLM2E<float, 4, 4>(glm::mat4(1)));
+					glm::mat4(1));
 				/*	*/
 				Vector3 halfSize = this->boundingBox.getHalfSize();
-				halfSize.x() *= sqrt(2.0f);
-				halfSize.y() *= sqrt(2.0f);
-				halfSize.z() *= sqrt(2.0f);
+				halfSize.x *= sqrt(2.0f);
+				halfSize.y *= sqrt(2.0f);
+				halfSize.z *= sqrt(2.0f);
 				this->boundingBox.setHalfSize(halfSize);
 
 				/*	Create array buffer, for rendering static geometry.	*/
@@ -455,13 +459,13 @@ namespace glsample {
 
 			this->uniformData.camera = this->camera;
 
-			this->uniformData.bounding.bound.aabb.min[0] = this->boundingBox.getCenter().x();
-			this->uniformData.bounding.bound.aabb.min[1] = this->boundingBox.getCenter().y();
-			this->uniformData.bounding.bound.aabb.min[2] = this->boundingBox.getCenter().z();
+			this->uniformData.bounding.bound.aabb.min[0] = this->boundingBox.getCenter().x;
+			this->uniformData.bounding.bound.aabb.min[1] = this->boundingBox.getCenter().y;
+			this->uniformData.bounding.bound.aabb.min[2] = this->boundingBox.getCenter().z;
 			// this->uniformData.bounding.bound.aabb.max = E2GLM(this->boundingBox.getHalfSize());
 
 			/*	*/
-			this->uniformData.model = glm::translate(glm::mat4(1.0f), -E2GLM(this->boundingBox.getCenter()));
+			this->uniformData.model = glm::translate(glm::mat4(1.0f), -this->boundingBox.getCenter());
 			/*	*/
 			this->uniformData.model =
 				glm::translate(this->uniformData.model, this->windCoeffSettingComponent->offsetPosition);
@@ -478,15 +482,13 @@ namespace glsample {
 			if (windCoeffSettingComponent->focusCamera) {
 				this->camera.setProjectionMode(Camera::CameraProjectionMode::Orthographic);
 
-				this->camera.setOrth(-boundingBox.getHalfSize().x(), boundingBox.getHalfSize().x(),
-									 -boundingBox.getHalfSize().y(), boundingBox.getHalfSize().y(),
-									 -boundingBox.getHalfSize().z() * 2, boundingBox.getHalfSize().z() * 2);
+				this->camera.setOrth(-boundingBox.getHalfSize().x, boundingBox.getHalfSize().x,
+									 -boundingBox.getHalfSize().y, boundingBox.getHalfSize().y,
+									 -boundingBox.getHalfSize().z * 2, boundingBox.getHalfSize().z * 2);
 
 				/*	*/
-				this->camera.setPosition(
-					E2GLM(boundingBox.getCenter()) +
-					glm::normalize(glm::vec3(this->camera.getPosition().x, 0, this->camera.getPosition().z)));
-				this->camera.lookAt(E2GLM(boundingBox.getCenter()));
+				this->camera.setPosition(boundingBox.getCenter() + glm::normalize(this->camera.getPosition()));
+				this->camera.lookAt(boundingBox.getCenter());
 
 				this->uniformData.view = this->camera.getRotationMatrix();
 

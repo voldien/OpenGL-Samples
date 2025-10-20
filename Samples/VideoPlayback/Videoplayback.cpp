@@ -6,8 +6,8 @@
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <OpenALAudioInterface.h>
-#include <ShaderLoader.h>
 #include <Scene/CameraController.h>
+#include <ShaderLoader.h>
 #include <cstddef>
 #include <cstdint>
 #include <fmt/core.h>
@@ -328,13 +328,13 @@ namespace glsample {
 			{
 				this->audioInterface = std::make_shared<fragcore::OpenALAudioInterface>(nullptr);
 
-				fragcore::AudioListenerDesc list_desc = {fragcore::Vector3(0, 0, 0), fragcore::Quaternion::Identity()};
-				list_desc.position = fragcore::Vector3::Zero();
+				fragcore::AudioListenerDesc list_desc = {fragcore::Vector3(0, 0, 0), fragcore::Quaternion(1, 0, 0, 0)};
+				list_desc.position = fragcore::Vector3(0);
 				listener = audioInterface->createAudioListener(&list_desc);
 				listener->setVolume(1.0f);
 
 				fragcore::AudioSourceDesc source_desc = {};
-				source_desc.position = fragcore::Vector3::Zero();
+				source_desc.position = fragcore::Vector3(0);
 
 				this->audioSource = audioInterface->createAudioSource(&source_desc);
 				this->audioSource->loop(false);

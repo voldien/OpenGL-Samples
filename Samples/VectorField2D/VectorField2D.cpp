@@ -577,7 +577,7 @@ namespace glsample {
 				const float yHalf = this->uniformStageBuffer.particleSetting.particleBox.y / 2.f;
 				glm::mat4 proj = glm::ortho(-xHalf, xHalf, -yHalf, yHalf, -10.0f, 10.0f);
 
-				glm::mat4 viewMatrix = glm::translate(glm::vec3(-xHalf, -yHalf, 0));
+				glm::mat4 viewMatrix = glm::translate(glm::mat4(1), glm::vec3(-xHalf, -yHalf, 0));
 				/*	*/
 				this->uniformStageBuffer.proj = proj;
 

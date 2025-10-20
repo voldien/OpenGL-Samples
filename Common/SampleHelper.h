@@ -16,56 +16,18 @@
 #pragma once
 #include "DataStructure/MemoryAddress.h"
 #include "RenderDesc.h"
-#include <Eigen/Eigen>
 #include <IO/IOUtil.h>
 #include <Math3D/AABB.h>
 #include <Math3D/Color.h>
 #include <Math3D/Math3D.h>
 #include <Math3D/OBB.h>
+#include <array>
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
 
 namespace glsample {
 
 	using IOUtil = fragcore::IOUtil;
-
-	template <typename T, int m, int n>
-	inline glm::mat<m, n, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, n> &em) noexcept {
-		glm::mat<m, n, float, glm::precision::highp> mat;
-		for (unsigned int i = 0; i < m; ++i) {
-			for (unsigned int j = 0; j < n; ++j) {
-				mat[j][i] = em(i, j);
-			}
-		}
-		return mat;
-	}
-
-	template <typename T, int m>
-	inline glm::vec<m, float, glm::precision::highp> E2GLM(const Eigen::Matrix<T, m, 1> &em) noexcept {
-		glm::vec<m, float, glm::precision::highp> v{};
-		for (unsigned int i = 0; i < m; ++i) {
-			v[i] = em(i);
-		}
-		return v;
-	}
-
-	template <typename T, int m> inline Eigen::Matrix<T, m, 1> GLM2E(const glm::vec<m, T> &em) noexcept {
-		Eigen::Matrix<T, m, 1> v;
-		for (unsigned int i = 0; i < m; ++i) {
-			v(i) = em[i];
-		}
-		return v;
-	}
-
-	template <typename T, int m, int n> inline Eigen::Matrix<T, m, n> GLM2E(const glm::mat<m, n, T> &em) noexcept {
-		Eigen::Matrix<T, m, n> mat;
-		for (unsigned int i = 0; i < m; ++i) {
-			for (unsigned int j = 0; j < n; ++j) {
-				mat(j, i) = em[i][j];
-			}
-		}
-		return mat;
-	}
 
 	template <typename T, unsigned int n> struct StageBuffer {
 	  public:
@@ -114,14 +76,14 @@ namespace glsample {
 	};
 
 	using TextureSampler = struct texture_sampling_t {
-		unsigned int sampler;
+		unsigned int sampler{};
 		fragcore::TextureWrappingMode wrapping = fragcore::TextureWrappingMode::Repeat;
 		fragcore::TextureFilterMode filtering = fragcore::TextureFilterMode::Linear;
 		fragcore::TextureUVMappingMode uv_mapping = fragcore::TextureUVMappingMode::UV;
-		unsigned int LODBias;
-		unsigned int minLOD;
-		unsigned int maxLOD;
-		unsigned int ansiotropy;
+		unsigned int LODBias{};
+		unsigned int minLOD{};
+		unsigned int maxLOD{};
+		unsigned int ansiotropy{};
 	};
 
 	using Texture = struct texture_t {
@@ -141,8 +103,6 @@ namespace glsample {
 		unsigned int nrAttachments = 0;
 		unsigned int depthIndex = 31; /*	Last attachment reserved for the depth/stencil.	*/
 	};
-
-
 
 	/*	*/
 	using TextureDesc = fragcore::TextureDesc;

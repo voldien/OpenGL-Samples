@@ -20,22 +20,27 @@
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/gtx/rotate_vector.hpp>
 
 namespace glsample {
 
 	/**
 	 * @brief
-	 *
 	 */
 	class FVDECLSPEC Camera : public Frustum {
+	  public:
+		enum ClearMode {
+			DontClear = (1 << 0), /*	*/
+			Clear = (1 << 1),	  /*	*/
+			SkyBox = (1 << 2)	  /*	*/
+		};
+
+		enum class CameraProjectionMode { Orthographic, Perspective, EquirecTangular };
 
 	  public:
 		Camera() noexcept;
 
 		void calcFrustumPlanes(const glm::vec3 &position, const glm::vec3 &look_forward, const glm::vec3 &up,
-							   const glm::vec3 &right) override;
+							   const glm::vec3 &right) noexcept override;
 
 		void setAspect(const float aspect) noexcept;
 		float getAspect() const noexcept;
@@ -53,14 +58,14 @@ namespace glsample {
 					 const float far) noexcept;
 
 		const glm::mat4 &getProjectionMatrix() const noexcept;
+		glm::mat4 getProjectionMatrix() noexcept;
 
-		// TODO: Refractor
-		enum class CameraProjectionMode { Orthographic, Perspective, EquirecTangular };
-		// TODO: Refractor
 		void setProjectionMode(const CameraProjectionMode newMode);
 		CameraProjectionMode getProjectionMode() const noexcept;
 
 		/*	*/
+	  public:
+		NodeType getNodeType() const noexcept override { return NodeType::Camera; }
 
 	  protected:
 		void updateProjectionMatrix() noexcept;

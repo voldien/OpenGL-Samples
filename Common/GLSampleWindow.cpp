@@ -28,6 +28,7 @@
 #include "SDL_scancode.h"
 #include "SDL_video.h"
 #include "SampleHelper.h"
+#include "Util/ImGuiUtil.h"
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include "spdlog/common.h"
@@ -53,47 +54,6 @@ using namespace glsample;
 
 static unsigned int pboBuffer;
 
-template <typename T>
-void enumComboBox(const char *lable, const T currentSelected, const size_t maxEnums,
-				  std::function<void(const T selected)> onSelected) {
-
-	const int item_selected_idx = (int)currentSelected;
-
-	std::string combo_preview_value = std::string(magic_enum::enum_name(currentSelected));
-
-	ImGuiComboFlags flags = 0;
-	if (ImGui::BeginCombo(lable, combo_preview_value.c_str(), flags)) {
-		for (size_t nth_enum = 0; nth_enum < maxEnums; nth_enum++) {
-			const bool is_selected = (item_selected_idx == nth_enum);
-
-			if (ImGui::Selectable(magic_enum::enum_name((T)nth_enum).data(), is_selected)) {
-				onSelected((T)nth_enum);
-			}
-
-			if (is_selected) {
-				ImGui::SetItemDefaultFocus();
-			}
-		}
-		ImGui::EndCombo();
-	}
-}
-
-/*	*/
-template <typename T, size_t n> struct plot_graph_t {
-	/*	*/
-	std::array<T, n> data{};
-	size_t offset = 0;
-};
-using PlotGraph = plot_graph_t<float, 512>;
-
-template <typename T> extern void setNext(PlotGraph &plot, const T &value) {
-	plot.data[plot.offset] = value;
-	plot.offset = Math::mod<size_t>(plot.offset + 1, plot.data.size());
-}
-
-template <typename T> extern T getLatest(const PlotGraph &plot) {
-	return plot.data[Math::mod<size_t>(plot.offset - 1, plot.data.size())];
-}
 
 // TODO: relocate
 class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {
@@ -1058,8 +1018,9 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 			.height = framebuffer_Height,
 			.depth = 1,
 			.graphicFormat = internal_depth_format,
-			.nrSamples = multi_sample_count,
 			.numlevel = 1,
+			.nrSamples = multi_sample_count,
+
 		};
 		CommonUtil::updateFrameBuffer(this->MMSAFrameBuffer.get(),
 									  {{
@@ -1067,8 +1028,8 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										  .height = framebuffer_Height,
 										  .depth = 1,
 										  .graphicFormat = internal_color_format,
-										  .nrSamples = multi_sample_count,
 										  .numlevel = 1,
+										  .nrSamples = multi_sample_count,
 
 									  }},
 									  &depthStencil);
@@ -1088,16 +1049,8 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .height = framebuffer_Height,
 										   .depth = 1,
 										   .graphicFormat = internal_color_format,
-										   .nrSamples = 1,
 										   .numlevel = 4,
-									   },
-									   {
-										   .width = framebuffer_Width,
-										   .height = framebuffer_Height,
-										   .depth = 1,
-										   .graphicFormat = internal_color_format,
 										   .nrSamples = 1,
-										   .numlevel = 4,
 
 									   },
 									   {
@@ -1105,8 +1058,18 @@ void GLSampleWindow::updateDefaultFramebuffer() {
 										   .height = framebuffer_Height,
 										   .depth = 1,
 										   .graphicFormat = internal_color_format,
-										   .nrSamples = 1,
 										   .numlevel = 4,
+										   .nrSamples = 1,
+
+									   },
+									   {
+										   .width = framebuffer_Width,
+										   .height = framebuffer_Height,
+										   .depth = 1,
+										   .graphicFormat = internal_color_format,
+										   .numlevel = 4,
+										   .nrSamples = 1,
+
 									   }},
 									  &depthStencil);
 	}
