@@ -90,7 +90,7 @@ namespace glsample {
 		unsigned vao{};
 		MeshObject plane;
 
-		/*	Audio.	*/ // TODO fix
+		/*	Audio.	*/
 		fragcore::AudioClip *clip{};
 		fragcore::AudioListener *listener{};
 		fragcore::AudioSource *audioSource{};

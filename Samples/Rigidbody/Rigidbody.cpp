@@ -437,8 +437,8 @@ namespace glsample {
 
 				glUniformMatrix4fv(glGetUniformLocation(this->hyperplane_program, "ubo.viewProj"), 1, GL_FALSE,
 								   &(this->uniformStageBuffer.proj * this->uniformStageBuffer.view)[0][0]);
-				const glm::vec4 hyerplane = glm::vec4(0, 1, 0, -15); // TODO: copy from the rigidbody plane.
-				glUniform4fv(glGetUniformLocation(this->hyperplane_program, "ubo.normalDistance"), 1, &hyerplane[0]);
+				const glm::vec4 hyperplane = glm::vec4(0, 1, 0, -15); 
+				glUniform4fv(glGetUniformLocation(this->hyperplane_program, "ubo.normalDistance"), 1, &hyperplane[0]);
 
 				glBindVertexArray(this->hyerplane.vao);
 				glDrawArraysInstanced(GL_POINTS, 0, 1, 1);

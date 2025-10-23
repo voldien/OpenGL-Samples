@@ -391,6 +391,7 @@ class FVDECLSPEC ModelImporter {
 
 	/*	Nodes.	*/
 	std::vector<NodeObject> nodePool;
+	size_t nrNodesInPool = 0;
 	std::vector<NodeObject *> nodeReferences;
 	std::map<std::string, NodeObject *> nodeByName;
 

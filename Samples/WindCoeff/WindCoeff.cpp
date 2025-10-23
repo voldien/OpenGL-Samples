@@ -115,12 +115,11 @@ namespace glsample {
 				ImGui::DragFloat3("Offset Position", &offsetPosition[0]);
 				ImGui::DragFloat3("Scale Factor", &scaleFactor[0]);
 
-				/*	*/
+				/*	TODO: Improve volume equation*/
 				const glm::vec3 volume = bounding_box_size;
-
 				const float top_area = volume.x * volume.z;
 				const float front_area = volume.x * volume.y;
-				const float side_area = volume.z * volume.y; // TODO: improve
+				const float side_area = volume.z * volume.y;
 
 				const glm::vec3 area_vector(front_area, top_area, side_area);
 				const glm::vec3 view_area = area_vector * glm::abs(this->getRefSample().camera.getLookDirection());

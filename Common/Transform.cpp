@@ -21,10 +21,7 @@ template <> TransformGLM::Transform(const glm::mat4x4 &transform) {}
 template <> TransformGLM::Transform(const glm::mat3x3 &transform) {}
 
 template <> TransformGLM::Transform(const glm::mat3x3 &basis, const glm::vec3 &c) {}
-
-// template <>
-// TransformGLM::Transform(const TransformGLM &other) : position(other.position), quat(other.quat), scale(other.scale)
-// {}
+ 
 
 template <> TransformGLM &TransformGLM::operator=(const TransformGLM &other) {
 	this->position = other.position;

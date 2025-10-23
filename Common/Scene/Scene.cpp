@@ -515,8 +515,8 @@ namespace glsample {
 				}
 			}
 
-			/*	*/
-			#pragma omp single
+/*	*/
+#pragma omp single
 			for (size_t i = 0; i < objects.size(); i++) {
 				this->visableNodes.insert(this->visableNodes.end(), objects[i].begin(), objects[i].end());
 			}
@@ -565,6 +565,9 @@ namespace glsample {
 		}
 
 		this->getRenderingSettings().skybox.render(*camera);
+
+		glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Reflection);
+		glBindTexture(GL_TEXTURE_2D, this->getRenderingSettings().skybox.getTexture());
 
 		/*	*/
 		this->render();
@@ -897,11 +900,6 @@ namespace glsample {
 		this->bindTexture(*material, TextureTypeBinding::Specular_Roughness);
 		this->bindTexture(*material, TextureTypeBinding::Metal);
 		// this->bindTexture(material, TextureType::Irradiance); //TODO: enable once material has been binded
-		// with irradiance texture
-		// this->bindTexture(*material, TextureTypeBinding::Reflection);
-
-		// glActiveTexture(GL_TEXTURE0 + TextureTypeBinding::Reflection);
-		// glBindTexture(GL_TEXTURE_2D, this->getRenderingSettings().skybox.getTexture()); // TODO: relocate
 
 		this->bindTexture(*material, TextureTypeBinding::DepthBuffer);
 	}

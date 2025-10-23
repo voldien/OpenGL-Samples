@@ -118,15 +118,9 @@ glm::mat4 Node::getLocalViewMatrix() const noexcept {
 	return localView;
 }
 
-glm::mat4 Node::getRotationMatrix() const noexcept {
-	// glm::quat rotation = glm::quatLookAt(glm::normalize(this->forward()), glm::normalize(this->up()));
-	return glm::toMat4(this->getRotation());
-}
+glm::mat4 Node::getRotationMatrix() const noexcept { return glm::toMat4(this->getRotation()); }
 
-glm::mat4 Node::getLocalRotationMatrix() const noexcept {
-	// glm::quat rotation = glm::quatLookAt(glm::normalize(this->forward()), glm::normalize(this->up()));
-	return glm::toMat4(this->getLocalRotation());
-}
+glm::mat4 Node::getLocalRotationMatrix() const noexcept { return glm::toMat4(this->getLocalRotation()); }
 
 glm::mat4 Node::getViewTranslationMatrix() const noexcept { return glm::translate(glm::mat4(1), -this->getPosition()); }
 
@@ -176,9 +170,9 @@ glm::vec3 Node::getLocalScale() const noexcept {
 	}
 	return this->getScale();
 }
+
 glm::quat Node::getLocalRotation() const noexcept {
 	Node *parent = this->parent();
-	// TODO: fix and verify.
 	if (parent) {
 		return parent->getRotation() * glm::inverse(getRotation());
 	}

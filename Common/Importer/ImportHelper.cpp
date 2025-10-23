@@ -126,7 +126,6 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tmp_ibo);
 		glBindBuffer(GL_ARRAY_BUFFER, tmp_vbo);
 
-		// TODO: based on conditions
 		/*	Vertex.	*/
 		glEnableVertexAttribArrayARB(AttributeMapping::Vertex);
 		glVertexAttribPointerARB(0, 3, GL_FLOAT, GL_FALSE, vertexStride,
@@ -258,7 +257,6 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 				/*	Convert BumpMap to NormalMap*/
 				if (!materials.empty() && materials[0]->heightbumpIndex == texture_index) {
 
-					// TODO: use gpu to convert image.
 					image = std::move(ImageUtil::convert2NormalMap(image, 3.5f));
 					materials[0]->heightbumpIndex = -1;
 					materials[0]->normalIndex = texture_index;
@@ -309,7 +307,7 @@ void ImportHelper::loadTextures(ModelImporter &modelLoader, std::vector<TextureA
 	}
 
 	std::cout << "Start Transfering ImageData to GPU" << std::endl;
-	
+
 #pragma omp master
 	for (size_t texture_index = 0; texture_index < images.size(); texture_index++) {
 

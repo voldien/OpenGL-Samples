@@ -285,16 +285,6 @@ void ModelImporter::initScene(const aiScene *scene) {
 		}
 	});
 
-	/*	*/
-	nodePool.resize(4096);
-
-	process_textures_thread.join();
-	process_light_camera_thread.join();
-
-	for (size_t i = 0; i < model_threads.size(); i++) {
-		model_threads[i].join();
-	}
-
 	std::thread process_material_thread([&]() {
 		/*	Require Texture Data has been loaded.	*/
 		if (scene->HasMaterials()) {
@@ -305,8 +295,29 @@ void ModelImporter::initScene(const aiScene *scene) {
 		}
 	});
 
+	size_t nrNodes = 0;
+	std::function<size_t(aiNode *)> calculateNumNodes;
 	/*	*/
-	this->nodeReferences.reserve(2048); // TODO: calculate.
+	calculateNumNodes = [&nrNodes, &calculateNumNodes](aiNode *currentNode) {
+		nrNodes++;
+		for (size_t i = 0; i < currentNode->mNumChildren; i++) {
+			calculateNumNodes(currentNode->mChildren[i]);
+		}
+		return nrNodes;
+	};
+	calculateNumNodes(scene->mRootNode);
+
+	process_textures_thread.join();
+	process_light_camera_thread.join();
+	process_material_thread.join();
+
+	for (size_t i = 0; i < model_threads.size(); i++) {
+		model_threads[i].join();
+	}
+
+	/*	*/
+	nodePool.resize(nrNodes);
+	this->nodeReferences.reserve(nrNodes);
 	this->initNodeRoot(scene->mRootNode, nullptr);
 
 	/*	*/
@@ -323,7 +334,6 @@ void ModelImporter::initScene(const aiScene *scene) {
 		}
 	});
 
-	process_material_thread.join();
 	process_bone_animation_thread.join();
 }
 
@@ -343,9 +353,8 @@ void ModelImporter::initNodeRoot(const aiNode *ai_node, NodeObject *parent) {
 		aiVector3f position, scale;
 		aiQuaternion rotation;
 
-		// TODO: fix pool for classes.
-		NodeObject *pobject = new NodeObject(); // nodePool.obtain();
-		//*pobject = NodeObject();
+		/*	Fetch node from pool.	*/
+		NodeObject *pobject = &nodePool[nrNodesInPool++];
 
 		/*	Assigned parent.	*/
 		if (parent) {

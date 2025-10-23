@@ -170,7 +170,6 @@ namespace glsample {
 				ImGui::Checkbox("WireFrame", &this->showWireFrame);
 				ImGui::Checkbox("Use MistFog", &this->useMistFogPost);
 
-				// TODO: relocate for reuse.
 				drawCameraController(this->getRefSample().camera);
 			}
 

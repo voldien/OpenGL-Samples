@@ -33,7 +33,7 @@ namespace glsample {
 		/*	Create uniform buffer.	*/
 		glGenBuffers(1, &this->uniform_buffer);
 		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
-		glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignSize * this->nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, this->uniformAlignSize * glsample::Skybox::nrUniformBuffer, nullptr, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		/*	*/
@@ -71,7 +71,7 @@ namespace glsample {
 		/*	Update uniform values.	*/
 		glBindBuffer(GL_UNIFORM_BUFFER, this->uniform_buffer);
 		void *uniformPointer =
-			glMapBufferRange(GL_UNIFORM_BUFFER, ((frameIndex + 0) % this->nrUniformBuffer) * this->uniformAlignSize,
+			glMapBufferRange(GL_UNIFORM_BUFFER, ((frameIndex + 0) % glsample::Skybox::nrUniformBuffer) * this->uniformAlignSize,
 							 this->uniformAlignSize, GL_MAP_WRITE_BIT);
 		memcpy(uniformPointer, &this->uniform_stage_buffer, sizeof(this->uniform_stage_buffer));
 		glUnmapBuffer(GL_UNIFORM_BUFFER);
@@ -79,7 +79,7 @@ namespace glsample {
 		{
 
 			glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-							  (frameIndex % this->nrUniformBuffer) * this->uniformAlignSize, this->uniformAlignSize);
+							  (frameIndex % glsample::Skybox::nrUniformBuffer) * this->uniformAlignSize, this->uniformAlignSize);
 
 			/*	Extract current state. to restore afterward rendered the skybox.	*/
 			GLint cullstate = 0, blend = 0, depth_test = 0, depth_func = 0, cull_face_mode = 0;
@@ -152,7 +152,7 @@ namespace glsample {
 			glCullFace(cull_face_mode);
 		}
 
-		this->frameIndex = (this->frameIndex + 1) % this->nrUniformBuffer;
+		this->frameIndex = (this->frameIndex + 1) % glsample::Skybox::nrUniformBuffer;
 	}
 
 	void Skybox::renderImGUI() {

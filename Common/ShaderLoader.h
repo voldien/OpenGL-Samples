@@ -32,7 +32,6 @@ namespace glsample {
 									  const std::vector<uint32_t> *geometry = nullptr,
 									  const std::vector<uint32_t> *tesselationc = nullptr,
 									  const std::vector<uint32_t> *tesselatione = nullptr);
-
 		static int loadGraphicProgram(const std::vector<char> *vertex, const std::vector<char> *fragment,
 									  const std::vector<char> *geometry = nullptr,
 									  const std::vector<char> *tesselationc = nullptr,

@@ -1,4 +1,5 @@
 #include "GLDebugDrawer.h"
+#include "GLSampleSession.h"
 #include <ShaderCompiler.h>
 #include <ShaderLoader.h>
 
@@ -50,6 +51,7 @@ void GLDebugDrawManager::draw(Camera *camera, FrameBuffer *frame) {
 
 		const Queue<DebugDrawCommand *> &commandQueue = this->commands[i];
 		const size_t nrCommands = commandQueue.getSize();
+
 		const MeshObject &mesh = this->debugGeometrys[i];
 
 		/*	Bind Uniform Data.	*/

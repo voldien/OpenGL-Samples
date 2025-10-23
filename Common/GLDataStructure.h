@@ -1,8 +1,22 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2025 Valdemar Lindberg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
 #pragma once
 #include "Math3D/LinAlg.h"
 #include "RenderDesc.h"
-#include "SampleHelper.h"
-#include "Scene/CameraController.h"
+#include "Scene/Camera.h"
 #include "Scene/RenderQueue.h"
 #include <glm/fwd.hpp>
 #include <glm/matrix.hpp>
@@ -46,13 +60,13 @@ namespace glsample {
 	using GraphicShaderSettings = struct graphic_shader_settings_t {	 // Property Maybe ?
 		fragcore::BlendEqu blend_equ = fragcore::BlendEqu::NoEqu;		 /*	*/
 		fragcore::BlendFunc blend_color_func = fragcore::BlendFunc::One; /*	*/
-		CullingMode cullingMode = CullingMode::Back;
-		DepthFunc DepthFunc = DepthFunc::Less;
+		fragcore::CullingMode cullingMode = fragcore::CullingMode::Back;
+		fragcore::DepthFunc DepthFunc = fragcore::DepthFunc::Less;
 		bool DepthWrite{};
 		RenderQueue queue;
-		Primitive primitiveMode;
+		fragcore::Primitive primitiveMode;
 
-		FillMode fillMode;
+		fragcore::FillMode fillMode;
 
 		float clipping = 1;
 	};
@@ -130,28 +144,6 @@ namespace glsample {
 			this->viewProj = this->proj * this->view;
 			this->viewProjInv = glm::inverse(this->viewProj);
 
-			return *this;
-		}
-
-		camera_instance_data_t &operator=(CameraController &camera) {
-			//*this = camera.as<Camera<float>>();
-
-			// TODO: reuse function above
-			this->near = camera.getNear();
-			this->far = camera.getFar();
-			this->proj = camera.getProjectionMatrix();
-			this->view = camera.getViewMatrix();
-
-			this->inverseProj = glm::inverse(this->proj);
-			this->position = glm::vec4(camera.getPosition(), 0);
-
-			this->viewDir = glm::vec4(camera.getLookDirection(), 0);
-
-			this->viewInv = glm::inverse(this->view);
-
-			this->viewRot = camera.getRotationMatrix();
-			this->viewProj = this->proj * this->view;
-			this->viewProjInv = glm::inverse(this->viewProj);
 			return *this;
 		}
 

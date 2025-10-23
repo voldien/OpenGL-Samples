@@ -417,7 +417,6 @@ namespace glsample {
 
 			if (this->vectorFieldSettingComponent->requestRest) {
 
-				// TODO: for each particle buffer.
 				const uint nrWorkGroupsX = getWorkGroupSize(this->localWorkGroupSize[0]);
 
 				/*	Compute.	*/

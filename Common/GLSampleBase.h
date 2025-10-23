@@ -21,7 +21,7 @@
 #include "cxxopts.hpp"
 #include <string>
 
-
+/*	*/
 class FVDECLSPEC GLSampleBase : public nekomimi::MIMIWindow {
   public:
 	GLSampleBase();

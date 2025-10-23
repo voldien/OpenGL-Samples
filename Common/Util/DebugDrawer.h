@@ -15,11 +15,9 @@
  */
 #pragma once
 
-#include "Common.h"
 #include "DataStructure/StackBufferedAllocator.h"
 #include "SampleHelper.h"
 #include "Scene/Camera.h"
-#include "Scene/Material.h"
 #include <DataStructure/Queue.h>
 #include <Math3D/OBB.h>
 
@@ -64,11 +62,11 @@ namespace glsample {
 		enum class DrawType { LINE, CROSS, SPHERE, CIRCLE, TRIANGLE, AABB, OBB, MAX_DRAW_TYPE };
 
 		using DebugDrawCommand = struct DebugDrawCommand_t {
-			DrawType type;		   /*  */
-			bool depthEnabled{};   /*  */
-			float timeRemaining{}; /*  */
-			float invokeTime{};	   /*  */
-			glm::vec4 color;	   /*	Common Color attribute.	*/
+			DrawType type;					/*  */
+			bool depthEnabled = false;		/*  */
+			float timeRemaining = 0;		/*  */
+			float invokeTime = 0;			/*  */
+			glm::vec4 color = glm::vec4(1); /*	Common Color attribute.	*/
 
 			union Command {
 				struct {
@@ -115,6 +113,7 @@ namespace glsample {
 		};
 
 		DebugDrawCommand *allocCommand();
+		size_t getNrAllocCommands() const noexcept { return this->nrAlloc; }
 
 		using DebugData = struct debug_data_t {
 			glm::mat4 model;
@@ -122,7 +121,8 @@ namespace glsample {
 		};
 
 		/*	*/
-		std::map<unsigned int, Queue<DebugDrawCommand *>> commands; /*  */
+		std::map<unsigned int, Queue<DebugDrawCommand *>> commands; /*  Command Type, Command Queue.	*/
 		fragcore::StackBufferedAllocator stackAllocator;
+		size_t nrAlloc = 0;
 	};
 } // namespace glsample
