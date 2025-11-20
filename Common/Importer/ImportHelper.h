@@ -33,9 +33,6 @@ namespace glsample {
 	  public:
 		/**
 		 * @brief
-		 *
-		 * @param modelLoader
-		 * @param modelSet
 		 */
 		static void loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshObject> &modelSet);
 
@@ -44,9 +41,6 @@ namespace glsample {
 
 		/**
 		 * @brief
-		 *
-		 * @param modelLoader
-		 * @param textures
 		 */
 		static void loadTextures(ModelImporter &modelLoader, std::vector<TextureAssetObject> &textures);
 		// static void mergeGeometry(std::vector<ProceduralGeometry::Vertex> wireCubeVertices,
