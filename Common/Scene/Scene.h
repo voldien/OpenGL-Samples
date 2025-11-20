@@ -187,7 +187,8 @@ namespace glsample {
 
 		using FrustumSettings = struct _frustum_settings_t {
 			bool useFrustum;
-			FrustumCullingMode FrustumCullingMode = FrustumCullingMode::BoundingBoxAABB;
+			glsample::FrustumCullingMode FrustumCullingMode = glsample::FrustumCullingMode::BoundingBoxAABB;
+
 		};
 
 		unsigned int IrradianceTexture = 0;
