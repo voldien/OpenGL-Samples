@@ -131,6 +131,7 @@ namespace glsample {
 			GLint maxUniformBlockBufferSize = 0;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &minMapBufferSize);
 			glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockBufferSize);
+			maxUniformBlockBufferSize = Math::min(maxUniformBlockBufferSize, 1024 * 1024 * 16);
 
 			/*	*/
 			this->UBOStructure.common_size_align = Math::align<size_t>(sizeof(GlobalSceneStateData), minMapBufferSize);
@@ -179,11 +180,13 @@ namespace glsample {
 				this->useCoherent = true;
 
 				/*	Create and map buffer.	*/
-				glBufferStorage(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
+				FVALIDATE_GL_CALL(glBufferStorage(GL_UNIFORM_BUFFER, total_ubo_size, nullptr,
+												  GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT));
 				uint8_t *pdata =
 					(unsigned char *)glMapBufferRange(GL_UNIFORM_BUFFER, 0, total_ubo_size,
 													  GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT |
 														  GL_MAP_FLUSH_EXPLICIT_BIT); // GL_MAP_UNSYNCHRONIZED_BIT |
+				assert(pdata);
 
 				/*	*/
 				{
@@ -191,7 +194,7 @@ namespace glsample {
 					for (size_t index = 0; index < stageCameraCommonRobin.buffers.size(); index++) {
 
 						this->UBOStructure.common_offsets[index] =
-							this->UBOStructure.common_base_offset + this->UBOStructure.common_size_align * index;
+							this->UBOStructure.common_base_offset + (this->UBOStructure.common_size_align * index);
 						this->stageCameraCommonRobin.buffers[index] =
 							(GlobalSceneStateData *)&pdata[this->UBOStructure.common_size_align * index];
 
@@ -206,11 +209,13 @@ namespace glsample {
 					for (size_t index = 0; index < stageNodeDataRobin.buffers.size(); index++) {
 
 						this->UBOStructure.node_offsets[index] =
-							this->UBOStructure.node_base_offset + this->UBOStructure.node_size_align * index;
+							this->UBOStructure.node_base_offset + (this->UBOStructure.node_size_align * index);
 
 						this->UBOStructure.node_prev_offsets[index] =
 							this->UBOStructure.node_base_offset +
-							this->UBOStructure.node_size_align * ((index + 2) % stageCameraCommonRobin.buffers.size());
+							(this->UBOStructure.node_size_align *
+							 ((index + 2) % stageCameraCommonRobin.buffers.size()));
+						assert(this->UBOStructure.node_prev_offsets[index] < total_ubo_size);
 
 						this->stageNodeDataRobin.buffers[index] =
 							(NodeData *)&baseNode[index * this->UBOStructure.node_size_align];
@@ -224,7 +229,9 @@ namespace glsample {
 					for (size_t index = 0; index < stageCameraCommonRobin.buffers.size(); index++) {
 
 						this->UBOStructure.mateiral_offsets[index] =
-							this->UBOStructure.material_base_offset + this->UBOStructure.material_align_size * index;
+							this->UBOStructure.material_base_offset + (this->UBOStructure.material_align_size * index);
+						assert(this->UBOStructure.mateiral_offsets[index] < total_ubo_size);
+
 						this->stageMaterialDataRobin.buffers[index] =
 							(MaterialData *)&baseMaterial[index * this->UBOStructure.material_align_size];
 					}
@@ -237,7 +244,7 @@ namespace glsample {
 					for (size_t index = 0; index < stageLightData.buffers.size(); index++) {
 						/*	*/
 						this->UBOStructure.light_offsets[index] =
-							this->UBOStructure.light_base_offset + this->UBOStructure.light_align_size * index;
+							this->UBOStructure.light_base_offset + (this->UBOStructure.light_align_size * index);
 						/*	*/
 						this->stageLightData.buffers[index] =
 							(LightData *)&baseLight[this->UBOStructure.light_align_size * index];
@@ -247,9 +254,11 @@ namespace glsample {
 
 			} else {
 				/*	*/
+				this->useCoherent = false;
 
 				glBufferData(GL_UNIFORM_BUFFER, total_ubo_size, nullptr, GL_DYNAMIC_DRAW);
 				/*	TODO: create buffer on heap for staging.	*/
+				assert(false);
 			}
 
 			glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -952,7 +961,7 @@ namespace glsample {
 
 			/*	Material index, model matrix index.	*/
 			glVertexAttribI2i(8, material_index, currentNodeIndex % this->UBOStructure.max_node_per_binding);
-
+			
 			/*	*/
 			const size_t nrInstances = 1;
 			if (this->getRenderingSettings().enabledTessellation && material.isTessellationEnabled()) {

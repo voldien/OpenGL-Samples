@@ -3,6 +3,7 @@
 #include "SampleHelper.h"
 #include "Scene/CameraController.h"
 #include "Skybox.h"
+#include "Util/ProcessDataUtil.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -95,7 +96,7 @@ namespace glsample {
 		unsigned int uniform_buffer_binding = 0;
 		unsigned int uniform_buffer = 0;
 		static const size_t nrUniformBuffer = 3;
-		std::array<UBORange, nrUniformBuffer> UniformBuffers;
+		std::array<UBORange, nrUniformBuffer> UniformBuffers{};
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 		size_t oceanUniformSize = 0;
 
@@ -282,7 +283,7 @@ namespace glsample {
 			for (size_t i = 0; i < nrMaxWaves; i++) {
 
 				float waveLength = ((i * 2.2) + 1);
-				float waveAmplitude = 0.3f / (i + 1) * (0.05f + (nrMaxWaves - i) * 0.0008f);
+				float waveAmplitude = 0.3f / (i + 1) * (0.05f + ((nrMaxWaves - i) * 0.0008f));
 				float waveSpeed = (i + 1) * 0.1f;
 
 				this->uniform_stage_buffer.ocean.waves[i].waveAmpSpeedStepness =

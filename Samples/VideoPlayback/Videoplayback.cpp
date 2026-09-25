@@ -132,8 +132,8 @@ namespace glsample {
 
 		std::string error_message(const int result) {
 			char buf[AV_ERROR_MAX_STRING_SIZE];
-			av_strerror(result, buf, sizeof(buf));
-			return buf;
+			av_strerror(result, buf, sizeof(buf)); // TODO: error code check
+			return std::string(buf);
 		}
 
 		void Release() override {
@@ -243,7 +243,7 @@ namespace glsample {
 
 					this->audio_bit_rate = pAudioCodecParam->bit_rate;
 					this->audio_sample_rate = pAudioCodecParam->sample_rate;
-					this->audio_channels = pAudioCodecParam->channels;
+					this->audio_channels = pAudioCodecParam->ch_layout.nb_channels;
 				}
 
 				AVCodecParameters *pVideoCodecParam = video_st->codecpar;
@@ -503,9 +503,9 @@ namespace glsample {
 								this->frame->data[0] +
 								static_cast<ptrdiff_t>(this->frame->linesize[0] * (this->pVideoCtx->height - 1));
 							this->frame->data[1] =
-								this->frame->data[1] + this->frame->linesize[0] * this->pVideoCtx->height / 4 - 1;
+								this->frame->data[1] + (this->frame->linesize[0] * this->pVideoCtx->height / 4) - 1;
 							this->frame->data[2] =
-								this->frame->data[2] + this->frame->linesize[0] * this->pVideoCtx->height / 4 - 1;
+								this->frame->data[2] + (this->frame->linesize[0] * this->pVideoCtx->height / 4) - 1;
 
 							/*	*/
 							this->frame->linesize[0] *= -1;
@@ -570,7 +570,7 @@ namespace glsample {
 										(const uint8_t **)frame->extended_data, frame->nb_samples);
 
 						/*	*/
-						const size_t channels = 2;
+						const int channels = 2;
 						const int bufferSize =
 							av_get_bytes_per_sample((AVSampleFormat)this->frame->format) * channels * outputSamples;
 						alFormat = AL_FORMAT_STEREO_FLOAT32;

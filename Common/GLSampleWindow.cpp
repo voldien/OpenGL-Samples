@@ -30,7 +30,7 @@
 #include "SampleHelper.h"
 #include "Util/ImGuiUtil.h"
 #include "imgui.h"
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 #include "spdlog/common.h"
 #include "spdlog/logger.h"
 #include <GL/glew.h>
@@ -53,7 +53,6 @@
 using namespace glsample;
 
 static unsigned int pboBuffer;
-
 
 // TODO: relocate
 class SampleSettingComponent : public GLUIComponent<GLSampleWindow> {

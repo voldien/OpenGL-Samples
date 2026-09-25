@@ -47,7 +47,7 @@ namespace glsample {
 		unsigned int skybox_program{};
 
 		/*  Uniform buffers.    */
-		unsigned int uniform_buffer_binding = 0;
+
 		unsigned int uniform_buffer{};
 		static const size_t nrUniformBuffer = 3;
 		size_t skyboxUniformSize = 0;

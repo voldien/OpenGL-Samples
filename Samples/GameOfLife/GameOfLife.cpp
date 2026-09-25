@@ -94,7 +94,7 @@ namespace glsample {
 			for (size_t j = 0; j < this->gameoflife_texture_height; j++) {
 				for (size_t i = 0; i < this->gameoflife_texture_width; i++) {
 					/*	Random value between dead and alive cells.	*/
-					textureData[this->gameoflife_texture_width * j + i] = Random::range(0, 2);
+					textureData[(this->gameoflife_texture_width * j) + i] = Random::range(0, 2);
 				}
 			}
 

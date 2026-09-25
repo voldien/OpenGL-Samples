@@ -3,6 +3,7 @@
 #include "PostProcessing/MistPostProcessing.h"
 #include "SampleHelper.h"
 #include "UIComponent.h"
+#include "Util/ProcessDataUtil.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>

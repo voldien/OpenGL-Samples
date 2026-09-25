@@ -2,6 +2,7 @@
 #include "Scene/Scene.h"
 #include "Scene/SceneHelper.h"
 #include "Skybox.h"
+#include "Util/ProcessDataUtil.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -363,7 +364,7 @@ namespace glsample {
 
 					/*	*/
 					glBindBufferRange(GL_UNIFORM_BUFFER, this->uniform_buffer_binding, this->uniform_buffer,
-									  ((this->getFrameCount() % this->nrUniformBuffer) * this->nrPointLights + i) *
+									  (((this->getFrameCount() % this->nrUniformBuffer) * this->nrPointLights) + i) *
 										  this->uniformAlignBufferSize,
 									  this->uniformAlignBufferSize);
 

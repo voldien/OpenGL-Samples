@@ -32,7 +32,10 @@ namespace glsample {
 	template <typename T, unsigned int n> struct StageBuffer {
 	  public:
 		T getBase() const noexcept { return this->buffers[0]; }
-		T &getBuffer(const unsigned int index) noexcept { return this->buffers[index]; }
+		T &getBuffer(const unsigned int index) noexcept {
+			assert(index < buffers.size());
+			return this->buffers[index];
+		}
 		std::array<T, n> buffers;
 	};
 

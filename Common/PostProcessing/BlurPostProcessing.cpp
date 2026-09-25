@@ -3,7 +3,7 @@
 #include "SampleHelper.h"
 #include "ShaderLoader.h"
 #include "imgui.h"
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 #include <GL/glew.h>
 #include <IO/IOUtil.h>
 #include <Math/Math.h>

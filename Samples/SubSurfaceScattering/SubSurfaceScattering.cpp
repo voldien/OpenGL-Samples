@@ -1,3 +1,4 @@
+#include "Scene/CameraController.h"
 #include "imgui.h"
 #include <GL/glew.h>
 #include <GLSample.h>
@@ -24,18 +25,18 @@ namespace glsample {
 		}
 
 		struct uniform_buffer_block {
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
-			glm::mat4 modelView;
-			glm::mat4 modelViewProjection;
-			glm::mat4 lightModelProject;
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::mat4 modelView{};
+			glm::mat4 modelViewProjection{};
+			glm::mat4 lightModelProject{};
 
 			/*	light source.	*/
 			glm::vec4 direction = glm::vec4(1.0f / sqrt(2.0f), -1.0f / sqrt(2.0f), 0, 0.0f);
 			glm::vec4 lightColor = glm::vec4(0.5f, 0.5f, 0.6f, 1.0f);
 			glm::vec4 ambientColor = glm::vec4(0.05, 0.05, 0.05, 1.0f);
-			glm::vec4 cameraPosition;
+			glm::vec4 cameraPosition{};
 			glm::vec4 subsurfaceColor = glm::vec4(0.095, 0.012f, 0.012f, 1.0f);
 
 			/*	Settings.	*/
@@ -46,22 +47,22 @@ namespace glsample {
 		} uniform;
 
 		/*	*/
-		unsigned int shadowFramebuffer;
-		unsigned int shadowTexture;
+		unsigned int shadowFramebuffer{};
+		unsigned int shadowTexture{};
 		size_t shadowWidth = 4096;
 		size_t shadowHeight = 4096;
 
-		unsigned int diffuse_texture;
+		unsigned int diffuse_texture{};
 
 		std::vector<MeshObject> refObj;
 
 		/*	*/
-		unsigned int graphic_subsurface_scattering_program;
-		unsigned int shadow_program;
+		unsigned int graphic_subsurface_scattering_program{};
+		unsigned int shadow_program{};
 
 		/*	Uniform buffer.	*/
 		unsigned int uniform_buffer_binding = 0;
-		unsigned int uniform_buffer;
+		unsigned int uniform_buffer{};
 		const size_t nrUniformBuffer = 3;
 		size_t uniformAlignBufferSize = sizeof(uniform_buffer_block);
 

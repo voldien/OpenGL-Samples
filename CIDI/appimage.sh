@@ -32,7 +32,7 @@ cmake --build . --parallel $(nproc --all) --target install
 make install DESTDIR=$BUILD_INSTALL_DIR
 
 # Downad the tool requied ot setup
-wget -nc https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20250213-2/linuxdeploy-x86_64.AppImage
+wget -nc https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
 chmod +x linuxdeploy-x86_64.AppImage
 
 cp $ICON_FILEPATH $BUILD_INSTALL_DIR/opengl-sample.desktop

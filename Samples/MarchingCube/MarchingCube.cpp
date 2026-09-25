@@ -1,5 +1,6 @@
 #include "GLSampleSession.h"
 #include "SampleHelper.h"
+#include "Util/ProcessDataUtil.h"
 #include <DataStructure/QuadTree.h>
 #include <GL/glew.h>
 #include <GLSample.h>

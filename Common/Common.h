@@ -19,6 +19,7 @@
 #include "RenderDesc.h"
 #include "SampleHelper.h"
 #include <initializer_list>
+#include <libassert/assert.hpp>
 
 namespace glsample {
 
@@ -28,14 +29,18 @@ namespace glsample {
 		unsigned int vbo = 0;
 		unsigned int ibo = 0;
 
+		/*	*/
 		size_t nrIndicesElements = 0;
 		size_t nrVertices = 0;
 
+		/*	*/
 		size_t vertex_offset = 0;
 		size_t indices_offset = 0;
-
+		
+		/*	*/
 		unsigned int stride = 0;
 
+		/*	*/
 		fragcore::Primitive primitiveType = fragcore::Primitive::Triangles;
 
 		/*	*/

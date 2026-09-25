@@ -1,5 +1,6 @@
 #include "ImportHelper.h"
 #include "ModelImporter.h"
+#include "Scene/CameraController.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>

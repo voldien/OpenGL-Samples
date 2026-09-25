@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "GLSampleSession.h"
+#include "Scene/CameraController.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>

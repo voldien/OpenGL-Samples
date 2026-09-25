@@ -184,8 +184,8 @@ void MiscProcessingUtil::computeDiffuseIrradianceCubeMap(unsigned int env_textur
 	glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &height);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-	GLint currentDrawFBO;
-	GLint currentReadFBO;
+	GLint currentDrawFBO = 0;
+	GLint currentReadFBO = 0;
 	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentDrawFBO);
 	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &currentReadFBO);
 

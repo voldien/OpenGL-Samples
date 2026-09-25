@@ -4,6 +4,7 @@
 #include "Scene/SceneHelper.h"
 #include "Scene/Scene.h"
 #include "Skybox.h"
+#include "Util/ProcessDataUtil.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>

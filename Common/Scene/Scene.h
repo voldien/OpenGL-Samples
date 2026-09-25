@@ -135,7 +135,11 @@ namespace glsample {
 
 	  protected:
 		virtual void bindTexture(const Material &material, const TextureTypeBinding texture_type);
-		size_t getRoundRobinIndex() const noexcept { return this->renderPassFrameIndex % BufferRoundRobinSize; }
+		size_t getRoundRobinIndex() const noexcept {
+			// DEBUG_ASSERT(this->renderPassFrameIndex >= 0 && this->renderPassFrameIndex < BufferRoundRobinSize,
+			// 			 "Must Be Valid", this->renderPassFrameIndex);
+			return this->renderPassFrameIndex % BufferRoundRobinSize;
+		}
 
 	  protected:
 		DebugDrawManager *debugDrawer = nullptr;
@@ -188,7 +192,6 @@ namespace glsample {
 		using FrustumSettings = struct _frustum_settings_t {
 			bool useFrustum;
 			glsample::FrustumCullingMode FrustumCullingMode = glsample::FrustumCullingMode::BoundingBoxAABB;
-
 		};
 
 		unsigned int IrradianceTexture = 0;
@@ -343,15 +346,15 @@ namespace glsample {
 			unsigned int common_size_align = 0;
 			unsigned int common_size_total_align = 0;
 
-			/*	Buffer Binding Values.	*/
-			unsigned int binding_set = 0;
-			unsigned int common_buffer_binding = 1;
-			unsigned int node_buffer_binding = 2;
-			unsigned int node_prev_buffer_binding = 6;
-			unsigned int bone_buffer_binding = 3;
-			unsigned int bone_prev_buffer_binding = 7;
-			unsigned int material_buffer_binding = 4;
-			unsigned int light_buffer_binding = 5;
+			/*	Buffer Binding Values.	*/ // TODO: compute if needed....
+			unsigned int binding_set = 1;
+			unsigned int common_buffer_binding = 1;	   /*	*/
+			unsigned int node_buffer_binding = 2;	   /*	*/
+			unsigned int node_prev_buffer_binding = 6; /*	*/
+			unsigned int bone_buffer_binding = 3;	   /*	*/
+			unsigned int bone_prev_buffer_binding = 7; /*	*/
+			unsigned int material_buffer_binding = 4;  /*	*/
+			unsigned int light_buffer_binding = 5;	   /*	*/
 		};
 
 		UniformDataStructure UBOStructure;
@@ -361,6 +364,8 @@ namespace glsample {
 
 	  public:
 		std::array<unsigned int, 16> &getSamplers() noexcept { return this->samplers; }
+
+		const UniformDataStructure &getUBOStructure() const noexcept { return this->UBOStructure; }
 
 		const RenderingSettings &getRenderingSettings() const noexcept { return this->settings; }
 		RenderingSettings &getRenderingSettings() noexcept { return this->settings; }

@@ -5,6 +5,7 @@
 #include "Scene/Scene.h"
 #include "Scene/SceneHelper.h"
 #include "Skybox.h"
+#include "Util/ProcessDataUtil.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -71,7 +72,8 @@ namespace glsample {
 
 		/*	Setup shader.	*/
 		glUseProgram(this->physical_based_rendering_program);
-		int uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
+		int uniform_buffer_index =
+			glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformCommonBufferBlock");
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "DiffuseTexture"),
 					   (int)TextureTypeBinding::Diffuse);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "NormalTexture"),
@@ -86,11 +88,12 @@ namespace glsample {
 					   (int)TextureTypeBinding::PreFilter);
 		glUniform1iARB(glGetUniformLocation(this->physical_based_rendering_program, "BRDFLUT"),
 					   (int)TextureTypeBinding::BRDFLUT);
-		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
-							  this->uniform_buffer_binding);
-		uniform_buffer_index = glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformBufferBlock");
-		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
-							  this->uniform_buffer_binding);
+		// glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
+		// 					  this->uniform_buffer_binding);
+		// uniform_buffer_index =
+		// 	glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformCommonBufferBlock");
+		// glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
+		// 					  this->uniform_buffer_binding);
 		glUseProgram(0);
 
 		/*	load Textures	*/
@@ -114,6 +117,13 @@ namespace glsample {
 			this->scene->getMaterials()[i].program = physical_based_rendering_program;
 		}
 		this->scene->getRenderingSettings().skybox.init(skybox_texture, this->skybox_program);
+
+		glUseProgram(this->physical_based_rendering_program);
+		uniform_buffer_index =
+			glGetUniformBlockIndex(this->physical_based_rendering_program, "UniformCommonBufferBlock");
+		glUniformBlockBinding(this->physical_based_rendering_program, uniform_buffer_index,
+							  this->scene->getUBOStructure().common_buffer_binding);
+		glUseProgram(0);
 
 		/*	*/
 		CommonUtil::createFrameBuffer(&this->renderTarget, (unsigned int)GBuffer::Velocity + 1);

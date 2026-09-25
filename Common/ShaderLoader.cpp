@@ -28,8 +28,10 @@ int ShaderLoader::loadGraphicProgram(const fragcore::ShaderCompiler::CompilerCon
 
 	/*	Determine if SPIRV is supported.	*/
 	if (glSpecializeShaderARB) {
+		
 		/*	Load SPIRV.	*/
 	} else {
+
 	}
 
 	std::vector<char> vertex_source;

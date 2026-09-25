@@ -6,7 +6,7 @@
 #include <ImageLoader.h>
 #include <cmath>
 #include <limits>
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 using namespace fragcore;
 using namespace glsample;

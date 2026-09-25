@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "GLSampleSession.h"
 #include "Math3D/Color.h"
+#include "Util/ProcessDataUtil.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>

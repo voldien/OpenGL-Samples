@@ -30,7 +30,6 @@
 #include <cxxopts.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
-#include <utility>
 
 class FVDECLSPEC GLSampleWindow : public GLSampleBase {
   public:

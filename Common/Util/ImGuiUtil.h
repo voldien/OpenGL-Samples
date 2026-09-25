@@ -16,7 +16,7 @@
 #pragma once
 
 #include "imgui.h"
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 #include <functional>
 #include <string>
 

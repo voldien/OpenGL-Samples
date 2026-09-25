@@ -1,6 +1,7 @@
 #include "GLSampleWindow.h"
 #include "RenderDesc.h"
 #include "SampleHelper.h"
+#include "Scene/CameraController.h"
 #include "ShaderLoader.h"
 #include "imgui.h"
 #include <GL/glew.h>

@@ -6,7 +6,7 @@
 #include "Scene/RenderQueue.h"
 #include "Util/ImGuiUtil.h"
 #include "imgui.h"
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 #include <Math/Bitwise.h>
 
 using namespace glsample;
@@ -22,7 +22,7 @@ SceneSettingsUI::SceneSettingsUI(Scene &scene) : GLUIComponent<Scene>(scene, "Sc
 
 void SceneSettingsUI::draw() {
 
-	Scene &scene = getScene();
+	Scene &scene = this->getScene();
 
 	/*	*/
 	if (ImGui::CollapsingHeader("Scene Settings")) {
@@ -361,7 +361,7 @@ void SceneSettingsUI::draw() {
 
 				nodeActive(*camera);
 				float fov = camera->getFOVDegree();
-				if (ImGui::SliderFloat("FOV", &fov, 0, 90)) {
+				if (ImGui::SliderFloat("FOV", &fov, 0, 90.0f)) {
 					camera->setFOVDegree(fov);
 				}
 				float near = camera->getNear();

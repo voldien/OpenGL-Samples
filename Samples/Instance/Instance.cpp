@@ -1,3 +1,4 @@
+#include "Scene/CameraController.h"
 #include <GLSample.h>
 #include <GLSampleWindow.h>
 #include <ImageImport.h>

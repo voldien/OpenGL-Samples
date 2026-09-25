@@ -26,6 +26,7 @@ namespace glsample {
 
 	class Spatial {
 	  public:
+		virtual ~Spatial() = default;
 		bool isEnabled();
 
 		void setActive(const bool state) { this->active = state; }

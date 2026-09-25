@@ -95,8 +95,8 @@ void PBRScene::shadowPass() {
 	glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, debugDomain.size(), debugDomain.data());
 
 	/*	*/
-	GLint currentDrawFBO;
-	GLint currentReadFBO;
+	GLint currentDrawFBO = 0;
+	GLint currentReadFBO = 0;
 	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentDrawFBO);
 	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &currentReadFBO);
 

@@ -18,12 +18,9 @@
 #include "GLRendererInterface.h"
 #include "GLSampleSession.h"
 #include "GLSampleWindow.h"
-#include "GLUIComponent.h"
 #include "IO/FileSystem.h"
 #include "IO/IFileSystem.h"
-#include "Scene/CameraController.h"
-#include "Util/ProcessDataUtil.h"
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 #include <GLHelper.h>
 #include <GeometryUtil.h>
 #include <IO/IOUtil.h>

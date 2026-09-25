@@ -38,10 +38,12 @@ void ImportHelper::loadModelBuffer(ModelImporter &modelLoader, std::vector<MeshO
 	for (size_t model_index = 0; model_index < modelLoader.getModels().size(); model_index++) {
 		const ModelSystemObject &refModel = modelLoader.getModels()[model_index];
 
-		assert(refModel.vertexStride > 0);
+		if (refModel.vertexStride > 0) {
+			//ASSERT(refModel.vertexStride > 0, refModel.name);
 
-		map[refModel.vertexStride].push_back({&refModel, model_index});
-		indicesDataSize += refModel.indicesStride * refModel.nrIndices;
+			map[refModel.vertexStride].push_back({&refModel, model_index});
+			indicesDataSize += refModel.indicesStride * refModel.nrIndices;
+		}
 	}
 
 	{

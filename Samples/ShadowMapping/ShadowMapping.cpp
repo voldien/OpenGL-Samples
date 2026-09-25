@@ -3,6 +3,7 @@
 #include "SampleHelper.h"
 #include "Scene/SceneHelper.h"
 #include "Skybox.h"
+#include "Util/ProcessDataUtil.h"
 #include <GL/glew.h>
 #include <GLSample.h>
 #include <GLSampleWindow.h>
@@ -87,7 +88,7 @@ namespace glsample {
 		unsigned int uniform_shadow_buffer_binding = 0;
 		unsigned int uniform_graphic_buffer_binding = 0;
 		static const size_t nrUniformBuffer = 3;
-		std::array<UBORange, nrUniformBuffer> UniformBuffers;
+		std::array<UBORange, nrUniformBuffer> UniformBuffers{};
 		size_t uniformBufferSize = sizeof(uniform_buffer_block);
 		const int shadowBinding = TextureTypeBinding::DirectionalLightDepthBuffer;
 

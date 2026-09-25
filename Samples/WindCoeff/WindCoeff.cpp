@@ -1,7 +1,9 @@
 #include "Common.h"
+#include "GLUIComponent.h"
 #include "GraphicFormat.h"
 #include "SampleHelper.h"
 #include "Scene/Camera.h"
+#include "Scene/CameraController.h"
 #include "imgui.h"
 #include <GLSample.h>
 #include <GLSampleWindow.h>

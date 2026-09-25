@@ -1,5 +1,6 @@
 #include "GLSampleWindow.h"
 #include "Math/NormalDistribution.h"
+#include "Scene/CameraController.h"
 #include "ShaderLoader.h"
 #include "imgui.h"
 #include <GL/glew.h>
